@@ -16,9 +16,9 @@ const options = {
     cert: cert
 };
 
-const PORT_HTTP = process.env["PORT_http"];
-const PORT_HTTPS = process.env["PORT_https"];
-const HOST = process.env["HOST"];
+const PORT_HTTP: string | undefined = process.env["PORT_http"];
+const PORT_HTTPS: string | undefined = process.env["PORT_https"];
+const HOST: string | undefined = process.env["HOST"];
 
 //create express app
 const app: Express = express();
@@ -51,7 +51,7 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
 
 //run https server on port 4000
 https.createServer(options, app).listen(PORT_HTTPS, () => {
-    console.log(`Server is running on http://${HOST}:${PORT_HTTPS}`);
+    console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);
 });
 
 //run http server on port 3000
