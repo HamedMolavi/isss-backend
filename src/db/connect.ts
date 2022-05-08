@@ -7,6 +7,7 @@ function connect() {
         .connect(dbUri)
         .then(() => {
             console.info("Database connected");
+            mongoose.set('debug', true);
         })
         .catch((error) => {
             console.error("db error", error);

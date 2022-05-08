@@ -5,6 +5,9 @@ import https from 'https';
 import logger from 'morgan';
 import connect from "./db/connect";
 import dotenv from "dotenv";
+import cors from "cors";
+import bodyParser from "body-parser";
+import session from "express-session";
 
 //initial file .env
 dotenv.config();
@@ -17,11 +20,18 @@ const options = {
 };
 
 const PORT_HTTP = process.env["PORT_http"] as number | undefined;
-const PORT_HTTPS= process.env["PORT_https"] as number | undefined;
+const PORT_HTTPS = process.env["PORT_https"] as number | undefined;
 const HOST = process.env["HOST"] as string | undefined;
 
 //create express app
 const app: Express = express();
+
+//config server
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+app.use(session({ secret: 'passport-tutorial', cookie: { maxAge: 60000 }, resave: false, saveUninitialized: false }));
+
 
 //add logger
 app.use(logger('dev'));
@@ -46,7 +56,13 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
     //  else if (error.type == 'time-out') // arbitrary condition check
     //      res.status(408).send(error)
     //  else
-    res.status(500).send(error)
+    res.status(500);
+    res.json({
+        errors: {
+            message: error.message,
+            error: {},
+        },
+    });
 })
 
 //run https server on port 4000
