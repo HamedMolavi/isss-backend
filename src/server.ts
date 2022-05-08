@@ -16,9 +16,9 @@ const options = {
     cert: cert
 };
 
-const PORT_HTTP: string | undefined = process.env["PORT_http"];
-const PORT_HTTPS: string | undefined = process.env["PORT_https"];
-const HOST: string | undefined = process.env["HOST"];
+const PORT_HTTP = process.env["PORT_http"] as number | undefined;
+const PORT_HTTPS= process.env["PORT_https"] as number | undefined;
+const HOST = process.env["HOST"] as string | undefined;
 
 //create express app
 const app: Express = express();
