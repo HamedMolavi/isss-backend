@@ -2,6 +2,7 @@ import express, { Express, Request, Response } from 'express';
 import fs from 'fs';
 import http from 'http';
 import https from 'https';
+import logger from 'morgan';
 
 //read key and cert from files for certificate in https server
 const key = fs.readFileSync(__dirname + '/../tools/security/key.pem','utf-8');
@@ -13,6 +14,9 @@ const options = {
 
 //create express app
 const app: Express = express();
+
+//add logger
+app.use(logger('dev'));
 
 //create route for test
 app.get('/', (req: Request, res: Response) => {
