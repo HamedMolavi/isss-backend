@@ -6,10 +6,6 @@ app.get('/', (req: Request, res: Response) => {
     res.send('Application works!');
 });
 
-app.get('/github', (req: Request, res: Response) => {
-    res.send('Github works!');
-});
-
 app.listen(3000, () => {
     console.log('Application started on http://localhost:3000');
 });
