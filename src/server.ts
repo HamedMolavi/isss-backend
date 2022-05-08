@@ -8,6 +8,10 @@ import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
 import session from "express-session";
+import flash from 'connect-flash';
+import setUpPassport from "./tools/setuppassport";
+import routes from './routes/userRoutes';
+import passport from 'passport';
 
 //initial file .env
 dotenv.config();
@@ -30,8 +34,16 @@ const app: Express = express();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(session({ secret: 'passport-tutorial', cookie: { maxAge: 60000 }, resave: false, saveUninitialized: false }));
+app.use(session({
+    secret: "TKRv0IJs=HYqrvagQ#&!F!%V]Ww/4KiVs$s,<<MX",
+   resave: true,
+    saveUninitialized: true
+}));
 
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use(flash());
 
 //add logger
 app.use(logger('dev'));
@@ -39,10 +51,14 @@ app.use(logger('dev'));
 //connect to database
 connect();
 
+setUpPassport();
+
 //create route for test
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
     res.send('Application works!');
 });
+
+app.use(routes);
 
 //add endpoint for erorr handeling not found page or time-out or ....
 app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
