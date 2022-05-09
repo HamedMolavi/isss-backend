@@ -1,4 +1,3 @@
-import { expressjwt, Request as JWTRequest } from 'express-jwt';
 import { Request } from 'express';
 
 

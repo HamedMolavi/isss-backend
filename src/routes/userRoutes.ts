@@ -1,18 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import User from '../models/user';
 import passport from 'passport';
-
-enum roles {
-    admin = 1,
-    user = 2
-}
+import jwt from "jsonwebtoken";
 
 interface IUser {
     name: string;
     username: string;
     password: string;
     email: string;
-    role: roles;
+    role: string;
 };
 
 const router: Router = Router();
@@ -24,14 +20,9 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
     next();
 });
 
-router.post("/signup", function (req: Request, res: Response, next: NextFunction) {
-    let username: string = req.body.username;
-    let password: string = req.body.password;
-    let name: string = req.body.name;
-    let email: string = req.body.email;
-    let role: string = req.body.role;
+router.post("/register", function (req: Request, res: Response, next: NextFunction) {
 
-  //  const { user } = req.body;
+    const { username, password, name, email, role } = req.body;
 
     let newUser = new User();
 
@@ -47,22 +38,34 @@ router.post("/signup", function (req: Request, res: Response, next: NextFunction
             password: password,
             name: name,
             email: email,
-            roles : role
+            role: role
         });
+        newUser.token = newUser.generateJWT();
         newUser.save(next);
-        res.json({ user: newUser.toAuthJSON() })
+        res.json({ user: newUser });
     });
-    // passport.authenticate("login", () => {
-    //     res.json({ user: newUser.toAuthJSON() })
-    // });
 });
 
-router.get("/users/:username", function (req: Request, res: Response, next: NextFunction) {
-    User.findOne({ username: req.params.username }, function (err: Error, user: any) {
-        if (err) { return next(err); }
-        if (!user) { return next(404); }
-        res.render("profile", { user: user });
-    });
+router.get("/user/:username", function (req: Request, res: Response, next: NextFunction) {
+    const bearerHeader = req.headers.authorization;
+    console.log(bearerHeader);
+    let bearerToken: string;
+    if (bearerHeader) {
+        bearerToken = bearerHeader.split(' ')[1];
+        User.findOne({ username: req.params.username }, function (err: Error, user: any) {
+            if (err) { return next(err); }
+            if (!user) { return next(new Error("Not Found")); }
+            jwt.verify(bearerToken, user.token, () => {
+                if (err) {
+                    return res.json({ message: "Not Authorized" });
+                }
+                res.json({ user })
+            });
+        });
+    } else {
+        next(new Error("Not Authorized"));
+    }
+
 });
 
 router.post("/login", passport.authenticate("login", {
@@ -70,11 +73,6 @@ router.post("/login", passport.authenticate("login", {
     failureRedirect: "/login",
     failureFlash: true
 }));
-
-router.get("/logout", function (req: Request, res: Response) {
-    req.logOut();
-    res.redirect("/");
-});
 
 function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
     if (req.isAuthenticated()) {

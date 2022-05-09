@@ -7,17 +7,18 @@ import connect from "./db/connect";
 import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
 import session from "express-session";
 import flash from 'connect-flash';
 import setUpPassport from "./tools/setuppassport";
-import routes from './routes/userRoutes';
+import userRoutes from './routes/userRoutes';
 import passport from 'passport';
 
 //initial file .env
 dotenv.config();
 //read key and cert from files for certificate in https server
-const key = fs.readFileSync(__dirname + '/../tools/security/key.pem', 'utf-8');
-const cert = fs.readFileSync(__dirname + '/../tools/security/cert.pem', 'utf-8');
+const key = fs.readFileSync(__dirname + '/../sshconfig/security/key.pem', 'utf-8');
+const cert = fs.readFileSync(__dirname + '/../sshconfig/security/cert.pem', 'utf-8');
 const options = {
     key: key,
     cert: cert
@@ -29,14 +30,15 @@ const HOST = process.env["HOST"] as string | undefined;
 
 //create express app
 const app: Express = express();
-
+setUpPassport();
 //config server
 app.use(cors());
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(session({
     secret: "TKRv0IJs=HYqrvagQ#&!F!%V]Ww/4KiVs$s,<<MX",
-   resave: true,
+    resave: true,
     saveUninitialized: true
 }));
 
@@ -51,14 +53,12 @@ app.use(logger('dev'));
 //connect to database
 connect();
 
-setUpPassport();
-
 //create route for test
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
     res.send('Application works!');
 });
 
-app.use(routes);
+app.use(userRoutes);
 
 //add endpoint for erorr handeling not found page or time-out or ....
 app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
@@ -71,8 +71,16 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
 
     //  else if (error.type == 'time-out') // arbitrary condition check
     //      res.status(408).send(error)
-    //  else
-    res.status(500);
+    if (error.message == 'Not Found') {
+        res.status(404);
+    } else if (error.message == 'Unauthorized') {
+        res.status(401);
+    } else if (error.message == 'Not Authorized') {
+        res.status(403);
+    }
+    else {
+        res.status(500);
+    }
     res.json({
         errors: {
             message: error.message,
