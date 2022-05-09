@@ -18,6 +18,7 @@ const connect_flash_1 = __importDefault(require("connect-flash"));
 const setuppassport_1 = __importDefault(require("./tools/setuppassport"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const passport_1 = __importDefault(require("passport"));
+const errorHandler_1 = __importDefault(require("./error/errorHandler"));
 //initial file .env
 dotenv_1.default.config();
 //read key and cert from files for certificate in https server
@@ -54,35 +55,10 @@ app.use((0, morgan_1.default)('dev'));
 app.get('/', (req, res, next) => {
     res.send('Application works!');
 });
+//create route for user
 app.use(userRoutes_1.default);
-//add endpoint for erorr handeling not found page or time-out or ....
-app.use((error, req, res, next) => {
-    console.log("Error Handling Middleware called");
-    console.log('Path: ', req.path);
-    console.error('Error: ', error);
-    // if (error.type == 'redirect')
-    //     res.redirect('/error')
-    //  else if (error.type == 'time-out') // arbitrary condition check
-    //      res.status(408).send(error)
-    if (error.message == 'Not Found') {
-        res.status(404);
-    }
-    else if (error.message == 'Unauthorized') {
-        res.status(401);
-    }
-    else if (error.message == 'Not Authorized') {
-        res.status(403);
-    }
-    else {
-        res.status(500);
-    }
-    res.json({
-        errors: {
-            message: error.message,
-            error: {},
-        },
-    });
-});
+//add error handler
+app.use(errorHandler_1.default);
 //run https server on port 4000
 https_1.default.createServer(options, app).listen(PORT_HTTPS, () => {
     console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);

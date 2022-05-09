@@ -13,6 +13,7 @@ import flash from 'connect-flash';
 import setUpPassport from "./tools/setuppassport";
 import userRoutes from './routes/userRoutes';
 import passport from 'passport';
+import errorHandler from './error/errorHandler';
 
 //initial file .env
 dotenv.config();
@@ -30,6 +31,7 @@ const HOST = process.env["HOST"] as string | undefined;
 
 //create express app
 const app: Express = express();
+
 setUpPassport();
 //config server
 app.use(cors());
@@ -41,10 +43,8 @@ app.use(session({
     resave: true,
     saveUninitialized: true
 }));
-
 app.use(passport.initialize());
 app.use(passport.session());
-
 app.use(flash());
 
 //add logger
@@ -57,37 +57,10 @@ connect();
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
     res.send('Application works!');
 });
-
+//create route for user
 app.use(userRoutes);
-
-//add endpoint for erorr handeling not found page or time-out or ....
-app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
-    console.log("Error Handling Middleware called")
-    console.log('Path: ', req.path)
-    console.error('Error: ', error)
-
-    // if (error.type == 'redirect')
-    //     res.redirect('/error')
-
-    //  else if (error.type == 'time-out') // arbitrary condition check
-    //      res.status(408).send(error)
-    if (error.message == 'Not Found') {
-        res.status(404);
-    } else if (error.message == 'Unauthorized') {
-        res.status(401);
-    } else if (error.message == 'Not Authorized') {
-        res.status(403);
-    }
-    else {
-        res.status(500);
-    }
-    res.json({
-        errors: {
-            message: error.message,
-            error: {},
-        },
-    });
-})
+//add error handler
+app.use(errorHandler);
 
 //run https server on port 4000
 https.createServer(options, app).listen(PORT_HTTPS, () => {
