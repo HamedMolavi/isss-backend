@@ -35,7 +35,10 @@ router.post("/register", function (req, res, next) {
         });
         newUser.token = newUser.generateJWT();
         newUser.save(next);
-        res.json({ user: newUser });
+        res.status(201).json({
+            message: 'User created',
+            user: newUser
+        });
     });
 });
 router.get("/user/:username", function (req, res, next) {
@@ -55,7 +58,10 @@ router.get("/user/:username", function (req, res, next) {
                 if (err) {
                     return res.json({ message: "Not Authorized" });
                 }
-                res.json({ user });
+                res.status(200).json({
+                    message: 'Success',
+                    user: user
+                });
             });
         });
     }

@@ -15,6 +15,8 @@ import userRoutes from './routes/userRoutes';
 import passport from 'passport';
 import errorHandler from './error/errorHandler';
 
+
+
 //initial file .env
 dotenv.config();
 //read key and cert from files for certificate in https server
@@ -25,6 +27,7 @@ const options = {
     cert: cert
 };
 
+export const dbUri = process.env["MONGODB_URL"] as string;
 const PORT_HTTP = process.env["PORT_http"] as number | undefined;
 const PORT_HTTPS = process.env["PORT_https"] as number | undefined;
 const HOST = process.env["HOST"] as string | undefined;

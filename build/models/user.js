@@ -22,15 +22,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -51,19 +42,42 @@ const UserSchema = new mongoose_1.Schema({
     token: { type: String, required: true },
 });
 //for encrypt password
-UserSchema.methods.setPassword = function (password) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const hash = yield bcrypt_1.default.hash(password, 10);
-        this.hashedPassword = hash;
+const SALT_FACTOR = 10;
+UserSchema.pre("save", function (done) {
+    var user = this;
+    if (!user.isModified("password")) {
+        return done();
+    }
+    bcrypt_1.default.genSalt(SALT_FACTOR, function (err, salt) {
+        if (err) {
+            return done(err);
+        }
+        bcrypt_1.default.hash(user.password, salt, function (err, hashedPassword) {
+            if (err) {
+                return done(err);
+            }
+            user.password = hashedPassword;
+            done();
+        });
     });
-};
+});
 //check password
-UserSchema.methods.checkPassword = function (password) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const result = yield bcrypt_1.default.compare(password, this.hashedPassword);
-        return result;
+UserSchema.methods.checkPassword = function (guess, done) {
+    console.log(typeof guess);
+    bcrypt_1.default.compare(guess, this.password, function (err, isMatch) {
+        done(err, isMatch);
     });
 };
+//for encrypt password
+// UserSchema.methods.setPassword = async function (password: string) {
+//     const hash = await bcrypt.hash(password, 10);
+//     this.hashedPassword = hash;
+// };
+// //check password
+// UserSchema.methods.checkPassword = async function (password: string) {
+//     const result = await bcrypt.compare(password, this.hashedPassword);
+//     return result;
+// };
 //find user by username
 UserSchema.statics.findByUsername = function (username) {
     return this.findOne({ username });

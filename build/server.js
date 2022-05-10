@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.dbUri = void 0;
 const express_1 = __importDefault(require("express"));
 const fs_1 = __importDefault(require("fs"));
 const http_1 = __importDefault(require("http"));
@@ -22,12 +23,13 @@ const errorHandler_1 = __importDefault(require("./error/errorHandler"));
 //initial file .env
 dotenv_1.default.config();
 //read key and cert from files for certificate in https server
-const key = fs_1.default.readFileSync(__dirname + '/../sshconfig/security/key.pem', 'utf-8');
-const cert = fs_1.default.readFileSync(__dirname + '/../sshconfig/security/cert.pem', 'utf-8');
+const key = fs_1.default.readFileSync(__dirname + '/../security/sslconfig/key.pem', 'utf-8');
+const cert = fs_1.default.readFileSync(__dirname + '/../security/sslconfig/cert.pem', 'utf-8');
 const options = {
     key: key,
     cert: cert
 };
+exports.dbUri = process.env["MONGODB_URL"];
 const PORT_HTTP = process.env["PORT_http"];
 const PORT_HTTPS = process.env["PORT_https"];
 const HOST = process.env["HOST"];
