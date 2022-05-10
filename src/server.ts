@@ -18,8 +18,8 @@ import errorHandler from './error/errorHandler';
 //initial file .env
 dotenv.config();
 //read key and cert from files for certificate in https server
-const key = fs.readFileSync(__dirname + '/../sshconfig/security/key.pem', 'utf-8');
-const cert = fs.readFileSync(__dirname + '/../sshconfig/security/cert.pem', 'utf-8');
+const key = fs.readFileSync(__dirname + '/../security/sslconfig/key.pem', 'utf-8');
+const cert = fs.readFileSync(__dirname + '/../security/sslconfig/cert.pem', 'utf-8');
 const options = {
     key: key,
     cert: cert
