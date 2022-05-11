@@ -1,22 +1,32 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
+import mongoose from 'mongoose';
+import { dbUri } from '../../server';
 
-describe('Our server', function () {
+
+
+describe('server run and crud user', function () {
+    let response: any;
     //test default rote for server is running
     it('should return a 200 response', function (done) {
         request(app)
             .get('/')
-            .expect(200, done);
+            .expect(200, function (err, res) {
+                if (err) { return done(err); }
+                expect(res.body).to.equal("Application works!");
+            });
     });
-    let token = '';
-    let response: any;
     //Called once before any of the tests in this block begin.
     before(function (done) {
-
-        done();
+        //connect to DB
+        mongoose.connect(dbUri);
+        //listen for connection events
+        mongoose.connection.once('connected', () => {
+            mongoose.connection.db.dropDatabase();
+            done();
+        });
     });
-
     //test route for register new user in DB
     it('should send back a JSON object with user for create new user', function (done) {
         request(app)
@@ -43,9 +53,10 @@ describe('Our server', function () {
             });
     });
 
+
     //test route for get user by username from DB
     it('should send back a JSON object for get user with username', function (done) {
-        //if user already exists in DB create new response
+        // //if user already exists in DB create new response
         if (response === null) {
             response = {
                 message: 'Success',
@@ -61,7 +72,8 @@ describe('Our server', function () {
                 }
             }
         }
-        
+        console.log(response.user.username);
+        //test route for get user in DB
         request(app)
             .get(`/${response.user.username}`)
             .set('Content-Type', 'application/json')
@@ -74,9 +86,48 @@ describe('Our server', function () {
                 expect(user.name).to.equal(response.user.name);
                 expect(user.email).to.equal(response.user.email);
                 expect(user.username).to.equal(response.user.username);
-                expect(user.password).to.equal(response.user.password);
                 expect(user.role).to.equal(response.user.role);
-                expect(user.token).to.equal(response.user.token);
+                // Done
+                done();
+            });
+    });
+
+
+    //test route for edite user in DB
+    it('should send back a JSON object with id for edit user', function (done) {
+        //if user already exists in DB create new response
+        if (response === null) {
+            response = {
+                message: 'Success',
+                user: {
+                    _id: '627b4edfd9b05e02fa891ff1',
+                    name: 'jack',
+                    email: 'john@test.com',
+                    username: 'john',
+                    password: '$2b$10$GU7HhbCLEuzA5hMoQ6FJ5ukEd4PtHnLje.C0PVlZzFQjyreeSSTxW',
+                    role: 'admin',
+                    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyN2I0ZWRmZDliMDVlMDJmYTg5MWZmMSIsImVtYWlsIjoiam9obkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTY1NDg0MDI4NywiaWF0IjoxNjUyMjQ4Mjg3fQ.WwslwDuxnBMhh9w50r4PYa39P9FewCeJxbkcKhmkW_4',
+                    __v: 0
+                }
+            }
+        }
+        request(app)
+            .put(`/${response.user.id}`)
+            .set('Content-Type', 'application/json')
+            .send({
+                name: 'jack',
+                email: 'jack@test.com',
+            })
+            .set('Authorization', `Bearer ${response.user.token}`)
+            .expect('Content-Type', /json/)
+            .expect(201, function (err, res) {
+                if (err) { return done(err); }
+                let user = res.body.user;
+                expect(user.id).to.equal(response.user.id);
+                expect(user.name).to.equal(response.user.name);
+                expect(user.email).to.equal(response.user.email);
+                expect(user.username).to.equal(response.user.username);
+                expect(user.role).to.equal(response.user.role);
                 // Done
                 done();
             });

@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import User from '../models/user';
 import passport from 'passport';
-import jwt from "jsonwebtoken";
+import { authorize, getToken } from "../tools/authentication";
 
 interface IUser {
     name: string;
@@ -26,7 +26,13 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("/user", function (req: Request, res: Response, next: NextFunction) {
     //get jason from body request
     const { username, password, name, email, role } = req.body;
-
+    //get token from header request
+    let token = getToken(req, next) as string;
+    //verify token
+    let critential = authorize(token) as any;
+    if (critential.role == "admin") {
+        return next({ message: "Unauthorized" });
+    }
     let newUser = new User();
     //query for save new user in DB
     User.findOne({ username: username }, function (err: Error, user: IUser) {
@@ -43,6 +49,7 @@ router.post("/user", function (req: Request, res: Response, next: NextFunction) 
             email: email,
             role: role
         });
+        //genrate token for new user
         newUser.token = newUser.generateJWT();
         newUser.save(next);
         return res.status(201).json({
@@ -55,30 +62,22 @@ router.post("/user", function (req: Request, res: Response, next: NextFunction) 
 //route for get user by username from DB 
 router.get("/:username", function (req: Request, res: Response, next: NextFunction) {
     //get token from header request
-    const bearerHeader = req.headers.authorization;
-    let bearerToken: string;
-    if (bearerHeader) {
-        bearerToken = bearerHeader.split(' ')[1];
-
-        //query for get user by username from DB
-        User.findOne({ username: req.params.username }, function (err: Error, user: any) {
-            if (err) { return next(err); }
-            if (!user) { return next(new Error("Not Found")); }
-            //check token with user
-            jwt.verify(bearerToken, user.token, () => {
-                if (err) {
-                    return res.json({ message: "Not Authorized" });
-                }
-                return res.status(200).json({
-                    message: 'Success',
-                    user: user
-                });
-            });
-        });
-    } else {
-        next(new Error("Not Authorized"));
+    let token = getToken(req, next) as string;
+    //verify token
+    let critential = authorize(token) as any;
+    if (critential.role == "admin") {
+        return next({ message: "Unauthorized" });
     }
-
+    //query for get user by username from DB
+    User.findOne({ username: req.params.username }, function (err: Error, user: any) {
+        if (err) { return next(err); }
+        if (!user) { return next(new Error("Not Found")); }
+        //check token with user     
+        return res.status(200).json({
+            message: 'Success',
+            user: user
+        });
+    });
 });
 
 //add route for edit user
@@ -87,39 +86,32 @@ router.put("/:id", function (req: any, res: any, next: NextFunction) {
     // const { username, password, name, email, role } = req.body;
     const userBody = req.body;
     //get token from header request
-    const bearerHeader = req.headers.authorization;
-    let bearerToken: string;
-    if (bearerHeader) {
-        bearerToken = bearerHeader.split(' ')[1];
-        //query for get user by username from DB
-        User.findOne({ id: id }, function (err: Error, user: any) {
-            if (err) { return next(err); }
-            if (!user) { return next(new Error("Not Found")); }
-            //check token with user
-            jwt.verify(bearerToken, user.token, () => {
-                if (err) {
-                    return res.json({ message: "Not Authorized" });
-                }
-
-                let updateUser = new User({
-                    id : id,
-                    name : userBody.name ?? user.name,
-                    email : userBody.email ?? user.email,
-                    username : userBody.username ?? user.username,
-                    password : userBody.password ?? user.User.password,
-                    role : userBody.role ?? user.role,
-                    token : user.token
-                });
-                updateUser.set(next);
-                return res.status(201).json({
-                    message: 'User Edited',
-                    user: updateUser
-                });
-            });
-        });
-    } else {
-        next(new Error("Not Authorized"));
+    let token = getToken(req, next) as string;
+    //verify token
+    let critential = authorize(token) as any;
+    if (critential.role == "admin") {
+        return next({ message: "Unauthorized" });
     }
+    //query for get user by username from DB
+    User.findOne({ id: id }, function (err: Error, user: any) {
+        if (err) { return next(err); }
+        if (!user) { return next(new Error("Not Found")); }
+        //check token with user
+        let updateUser = new User({
+            id: id,
+            name: userBody.name ?? user.name,
+            email: userBody.email ?? user.email,
+            username: userBody.username ?? user.username,
+            password: userBody.password ?? user.User.password,
+            role: userBody.role ?? user.role,
+            token: user.token
+        });
+        updateUser.set(next);
+        return res.status(201).json({
+            message: 'User Edited',
+            user: updateUser
+        });
+    });
 });
 
 
@@ -128,30 +120,25 @@ router.delete("/:id", function (req: any, res: any, next: NextFunction) {
     let id = req.params.id;
 
     //get token from header request
-    const bearerHeader = req.headers.authorization;
-    let bearerToken: string;
-    if (bearerHeader) {
-        bearerToken = bearerHeader.split(' ')[1];
-        //query for get user by username from DB
-        User.findOne({ id: id }, function (err: Error, user: any) {
-            if (err) { return next(err); }
-            if (!user) { return next(new Error("Not Found")); }
-            //check token with user
-            jwt.verify(bearerToken, user.token, () => {
-                if (err) {
-                    return res.json({ message: "Not Authorized" });
-                }
+    let token = getToken(req, next) as string;
 
-                user.delete(next);
-                return res.status(201).json({
-                    message: 'User Deleted',
-                    user: {}
-                });
-            });
-        });
-    } else {
-        next(new Error("Not Authorized"));
+    let critential = authorize(token) as any;
+
+    if (critential.role == "admin") {
+        return next({ message: "Unauthorized" });
     }
+
+    //query for get user by username from DB
+    User.findOne({ id: id }, function (err: Error, user: any) {
+        if (err) { return next(err); }
+        if (!user) { return next(new Error("Not Found")); }
+        //check token with user
+        user.delete(next);
+        return res.status(201).json({
+            message: 'User Deleted',
+            user: {}
+        });
+    });
 });
 
 router.post("/login", passport.authenticate("login", {
@@ -168,6 +155,5 @@ function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
         res.redirect("/login");
     }
 }
-
 
 export default router;

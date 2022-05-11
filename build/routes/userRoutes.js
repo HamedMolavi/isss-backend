@@ -61,6 +61,7 @@ router.get("/:username", function (req, res, next) {
             if (!user) {
                 return next(new Error("Not Found"));
             }
+            //check token with user
             jsonwebtoken_1.default.verify(bearerToken, user.token, () => {
                 if (err) {
                     return res.json({ message: "Not Authorized" });
@@ -68,6 +69,84 @@ router.get("/:username", function (req, res, next) {
                 return res.status(200).json({
                     message: 'Success',
                     user: user
+                });
+            });
+        });
+    }
+    else {
+        next(new Error("Not Authorized"));
+    }
+});
+//add route for edit user
+router.put("/:id", function (req, res, next) {
+    let id = req.params.id;
+    // const { username, password, name, email, role } = req.body;
+    const userBody = req.body;
+    //get token from header request
+    const bearerHeader = req.headers.authorization;
+    let bearerToken;
+    if (bearerHeader) {
+        bearerToken = bearerHeader.split(' ')[1];
+        //query for get user by username from DB
+        user_1.default.findOne({ id: id }, function (err, user) {
+            if (err) {
+                return next(err);
+            }
+            if (!user) {
+                return next(new Error("Not Found"));
+            }
+            //check token with user
+            jsonwebtoken_1.default.verify(bearerToken, user.token, () => {
+                var _a, _b, _c, _d, _e;
+                if (err) {
+                    return res.json({ message: "Not Authorized" });
+                }
+                let updateUser = new user_1.default({
+                    id: id,
+                    name: (_a = userBody.name) !== null && _a !== void 0 ? _a : user.name,
+                    email: (_b = userBody.email) !== null && _b !== void 0 ? _b : user.email,
+                    username: (_c = userBody.username) !== null && _c !== void 0 ? _c : user.username,
+                    password: (_d = userBody.password) !== null && _d !== void 0 ? _d : user.User.password,
+                    role: (_e = userBody.role) !== null && _e !== void 0 ? _e : user.role,
+                    token: user.token
+                });
+                updateUser.set(next);
+                return res.status(201).json({
+                    message: 'User Edited',
+                    user: updateUser
+                });
+            });
+        });
+    }
+    else {
+        next(new Error("Not Authorized"));
+    }
+});
+//add route for delete user
+router.delete("/:id", function (req, res, next) {
+    let id = req.params.id;
+    //get token from header request
+    const bearerHeader = req.headers.authorization;
+    let bearerToken;
+    if (bearerHeader) {
+        bearerToken = bearerHeader.split(' ')[1];
+        //query for get user by username from DB
+        user_1.default.findOne({ id: id }, function (err, user) {
+            if (err) {
+                return next(err);
+            }
+            if (!user) {
+                return next(new Error("Not Found"));
+            }
+            //check token with user
+            jsonwebtoken_1.default.verify(bearerToken, user.token, () => {
+                if (err) {
+                    return res.json({ message: "Not Authorized" });
+                }
+                user.delete(next);
+                return res.status(201).json({
+                    message: 'User Deleted',
+                    user: {}
                 });
             });
         });
@@ -90,16 +169,4 @@ function ensureAuthenticated(req, res, next) {
         res.redirect("/login");
     }
 }
-router.put("/edit", ensureAuthenticated, function (req, res, next) {
-    req.user.displayName = req.body.displayname;
-    req.user.bio = req.body.bio;
-    req.user.save(function (err) {
-        if (err) {
-            next(err);
-            return;
-        }
-        req.flash("info", "Profile updated!");
-        res.redirect("/edit");
-    });
-});
 exports.default = router;

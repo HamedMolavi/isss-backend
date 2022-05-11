@@ -11,7 +11,7 @@ const errorHandler: ErrorRequestHandler = (error: Error, req: Request, res: Resp
         res.status(404);
     } else if (error.message == 'Unauthorized') {
         res.status(401);
-    } else if (error.message == 'Not Authorized') {
+    } else if (error.message == 'Forbidden') {
         res.status(403);
     }
     else {
