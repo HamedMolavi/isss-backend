@@ -18,7 +18,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new user
-router.post("/register", function (req, res, next) {
+router.post("/user", function (req, res, next) {
     //get jason from body request
     const { username, password, name, email, role } = req.body;
     let newUser = new user_1.default();
@@ -47,7 +47,7 @@ router.post("/register", function (req, res, next) {
     });
 });
 //route for get user by username from DB 
-router.get("/user/:username", function (req, res, next) {
+router.get("/:username", function (req, res, next) {
     //get token from header request
     const bearerHeader = req.headers.authorization;
     let bearerToken;

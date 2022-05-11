@@ -22,7 +22,7 @@ describe('Our server', function () {
     //test route for register new user in DB
     it('should send back a JSON object with user for create new user', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/register')
+            .post('/user')
             .set('Content-Type', 'application/json')
             .send({
             name: 'John',
@@ -66,7 +66,7 @@ describe('Our server', function () {
             };
         }
         (0, supertest_1.default)(server_1.default)
-            .get("/user/john")
+            .get(`/${response.user.username}`)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${response.user.token}`)
             .expect('Content-Type', /json/)
