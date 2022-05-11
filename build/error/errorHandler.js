@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+// Error Handeling Middleware for Express 
 const errorHandler = (error, req, res, next) => {
     //     // if (error.type == 'redirect')
     //     //     res.redirect('/error')

@@ -8,16 +8,21 @@ const user_1 = __importDefault(require("../models/user"));
 const passport_1 = __importDefault(require("passport"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 ;
+//create router for add to server 
 const router = (0, express_1.Router)();
+//add error handler middleware
 router.use(function (req, res, next) {
     res.locals.currentUser = req.user;
     res.locals.errors = req.flash("error");
     res.locals.infos = req.flash("info");
     next();
 });
+//add route for register new user
 router.post("/register", function (req, res, next) {
+    //get jason from body request
     const { username, password, name, email, role } = req.body;
     let newUser = new user_1.default();
+    //query for save new user in DB
     user_1.default.findOne({ username: username }, function (err, user) {
         if (err) {
             return next(err);
@@ -41,12 +46,14 @@ router.post("/register", function (req, res, next) {
         });
     });
 });
+//route for get user by username from DB 
 router.get("/user/:username", function (req, res, next) {
+    //get token from header request
     const bearerHeader = req.headers.authorization;
-    // console.log(bearerHeader);
     let bearerToken;
     if (bearerHeader) {
         bearerToken = bearerHeader.split(' ')[1];
+        //query for get user by username from DB
         user_1.default.findOne({ username: req.params.username }, function (err, user) {
             if (err) {
                 return next(err);

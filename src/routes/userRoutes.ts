@@ -11,8 +11,10 @@ interface IUser {
     role: string;
 };
 
+//create router for add to server 
 const router: Router = Router();
 
+//add error handler middleware
 router.use(function (req: Request, res: Response, next: NextFunction) {
     res.locals.currentUser = req.user;
     res.locals.errors = req.flash("error");
@@ -20,12 +22,13 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
     next();
 });
 
+//add route for register new user
 router.post("/register", function (req: Request, res: Response, next: NextFunction) {
-
+    //get jason from body request
     const { username, password, name, email, role } = req.body;
 
     let newUser = new User();
-
+    //query for save new user in DB
     User.findOne({ username: username }, function (err: Error, user: IUser) {
         if (err) { return next(err); }
         if (user) {
@@ -49,12 +52,15 @@ router.post("/register", function (req: Request, res: Response, next: NextFuncti
     });
 });
 
+//route for get user by username from DB 
 router.get("/user/:username", function (req: Request, res: Response, next: NextFunction) {
+    //get token from header request
     const bearerHeader = req.headers.authorization;
-    // console.log(bearerHeader);
     let bearerToken: string;
     if (bearerHeader) {
         bearerToken = bearerHeader.split(' ')[1];
+        
+        //query for get user by username from DB
         User.findOne({ username: req.params.username }, function (err: Error, user: any) {
             if (err) { return next(err); }
             if (!user) { return next(new Error("Not Found")); }

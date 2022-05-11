@@ -19,11 +19,14 @@ function connect() {
     return __awaiter(this, void 0, void 0, function* () {
         //find the url to connect to the database
         const dbUri = process.env["MONGODB_URL"];
+        //connect to the database
         mongoose_1.default.connect(dbUri);
+        //listen for connection events
         yield mongoose_1.default.connection.on("connected", () => {
             console.log("Mongoose default connection open to " + dbUri);
             mongoose_1.default.set('debug', true);
         });
+        //listen for connection errors
         yield mongoose_1.default.connection.on("error", (err) => {
             console.log("Mongoose default connection error: " + err);
             process.exit(1);

@@ -98,7 +98,7 @@ UserSchema.methods.generateJWT = function () {
     }, secret);
 }
 
-//get user data for auth
+//get user data jason for auth
 UserSchema.methods.toAuthJSON = function () {
     return {
         _id: this._id,

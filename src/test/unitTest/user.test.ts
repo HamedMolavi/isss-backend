@@ -3,11 +3,15 @@ import connectDB, { Disconnect } from '../../db/connect';
 import mongoose, { Connection } from 'mongoose';
 import { dbUri } from '../../server';
 
+//test user models
 describe('Models', function () {
 
     let User: any;
+    //connect to DB before test
     beforeEach(function (done) {
+        //connect to DB
         mongoose.connect(dbUri);
+        //listen for connection events
         mongoose.connection.once('connected', () => {
             mongoose.connection.db.dropDatabase();
 
@@ -17,12 +21,12 @@ describe('Models', function () {
             done();
         });
     });
-    
+    //disconnect from DB after test
     afterEach(function (done) {
         Disconnect();
         done();
     });
-
+    //test user model
     describe('register user', function () {
 
         it('should save user in db', function (done) {

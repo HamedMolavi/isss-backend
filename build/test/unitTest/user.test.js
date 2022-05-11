@@ -7,10 +7,14 @@ const chai_1 = require("chai");
 const connect_1 = require("../../db/connect");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("../../server");
+//test user models
 describe('Models', function () {
     let User;
+    //connect to DB before test
     beforeEach(function (done) {
+        //connect to DB
         mongoose_1.default.connect(server_1.dbUri);
+        //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
             mongoose_1.default.connection.db.dropDatabase();
             require('../../models/user').registerModels;
@@ -19,10 +23,12 @@ describe('Models', function () {
             done();
         });
     });
+    //disconnect from DB after test
     afterEach(function (done) {
         (0, connect_1.Disconnect)();
         done();
     });
+    //test user model
     describe('register user', function () {
         it('should save user in db', function (done) {
             var user = new User({

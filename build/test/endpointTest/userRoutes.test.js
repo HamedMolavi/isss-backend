@@ -7,6 +7,7 @@ const server_1 = __importDefault(require("../../server"));
 const chai_1 = require("chai");
 const supertest_1 = __importDefault(require("supertest"));
 describe('Our server', function () {
+    //test default rote for server is running
     it('should return a 200 response', function (done) {
         (0, supertest_1.default)(server_1.default)
             .get('/')
@@ -18,20 +19,8 @@ describe('Our server', function () {
     before(function (done) {
         done();
     });
+    //test route for register new user in DB
     it('should send back a JSON object with user for create new user', function (done) {
-        // response = {
-        //     message: 'Success',
-        //     user: {
-        //         _id: '627b4509d8d6f53094eb6a08',
-        //         name: 'test',
-        //         email: 'tset@test.com',
-        //         username: 'tset',
-        //         password: '$2b$10$CI29hbB0nemkyP5lJclAPOxWVTiDLVmWsHRXXsXs4/G6oS2sm/pDq',
-        //         role: 'admin',
-        //         token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyN2I0ZDA1OWE4YmQ3ZDBjMzM5YmNhNyIsImVtYWlsIjoidHNldEB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTY1NDgzOTgxMywiaWF0IjoxNjUyMjQ3ODEzfQ.a7Amp2UrNsnU_ur2hFll0oCD24bVLsOtg50c2VV1tYo',
-        //         __v: 0
-        //     }
-        // }
         (0, supertest_1.default)(server_1.default)
             .post('/register')
             .set('Content-Type', 'application/json')
@@ -58,7 +47,9 @@ describe('Our server', function () {
             done();
         });
     });
+    //test route for get user by username from DB
     it('should send back a JSON object for get user with username', function (done) {
+        //if user already exists in DB create new response
         if (response === null) {
             response = {
                 message: 'Success',

@@ -1,5 +1,6 @@
 import { ErrorRequestHandler, NextFunction, Response, Request } from "express";
 
+// Error Handeling Middleware for Express 
 const errorHandler: ErrorRequestHandler = (error: Error, req: Request, res: Response, next: NextFunction) => {
     //     // if (error.type == 'redirect')
     //     //     res.redirect('/error')
