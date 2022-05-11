@@ -30,7 +30,7 @@ router.post("/register", function (req: Request, res: Response, next: NextFuncti
         if (err) { return next(err); }
         if (user) {
             req.flash("error", "User already exists");
-            return res.json({ message: "User already exists" });
+            return res.status(201).json({ message: "User already exists" });
         }
 
         newUser = new User({
@@ -42,7 +42,7 @@ router.post("/register", function (req: Request, res: Response, next: NextFuncti
         });
         newUser.token = newUser.generateJWT();
         newUser.save(next);
-        res.status(201).json({
+        return res.status(201).json({
             message: 'User created',
             user: newUser
         });
@@ -51,7 +51,7 @@ router.post("/register", function (req: Request, res: Response, next: NextFuncti
 
 router.get("/user/:username", function (req: Request, res: Response, next: NextFunction) {
     const bearerHeader = req.headers.authorization;
-   // console.log(bearerHeader);
+    // console.log(bearerHeader);
     let bearerToken: string;
     if (bearerHeader) {
         bearerToken = bearerHeader.split(' ')[1];

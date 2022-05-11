@@ -24,7 +24,7 @@ router.post("/register", function (req, res, next) {
         }
         if (user) {
             req.flash("error", "User already exists");
-            return res.json({ message: "User already exists" });
+            return res.status(201).json({ message: "User already exists" });
         }
         newUser = new user_1.default({
             username: username,
@@ -35,7 +35,7 @@ router.post("/register", function (req, res, next) {
         });
         newUser.token = newUser.generateJWT();
         newUser.save(next);
-        res.status(201).json({
+        return res.status(201).json({
             message: 'User created',
             user: newUser
         });
