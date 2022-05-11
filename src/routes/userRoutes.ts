@@ -89,7 +89,6 @@ router.put("/:id", function (req: any, res: any, next: NextFunction) {
     //get token from header request
     const bearerHeader = req.headers.authorization;
     let bearerToken: string;
-    console.log(bearerHeader);
     if (bearerHeader) {
         bearerToken = bearerHeader.split(' ')[1];
         //query for get user by username from DB
@@ -115,6 +114,38 @@ router.put("/:id", function (req: any, res: any, next: NextFunction) {
                 return res.status(201).json({
                     message: 'User Edited',
                     user: updateUser
+                });
+            });
+        });
+    } else {
+        next(new Error("Not Authorized"));
+    }
+});
+
+
+//add route for delete user
+router.delete("/:id", function (req: any, res: any, next: NextFunction) {
+    let id = req.params.id;
+
+    //get token from header request
+    const bearerHeader = req.headers.authorization;
+    let bearerToken: string;
+    if (bearerHeader) {
+        bearerToken = bearerHeader.split(' ')[1];
+        //query for get user by username from DB
+        User.findOne({ id: id }, function (err: Error, user: any) {
+            if (err) { return next(err); }
+            if (!user) { return next(new Error("Not Found")); }
+            //check token with user
+            jwt.verify(bearerToken, user.token, () => {
+                if (err) {
+                    return res.json({ message: "Not Authorized" });
+                }
+
+                user.delete(next);
+                return res.status(201).json({
+                    message: 'User Deleted',
+                    user: {}
                 });
             });
         });
