@@ -51,7 +51,7 @@ router.post("/register", function (req: Request, res: Response, next: NextFuncti
 
 router.get("/user/:username", function (req: Request, res: Response, next: NextFunction) {
     const bearerHeader = req.headers.authorization;
-    console.log(bearerHeader);
+   // console.log(bearerHeader);
     let bearerToken: string;
     if (bearerHeader) {
         bearerToken = bearerHeader.split(' ')[1];
@@ -62,7 +62,7 @@ router.get("/user/:username", function (req: Request, res: Response, next: NextF
                 if (err) {
                     return res.json({ message: "Not Authorized" });
                 }
-                res.status(200).json({
+                return res.status(200).json({
                     message: 'Success',
                     user: user
                 });

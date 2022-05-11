@@ -9,7 +9,8 @@
     "build": "npx tsc",
     "start:prod": "yarn build && node ./build/server.js",
     "dev": "nodemon ./src/server.ts",
-    "test": "mocha ./build/test/unitTest"
+    "test:unit": "mocha ./build/test/unitTest",
+    "test:api": "mocha ./build/test/endpointTest --timeout 10000"
   },
   "dependencies": {
     "@types/bcrypt": "^5.0.0",

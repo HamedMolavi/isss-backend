@@ -16,9 +16,13 @@ import passport from 'passport';
 import errorHandler from './error/errorHandler';
 
 
-
 //initial file .env
 dotenv.config();
+
+export const dbUri = process.env["MONGODB_URL"] as string;
+
+//export default function server() {
+
 //read key and cert from files for certificate in https server
 const key = fs.readFileSync(__dirname + '/../security/sslconfig/key.pem', 'utf-8');
 const cert = fs.readFileSync(__dirname + '/../security/sslconfig/cert.pem', 'utf-8');
@@ -27,13 +31,15 @@ const options = {
     cert: cert
 };
 
-export const dbUri = process.env["MONGODB_URL"] as string;
 const PORT_HTTP = process.env["PORT_http"] as number | undefined;
 const PORT_HTTPS = process.env["PORT_https"] as number | undefined;
 const HOST = process.env["HOST"] as string | undefined;
 
 //create express app
 const app: Express = express();
+
+//connect to database
+connect();
 
 setUpPassport();
 //config server
@@ -52,9 +58,6 @@ app.use(flash());
 
 //add logger
 app.use(logger('dev'));
-
-//connect to database
-connect();
 
 //create route for test
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
@@ -75,6 +78,12 @@ http.createServer(app).listen(PORT_HTTP, () => {
     console.log(`Server is running on http://${HOST}:${PORT_HTTP}`);
 });
 
-// app.listen(3000, () => {
-//     console.log('Application started on http://localhost:3000');
-// });
+    // app.listen(3000, () => {
+    //     console.log('Application started on http://localhost:3000');
+    // });
+
+//}
+
+//server();
+
+export default app;
