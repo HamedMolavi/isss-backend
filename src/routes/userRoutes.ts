@@ -59,11 +59,12 @@ router.get("/:username", function (req: Request, res: Response, next: NextFuncti
     let bearerToken: string;
     if (bearerHeader) {
         bearerToken = bearerHeader.split(' ')[1];
-        
+
         //query for get user by username from DB
         User.findOne({ username: req.params.username }, function (err: Error, user: any) {
             if (err) { return next(err); }
             if (!user) { return next(new Error("Not Found")); }
+            //check token with user
             jwt.verify(bearerToken, user.token, () => {
                 if (err) {
                     return res.json({ message: "Not Authorized" });
@@ -80,6 +81,48 @@ router.get("/:username", function (req: Request, res: Response, next: NextFuncti
 
 });
 
+//add route for edit user
+router.put("/:id", function (req: any, res: any, next: NextFunction) {
+    let id = req.params.id;
+    // const { username, password, name, email, role } = req.body;
+    const userBody = req.body;
+    //get token from header request
+    const bearerHeader = req.headers.authorization;
+    let bearerToken: string;
+    console.log(bearerHeader);
+    if (bearerHeader) {
+        bearerToken = bearerHeader.split(' ')[1];
+        //query for get user by username from DB
+        User.findOne({ id: id }, function (err: Error, user: any) {
+            if (err) { return next(err); }
+            if (!user) { return next(new Error("Not Found")); }
+            //check token with user
+            jwt.verify(bearerToken, user.token, () => {
+                if (err) {
+                    return res.json({ message: "Not Authorized" });
+                }
+
+                let updateUser = new User({
+                    id : id,
+                    name : userBody.name ?? user.name,
+                    email : userBody.email ?? user.email,
+                    username : userBody.username ?? user.username,
+                    password : userBody.password ?? user.User.password,
+                    role : userBody.role ?? user.role,
+                    token : user.token
+                });
+                updateUser.set(next);
+                return res.status(201).json({
+                    message: 'User Edited',
+                    user: updateUser
+                });
+            });
+        });
+    } else {
+        next(new Error("Not Authorized"));
+    }
+});
+
 router.post("/login", passport.authenticate("login", {
     successRedirect: "/",
     failureRedirect: "/login",
@@ -94,19 +137,6 @@ function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
         res.redirect("/login");
     }
 }
-
-router.put("/edit", ensureAuthenticated, function (req: any, res: any, next: NextFunction) {
-    req.user.displayName = req.body.displayname;
-    req.user.bio = req.body.bio;
-    req.user!.save(function (err: Error) {
-        if (err) {
-            next(err);
-            return;
-        }
-        req.flash("info", "Profile updated!");
-        res.redirect("/edit");
-    });
-})
 
 
 export default router;
