@@ -23,7 +23,6 @@ interface IUserDocument extends IUser, Document {
 }
 
 interface IUserModel extends Model<IUserDocument> {
-    findByUsername: (username: string) => Promise<IUserDocument>;
     checkPassword: (password: string) => Promise<boolean>;
     generateJWT: () => any;
     toAuthJSON: () => any;
@@ -74,16 +73,6 @@ UserSchema.methods.checkPassword = function (guess: string, done: Function) {
 //     const result = await bcrypt.compare(password, this.hashedPassword);
 //     return result;
 // };
-
-//find user by username
-UserSchema.statics.findByUsername = function (username: string) {
-    return this.findOne({ username });
-};
-
-//find user by id
-UserSchema.statics.findByIdAndUpdate = function (id: string) {
-    return this.findById(id);
-};
 
 //get secrect key jwt token
 const secret = process.env["JWT_SECRET"] as string;
