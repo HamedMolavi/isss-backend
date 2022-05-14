@@ -13,7 +13,6 @@ interface IUser {
     username: string;
     password: string;
     role: string;
-    token: string;
 }
 
 interface IUserDocument extends IUser, Document {
@@ -25,6 +24,7 @@ interface IUserDocument extends IUser, Document {
 
 interface IUserModel extends Model<IUserDocument> {
     findByUsername: (username: string) => Promise<IUserDocument>;
+    checkPassword: (password: string) => Promise<boolean>;
     generateJWT: () => any;
     toAuthJSON: () => any;
 }
@@ -36,7 +36,6 @@ const UserSchema: Schema<IUserDocument> = new Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
     role: { type: String, required: true },
-    token: { type: String, required: true },
 });
 
 //for encrypt password

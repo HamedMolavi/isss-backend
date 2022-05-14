@@ -11,6 +11,17 @@ interface IUser {
     role: string;
 };
 
+interface ICritential {
+
+    id: string;
+    email: string;
+    role: string;
+    exp: number;
+    iat: number;
+
+}
+
+
 //create router for add to server 
 const router: Router = Router();
 
@@ -26,13 +37,20 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("/user", function (req: Request, res: Response, next: NextFunction) {
     //get jason from body request
     const { username, password, name, email, role } = req.body;
+
     //get token from header request
-    let token = getToken(req, next) as string;
+    let token: string = getToken(req, next) as string;
+
     //verify token
-    let critential = authorize(token) as any;
-    if (critential.role == "admin") {
-        return next({ message: "Unauthorized" });
+    let critential: ICritential = authorize(token) as ICritential;
+
+    //check time expire token and role
+    if (critential.exp < Date.now() / 1000) {
+        return next({ status: 401, message: "Token expired" });
+    } else if (critential.role !== "admin") {
+        return next({ status: 401, message: "Unauthorized" });
     }
+
     let newUser = new User();
     //query for save new user in DB
     User.findOne({ username: username }, function (err: Error, user: IUser) {
@@ -50,7 +68,8 @@ router.post("/user", function (req: Request, res: Response, next: NextFunction) 
             role: role
         });
         //genrate token for new user
-        newUser.token = newUser.generateJWT();
+        //  newUser.token = newUser.toAuthJSON();
+        //save new user in DB
         newUser.save(next);
         return res.status(201).json({
             message: 'User created',
@@ -63,11 +82,16 @@ router.post("/user", function (req: Request, res: Response, next: NextFunction) 
 router.get("/:username", function (req: Request, res: Response, next: NextFunction) {
     //get token from header request
     let token = getToken(req, next) as string;
+
     //verify token
     let critential = authorize(token) as any;
-    if (critential.role == "admin") {
-        return next({ message: "Unauthorized" });
+    //check time expire token and role
+    if (critential.exp < Date.now() / 1000) {
+        return next({ status: 401, message: "Token expired" })
+    } else if (critential.role !== "admin") {
+        return next({ status: 401, message: "Unauthorized" });
     }
+
     //query for get user by username from DB
     User.findOne({ username: req.params.username }, function (err: Error, user: any) {
         if (err) { return next(err); }
@@ -87,10 +111,15 @@ router.put("/:id", function (req: any, res: any, next: NextFunction) {
     const userBody = req.body;
     //get token from header request
     let token = getToken(req, next) as string;
+
     //verify token
     let critential = authorize(token) as any;
-    if (critential.role == "admin") {
-        return next({ message: "Unauthorized" });
+
+    //check time expire token and role
+    if (critential.exp < Date.now() / 1000) {
+        return next({ status: 401, message: "Token expired" })
+    } else if (critential.role !== "admin") {
+        return next({ status: 401, message: "Unauthorized" });
     }
     //query for get user by username from DB
     User.findOne({ id: id }, function (err: Error, user: any) {
@@ -103,8 +132,7 @@ router.put("/:id", function (req: any, res: any, next: NextFunction) {
             email: userBody.email ?? user.email,
             username: userBody.username ?? user.username,
             password: userBody.password ?? user.User.password,
-            role: userBody.role ?? user.role,
-            token: user.token
+            role: userBody.role ?? user.role
         });
         updateUser.set(next);
         return res.status(201).json({
@@ -141,19 +169,32 @@ router.delete("/:id", function (req: any, res: any, next: NextFunction) {
     });
 });
 
-router.post("/login", passport.authenticate("login", {
-    successRedirect: "/",
-    failureRedirect: "/login",
-    failureFlash: true
-}));
+router.post("/login", function (req: Request, res: Response, next: NextFunction) {
 
-function ensureAuthenticated(req: Request, res: Response, next: NextFunction) {
-    if (req.isAuthenticated()) {
-        next();
-    } else {
-        req.flash("info", "You must be logged in to see this page.");
-        res.redirect("/login");
-    }
-}
+    //get jason from body request
+    const { username, password } = req.body;
+
+    //query for save new user in DB
+    User.findOne({ username: username }, function (err: Error, user: any) {
+        if (err) { return next(err); }
+        if (!user) {
+            req.flash("error", "In");
+            return res.status(201).json({ message: "Not Found" });
+        }
+
+        user.checkPassword(password, function (err: Error, isMatch: boolean) {
+            if (err) { return next(err); }
+            if (!isMatch) {
+                req.flash("error", "In");
+                return res.status(201).json({ message: "Incorrect password" });
+            }
+            return res.status(201).json({
+                message: 'Success',
+                user: user.toAuthJSON()
+            });
+        });
+    });
+});
+
 
 export default router;
