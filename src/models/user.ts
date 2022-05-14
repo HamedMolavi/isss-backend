@@ -80,6 +80,11 @@ UserSchema.statics.findByUsername = function (username: string) {
     return this.findOne({ username });
 };
 
+//find user by id
+UserSchema.statics.findByIdAndUpdate = function (id: string) {
+    return this.findById(id);
+};
+
 //get secrect key jwt token
 const secret = process.env["JWT_SECRET"] as string;
 

@@ -3,6 +3,7 @@ import User from '../models/user';
 import passport from 'passport';
 import { authorize, getToken } from "../tools/authentication";
 
+//define user type
 interface IUser {
     name: string;
     username: string;
@@ -10,7 +11,7 @@ interface IUser {
     email: string;
     role: string;
 };
-
+//define token type after verify
 interface ICritential {
 
     id: string;
@@ -67,10 +68,9 @@ router.post("/user", function (req: Request, res: Response, next: NextFunction) 
             email: email,
             role: role
         });
-        //genrate token for new user
-        //  newUser.token = newUser.toAuthJSON();
         //save new user in DB
         newUser.save(next);
+        //send response to client with new user 
         return res.status(201).json({
             message: 'User created',
             user: newUser
@@ -96,7 +96,7 @@ router.get("/:username", function (req: Request, res: Response, next: NextFuncti
     User.findOne({ username: req.params.username }, function (err: Error, user: any) {
         if (err) { return next(err); }
         if (!user) { return next(new Error("Not Found")); }
-        //check token with user     
+        //send response to client with user    
         return res.status(200).json({
             message: 'Success',
             user: user
@@ -105,8 +105,9 @@ router.get("/:username", function (req: Request, res: Response, next: NextFuncti
 });
 
 //add route for edit user
-router.put("/:id", function (req: any, res: any, next: NextFunction) {
-    let id = req.params.id;
+router.put("/:id", function (req: Request, res: Response, next: NextFunction) {
+    //get id from url
+    let id = req.params.id as Object;
     // const { username, password, name, email, role } = req.body;
     const userBody = req.body;
     //get token from header request
@@ -122,19 +123,22 @@ router.put("/:id", function (req: any, res: any, next: NextFunction) {
         return next({ status: 401, message: "Unauthorized" });
     }
     //query for get user by username from DB
-    User.findOne({ id: id }, function (err: Error, user: any) {
+    User.findById(id, function (err: Error, user: any) {
+        console.log(user);
         if (err) { return next(err); }
-        if (!user) { return next(new Error("Not Found")); }
+        if (!user) { return next({ status: 401, message: "Not Found" }) };
         //check token with user
         let updateUser = new User({
             id: id,
             name: userBody.name ?? user.name,
             email: userBody.email ?? user.email,
             username: userBody.username ?? user.username,
-            password: userBody.password ?? user.User.password,
+            password: userBody.password ?? user.password,
             role: userBody.role ?? user.role
         });
+        //save edit user in DB
         updateUser.set(next);
+        //return response with message and user
         return res.status(201).json({
             message: 'User Edited',
             user: updateUser
@@ -157,11 +161,12 @@ router.delete("/:id", function (req: any, res: any, next: NextFunction) {
     }
 
     //query for get user by username from DB
-    User.findOne({ id: id }, function (err: Error, user: any) {
+    User.findById(id, function (err: Error, user: any) {
         if (err) { return next(err); }
         if (!user) { return next(new Error("Not Found")); }
         //check token with user
         user.delete(next);
+        //return response with message 
         return res.status(201).json({
             message: 'User Deleted',
             user: {}
@@ -174,20 +179,21 @@ router.post("/login", function (req: Request, res: Response, next: NextFunction)
     //get jason from body request
     const { username, password } = req.body;
 
-    //query for save new user in DB
+    //query for get user by username from DB
     User.findOne({ username: username }, function (err: Error, user: any) {
         if (err) { return next(err); }
         if (!user) {
             req.flash("error", "In");
             return res.status(201).json({ message: "Not Found" });
         }
-
+        // check password 
         user.checkPassword(password, function (err: Error, isMatch: boolean) {
             if (err) { return next(err); }
             if (!isMatch) {
                 req.flash("error", "In");
                 return res.status(201).json({ message: "Incorrect password" });
             }
+            //create token for user and return user with token to client
             return res.status(201).json({
                 message: 'Success',
                 user: user.toAuthJSON()
