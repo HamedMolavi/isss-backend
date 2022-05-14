@@ -61,7 +61,9 @@ app.use(logger('dev'));
 
 //create route for test
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
-    res.send('Application works!');
+    res.status(200).json({
+        message: 'Application works!'
+    });
 });
 //create route for user
 app.use(userRoutes);
@@ -78,9 +80,9 @@ http.createServer(app).listen(PORT_HTTP, () => {
     console.log(`Server is running on http://${HOST}:${PORT_HTTP}`);
 });
 
-    // app.listen(3000, () => {
-    //     console.log('Application started on http://localhost:3000');
-    // });
+// app.listen(3000, () => {
+//     console.log('Application started on http://localhost:3000');
+// });
 
 //}
 

@@ -24,6 +24,7 @@ interface IUserDocument extends IUser, Document {
 
 interface IUserModel extends Model<IUserDocument> {
     checkPassword: (password: string) => Promise<boolean>;
+    setPassword: (password: string) => Promise<boolean>;
     generateJWT: () => any;
     toAuthJSON: () => any;
 }
@@ -56,23 +57,12 @@ UserSchema.pre("save", function (done: Function) {
 });
 
 //check password
-UserSchema.methods.checkPassword = function (guess: string, done: Function) {
+UserSchema.methods.checkPassword = function (guess : string, done:Function) {
     console.log(typeof guess);
     bcrypt.compare(guess, this.password, function (err, isMatch) {
         done(err, isMatch);
     });
-};
-//for encrypt password
-// UserSchema.methods.setPassword = async function (password: string) {
-//     const hash = await bcrypt.hash(password, 10);
-//     this.hashedPassword = hash;
-// };
-
-// //check password
-// UserSchema.methods.checkPassword = async function (password: string) {
-//     const result = await bcrypt.compare(password, this.hashedPassword);
-//     return result;
-// };
+}
 
 //get secrect key jwt token
 const secret = process.env["JWT_SECRET"] as string;

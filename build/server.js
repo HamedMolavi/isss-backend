@@ -56,7 +56,9 @@ app.use((0, connect_flash_1.default)());
 app.use((0, morgan_1.default)('dev'));
 //create route for test
 app.get('/', (req, res, next) => {
-    res.send('Application works!');
+    res.status(200).json({
+        message: 'Application works!'
+    });
 });
 //create route for user
 app.use(userRoutes_1.default);

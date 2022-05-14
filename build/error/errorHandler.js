@@ -6,22 +6,21 @@ const errorHandler = (error, req, res, next) => {
     //     //     res.redirect('/error')
     //     //  else if (error.type == 'time-out') // arbitrary condition check
     //      res.status(408).send(error)
-    if (error.message == 'Not Found') {
-        res.status(404);
-    }
-    else if (error.message == 'Unauthorized') {
-        res.status(401);
-    }
-    else if (error.message == 'Not Authorized') {
-        res.status(403);
-    }
-    else {
-        res.status(500);
-    }
-    res.json({
+    // if (error.status == 404) {
+    //     res.status(404);
+    // } else if (error.message == 'Unauthorized') {
+    //     res.status(401);
+    // } else if (error.message == 'Forbidden') {
+    //     res.status(403);
+    // }
+    // else {
+    //     res.status(500);
+    // }
+    res.status(error.status || 500)
+        .json({
         errors: {
             message: error.message,
-            error: {},
+            error: error.stack,
         },
     });
 };

@@ -17,9 +17,10 @@ function setuppassport() {
             done(err, user);
         });
     });
-    // passport.use("login", new LocalStrategy(
+    passport_1.default.use("login", new LocalStrategy(
     //for authentication user with username and password
-    passport_1.default.use(new LocalStrategy(function (username, password, done) {
+    // passport.use(new LocalStrategy(
+    function (username, password, done) {
         user_1.default.findOne({ username: username }, function (err, user) {
             if (err) {
                 return done(err);
@@ -29,6 +30,7 @@ function setuppassport() {
                 return done(null, false, { message: "No user has that username!" });
             }
             user.checkPassword(password, function (err, isMatch) {
+                console.log(isMatch);
                 if (err) {
                     return done(err);
                 }

@@ -39,7 +39,6 @@ const UserSchema = new mongoose_1.Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
     role: { type: String, required: true },
-    token: { type: String, required: true },
 });
 //for encrypt password
 const SALT_FACTOR = 10;
@@ -67,20 +66,6 @@ UserSchema.methods.checkPassword = function (guess, done) {
     bcrypt_1.default.compare(guess, this.password, function (err, isMatch) {
         done(err, isMatch);
     });
-};
-//for encrypt password
-// UserSchema.methods.setPassword = async function (password: string) {
-//     const hash = await bcrypt.hash(password, 10);
-//     this.hashedPassword = hash;
-// };
-// //check password
-// UserSchema.methods.checkPassword = async function (password: string) {
-//     const result = await bcrypt.compare(password, this.hashedPassword);
-//     return result;
-// };
-//find user by username
-UserSchema.statics.findByUsername = function (username) {
-    return this.findOne({ username });
 };
 //get secrect key jwt token
 const secret = process.env["JWT_SECRET"];

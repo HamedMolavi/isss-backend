@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import User from '../models/user';
 import { authorize, getToken } from "../tools/authentication";
+import passport from 'passport';
 
 //define user type
 interface IUser {
@@ -12,13 +13,11 @@ interface IUser {
 };
 //define token type after verify
 interface ICritential {
-
     id: string;
     email: string;
     role: string;
     exp: number;
     iat: number;
-
 }
 
 
@@ -34,7 +33,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 //add route for register new user
-router.post("/user", function (req: Request, res: Response, next: NextFunction) {
+router.post("/user",async function (req: Request, res: Response, next: NextFunction) {
     //get jason from body request
     const { username, password, name, email, role } = req.body;
 
@@ -62,11 +61,12 @@ router.post("/user", function (req: Request, res: Response, next: NextFunction) 
 
         newUser = new User({
             username: username,
-            password: password,
+            password : password,
             name: name,
             email: email,
             role: role
         });
+       // newUser.password = await User.setPassword(password);
         //save new user in DB
         newUser.save(next);
         //send response to client with new user 
@@ -123,7 +123,6 @@ router.put("/:id", function (req: Request, res: Response, next: NextFunction) {
     }
     //query for get user by username from DB
     User.findById(id, function (err: Error, user: any) {
-        console.log(user);
         if (err) { return next(err); }
         if (!user) { return next({ status: 401, message: "Not Found" }) };
         //check token with user
@@ -153,11 +152,15 @@ router.delete("/:id", function (req: any, res: any, next: NextFunction) {
     //get token from header request
     let token = getToken(req, next) as string;
 
-    let critential = authorize(token) as any;
+   //verify token
+   let critential = authorize(token) as any;
 
-    if (critential.role == "admin") {
-        return next({ message: "Unauthorized" });
-    }
+   //check time expire token and role
+   if (critential.exp < Date.now() / 1000) {
+       return next({ status: 401, message: "Token expired" })
+   } else if (critential.role !== "admin") {
+       return next({ status: 401, message: "Unauthorized" });
+   }
 
     //query for get user by username from DB
     User.findById(id, function (err: Error, user: any) {
@@ -173,33 +176,27 @@ router.delete("/:id", function (req: any, res: any, next: NextFunction) {
     });
 });
 
-router.post("/login", function (req: Request, res: Response, next: NextFunction) {
-
+router.post("/login", function (req: Request, res: Response, next: Function) {
     //get jason from body request
     const { username, password } = req.body;
-
-    //query for get user by username from DB
     User.findOne({ username: username }, function (err: Error, user: any) {
-        if (err) { return next(err); }
+        if (err) { return next(err) };
         if (!user) {
-            req.flash("error", "In");
-            return res.status(201).json({ message: "Not Found" });
+            return next(new Error("No user has that username!"));
         }
-        // check password 
-        user.checkPassword(password, function (err: Error, isMatch: boolean) {
+        user.checkPassword(password, function (err: Error, isMatch: Function) {
+            console.log(isMatch);
             if (err) { return next(err); }
-            if (!isMatch) {
-                req.flash("error", "In");
-                return res.status(201).json({ message: "Incorrect password" });
+            if (isMatch) {
+                return res.status(200).json({
+                    message: 'Success',
+                    user: user
+                });
+            } else {
+                return next(null, false, { message: "Invalid password." });
             }
-            //create token for user and return user with token to client
-            return res.status(201).json({
-                message: 'Success',
-                user: user.toAuthJSON()
-            });
         });
     });
 });
-
 
 export default router;
