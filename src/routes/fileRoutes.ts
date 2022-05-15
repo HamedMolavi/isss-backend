@@ -1,5 +1,6 @@
 import uploadFile, { fileName, location } from '../tools/fileUpload';
 import { NextFunction, Router, Request, Response } from 'express';
+import fs from 'fs';
 
 //create router for add to server 
 const router: Router = Router();
@@ -51,6 +52,29 @@ router.get('/download/:fileName', async function (req: Request, res: Response, n
     } catch (err) {
         return next({ status: 500, message: `Could not download the file: ${fileName}. ${err}` });
     }
+});
+
+
+//create api for get list file upload
+router.get('/files/list', async function (req: Request, res: Response, next: NextFunction) {
+    const directoryPath = __dirname + "/../../assets/uploads/";
+    //find the url to connect to the database
+    const baseUrl = process.env["BaseUrl"] as string;
+    fs.readdir(directoryPath, function (err, files) {
+        if (err) {
+            res.status(500).send({
+                message: "Unable to scan files!",
+            });
+        }
+        let fileInfos: object[] = [];
+        files.forEach((file) => {
+            fileInfos.push({
+                name: file,
+                url: baseUrl + '/download/' + file,
+            });
+        });
+        res.status(200).send(fileInfos);
+    });
 });
 
 export default router;
