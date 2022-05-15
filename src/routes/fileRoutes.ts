@@ -1,6 +1,7 @@
 import uploadFile, { fileName, location } from '../tools/fileUpload';
 import { NextFunction, Router, Request, Response } from 'express';
 import fs from 'fs';
+import { authorize, getToken } from '../tools/authentication';
 
 //create router for add to server 
 const router: Router = Router();
@@ -16,8 +17,18 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 
 //create api for upload image 
-router.post('/upload', async function (req: Request, res: Response, next: NextFunction) {
-    try {
+router.post('/file/upload', async function (req: Request, res: Response, next: NextFunction) {
+  //  try {
+        //get token from header request
+        let token = getToken(req, next) as string;
+
+        //verify token
+        let critential = authorize(token) as any;
+
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" })
+        }
         //get file from request body and save 
         await uploadFile(req, res);
         if (req.file == undefined) {
@@ -28,15 +39,25 @@ router.post('/upload', async function (req: Request, res: Response, next: NextFu
             location: location,
             message: "Uploaded the file successfully: " + fileName,
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
-    }
+  //  } catch (err) {
+    //    return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
+  //  }
 });
 
 
 //create api for download image
-router.get('/download/:fileName', async function (req: Request, res: Response, next: NextFunction) {
+router.get('/file/download/:fileName', async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get token from header request
+        let token = getToken(req, next) as string;
+
+        //verify token
+        let critential = authorize(token) as any;
+
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" })
+        }
         //get file name from request params
         const fileName = req.params.fileName;
         //get directory path
@@ -54,8 +75,18 @@ router.get('/download/:fileName', async function (req: Request, res: Response, n
 
 
 //create api for get list file upload
-router.get('/files/list', async function (req: Request, res: Response, next: NextFunction) {
+router.get('/file/list', async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get token from header request
+        let token = getToken(req, next) as string;
+
+        //verify token
+        let critential = authorize(token) as any;
+
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" })
+        }
         //get directory path
         const directoryPath = __dirname + "/../../assets/uploads/";
         //get url 

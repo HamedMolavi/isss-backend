@@ -20,6 +20,7 @@ const setuppassport_1 = __importDefault(require("./tools/setuppassport"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const passport_1 = __importDefault(require("passport"));
 const errorHandler_1 = __importDefault(require("./error/errorHandler"));
+const fileRoutes_1 = __importDefault(require("./routes/fileRoutes"));
 //initial file .env
 dotenv_1.default.config();
 exports.dbUri = process.env["MONGODB_URL"];
@@ -62,6 +63,8 @@ app.get('/', (req, res, next) => {
 });
 //create route for user
 app.use(userRoutes_1.default);
+//create route for file
+app.use(fileRoutes_1.default);
 //add error handler
 app.use(errorHandler_1.default);
 //run https server on port 4000
