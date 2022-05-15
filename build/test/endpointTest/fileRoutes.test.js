@@ -9,10 +9,9 @@ const supertest_1 = __importDefault(require("supertest"));
 const token = process.env.sample_token;
 let _file;
 describe('test upload , dowloand , get list Image', function () {
-    // beforeEach(function (done) {
-    //     _file = fs.readFileSync('./assets/sample/test.jpg');
-    //     done();
-    // });
+    beforeEach(function (done) {
+        done();
+    });
     //test route for register new user in DB
     it('should send back a JSON object with file name and location and message', function (done) {
         (0, supertest_1.default)(server_1.default)
@@ -26,6 +25,17 @@ describe('test upload , dowloand , get list Image', function () {
             (0, chai_1.expect)(response).to.have.property('name');
             (0, chai_1.expect)(response).to.have.property('location');
             (0, chai_1.expect)(response).to.have.property('message');
+            done();
+        });
+    });
+    //test route for register new user in DB
+    it('should send back a image picture', function (done) {
+        (0, supertest_1.default)(server_1.default)
+            .get('/file/download/test.jpg')
+            .set('Content-Type', 'multipart/form-data')
+            .set('Authorization', `Bearer ${token}`)
+            .then(function (res) {
+            (0, chai_1.expect)(res.status).to.equal(200);
             done();
         });
     });

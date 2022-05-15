@@ -18,7 +18,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 //create api for upload image 
 router.post('/file/upload', async function (req: Request, res: Response, next: NextFunction) {
-  //  try {
+    try {
         //get token from header request
         let token = getToken(req, next) as string;
 
@@ -39,9 +39,9 @@ router.post('/file/upload', async function (req: Request, res: Response, next: N
             location: location,
             message: "Uploaded the file successfully: " + fileName,
         });
-  //  } catch (err) {
-    //    return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
-  //  }
+    } catch (err) {
+        return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
+    }
 });
 
 

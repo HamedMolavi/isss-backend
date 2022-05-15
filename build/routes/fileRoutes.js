@@ -51,28 +51,29 @@ router.use(function (req, res, next) {
 //create api for upload image 
 router.post('/file/upload', function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
-        //  try {
-        //get token from header request
-        let token = (0, authentication_1.getToken)(req, next);
-        //verify token
-        let critential = (0, authentication_1.authorize)(token);
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            return next({ status: 401, message: "Token expired" });
+        try {
+            //get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                return next({ status: 401, message: "Token expired" });
+            }
+            //get file from request body and save 
+            yield (0, fileUpload_1.default)(req, res);
+            if (req.file == undefined) {
+                return next({ status: 400, message: "Please upload a file!" });
+            }
+            res.status(200).send({
+                name: fileUpload_1.fileName,
+                location: fileUpload_1.location,
+                message: "Uploaded the file successfully: " + fileUpload_1.fileName,
+            });
         }
-        //get file from request body and save 
-        yield (0, fileUpload_1.default)(req, res);
-        if (req.file == undefined) {
-            return next({ status: 400, message: "Please upload a file!" });
+        catch (err) {
+            return next({ status: 500, message: `Could not upload the file: ${req.file.originalname}. ${err}` });
         }
-        res.status(200).send({
-            name: fileUpload_1.fileName,
-            location: fileUpload_1.location,
-            message: "Uploaded the file successfully: " + fileUpload_1.fileName,
-        });
-        //  } catch (err) {
-        //    return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
-        //  }
     });
 });
 //create api for download image
