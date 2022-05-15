@@ -1,4 +1,4 @@
-import uploadFile from '../tools/fileUpload';
+import uploadFile, { fileName, location } from '../tools/fileUpload';
 import { NextFunction, Router, Request, Response } from 'express';
 
 //create router for add to server 
@@ -17,12 +17,15 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 //create api for upload file 
 router.post('/upload', async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get file from request body and save 
         await uploadFile(req, res);
         if (req.file == undefined) {
             return next({ status: 400, message: "Please upload a file!" });
         }
         res.status(200).send({
-            message: "Uploaded the file successfully: " + req.file.originalname,
+            name: fileName,
+            location: location,
+            message: "Uploaded the file successfully: " + fileName,
         });
     } catch (err) {
         return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
