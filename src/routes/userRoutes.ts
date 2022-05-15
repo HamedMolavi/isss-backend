@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import User from '../models/user';
 import { authorize, getToken } from "../tools/authentication";
-import passport from 'passport';
 
 //define user type
 interface IUser {

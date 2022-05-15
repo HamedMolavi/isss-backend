@@ -14,7 +14,7 @@ import setUpPassport from "./tools/setuppassport";
 import userRoutes from './routes/userRoutes';
 import passport from 'passport';
 import errorHandler from './error/errorHandler';
-
+import fileRoutes from './routes/fileRoutes';
 
 //initial file .env
 dotenv.config();
@@ -67,6 +67,8 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
 });
 //create route for user
 app.use(userRoutes);
+//create route for file
+app.use(fileRoutes);
 //add error handler
 app.use(errorHandler);
 
