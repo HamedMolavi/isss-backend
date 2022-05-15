@@ -11,7 +11,7 @@ describe('test upload , dowloand , get list Image', function () {
     beforeEach(function (done) {
         done();
     });
-    //test route for register new user in DB
+    //test route for upload image
     it('should send back a JSON object with file name and location and message', function (done) {
         request(app)
             .post('/file/upload')
@@ -28,7 +28,7 @@ describe('test upload , dowloand , get list Image', function () {
             });
     });
 
-    //test route for register new user in DB
+    //test route for download image
     it('should send back a image picture', function (done) {
         request(app)
             .get('/file/download/test.jpg')
@@ -36,6 +36,22 @@ describe('test upload , dowloand , get list Image', function () {
             .set('Authorization', `Bearer ${token}`)
             .then(function (res) {
                 expect(res.status).to.equal(200);
+                done();
+            });
+    });
+
+    //test route for get list image
+    it('should send back a jason with url and name image', function (done) {
+        request(app)
+            .get('/file/list')
+            .set('Content-Type', 'multipart/form-data')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+                if (err) { return done(err); }
+                let userResponse = res.body[0];
+                expect(userResponse).to.have.property('name');
+                expect(userResponse).to.have.property('url');
+                // Done
                 done();
             });
     });
