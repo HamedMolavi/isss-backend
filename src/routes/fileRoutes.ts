@@ -44,9 +44,7 @@ router.get('/download/:fileName', async function (req: Request, res: Response, n
         //send image to client
         res.download(directoryPath + fileName, fileName, (err) => {
             if (err) {
-                res.status(500).send({
-                    message: "Could not download the file. " + err,
-                });
+                return next({ status: 500, message: `Could not download the file: ${fileName}. ${err}` });
             }
         });
     } catch (err) {
@@ -57,24 +55,31 @@ router.get('/download/:fileName', async function (req: Request, res: Response, n
 
 //create api for get list file upload
 router.get('/files/list', async function (req: Request, res: Response, next: NextFunction) {
-    const directoryPath = __dirname + "/../../assets/uploads/";
-    //find the url to connect to the database
-    const baseUrl = process.env["BaseUrl"] as string;
-    fs.readdir(directoryPath, function (err, files) {
-        if (err) {
-            res.status(500).send({
-                message: "Unable to scan files!",
+    try {
+        //get directory path
+        const directoryPath = __dirname + "/../../assets/uploads/";
+        //get url 
+        const baseUrl = process.env["BaseUrl"] as string;
+
+        //read directory for get list file
+        fs.readdir(directoryPath, function (err, files) {
+            if (err) {
+                return next({ status: 500, message: `Could not get list file. ${err}` });
+            }
+            let fileInfos: object[] = [];
+            //get file info
+            files.forEach((file) => {
+                fileInfos.push({
+                    name: file,
+                    url: baseUrl + '/download/' + file,
+                });
             });
-        }
-        let fileInfos: object[] = [];
-        files.forEach((file) => {
-            fileInfos.push({
-                name: file,
-                url: baseUrl + '/download/' + file,
-            });
+            res.status(200).send(fileInfos);
         });
-        res.status(200).send(fileInfos);
-    });
+    } catch (err) {
+        return next({ status: 500, message: `Could not get list files: ${err}` });
+    }
+
 });
 
 export default router;
