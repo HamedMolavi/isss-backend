@@ -14,7 +14,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 
-//create api for upload file 
+//create api for upload image 
 router.post('/upload', async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get file from request body and save 
@@ -32,5 +32,25 @@ router.post('/upload', async function (req: Request, res: Response, next: NextFu
     }
 });
 
+
+//create api for download image
+router.get('/download/:fileName', async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        //get file name from request params
+        const fileName = req.params.fileName;
+        //get directory path
+        const directoryPath = __dirname + "/../../assets/uploads/";
+        //send image to client
+        res.download(directoryPath + fileName, fileName, (err) => {
+            if (err) {
+                res.status(500).send({
+                    message: "Could not download the file. " + err,
+                });
+            }
+        });
+    } catch (err) {
+        return next({ status: 500, message: `Could not download the file: ${fileName}. ${err}` });
+    }
+});
 
 export default router;

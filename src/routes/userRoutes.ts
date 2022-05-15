@@ -32,170 +32,196 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 //add route for register new user
-router.post("/user",async function (req: Request, res: Response, next: NextFunction) {
-    //get jason from body request
-    const { username, password, name, email, role } = req.body;
+router.post("/user", async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        //get jason from body request
+        const { username, password, name, email, role } = req.body;
 
-    //get token from header request
-    let token: string = getToken(req, next) as string;
+        //get token from header request
+        let token: string = getToken(req, next) as string;
 
-    //verify token
-    let critential: ICritential = authorize(token) as ICritential;
+        //verify token
+        let critential: ICritential = authorize(token) as ICritential;
 
-    //check time expire token and role
-    if (critential.exp < Date.now() / 1000) {
-        return next({ status: 401, message: "Token expired" });
-    } else if (critential.role !== "admin") {
-        return next({ status: 401, message: "Unauthorized" });
-    }
-
-    let newUser = new User();
-    //query for save new user in DB
-    User.findOne({ username: username }, function (err: Error, user: IUser) {
-        if (err) { return next(err); }
-        if (user) {
-            req.flash("error", "User already exists");
-            return res.status(201).json({ message: "User already exists" });
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" });
+        } else if (critential.role !== "admin") {
+            return next({ status: 401, message: "Unauthorized" });
         }
 
-        newUser = new User({
-            username: username,
-            password : password,
-            name: name,
-            email: email,
-            role: role
+        let newUser = new User();
+        //query for save new user in DB
+        User.findOne({ username: username }, function (err: Error, user: IUser) {
+            if (err) { return next(err); }
+            if (user) {
+                req.flash("error", "User already exists");
+                return res.status(201).json({ message: "User already exists" });
+            }
+
+            newUser = new User({
+                username: username,
+                password: password,
+                name: name,
+                email: email,
+                role: role
+            });
+            // newUser.password = await User.setPassword(password);
+            //save new user in DB
+            newUser.save(next);
+            //send response to client with new user 
+            return res.status(201).json({
+                message: 'User created',
+                user: newUser
+            });
         });
-       // newUser.password = await User.setPassword(password);
-        //save new user in DB
-        newUser.save(next);
-        //send response to client with new user 
-        return res.status(201).json({
-            message: 'User created',
-            user: newUser
-        });
-    });
+    } catch (err) {
+        return next({ status: 500, message: `Could not create the user: ${err}` });
+    }
+
+
 });
 
 //route for get user by username from DB 
 router.get("/:username", function (req: Request, res: Response, next: NextFunction) {
-    //get token from header request
-    let token = getToken(req, next) as string;
+    try {
+        //get token from header request
+        let token = getToken(req, next) as string;
 
-    //verify token
-    let critential = authorize(token) as any;
-    //check time expire token and role
-    if (critential.exp < Date.now() / 1000) {
-        return next({ status: 401, message: "Token expired" })
-    } else if (critential.role !== "admin") {
-        return next({ status: 401, message: "Unauthorized" });
+        //verify token
+        let critential = authorize(token) as any;
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" })
+        } else if (critential.role !== "admin") {
+            return next({ status: 401, message: "Unauthorized" });
+        }
+
+        //query for get user by username from DB
+        User.findOne({ username: req.params.username }, function (err: Error, user: any) {
+            if (err) { return next(err); }
+            if (!user) { return next(new Error("Not Found")); }
+            //send response to client with user    
+            return res.status(200).json({
+                message: 'Success',
+                user: user
+            });
+        });
+    } catch (err) {
+        return next({ status: 500, message: `Could not get the user: ${err}` });
     }
 
-    //query for get user by username from DB
-    User.findOne({ username: req.params.username }, function (err: Error, user: any) {
-        if (err) { return next(err); }
-        if (!user) { return next(new Error("Not Found")); }
-        //send response to client with user    
-        return res.status(200).json({
-            message: 'Success',
-            user: user
-        });
-    });
 });
 
 //add route for edit user
 router.put("/:id", function (req: Request, res: Response, next: NextFunction) {
-    //get id from url
-    let id = req.params.id as Object;
-    // const { username, password, name, email, role } = req.body;
-    const userBody = req.body;
-    //get token from header request
-    let token = getToken(req, next) as string;
+    try {
+        //get id from url
+        let id = req.params.id as Object;
+        // const { username, password, name, email, role } = req.body;
+        const userBody = req.body;
+        //get token from header request
+        let token = getToken(req, next) as string;
 
-    //verify token
-    let critential = authorize(token) as any;
+        //verify token
+        let critential = authorize(token) as any;
 
-    //check time expire token and role
-    if (critential.exp < Date.now() / 1000) {
-        return next({ status: 401, message: "Token expired" })
-    } else if (critential.role !== "admin") {
-        return next({ status: 401, message: "Unauthorized" });
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" })
+        } else if (critential.role !== "admin") {
+            return next({ status: 401, message: "Unauthorized" });
+        }
+        //query for get user by username from DB
+        User.findById(id, function (err: Error, user: any) {
+            if (err) { return next(err); }
+            if (!user) { return next({ status: 401, message: "Not Found" }) };
+            //check token with user
+            let updateUser = new User({
+                id: id,
+                name: userBody.name ?? user.name,
+                email: userBody.email ?? user.email,
+                username: userBody.username ?? user.username,
+                password: userBody.password ?? user.password,
+                role: userBody.role ?? user.role
+            });
+            //save edit user in DB
+            updateUser.set(next);
+            //return response with message and user
+            return res.status(201).json({
+                message: 'User Edited',
+                user: updateUser
+            });
+        });
+    } catch (err) {
+        return next({ status: 500, message: `Could not edit the user: ${err}` });
     }
-    //query for get user by username from DB
-    User.findById(id, function (err: Error, user: any) {
-        if (err) { return next(err); }
-        if (!user) { return next({ status: 401, message: "Not Found" }) };
-        //check token with user
-        let updateUser = new User({
-            id: id,
-            name: userBody.name ?? user.name,
-            email: userBody.email ?? user.email,
-            username: userBody.username ?? user.username,
-            password: userBody.password ?? user.password,
-            role: userBody.role ?? user.role
-        });
-        //save edit user in DB
-        updateUser.set(next);
-        //return response with message and user
-        return res.status(201).json({
-            message: 'User Edited',
-            user: updateUser
-        });
-    });
+
 });
 
 
 //add route for delete user
 router.delete("/:id", function (req: any, res: any, next: NextFunction) {
-    let id = req.params.id;
+    try {
+        let id = req.params.id;
 
-    //get token from header request
-    let token = getToken(req, next) as string;
+        //get token from header request
+        let token = getToken(req, next) as string;
 
-   //verify token
-   let critential = authorize(token) as any;
+        //verify token
+        let critential = authorize(token) as any;
 
-   //check time expire token and role
-   if (critential.exp < Date.now() / 1000) {
-       return next({ status: 401, message: "Token expired" })
-   } else if (critential.role !== "admin") {
-       return next({ status: 401, message: "Unauthorized" });
-   }
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" })
+        } else if (critential.role !== "admin") {
+            return next({ status: 401, message: "Unauthorized" });
+        }
 
-    //query for get user by username from DB
-    User.findById(id, function (err: Error, user: any) {
-        if (err) { return next(err); }
-        if (!user) { return next(new Error("Not Found")); }
-        //check token with user
-        user.delete(next);
-        //return response with message 
-        return res.status(201).json({
-            message: 'User Deleted',
-            user: {}
+        //query for get user by username from DB
+        User.findById(id, function (err: Error, user: any) {
+            if (err) { return next(err); }
+            if (!user) { return next(new Error("Not Found")); }
+            //check token with user
+            user.delete(next);
+            //return response with message 
+            return res.status(201).json({
+                message: 'User Deleted',
+                user: {}
+            });
         });
-    });
+    } catch (err) {
+        return next({ status: 500, message: `Could not delete the user: ${err}` });
+    }
+
 });
 
 router.post("/login", function (req: Request, res: Response, next: Function) {
-    //get jason from body request
-    const { username, password } = req.body;
-    User.findOne({ username: username }, function (err: Error, user: any) {
-        if (err) { return next(err) };
-        if (!user) {
-            return next(new Error("No user has that username!"));
-        }
-        user.checkPassword(password, function (err: Error, isMatch: Function) {
-            console.log(isMatch);
-            if (err) { return next(err); }
-            if (isMatch) {
-                return res.status(200).json({
-                    message: 'Success',
-                    user: user
-                });
-            } else {
-                return next(null, false, { message: "Invalid password." });
+    try {
+        //get jason from body request
+        const { username, password } = req.body;
+        User.findOne({ username: username }, function (err: Error, user: any) {
+            if (err) { return next(err) };
+            if (!user) {
+                return next(new Error("No user has that username!"));
             }
+            user.checkPassword(password, function (err: Error, isMatch: Function) {
+                console.log(isMatch);
+                if (err) { return next(err); }
+                if (isMatch) {
+                    return res.status(200).json({
+                        message: 'Success',
+                        user: user
+                    });
+                } else {
+                    return next(null, false, { message: "Invalid password." });
+                }
+            });
         });
-    });
+    } catch (err) {
+        return next({ status: 500, message: `Could not login: ${err}` });
+    }
+
 });
 
 export default router;
