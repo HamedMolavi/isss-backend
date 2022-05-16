@@ -80,7 +80,33 @@ router.post("/camera", async function (req: Request, res: Response, next: NextFu
     }
 });
 
+//route for get cameras list  
+router.get("/camera/cameras", function (req: Request, res: Response, next: NextFunction) {
+    try {
+        //get token from header request
+        let token = getToken(req, next) as string;
 
+        //verify token
+        let critential = authorize(token) as any;
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" })
+        }
+
+        //query for get user by username from DB
+        Camera.find({}, function (err: Error, cameras: any) {
+            if (err) { return next(err); }
+            if (!cameras) { return next(new Error("Not Found")); }
+            //send response to client with user    
+            return res.status(200).json({
+                message: 'Success',
+                cameras: cameras
+            });
+        });
+    } catch (err) {
+        return next({ status: 500, message: `Could not get the user: ${err}` });
+    }
+});
 
 //route for get camera by name from DB 
 router.get("/camera/:name", function (req: Request, res: Response, next: NextFunction) {
