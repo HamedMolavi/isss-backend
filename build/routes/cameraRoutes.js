@@ -25,7 +25,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new camera
-router.post("/camera", function (req, res, next) {
+router.post("/camera/register", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request

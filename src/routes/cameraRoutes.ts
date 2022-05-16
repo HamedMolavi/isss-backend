@@ -34,7 +34,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 
 //add route for register new camera
-router.post("/camera", async function (req: Request, res: Response, next: NextFunction) {
+router.post("/camera/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { ip, name, username, password, rstpLink } = req.body;
