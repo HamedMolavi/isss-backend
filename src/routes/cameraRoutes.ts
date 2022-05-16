@@ -178,6 +178,40 @@ router.put("/camera/:id", function (req: Request, res: Response, next: NextFunct
     } catch (err) {
         return next({ status: 500, message: `Could not edit the camera: ${err}` });
     }
+});
+
+
+//add route for delete camera
+router.delete("/camera/:id", function (req: any, res: any, next: NextFunction) {
+    try {
+        let id = req.params.id;
+
+        //get token from header request
+        let token = getToken(req, next) as string;
+
+        //verify token
+        let critential = authorize(token) as any;
+
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" })
+        }
+
+        //query for get camera by username from DB
+        Camera.findById(id, function (err: Error, camera: any) {
+            if (err) { return next(err); }
+            if (!camera) { return next(new Error("Not Found")); }
+            //delete camera in DB
+            camera.delete(next);
+            //send response to client with camera
+            return res.status(201).json({
+                message: 'camera Deleted',
+                camera: {}
+            });
+        });
+    } catch (err) {
+        return next({ status: 500, message: `Could not delete the user: ${err}` });
+    }
 
 });
 
