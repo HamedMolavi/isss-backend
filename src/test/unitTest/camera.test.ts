@@ -6,7 +6,7 @@ import { dbUri } from '../../server';
 //test user models
 describe('Models', function () {
 
-    let User: any;
+    let Camera: any;
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
@@ -15,9 +15,9 @@ describe('Models', function () {
         mongoose.connection.once('connected', () => {
             mongoose.connection.db.dropDatabase();
 
-            require('../../models/user').registerModels;
+            require('../../models/camera').registerModels;
             // This is the right model because ^registerModels set it up for us.
-            User = mongoose.model('User');
+            Camera = mongoose.model('Camera');
             done();
         });
     });
@@ -27,21 +27,22 @@ describe('Models', function () {
         done();
     });
     //test user model
-    describe('register user', function () {
+    describe('register camera', function () {
 
         it('should save user in db', function (done) {
-            var user = new User({
-                name: 'John',
-                email: 'john@test.com',
-                username: 'john',
-                password: 12345,
-                role: 'admin',
+            var camera = new Camera({
+                ip: '172.10.10.1',
+                name: 'offece',
+                username: 'test',
+                password: '12345',
+                rstpLink: 'rtsp://192.168.1.111:554/media/video1'
             });
-            user.save().then(() => {
-                expect(user.name).to.equal('John');
-                expect(user.email).to.equal('john@test.com');
-                expect(user.username).to.equal('john');
-                expect(user.role).to.equal('admin');
+            camera.save().then(() => {
+                expect(camera.ip).to.equal('172.10.10.1');
+                expect(camera.name).to.equal('offece');
+                expect(camera.username).to.equal('test');
+                expect(camera.password).to.equal('12345');
+                expect(camera.rstpLink).to.equal('rtsp://192.168.1.111:554/media/video1');
                 done();
             }
             ).catch((err: Error) => {

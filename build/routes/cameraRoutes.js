@@ -13,9 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const user_1 = __importDefault(require("../models/user"));
+const camera_1 = __importDefault(require("./../models/camera"));
 const authentication_1 = require("../tools/authentication");
-;
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -25,12 +24,12 @@ router.use(function (req, res, next) {
     res.locals.infos = req.flash("info");
     next();
 });
-//add route for register new user
-router.post("/user", function (req, res, next) {
+//add route for register new camera
+router.post("/camera", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { username, password, name, email, role } = req.body;
+            const { ip, name, username, password, rstpLink } = req.body;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -39,43 +38,41 @@ router.post("/user", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            else if (critential.role !== "admin") {
-                return next({ status: 401, message: "Unauthorized" });
-            }
-            let newUser = new user_1.default();
-            //query for save new user in DB
-            user_1.default.findOne({ username: username }, function (err, user) {
+            let newCamera = new camera_1.default();
+            //query for save new Camera in DB
+            camera_1.default.findOne({ name: name }, function (err, camera) {
                 if (err) {
                     return next(err);
                 }
-                if (user) {
-                    req.flash("error", "User already exists");
-                    return res.status(201).json({ message: "User already exists" });
+                if (camera) {
+                    req.flash("error", "Camera already exists");
+                    return res.status(201).json({ message: "Camera already exists" });
                 }
-                newUser = new user_1.default({
+                //fill new camera
+                newCamera = new camera_1.default({
+                    ip: ip,
+                    name: name,
                     username: username,
                     password: password,
-                    name: name,
-                    email: email,
-                    role: role
+                    rstpLink: rstpLink
                 });
                 // newUser.password = await User.setPassword(password);
                 //save new user in DB
-                newUser.save(next);
+                newCamera.save(next);
                 //send response to client with new user 
                 return res.status(201).json({
-                    message: 'User created',
-                    user: newUser
+                    message: 'Camera created',
+                    camera: newCamera
                 });
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not create the user: ${err}` });
+            return next({ status: 500, message: `Could not create the camera: ${err}` });
         }
     });
 });
-//route for get users list  
-router.get("/users", function (req, res, next) {
+//route for get cameras list  
+router.get("/camera/cameras", function (req, res, next) {
     try {
         //get token from header request
         let token = (0, authentication_1.getToken)(req, next);
@@ -85,30 +82,27 @@ router.get("/users", function (req, res, next) {
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" });
         }
-        else if (critential.role !== "admin") {
-            return next({ status: 401, message: "Unauthorized" });
-        }
         //query for get user by username from DB
-        user_1.default.find({}, function (err, users) {
+        camera_1.default.find({}, function (err, cameras) {
             if (err) {
                 return next(err);
             }
-            if (!users) {
+            if (!cameras) {
                 return next(new Error("Not Found"));
             }
             //send response to client with user    
             return res.status(200).json({
                 message: 'Success',
-                users: users
+                cameras: cameras
             });
         });
     }
     catch (err) {
-        return next({ status: 500, message: `Could not get the user: ${err}` });
+        return next({ status: 500, message: `Could not get the camera: ${err}` });
     }
 });
-//route for get user by username from DB 
-router.get("/:username", function (req, res, next) {
+//route for get camera by name from DB 
+router.get("/camera/:name", function (req, res, next) {
     try {
         //get token from header request
         let token = (0, authentication_1.getToken)(req, next);
@@ -118,35 +112,32 @@ router.get("/:username", function (req, res, next) {
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" });
         }
-        else if (critential.role !== "admin") {
-            return next({ status: 401, message: "Unauthorized" });
-        }
-        //query for get user by username from DB
-        user_1.default.findOne({ username: req.params.username }, function (err, user) {
+        //query for get camera by name from DB
+        camera_1.default.findOne({ name: req.params.name }, function (err, camera) {
             if (err) {
                 return next(err);
             }
-            if (!user) {
+            if (!camera) {
                 return next(new Error("Not Found"));
             }
             //send response to client with user    
             return res.status(200).json({
                 message: 'Success',
-                user: user
+                camera: camera
             });
         });
     }
     catch (err) {
-        return next({ status: 500, message: `Could not get the user: ${err}` });
+        return next({ status: 500, message: `Could not get the camera: ${err}` });
     }
 });
-//add route for edit user
-router.put("/:id", function (req, res, next) {
+//add route for edit camera
+router.put("/camera/:id", function (req, res, next) {
     try {
         //get id from url
         let id = req.params.id;
         // const { username, password, name, email, role } = req.body;
-        const userBody = req.body;
+        const cameraBody = req.body;
         //get token from header request
         let token = (0, authentication_1.getToken)(req, next);
         //verify token
@@ -155,43 +146,40 @@ router.put("/:id", function (req, res, next) {
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" });
         }
-        else if (critential.role !== "admin") {
-            return next({ status: 401, message: "Unauthorized" });
-        }
         //query for get user by username from DB
-        user_1.default.findById(id, function (err, user) {
+        camera_1.default.findById(id, function (err, camera) {
             var _a, _b, _c, _d, _e;
             if (err) {
                 return next(err);
             }
-            if (!user) {
+            if (!camera) {
                 return next({ status: 401, message: "Not Found" });
             }
             ;
             //check token with user
-            let updateUser = new user_1.default({
+            let updateCamera = new camera_1.default({
                 id: id,
-                name: (_a = userBody.name) !== null && _a !== void 0 ? _a : user.name,
-                email: (_b = userBody.email) !== null && _b !== void 0 ? _b : user.email,
-                username: (_c = userBody.username) !== null && _c !== void 0 ? _c : user.username,
-                password: (_d = userBody.password) !== null && _d !== void 0 ? _d : user.password,
-                role: (_e = userBody.role) !== null && _e !== void 0 ? _e : user.role
+                ip: (_a = cameraBody.ip) !== null && _a !== void 0 ? _a : camera.ip,
+                name: (_b = cameraBody.name) !== null && _b !== void 0 ? _b : camera.name,
+                username: (_c = cameraBody.username) !== null && _c !== void 0 ? _c : camera.username,
+                password: (_d = cameraBody.password) !== null && _d !== void 0 ? _d : camera.password,
+                rstpLink: (_e = cameraBody.rstpLink) !== null && _e !== void 0 ? _e : camera.rstpLink
             });
             //save edit user in DB
-            updateUser.set(next);
+            updateCamera.set(next);
             //return response with message and user
             return res.status(201).json({
-                message: 'User Edited',
-                user: updateUser
+                message: 'Camera Edited',
+                camera: updateCamera
             });
         });
     }
     catch (err) {
-        return next({ status: 500, message: `Could not edit the user: ${err}` });
+        return next({ status: 500, message: `Could not edit the camera: ${err}` });
     }
 });
-//add route for delete user
-router.delete("/:id", function (req, res, next) {
+//add route for delete camera
+router.delete("/camera/:id", function (req, res, next) {
     try {
         let id = req.params.id;
         //get token from header request
@@ -202,64 +190,25 @@ router.delete("/:id", function (req, res, next) {
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" });
         }
-        else if (critential.role !== "admin") {
-            return next({ status: 401, message: "Unauthorized" });
-        }
-        //query for get user by id from DB
-        user_1.default.findById(id, function (err, user) {
+        //query for get camera by username from DB
+        camera_1.default.findById(id, function (err, camera) {
             if (err) {
                 return next(err);
             }
-            if (!user) {
+            if (!camera) {
                 return next(new Error("Not Found"));
             }
-            //delete user in DB
-            user.delete(next);
-            //return response with message 
+            //delete camera in DB
+            camera.delete(next);
+            //send response to client with camera
             return res.status(201).json({
-                message: 'User Deleted',
-                user: {}
+                message: 'camera Deleted',
+                camera: {}
             });
         });
     }
     catch (err) {
         return next({ status: 500, message: `Could not delete the user: ${err}` });
-    }
-});
-//api for login user
-router.post("/login", function (req, res, next) {
-    try {
-        //get jason from body request
-        const { username, password } = req.body;
-        //get user from DB
-        user_1.default.findOne({ username: username }, function (err, user) {
-            if (err) {
-                return next(err);
-            }
-            ;
-            if (!user) {
-                return next(new Error("No user has that username!"));
-            }
-            //verify password
-            user.checkPassword(password, function (err, isMatch) {
-                console.log(isMatch);
-                if (err) {
-                    return next(err);
-                }
-                if (isMatch) {
-                    return res.status(200).json({
-                        message: 'Success',
-                        user: user
-                    });
-                }
-                else {
-                    return next(null, false, { message: "Invalid password." });
-                }
-            });
-        });
-    }
-    catch (err) {
-        return next({ status: 500, message: `Could not login: ${err}` });
     }
 });
 exports.default = router;

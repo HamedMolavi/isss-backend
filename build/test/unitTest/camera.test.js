@@ -9,7 +9,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("../../server");
 //test user models
 describe('Models', function () {
-    let User;
+    let Camera;
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
@@ -17,9 +17,9 @@ describe('Models', function () {
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
             mongoose_1.default.connection.db.dropDatabase();
-            require('../../models/user').registerModels;
+            require('../../models/camera').registerModels;
             // This is the right model because ^registerModels set it up for us.
-            User = mongoose_1.default.model('User');
+            Camera = mongoose_1.default.model('Camera');
             done();
         });
     });
@@ -29,20 +29,21 @@ describe('Models', function () {
         done();
     });
     //test user model
-    describe('register user', function () {
+    describe('register camera', function () {
         it('should save user in db', function (done) {
-            var user = new User({
-                name: 'John',
-                email: 'john@test.com',
-                username: 'john',
-                password: 12345,
-                role: 'admin',
+            var camera = new Camera({
+                ip: '172.10.10.1',
+                name: 'offece',
+                username: 'test',
+                password: '12345',
+                rstpLink: 'rtsp://192.168.1.111:554/media/video1'
             });
-            user.save().then(() => {
-                (0, chai_1.expect)(user.name).to.equal('John');
-                (0, chai_1.expect)(user.email).to.equal('john@test.com');
-                (0, chai_1.expect)(user.username).to.equal('john');
-                (0, chai_1.expect)(user.role).to.equal('admin');
+            camera.save().then(() => {
+                (0, chai_1.expect)(camera.ip).to.equal('172.10.10.1');
+                (0, chai_1.expect)(camera.name).to.equal('offece');
+                (0, chai_1.expect)(camera.username).to.equal('test');
+                (0, chai_1.expect)(camera.password).to.equal('12345');
+                (0, chai_1.expect)(camera.rstpLink).to.equal('rtsp://192.168.1.111:554/media/video1');
                 done();
             }).catch((err) => {
                 done(err);
