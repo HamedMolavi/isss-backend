@@ -76,7 +76,7 @@ router.post("/camera", async function (req: Request, res: Response, next: NextFu
             });
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not create the user: ${err}` });
+        return next({ status: 500, message: `Could not create the camera: ${err}` });
     }
 });
 
@@ -104,7 +104,7 @@ router.get("/camera/cameras", function (req: Request, res: Response, next: NextF
             });
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the user: ${err}` });
+        return next({ status: 500, message: `Could not get the camera: ${err}` });
     }
 });
 
@@ -132,7 +132,51 @@ router.get("/camera/:name", function (req: Request, res: Response, next: NextFun
             });
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the user: ${err}` });
+        return next({ status: 500, message: `Could not get the camera: ${err}` });
+    }
+});
+
+
+//add route for edit camera
+router.put("/camera/:id", function (req: Request, res: Response, next: NextFunction) {
+    try {
+        //get id from url
+        let id = req.params.id as Object;
+        // const { username, password, name, email, role } = req.body;
+        const cameraBody = req.body;
+        //get token from header request
+        let token = getToken(req, next) as string;
+
+        //verify token
+        let critential = authorize(token) as any;
+
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" })
+        }
+        //query for get user by username from DB
+        Camera.findById(id, function (err: Error, camera: any) {
+            if (err) { return next(err); }
+            if (!camera) { return next({ status: 401, message: "Not Found" }) };
+            //check token with user
+            let updateCamera = new Camera({
+                id: id,
+                ip: cameraBody.ip ?? camera.ip,
+                name: cameraBody.name ?? camera.name,
+                username: cameraBody.username ?? camera.username,
+                password: cameraBody.password ?? camera.password,
+                rstpLink: cameraBody.rstpLink ?? camera.rstpLink
+            });
+            //save edit user in DB
+            updateCamera.set(next);
+            //return response with message and user
+            return res.status(201).json({
+                message: 'Camera Edited',
+                camera: updateCamera
+            });
+        });
+    } catch (err) {
+        return next({ status: 500, message: `Could not edit the camera: ${err}` });
     }
 
 });
