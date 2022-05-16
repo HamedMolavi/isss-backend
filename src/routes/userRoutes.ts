@@ -82,6 +82,38 @@ router.post("/user", async function (req: Request, res: Response, next: NextFunc
 
 });
 
+//route for get users list  
+router.get("/users", function (req: Request, res: Response, next: NextFunction) {
+    try {
+        //get token from header request
+        let token = getToken(req, next) as string;
+
+        //verify token
+        let critential = authorize(token) as any;
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" })
+        } else if (critential.role !== "admin") {
+            return next({ status: 401, message: "Unauthorized" });
+        }
+
+        //query for get user by username from DB
+        User.find({}, function (err: Error, users: any) {
+            if (err) { return next(err); }
+            if (!users) { return next(new Error("Not Found")); }
+            //send response to client with user    
+            return res.status(200).json({
+                message: 'Success',
+                users: users
+            });
+        });
+    } catch (err) {
+        return next({ status: 500, message: `Could not get the user: ${err}` });
+    }
+
+});
+
+
 //route for get user by username from DB 
 router.get("/:username", function (req: Request, res: Response, next: NextFunction) {
     try {
@@ -178,11 +210,11 @@ router.delete("/:id", function (req: any, res: any, next: NextFunction) {
             return next({ status: 401, message: "Unauthorized" });
         }
 
-        //query for get user by username from DB
+        //query for get user by id from DB
         User.findById(id, function (err: Error, user: any) {
             if (err) { return next(err); }
             if (!user) { return next(new Error("Not Found")); }
-            //check token with user
+            //delete user in DB
             user.delete(next);
             //return response with message 
             return res.status(201).json({
@@ -196,15 +228,18 @@ router.delete("/:id", function (req: any, res: any, next: NextFunction) {
 
 });
 
+//api for login user
 router.post("/login", function (req: Request, res: Response, next: Function) {
     try {
         //get jason from body request
         const { username, password } = req.body;
+        //get user from DB
         User.findOne({ username: username }, function (err: Error, user: any) {
             if (err) { return next(err) };
             if (!user) {
                 return next(new Error("No user has that username!"));
             }
+            //verify password
             user.checkPassword(password, function (err: Error, isMatch: Function) {
                 console.log(isMatch);
                 if (err) { return next(err); }
