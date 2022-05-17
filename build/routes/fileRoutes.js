@@ -93,7 +93,7 @@ router.get('/file/download/:fileName', function (req, res, next) {
             //get directory path
             const directoryPath = __dirname + "/../../assets/uploads/";
             //send image to client
-            res.download(directoryPath + fileName, fileName, (err) => {
+            yield res.download(directoryPath + fileName, fileName, (err) => {
                 if (err) {
                     return next({ status: 500, message: `Could not download the file: ${fileName}. ${err}` });
                 }
@@ -121,7 +121,7 @@ router.get('/file/list', function (req, res, next) {
             //get url 
             const baseUrl = process.env["BaseUrl"];
             //read directory for get list file
-            fs_1.default.readdir(directoryPath, function (err, files) {
+            yield fs_1.default.readdir(directoryPath, function (err, files) {
                 if (err) {
                     return next({ status: 500, message: `Could not get list file. ${err}` });
                 }
