@@ -41,28 +41,30 @@ router.post("/camera/register", function (req, res, next) {
             let newCamera = new camera_1.default();
             //query for save new Camera in DB
             camera_1.default.findOne({ name: name }, function (err, camera) {
-                if (err) {
-                    return next(err);
-                }
-                if (camera) {
-                    req.flash("error", "Camera already exists");
-                    return res.status(201).json({ message: "Camera already exists" });
-                }
-                //fill new camera
-                newCamera = new camera_1.default({
-                    ip: ip,
-                    name: name,
-                    username: username,
-                    password: password,
-                    rstpLink: rstpLink
-                });
-                // newUser.password = await User.setPassword(password);
-                //save new user in DB
-                newCamera.save(next);
-                //send response to client with new user 
-                return res.status(201).json({
-                    message: 'Camera created',
-                    camera: newCamera
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (err) {
+                        return next(err);
+                    }
+                    if (camera) {
+                        req.flash("error", "Camera already exists");
+                        return res.status(201).json({ message: "Camera already exists" });
+                    }
+                    //fill new camera
+                    newCamera = new camera_1.default({
+                        ip: ip,
+                        name: name,
+                        username: username,
+                        password: password,
+                        rstpLink: rstpLink
+                    });
+                    // newUser.password = await User.setPassword(password);
+                    //save new user in DB
+                    yield newCamera.save(next);
+                    //send response to client with new user 
+                    return res.status(201).json({
+                        message: 'Camera created',
+                        camera: newCamera
+                    });
                 });
             });
         }
@@ -73,142 +75,154 @@ router.post("/camera/register", function (req, res, next) {
 });
 //route for get cameras list  
 router.get("/camera/cameras", function (req, res, next) {
-    try {
-        //get token from header request
-        let token = (0, authentication_1.getToken)(req, next);
-        //verify token
-        let critential = (0, authentication_1.authorize)(token);
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            return next({ status: 401, message: "Token expired" });
-        }
-        //query for get user by username from DB
-        camera_1.default.find({}, function (err, cameras) {
-            if (err) {
-                return next(err);
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                return next({ status: 401, message: "Token expired" });
             }
-            if (!cameras) {
-                return next(new Error("Not Found"));
-            }
-            //send response to client with user    
-            return res.status(200).json({
-                message: 'Success',
-                cameras: cameras
+            //query for get user by username from DB
+            camera_1.default.find({}, function (err, cameras) {
+                if (err) {
+                    return next(err);
+                }
+                if (!cameras) {
+                    return next(new Error("Not Found"));
+                }
+                //send response to client with user    
+                return res.status(200).json({
+                    message: 'Success',
+                    cameras: cameras
+                });
             });
-        });
-    }
-    catch (err) {
-        return next({ status: 500, message: `Could not get the camera: ${err}` });
-    }
+        }
+        catch (err) {
+            return next({ status: 500, message: `Could not get the camera: ${err}` });
+        }
+    });
 });
 //route for get camera by name from DB 
 router.get("/camera/:name", function (req, res, next) {
-    try {
-        //get token from header request
-        let token = (0, authentication_1.getToken)(req, next);
-        //verify token
-        let critential = (0, authentication_1.authorize)(token);
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            return next({ status: 401, message: "Token expired" });
-        }
-        //query for get camera by name from DB
-        camera_1.default.findOne({ name: req.params.name }, function (err, camera) {
-            if (err) {
-                return next(err);
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                return next({ status: 401, message: "Token expired" });
             }
-            if (!camera) {
-                return next(new Error("Not Found"));
-            }
-            //send response to client with user    
-            return res.status(200).json({
-                message: 'Success',
-                camera: camera
+            //query for get camera by name from DB
+            camera_1.default.findOne({ name: req.params.name }, function (err, camera) {
+                if (err) {
+                    return next(err);
+                }
+                if (!camera) {
+                    return next(new Error("Not Found"));
+                }
+                //send response to client with user    
+                return res.status(200).json({
+                    message: 'Success',
+                    camera: camera
+                });
             });
-        });
-    }
-    catch (err) {
-        return next({ status: 500, message: `Could not get the camera: ${err}` });
-    }
+        }
+        catch (err) {
+            return next({ status: 500, message: `Could not get the camera: ${err}` });
+        }
+    });
 });
 //add route for edit camera
 router.put("/camera/:id", function (req, res, next) {
-    try {
-        //get id from url
-        let id = req.params.id;
-        // const { username, password, name, email, role } = req.body;
-        const cameraBody = req.body;
-        //get token from header request
-        let token = (0, authentication_1.getToken)(req, next);
-        //verify token
-        let critential = (0, authentication_1.authorize)(token);
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            return next({ status: 401, message: "Token expired" });
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get id from url
+            let id = req.params.id;
+            // const { username, password, name, email, role } = req.body;
+            const cameraBody = req.body;
+            //get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                return next({ status: 401, message: "Token expired" });
+            }
+            //query for get user by username from DB
+            camera_1.default.findById(id, function (err, camera) {
+                var _a, _b, _c, _d, _e;
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (err) {
+                        return next(err);
+                    }
+                    if (!camera) {
+                        return next({ status: 401, message: "Not Found" });
+                    }
+                    ;
+                    //check token with user
+                    let updateCamera = new camera_1.default({
+                        id: id,
+                        ip: (_a = cameraBody.ip) !== null && _a !== void 0 ? _a : camera.ip,
+                        name: (_b = cameraBody.name) !== null && _b !== void 0 ? _b : camera.name,
+                        username: (_c = cameraBody.username) !== null && _c !== void 0 ? _c : camera.username,
+                        password: (_d = cameraBody.password) !== null && _d !== void 0 ? _d : camera.password,
+                        rstpLink: (_e = cameraBody.rstpLink) !== null && _e !== void 0 ? _e : camera.rstpLink
+                    });
+                    //save edit user in DB
+                    yield updateCamera.set(next);
+                    //return response with message and user
+                    return res.status(201).json({
+                        message: 'Camera Edited',
+                        camera: updateCamera
+                    });
+                });
+            });
         }
-        //query for get user by username from DB
-        camera_1.default.findById(id, function (err, camera) {
-            var _a, _b, _c, _d, _e;
-            if (err) {
-                return next(err);
-            }
-            if (!camera) {
-                return next({ status: 401, message: "Not Found" });
-            }
-            ;
-            //check token with user
-            let updateCamera = new camera_1.default({
-                id: id,
-                ip: (_a = cameraBody.ip) !== null && _a !== void 0 ? _a : camera.ip,
-                name: (_b = cameraBody.name) !== null && _b !== void 0 ? _b : camera.name,
-                username: (_c = cameraBody.username) !== null && _c !== void 0 ? _c : camera.username,
-                password: (_d = cameraBody.password) !== null && _d !== void 0 ? _d : camera.password,
-                rstpLink: (_e = cameraBody.rstpLink) !== null && _e !== void 0 ? _e : camera.rstpLink
-            });
-            //save edit user in DB
-            updateCamera.set(next);
-            //return response with message and user
-            return res.status(201).json({
-                message: 'Camera Edited',
-                camera: updateCamera
-            });
-        });
-    }
-    catch (err) {
-        return next({ status: 500, message: `Could not edit the camera: ${err}` });
-    }
+        catch (err) {
+            return next({ status: 500, message: `Could not edit the camera: ${err}` });
+        }
+    });
 });
 //add route for delete camera
 router.delete("/camera/:id", function (req, res, next) {
-    try {
-        let id = req.params.id;
-        //get token from header request
-        let token = (0, authentication_1.getToken)(req, next);
-        //verify token
-        let critential = (0, authentication_1.authorize)(token);
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            return next({ status: 401, message: "Token expired" });
-        }
-        //query for get camera by username from DB
-        camera_1.default.findById(id, function (err, camera) {
-            if (err) {
-                return next(err);
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            let id = req.params.id;
+            //get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                return next({ status: 401, message: "Token expired" });
             }
-            if (!camera) {
-                return next(new Error("Not Found"));
-            }
-            //delete camera in DB
-            camera.delete(next);
-            //send response to client with camera
-            return res.status(201).json({
-                message: 'camera Deleted',
-                camera: {}
+            //query for get camera by username from DB
+            camera_1.default.findById(id, function (err, camera) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (err) {
+                        return next(err);
+                    }
+                    if (!camera) {
+                        return next(new Error("Not Found"));
+                    }
+                    //delete camera in DB
+                    yield camera.delete(next);
+                    //send response to client with camera
+                    return res.status(201).json({
+                        message: 'camera Deleted',
+                        camera: {}
+                    });
+                });
             });
-        });
-    }
-    catch (err) {
-        return next({ status: 500, message: `Could not delete the user: ${err}` });
-    }
+        }
+        catch (err) {
+            return next({ status: 500, message: `Could not delete the user: ${err}` });
+        }
+    });
 });
 exports.default = router;

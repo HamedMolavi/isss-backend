@@ -64,47 +64,6 @@ describe('server run and server runnig and register user', function () {
             done();
         });
     });
-    // //test default rote for server is running
-    // it('should return a 200 response and message application works', function (done) {
-    //     request(app)
-    //         .get('/')
-    //         .expect(200, function (err, res) {
-    //             if (err) { return done(err); }
-    //             expect(res.body.message).to.equal("Application works!");
-    //             done();
-    //         });
-    // });
-    // //test route for register new user in DB
-    // it('should send back a JSON object with user for create new user', function (done) {
-    //     request(app)
-    //         .post('/user')
-    //         .set('Content-Type', 'application/json')
-    //         .set('Authorization', `Bearer ${token}`)
-    //         .send({
-    //             name: 'John',
-    //             email: 'john@test.com',
-    //             username: 'john',
-    //             password: 12345,
-    //             role: 'admin',
-    //         })
-    //         .expect('Content-Type', /json/)
-    //         .expect(201, function (err, res) {
-    //             if (err) { return done(err); }
-    //             if (res.body.message !== 'User already exists') {
-    //                 let response = res.body;
-    //                 expect(response.message).to.equal('User created');
-    //                 expect(response.user.name).to.equal('John');
-    //                 expect(response.user.email).to.equal('john@test.com');
-    //                 expect(response.user.username).to.equal('john');
-    //                 expect(response.user.password).to.equal('12345');
-    //                 expect(response.user.role).to.equal('admin');
-    //             } else {
-    //                 let response = null;
-    //             }
-    //             // Done
-    //             done();
-    //         });
-    // });
     //test route for get user by username from DB
     it('should send back a JSON object for get user with username', function (done) {
         //test route for get user in DB

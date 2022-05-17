@@ -63,7 +63,7 @@ router.get('/file/download/:fileName', async function (req: Request, res: Respon
         //get directory path
         const directoryPath = __dirname + "/../../assets/uploads/";
         //send image to client
-        res.download(directoryPath + fileName, fileName, (err) => {
+        await res.download(directoryPath + fileName, fileName, (err) => {
             if (err) {
                 return next({ status: 500, message: `Could not download the file: ${fileName}. ${err}` });
             }
@@ -93,7 +93,7 @@ router.get('/file/list', async function (req: Request, res: Response, next: Next
         const baseUrl = process.env["BaseUrl"] as string;
 
         //read directory for get list file
-        fs.readdir(directoryPath, function (err, files) {
+        await fs.readdir(directoryPath, function (err, files) {
             if (err) {
                 return next({ status: 500, message: `Could not get list file. ${err}` });
             }

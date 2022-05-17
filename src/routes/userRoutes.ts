@@ -52,7 +52,7 @@ router.post("/user", async function (req: Request, res: Response, next: NextFunc
 
         let newUser = new User();
         //query for save new user in DB
-        User.findOne({ username: username }, function (err: Error, user: IUser) {
+        User.findOne({ username: username }, async function (err: Error, user: IUser) {
             if (err) { return next(err); }
             if (user) {
                 req.flash("error", "User already exists");
@@ -68,7 +68,7 @@ router.post("/user", async function (req: Request, res: Response, next: NextFunc
             });
             // newUser.password = await User.setPassword(password);
             //save new user in DB
-            newUser.save(next);
+            await newUser.save(next);
             //send response to client with new user 
             return res.status(201).json({
                 message: 'User created',
@@ -83,7 +83,7 @@ router.post("/user", async function (req: Request, res: Response, next: NextFunc
 });
 
 //route for get users list  
-router.get("/users", function (req: Request, res: Response, next: NextFunction) {
+router.get("/users", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -98,7 +98,7 @@ router.get("/users", function (req: Request, res: Response, next: NextFunction) 
         }
 
         //query for get user by username from DB
-        User.find({}, function (err: Error, users: any) {
+        User.find({}, async function (err: Error, users: any) {
             if (err) { return next(err); }
             if (!users) { return next(new Error("Not Found")); }
             //send response to client with user    
@@ -115,7 +115,7 @@ router.get("/users", function (req: Request, res: Response, next: NextFunction) 
 
 
 //route for get user by username from DB 
-router.get("/:username", function (req: Request, res: Response, next: NextFunction) {
+router.get("/:username", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -146,7 +146,7 @@ router.get("/:username", function (req: Request, res: Response, next: NextFuncti
 });
 
 //add route for edit user
-router.put("/:id", function (req: Request, res: Response, next: NextFunction) {
+router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
         let id = req.params.id as Object;
@@ -165,7 +165,7 @@ router.put("/:id", function (req: Request, res: Response, next: NextFunction) {
             return next({ status: 401, message: "Unauthorized" });
         }
         //query for get user by username from DB
-        User.findById(id, function (err: Error, user: any) {
+        User.findById(id, async function (err: Error, user: any) {
             if (err) { return next(err); }
             if (!user) { return next({ status: 401, message: "Not Found" }) };
             //check token with user
@@ -178,7 +178,7 @@ router.put("/:id", function (req: Request, res: Response, next: NextFunction) {
                 role: userBody.role ?? user.role
             });
             //save edit user in DB
-            updateUser.set(next);
+            await updateUser.set(next);
             //return response with message and user
             return res.status(201).json({
                 message: 'User Edited',
@@ -193,7 +193,7 @@ router.put("/:id", function (req: Request, res: Response, next: NextFunction) {
 
 
 //add route for delete user
-router.delete("/:id", function (req: any, res: any, next: NextFunction) {
+router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
         let id = req.params.id;
 
@@ -211,11 +211,11 @@ router.delete("/:id", function (req: any, res: any, next: NextFunction) {
         }
 
         //query for get user by id from DB
-        User.findById(id, function (err: Error, user: any) {
+        User.findById(id, async function (err: Error, user: any) {
             if (err) { return next(err); }
             if (!user) { return next(new Error("Not Found")); }
             //delete user in DB
-            user.delete(next);
+            await user.delete(next);
             //return response with message 
             return res.status(201).json({
                 message: 'User Deleted',
@@ -229,7 +229,7 @@ router.delete("/:id", function (req: any, res: any, next: NextFunction) {
 });
 
 //api for login user
-router.post("/login", function (req: Request, res: Response, next: Function) {
+router.post("/login", async function (req: Request, res: Response, next: Function) {
     try {
         //get jason from body request
         const { username, password } = req.body;

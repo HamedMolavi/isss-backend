@@ -52,7 +52,7 @@ router.post("/camera/register", async function (req: Request, res: Response, nex
 
         let newCamera = new Camera();
         //query for save new Camera in DB
-        Camera.findOne({ name: name }, function (err: Error, camera: ICamera) {
+        Camera.findOne({ name: name }, async function (err: Error, camera: ICamera) {
             if (err) { return next(err); }
             if (camera) {
                 req.flash("error", "Camera already exists");
@@ -68,7 +68,7 @@ router.post("/camera/register", async function (req: Request, res: Response, nex
             });
             // newUser.password = await User.setPassword(password);
             //save new user in DB
-            newCamera.save(next);
+            await newCamera.save(next);
             //send response to client with new user 
             return res.status(201).json({
                 message: 'Camera created',
@@ -81,7 +81,7 @@ router.post("/camera/register", async function (req: Request, res: Response, nex
 });
 
 //route for get cameras list  
-router.get("/camera/cameras", function (req: Request, res: Response, next: NextFunction) {
+router.get("/camera/cameras", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -109,7 +109,7 @@ router.get("/camera/cameras", function (req: Request, res: Response, next: NextF
 });
 
 //route for get camera by name from DB 
-router.get("/camera/:name", function (req: Request, res: Response, next: NextFunction) {
+router.get("/camera/:name", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -138,7 +138,7 @@ router.get("/camera/:name", function (req: Request, res: Response, next: NextFun
 
 
 //add route for edit camera
-router.put("/camera/:id", function (req: Request, res: Response, next: NextFunction) {
+router.put("/camera/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
         let id = req.params.id as Object;
@@ -155,7 +155,7 @@ router.put("/camera/:id", function (req: Request, res: Response, next: NextFunct
             return next({ status: 401, message: "Token expired" })
         }
         //query for get user by username from DB
-        Camera.findById(id, function (err: Error, camera: any) {
+        Camera.findById(id, async function (err: Error, camera: any) {
             if (err) { return next(err); }
             if (!camera) { return next({ status: 401, message: "Not Found" }) };
             //check token with user
@@ -168,7 +168,7 @@ router.put("/camera/:id", function (req: Request, res: Response, next: NextFunct
                 rstpLink: cameraBody.rstpLink ?? camera.rstpLink
             });
             //save edit user in DB
-            updateCamera.set(next);
+            await updateCamera.set(next);
             //return response with message and user
             return res.status(201).json({
                 message: 'Camera Edited',
@@ -182,7 +182,7 @@ router.put("/camera/:id", function (req: Request, res: Response, next: NextFunct
 
 
 //add route for delete camera
-router.delete("/camera/:id", function (req: any, res: any, next: NextFunction) {
+router.delete("/camera/:id", async function (req: any, res: any, next: NextFunction) {
     try {
         let id = req.params.id;
 
@@ -198,11 +198,11 @@ router.delete("/camera/:id", function (req: any, res: any, next: NextFunction) {
         }
 
         //query for get camera by username from DB
-        Camera.findById(id, function (err: Error, camera: any) {
+        Camera.findById(id, async function (err: Error, camera: any) {
             if (err) { return next(err); }
             if (!camera) { return next(new Error("Not Found")); }
             //delete camera in DB
-            camera.delete(next);
+            await camera.delete(next);
             //send response to client with camera
             return res.status(201).json({
                 message: 'camera Deleted',
