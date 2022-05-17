@@ -94,6 +94,6 @@ UserSchema.methods.toAuthJSON = function () {
     };
 };
 
-//create model for user
+// Compile model from schema
 const User = mongoose.model<IUserDocument, IUserModel>("User", UserSchema);
 export default User;
