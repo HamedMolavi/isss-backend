@@ -8,6 +8,7 @@ const cameraRoutes_1 = __importDefault(require("./custom/cameraRoutes"));
 const fileRoutes_1 = __importDefault(require("./custom/fileRoutes"));
 const departementRoutes_1 = __importDefault(require("./custom/departementRoutes"));
 const express_1 = require("express");
+const sectionRoutes_1 = __importDefault(require("./custom/sectionRoutes"));
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add rotes app
@@ -15,4 +16,5 @@ router.use('/user', userRoutes_1.default);
 router.use('/camera', cameraRoutes_1.default);
 router.use('/file', fileRoutes_1.default);
 router.use('/departement', departementRoutes_1.default);
+router.use('/section', sectionRoutes_1.default);
 exports.default = router;
