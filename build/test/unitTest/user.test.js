@@ -8,7 +8,7 @@ const connect_1 = require("../../db/connect");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("../../server");
 //test user models
-describe('Models', function () {
+describe('users', function () {
     let User;
     //connect to DB before test
     beforeEach(function (done) {

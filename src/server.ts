@@ -16,6 +16,7 @@ import passport from 'passport';
 import errorHandler from './error/errorHandler';
 import fileRoutes from './routes/fileRoutes';
 import cameraRoutes from './routes/cameraRoutes';
+import departementRoutes from './routes/departementRoutes';
 
 //initial file .env
 dotenv.config();
@@ -72,6 +73,8 @@ app.use(userRoutes);
 app.use(fileRoutes);
 //create route for camera
 app.use(cameraRoutes);
+//create route for departement
+app.use(departementRoutes);
 //add error handler
 app.use(errorHandler);
 

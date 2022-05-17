@@ -3,10 +3,10 @@ import connectDB, { Disconnect } from '../../db/connect';
 import mongoose, { Connection } from 'mongoose';
 import { dbUri } from '../../server';
 
-//test camera models
-describe('camera', function () {
+//test user models
+describe('departement', function () {
 
-    let Camera: any;
+    let Departement: any;
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
@@ -15,9 +15,9 @@ describe('camera', function () {
         mongoose.connection.once('connected', () => {
             mongoose.connection.db.dropDatabase();
 
-            require('../../models/camera').registerModels;
+            require('../../models/departement').registerModels;
             // This is the right model because ^registerModels set it up for us.
-            Camera = mongoose.model('Camera');
+            Departement = mongoose.model('Departement');
             done();
         });
     });
@@ -26,24 +26,16 @@ describe('camera', function () {
         Disconnect();
         done();
     });
-    //test camera model
-    describe('register camera', function () {
-        //create camera model
+    //test departement model
+    describe('register departement', function () {
+        //create departement model
         it('should save user in db', function (done) {
-            var camera = new Camera({
-                ip: '172.10.10.1',
+            var departement = new Departement({
                 name: 'offece',
-                username: 'test',
-                password: '12345',
-                rstpLink: 'rtsp://192.168.1.111:554/media/video1'
             });
-            //test this camera model
-            camera.save().then(() => {
-                expect(camera.ip).to.equal('172.10.10.1');
-                expect(camera.name).to.equal('offece');
-                expect(camera.username).to.equal('test');
-                expect(camera.password).to.equal('12345');
-                expect(camera.rstpLink).to.equal('rtsp://192.168.1.111:554/media/video1');
+            //test this departement model
+            departement.save().then(() => {
+                expect(departement.name).to.equal('offece');
                 done();
             }
             ).catch((err: Error) => {
