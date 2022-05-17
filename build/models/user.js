@@ -93,6 +93,6 @@ UserSchema.methods.toAuthJSON = function () {
         token: this.generateJWT(),
     };
 };
-//create model for user
+// Compile model from schema
 const User = mongoose_1.default.model("User", UserSchema);
 exports.default = User;

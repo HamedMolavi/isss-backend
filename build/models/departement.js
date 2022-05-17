@@ -28,6 +28,6 @@ const mongoose_1 = __importStar(require("mongoose"));
 const DepartementSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
 });
-//create model for departement
+// Compile model from schema
 const Departement = mongoose_1.default.model("Departement", DepartementSchema);
 exports.default = Departement;

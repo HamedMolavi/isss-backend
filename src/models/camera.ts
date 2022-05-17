@@ -19,6 +19,6 @@ const CameraSchema: Schema<ICamera> = new Schema({
     rstpLink: { type: String, required: true },
 });
 
-//create model for Camera
+// Compile model from schema
 const Camera = mongoose.model("Camera", CameraSchema);
 export default Camera;

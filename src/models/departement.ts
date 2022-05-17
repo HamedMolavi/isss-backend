@@ -11,6 +11,6 @@ const DepartementSchema: Schema<IDepartement> = new Schema({
     name: { type: String, required: true },
 });
 
-//create model for departement
+// Compile model from schema
 const Departement = mongoose.model("Departement", DepartementSchema);
 export default Departement;
