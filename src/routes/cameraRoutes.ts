@@ -69,7 +69,7 @@ router.post("/camera/register", async function (req: Request, res: Response, nex
             // newUser.password = await User.setPassword(password);
             //save new user in DB
             await newCamera.save(next);
-            //send response to client with new user 
+            //send response to client with new camera 
             return res.status(201).json({
                 message: 'Camera created',
                 camera: newCamera
@@ -93,11 +93,11 @@ router.get("/camera/cameras", async function (req: Request, res: Response, next:
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get user by username from DB
+        //query for get cameras from DB
         Camera.find({}, function (err: Error, cameras: any) {
             if (err) { return next(err); }
             if (!cameras) { return next(new Error("Not Found")); }
-            //send response to client with user    
+            //send response to client with camera    
             return res.status(200).json({
                 message: 'Success',
                 cameras: cameras
@@ -125,7 +125,7 @@ router.get("/camera/:name", async function (req: Request, res: Response, next: N
         Camera.findOne({ name: req.params.name }, function (err: Error, camera: any) {
             if (err) { return next(err); }
             if (!camera) { return next(new Error("Not Found")); }
-            //send response to client with user    
+            //send response to client with camera    
             return res.status(200).json({
                 message: 'Success',
                 camera: camera
@@ -158,7 +158,7 @@ router.put("/camera/:id", async function (req: Request, res: Response, next: Nex
         Camera.findById(id, async function (err: Error, camera: any) {
             if (err) { return next(err); }
             if (!camera) { return next({ status: 401, message: "Not Found" }) };
-            //check token with user
+            //fill camera
             let updateCamera = new Camera({
                 id: id,
                 ip: cameraBody.ip ?? camera.ip,
@@ -169,7 +169,7 @@ router.put("/camera/:id", async function (req: Request, res: Response, next: Nex
             });
             //save edit user in DB
             await updateCamera.set(next);
-            //return response with message and user
+            //return response with message and camera
             return res.status(201).json({
                 message: 'Camera Edited',
                 camera: updateCamera
