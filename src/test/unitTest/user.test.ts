@@ -4,7 +4,7 @@ import mongoose, { Connection } from 'mongoose';
 import { dbUri } from '../../server';
 
 //test user models
-describe('Models', function () {
+describe('users', function () {
 
     let User: any;
     //connect to DB before test
