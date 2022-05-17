@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const server_1 = __importDefault(require("../../server"));
 const chai_1 = require("chai");
 const supertest_1 = __importDefault(require("supertest"));
-const user_1 = __importDefault(require("../../models/user"));
+const user_1 = __importDefault(require("./../../models/user"));
 const token = process.env.sample_token;
 let _user;
 describe('server run and server runnig and register user', function () {
@@ -26,7 +26,7 @@ describe('server run and server runnig and register user', function () {
         //test route for register new user in DB
         it('should send back a JSON object with user for create new user', function (done) {
             (0, supertest_1.default)(server_1.default)
-                .post('/user')
+                .post('/user/register')
                 .set('Content-Type', 'application/json')
                 .set('Authorization', `Bearer ${token}`)
                 .send({
@@ -68,7 +68,7 @@ describe('server run and server runnig and register user', function () {
     it('should send back a JSON object for get user with username', function (done) {
         //test route for get user in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/' + _user.username)
+            .get('/user/' + _user.username)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -93,7 +93,7 @@ describe('server run and server runnig and register user', function () {
         };
         console.log(_user);
         (0, supertest_1.default)(server_1.default)
-            .put('/' + _user._id)
+            .put('/user/' + _user._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(userEditJson)
@@ -115,7 +115,7 @@ describe('server run and server runnig and register user', function () {
     //test route for login user 
     it('should send back a JSON object for login user', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/login')
+            .post('/user/login')
             .set('Content-Type', 'application/json')
             .send({
             username: "john",
@@ -140,7 +140,7 @@ describe('server run and server runnig and register user', function () {
     //test route for delete user 
     it('should send back a JSON object for delete user', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .delete('/' + _user._id)
+            .delete('/user/' + _user._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

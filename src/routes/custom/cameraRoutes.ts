@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Camera from "./../models/camera";
-import { authorize, getToken } from "../tools/authentication";
+import Camera from "./../../models/camera";
+import { authorize, getToken } from "../../tools/authentication";
 
 
 //define token type after verify
@@ -34,7 +34,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 
 //add route for register new camera
-router.post("/camera/register", async function (req: Request, res: Response, next: NextFunction) {
+router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { ip, name, username, password, rstpLink } = req.body;
@@ -81,7 +81,7 @@ router.post("/camera/register", async function (req: Request, res: Response, nex
 });
 
 //route for get cameras list  
-router.get("/camera/cameras", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/cameras", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -109,7 +109,7 @@ router.get("/camera/cameras", async function (req: Request, res: Response, next:
 });
 
 //route for get camera by name from DB 
-router.get("/camera/:name", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/:name", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -138,7 +138,7 @@ router.get("/camera/:name", async function (req: Request, res: Response, next: N
 
 
 //add route for edit camera
-router.put("/camera/:id", async function (req: Request, res: Response, next: NextFunction) {
+router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
         let id = req.params.id as Object;
@@ -182,7 +182,7 @@ router.put("/camera/:id", async function (req: Request, res: Response, next: Nex
 
 
 //add route for delete camera
-router.delete("/camera/:id", async function (req: any, res: any, next: NextFunction) {
+router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
         let id = req.params.id;
 

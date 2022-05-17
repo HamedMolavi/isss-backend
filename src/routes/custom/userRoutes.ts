@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import User from '../models/user';
-import { authorize, getToken } from "../tools/authentication";
+import User from '../../models/user';
+import { authorize, getToken } from "../../tools/authentication";
 
 //define user type
 interface IUser {
@@ -32,7 +32,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 //add route for register new user
-router.post("/user", async function (req: Request, res: Response, next: NextFunction) {
+router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { username, password, name, email, role } = req.body;

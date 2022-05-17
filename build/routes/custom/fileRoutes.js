@@ -35,10 +35,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const fileUpload_1 = __importStar(require("../tools/fileUpload"));
+const fileUpload_1 = __importStar(require("./../../tools/fileUpload"));
 const express_1 = require("express");
 const fs_1 = __importDefault(require("fs"));
-const authentication_1 = require("../tools/authentication");
+const authentication_1 = require("./../../tools/authentication");
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -49,7 +49,7 @@ router.use(function (req, res, next) {
     next();
 });
 //create api for upload image 
-router.post('/file/upload', function (req, res, next) {
+router.post('/upload', function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -77,7 +77,7 @@ router.post('/file/upload', function (req, res, next) {
     });
 });
 //create api for download image
-router.get('/file/download/:fileName', function (req, res, next) {
+router.get('/download/:fileName', function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -91,7 +91,7 @@ router.get('/file/download/:fileName', function (req, res, next) {
             //get file name from request params
             const fileName = req.params.fileName;
             //get directory path
-            const directoryPath = __dirname + "/../../assets/uploads/";
+            const directoryPath = __dirname + "./../../../assets/uploads/";
             //send image to client
             yield res.download(directoryPath + fileName, fileName, (err) => {
                 if (err) {
@@ -105,7 +105,7 @@ router.get('/file/download/:fileName', function (req, res, next) {
     });
 });
 //create api for get list file upload
-router.get('/file/list', function (req, res, next) {
+router.get('/list', function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -117,7 +117,7 @@ router.get('/file/list', function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //get directory path
-            const directoryPath = __dirname + "/../../assets/uploads/";
+            const directoryPath = __dirname + "/../../../assets/uploads/";
             //get url 
             const baseUrl = process.env["BaseUrl"];
             //read directory for get list file

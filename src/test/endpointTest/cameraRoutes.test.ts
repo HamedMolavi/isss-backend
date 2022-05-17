@@ -10,43 +10,6 @@ let _camera: any;
 
 describe('server run and server runnig and crud camera', function () {
 
-    // describe('first test for registe new camera ', function () {
-    //     //test route for register new camera in DB
-    //     it('should send back a JSON object with user for create new camera', function (done) {
-    //         request(app)
-    //             .post('/camera/register')
-    //             .set('Content-Type', 'application/json')
-    //             .set('Authorization', `Bearer ${token}`)
-    //             .send({
-    //                 ip: '172.10.10.1',
-    //                 name: 'offece',
-    //                 username: 'test',
-    //                 password: '12345',
-    //                 rstpLink: 'rtsp://192.168.1.111:554/media/video1'
-    //             })
-    //             .expect('Content-Type', /json/)
-    //             .expect(201, function (err, res) {
-    //                 if (err) { return done(err); }
-    //                 if (res.body.message !== 'Camera already exists') {
-    //                     let response = res.body;
-    //                     expect(response.message).to.equal("Camera created");
-    //                     expect(response.camera.ip).to.equal('172.10.10.1');
-    //                     expect(response.camera.name).to.equal('offece');
-    //                     expect(response.camera.username).to.equal('test');
-    //                     expect(response.camera.password).to.equal('12345');
-    //                     expect(response.camera.rstpLink).to.equal('rtsp://192.168.1.111:554/media/video1');
-    //                 } else {
-    //                     let response = null;
-    //                 }
-    //                 // Done
-    //                 done();
-    //             });
-
-    //     });
-
-    // });
-
-
     beforeEach(function (done) {
         Camera.findOne({ username: 'test' }, (err: Error, camera: any) => {
             _camera = camera;
