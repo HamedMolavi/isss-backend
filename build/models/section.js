@@ -24,14 +24,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-//create camera model with schema for save in DB
-const CameraSchema = new mongoose_1.Schema({
-    ip: { type: String, required: true },
+//create section model with schema for save in DB
+const SectionSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
-    username: { type: String, required: true },
-    password: { type: String, required: true },
-    rstpLink: { type: String, required: true },
+    //add realational ducoment to departement
+    departement: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Departement' },
 });
 // Compile model from schema
-const Camera = mongoose_1.default.model("Camera", CameraSchema);
-exports.default = Camera;
+const Section = mongoose_1.default.model("Section", SectionSchema);
+exports.default = Section;

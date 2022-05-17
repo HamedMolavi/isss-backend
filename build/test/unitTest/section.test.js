@@ -8,8 +8,8 @@ const connect_1 = require("../../db/connect");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("../../server");
 //test section models
-describe('departement', function () {
-    let Departement;
+describe('section', function () {
+    let Section;
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
@@ -17,9 +17,9 @@ describe('departement', function () {
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
             mongoose_1.default.connection.db.dropDatabase();
-            require('../../models/departement').registerModels;
-            // This is the right model because ^registerModels set it up for us.
-            Departement = mongoose_1.default.model('Departement');
+            require('../../models/section').registerModels;
+            // This is the right model because registerModels set it up for us.
+            Section = mongoose_1.default.model('Section');
             done();
         });
     });
@@ -28,16 +28,18 @@ describe('departement', function () {
         (0, connect_1.Disconnect)();
         done();
     });
-    //test departement model
-    describe('register departement', function () {
-        //create departement model
-        it('should save user in db', function (done) {
-            var departement = new Departement({
+    //test section model
+    describe('register section', function () {
+        //create section model
+        it('should save section in db', function (done) {
+            var section = new Section({
                 name: 'offece',
+                departement: new mongoose_1.default.Types.ObjectId('6283724be1996b883080a495')
             });
-            //test this departement model
-            departement.save().then(() => {
-                (0, chai_1.expect)(departement.name).to.equal('offece');
+            //test this section model
+            section.save().then(() => {
+                (0, chai_1.expect)(section.name).to.equal('offece');
+                // expect(section.departement).to.equal('5c9b8f8f8f8f8f8f8f8f8f');
                 done();
             }).catch((err) => {
                 done(err);

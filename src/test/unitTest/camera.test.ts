@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import connectDB, { Disconnect } from '../../db/connect';
-import mongoose, { Connection } from 'mongoose';
+import { Disconnect } from '../../db/connect';
+import mongoose from 'mongoose';
 import { dbUri } from '../../server';
 
 //test camera models
