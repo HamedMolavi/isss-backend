@@ -11,12 +11,9 @@ import cookieParser from "cookie-parser";
 import session from "express-session";
 import flash from 'connect-flash';
 import setUpPassport from "./tools/setuppassport";
-import userRoutes from './routes/userRoutes';
 import passport from 'passport';
 import errorHandler from './error/errorHandler';
-import fileRoutes from './routes/fileRoutes';
-import cameraRoutes from './routes/cameraRoutes';
-import departementRoutes from './routes/departementRoutes';
+import routes from './routes/index';
 
 //initial file .env
 dotenv.config();
@@ -67,14 +64,10 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
         message: 'Application works!'
     });
 });
-//create route for user
-app.use(userRoutes);
-//create route for file
-app.use(fileRoutes);
-//create route for camera
-app.use(cameraRoutes);
-//create route for departement
-app.use(departementRoutes);
+
+//add routes app
+app.use(routes);
+
 //add error handler
 app.use(errorHandler);
 
@@ -92,8 +85,5 @@ http.createServer(app).listen(PORT_HTTP, () => {
 //     console.log('Application started on http://localhost:3000');
 // });
 
-//}
-
-//server();
 
 export default app;

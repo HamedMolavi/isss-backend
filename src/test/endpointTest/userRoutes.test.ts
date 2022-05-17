@@ -1,7 +1,7 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
-import User from '../../models/user';
+import User from './../../models/user';
 
 
 const token = process.env.sample_token;
@@ -24,7 +24,7 @@ describe('server run and server runnig and register user', function () {
         //test route for register new user in DB
         it('should send back a JSON object with user for create new user', function (done) {
             request(app)
-                .post('/user')
+                .post('/user/register')
                 .set('Content-Type', 'application/json')
                 .set('Authorization', `Bearer ${token}`)
                 .send({
@@ -69,7 +69,7 @@ describe('server run and server runnig and register user', function () {
 
         //test route for get user in DB
         request(app)
-            .get('/' + _user.username)
+            .get('/user/' + _user.username)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -94,7 +94,7 @@ describe('server run and server runnig and register user', function () {
         };
         console.log(_user);
         request(app)
-            .put('/' + _user._id)
+            .put('/user/' + _user._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(userEditJson)
@@ -116,7 +116,7 @@ describe('server run and server runnig and register user', function () {
     it('should send back a JSON object for login user', function (done) {
 
         request(app)
-            .post('/login')
+            .post('/user/login')
             .set('Content-Type', 'application/json')
             .send({
                 username: "john",
@@ -142,7 +142,7 @@ describe('server run and server runnig and register user', function () {
     it('should send back a JSON object for delete user', function (done) {
 
         request(app)
-            .delete('/' + _user._id)
+            .delete('/user/' + _user._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

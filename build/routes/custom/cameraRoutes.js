@@ -13,8 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const camera_1 = __importDefault(require("./../models/camera"));
-const authentication_1 = require("../tools/authentication");
+const camera_1 = __importDefault(require("./../../models/camera"));
+const authentication_1 = require("../../tools/authentication");
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -25,7 +25,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new camera
-router.post("/camera/register", function (req, res, next) {
+router.post("/register", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -74,7 +74,7 @@ router.post("/camera/register", function (req, res, next) {
     });
 });
 //route for get cameras list  
-router.get("/camera/cameras", function (req, res, next) {
+router.get("/cameras", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -106,7 +106,7 @@ router.get("/camera/cameras", function (req, res, next) {
     });
 });
 //route for get camera by name from DB 
-router.get("/camera/:name", function (req, res, next) {
+router.get("/:name", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -138,7 +138,7 @@ router.get("/camera/:name", function (req, res, next) {
     });
 });
 //add route for edit camera
-router.put("/camera/:id", function (req, res, next) {
+router.put("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get id from url
@@ -189,7 +189,7 @@ router.put("/camera/:id", function (req, res, next) {
     });
 });
 //add route for delete camera
-router.delete("/camera/:id", function (req, res, next) {
+router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let id = req.params.id;

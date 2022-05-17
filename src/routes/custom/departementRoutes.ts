@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Departement from "./../models/departement";
-import { authorize, getToken } from "../tools/authentication";
+import Departement from "./../../models/departement";
+import { authorize, getToken } from "./../../tools/authentication";
 
 
 //define token type after verify
@@ -31,7 +31,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 
 //add route for register new departement
-router.post("/departement/register", async function (req: Request, res: Response, next: NextFunction) {
+router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { name } = req.body;
@@ -74,7 +74,7 @@ router.post("/departement/register", async function (req: Request, res: Response
 });
 
 //route for get departements list  
-router.get("/departement/departements", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/departements", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -102,7 +102,7 @@ router.get("/departement/departements", async function (req: Request, res: Respo
 });
 
 //route for get departement by name from DB 
-router.get("/departement/:name", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/:name", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -131,7 +131,7 @@ router.get("/departement/:name", async function (req: Request, res: Response, ne
 
 
 //add route for edit departement
-router.put("/departement/:id", async function (req: Request, res: Response, next: NextFunction) {
+router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
         let id = req.params.id as Object;
@@ -171,7 +171,7 @@ router.put("/departement/:id", async function (req: Request, res: Response, next
 
 
 //add route for delete departement
-router.delete("/departement/:id", async function (req: any, res: any, next: NextFunction) {
+router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
         let id = req.params.id;
 

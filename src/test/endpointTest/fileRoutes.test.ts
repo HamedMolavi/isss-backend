@@ -1,7 +1,6 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
-import fs from 'fs';
 
 const token = process.env.sample_token;
 let _file: any;

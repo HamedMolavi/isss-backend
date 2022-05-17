@@ -13,8 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const departement_1 = __importDefault(require("./../models/departement"));
-const authentication_1 = require("../tools/authentication");
+const departement_1 = __importDefault(require("./../../models/departement"));
+const authentication_1 = require("./../../tools/authentication");
 //create router for add to server file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -25,7 +25,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new departement
-router.post("/departement/register", function (req, res, next) {
+router.post("/register", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -69,7 +69,7 @@ router.post("/departement/register", function (req, res, next) {
     });
 });
 //route for get departements list  
-router.get("/departement/departements", function (req, res, next) {
+router.get("/departements", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -101,7 +101,7 @@ router.get("/departement/departements", function (req, res, next) {
     });
 });
 //route for get departement by name from DB 
-router.get("/departement/:name", function (req, res, next) {
+router.get("/:name", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -133,7 +133,7 @@ router.get("/departement/:name", function (req, res, next) {
     });
 });
 //add route for edit departement
-router.put("/departement/:id", function (req, res, next) {
+router.put("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get id from url
@@ -179,7 +179,7 @@ router.put("/departement/:id", function (req, res, next) {
     });
 });
 //add route for delete departement
-router.delete("/departement/:id", function (req, res, next) {
+router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let id = req.params.id;
