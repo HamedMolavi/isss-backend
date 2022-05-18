@@ -10,12 +10,6 @@ const camera_1 = __importDefault(require("../../models/camera"));
 const token = process.env.sample_token;
 let _camera;
 describe('server run and server runnig and crud camera', function () {
-    beforeEach(function (done) {
-        camera_1.default.findOne({ username: 'test' }, (err, camera) => {
-            _camera = camera;
-            done();
-        });
-    });
     //test route for register new camera in DB
     it('should send back a JSON object with user for create new camera', function (done) {
         (0, supertest_1.default)(server_1.default)
@@ -50,11 +44,17 @@ describe('server run and server runnig and crud camera', function () {
             done();
         });
     });
-    //test route for get camera by name from DB
-    it('should send back a JSON object for get camera with name', function (done) {
+    beforeEach(function (done) {
+        camera_1.default.findOne({ username: 'test' }, (err, camera) => {
+            _camera = camera;
+            done();
+        });
+    });
+    //test route for get camera by id from DB
+    it('should send back a JSON object for get camera with id', function (done) {
         //test route for get camera in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/camera/' + _camera.name)
+            .get('/camera/' + _camera._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

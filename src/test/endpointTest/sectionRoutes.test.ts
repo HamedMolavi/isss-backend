@@ -46,13 +46,13 @@ describe('server run and crud section', function () {
     });
 
 
-    //test route for get section by name from DB
-    it('should send back a JSON object for get section with name', function (done) {
+    //test route for get section by id from DB
+    it('should send back a JSON object for get section with id', function (done) {
 
 
         //test route for get section in DB
         request(app)
-            .get('/section/' + _section.name)
+            .get('/section/' + _section._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

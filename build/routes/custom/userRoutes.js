@@ -113,8 +113,8 @@ router.get("/users", function (req, res, next) {
         }
     });
 });
-//route for get user by username from DB 
-router.get("/:username", function (req, res, next) {
+//route for get user by id from DB 
+router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -128,8 +128,8 @@ router.get("/:username", function (req, res, next) {
             else if (critential.role !== "admin") {
                 return next({ status: 401, message: "Unauthorized" });
             }
-            //query for get user by username from DB
-            user_1.default.findOne({ username: req.params.username }, function (err, user) {
+            //query for get user by id from DB
+            user_1.default.findById(req.params.id, function (err, user) {
                 if (err) {
                     return next(err);
                 }

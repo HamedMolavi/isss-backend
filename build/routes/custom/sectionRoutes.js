@@ -101,8 +101,8 @@ router.get("/sections", function (req, res, next) {
         }
     });
 });
-//route for get section by name from DB 
-router.get("/:name", function (req, res, next) {
+//route for get section by id from DB 
+router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -113,8 +113,8 @@ router.get("/:name", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get section by name from DB
-            section_1.default.findOne({ name: req.params.name }, function (err, section) {
+            //query for get section by id from DB
+            section_1.default.findById(req.params.id, function (err, section) {
                 if (err) {
                     return next(err);
                 }

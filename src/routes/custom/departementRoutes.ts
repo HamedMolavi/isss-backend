@@ -101,8 +101,8 @@ router.get("/departements", async function (req: Request, res: Response, next: N
     }
 });
 
-//route for get departement by name from DB 
-router.get("/:name", async function (req: Request, res: Response, next: NextFunction) {
+//route for get departement by id from DB 
+router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -114,8 +114,8 @@ router.get("/:name", async function (req: Request, res: Response, next: NextFunc
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get departement by name from DB
-        Departement.findOne({ name: req.params.name }, function (err: Error, departement: IDepartement | null) {
+        //query for get departement by id from DB
+        Departement.findById(req.params.id , function (err: Error, departement: IDepartement | null) {
             if (err) { return next(err); }
             if (!departement) { return next(new Error("Not Found")); }
             //send response to client with departement    

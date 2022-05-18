@@ -64,11 +64,11 @@ describe('server run and server runnig and register user', function () {
             done();
         });
     });
-    //test route for get user by username from DB
-    it('should send back a JSON object for get user with username', function (done) {
+    //test route for get user by id from DB
+    it('should send back a JSON object for get user with id', function (done) {
         //test route for get user in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/user/' + _user.username)
+            .get('/user/' + _user._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

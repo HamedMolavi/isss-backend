@@ -103,8 +103,8 @@ router.get("/sections", async function (req: Request, res: Response, next: NextF
     }
 });
 
-//route for get section by name from DB 
-router.get("/:name", async function (req: Request, res: Response, next: NextFunction) {
+//route for get section by id from DB 
+router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -116,8 +116,8 @@ router.get("/:name", async function (req: Request, res: Response, next: NextFunc
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get section by name from DB
-        Section.findOne({ name: req.params.name }, function (err: Error, section: ISection | null) {
+        //query for get section by id from DB
+        Section.findById(req.params.id , function (err: Error, section: ISection | null) {
             if (err) { return next(err); }
             if (!section) { return next(new Error("Not Found")); }
             //send response to client with section    

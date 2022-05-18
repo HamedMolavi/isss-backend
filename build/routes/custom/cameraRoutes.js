@@ -105,8 +105,8 @@ router.get("/cameras", function (req, res, next) {
         }
     });
 });
-//route for get camera by name from DB 
-router.get("/:name", function (req, res, next) {
+//route for get camera by id from DB 
+router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -117,8 +117,8 @@ router.get("/:name", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get camera by name from DB
-            camera_1.default.findOne({ name: req.params.name }, function (err, camera) {
+            //query for get camera by id from DB
+            camera_1.default.findById(req.params.id, function (err, camera) {
                 if (err) {
                     return next(err);
                 }
@@ -153,7 +153,7 @@ router.put("/:id", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get user by username from DB
+            //query for get user by id from DB
             camera_1.default.findById(id, function (err, camera) {
                 var _a, _b, _c, _d, _e;
                 return __awaiter(this, void 0, void 0, function* () {

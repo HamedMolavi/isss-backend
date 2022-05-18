@@ -100,8 +100,8 @@ router.get("/departements", function (req, res, next) {
         }
     });
 });
-//route for get departement by name from DB 
-router.get("/:name", function (req, res, next) {
+//route for get departement by id from DB 
+router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -112,8 +112,8 @@ router.get("/:name", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get departement by name from DB
-            departement_1.default.findOne({ name: req.params.name }, function (err, departement) {
+            //query for get departement by id from DB
+            departement_1.default.findById(req.params.id, function (err, departement) {
                 if (err) {
                     return next(err);
                 }

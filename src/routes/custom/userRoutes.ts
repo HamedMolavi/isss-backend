@@ -114,8 +114,8 @@ router.get("/users", async function (req: Request, res: Response, next: NextFunc
 });
 
 
-//route for get user by username from DB 
-router.get("/:username", async function (req: Request, res: Response, next: NextFunction) {
+//route for get user by id from DB 
+router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -129,8 +129,8 @@ router.get("/:username", async function (req: Request, res: Response, next: Next
             return next({ status: 401, message: "Unauthorized" });
         }
 
-        //query for get user by username from DB
-        User.findOne({ username: req.params.username }, function (err: Error, user: any) {
+        //query for get user by id from DB
+        User.findById(req.params.id , function (err: Error, user: any) {
             if (err) { return next(err); }
             if (!user) { return next(new Error("Not Found")); }
             //send response to client with user    

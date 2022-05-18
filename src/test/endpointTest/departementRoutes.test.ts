@@ -44,13 +44,13 @@ describe('server run and crud departement', function () {
     });
 
 
-    //test route for get departement by name from DB
-    it('should send back a JSON object for get departement with name', function (done) {
+    //test route for get departement by id from DB
+    it('should send back a JSON object for get departement with id', function (done) {
 
 
         //test route for get camera in DB
         request(app)
-            .get('/departement/' + _departement.name)
+            .get('/departement/' + _departement._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

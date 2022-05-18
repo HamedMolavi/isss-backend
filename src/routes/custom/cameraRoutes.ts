@@ -108,8 +108,8 @@ router.get("/cameras", async function (req: Request, res: Response, next: NextFu
     }
 });
 
-//route for get camera by name from DB 
-router.get("/:name", async function (req: Request, res: Response, next: NextFunction) {
+//route for get camera by id from DB 
+router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -121,8 +121,8 @@ router.get("/:name", async function (req: Request, res: Response, next: NextFunc
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get camera by name from DB
-        Camera.findOne({ name: req.params.name }, function (err: Error, camera: any) {
+        //query for get camera by id from DB
+        Camera.findById(req.params.id , function (err: Error, camera: any) {
             if (err) { return next(err); }
             if (!camera) { return next(new Error("Not Found")); }
             //send response to client with camera    
@@ -154,7 +154,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
         }
-        //query for get user by username from DB
+        //query for get user by id from DB
         Camera.findById(id, async function (err: Error, camera: any) {
             if (err) { return next(err); }
             if (!camera) { return next({ status: 401, message: "Not Found" }) };
