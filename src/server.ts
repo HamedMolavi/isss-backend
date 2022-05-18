@@ -57,6 +57,13 @@ app.use(flash());
 
 //add logger
 app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
+// create a write stream (in append mode)
+//const accessLogStream = fs.createWriteStream(`${__dirname}/access.log`, {
+ //   flags:
+ //       'a'
+//});
+// setup the logger
+//app.use(logger('combined', { stream: accessLogStream }));
 
 //create route for test
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
