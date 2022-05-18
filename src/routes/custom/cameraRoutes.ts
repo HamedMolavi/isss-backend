@@ -38,6 +38,10 @@ router.post("/register", async function (req: Request, res: Response, next: Next
     try {
         //get jason from body request
         const { ip, name, username, password, rstpLink } = req.body;
+        //verify body request
+        if (!ip || !name || !username || !password || !rstpLink) {
+            return next({ status: 400, message: "Bad request" });
+        }
 
         //get token from header request
         let token: string = getToken(req, next) as string;
@@ -111,6 +115,11 @@ router.get("/cameras", async function (req: Request, res: Response, next: NextFu
 //route for get camera by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        let id: string = req.params.id;
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
         //get token from header request
         let token = getToken(req, next) as string;
 
@@ -122,7 +131,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         }
 
         //query for get camera by id from DB
-        Camera.findById(req.params.id , function (err: Error, camera: any) {
+        Camera.findById(req.params.id, function (err: Error, camera: any) {
             if (err) { return next(err); }
             if (!camera) { return next(new Error("Not Found")); }
             //send response to client with camera    
@@ -141,8 +150,13 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
-        let id = req.params.id as Object;
-        // const { username, password, name, email, role } = req.body;
+        let id: string = req.params.id;
+
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
+
         const cameraBody = req.body;
         //get token from header request
         let token = getToken(req, next) as string;
@@ -185,6 +199,10 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
         let id = req.params.id;
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
 
         //get token from header request
         let token = getToken(req, next) as string;

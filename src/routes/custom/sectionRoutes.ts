@@ -36,6 +36,10 @@ router.post("/register", async function (req: Request, res: Response, next: Next
     try {
         //get jason from body request
         const { name, department } = req.body;
+        //verify body request
+        if (!name || !department) {
+            return next({ status: 400, message: "Bad request" });
+        }
 
         //get token from header request
         let token: string = getToken(req, next) as string;
@@ -106,6 +110,12 @@ router.get("/sections", async function (req: Request, res: Response, next: NextF
 //route for get section by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        let id: string = req.params.id;
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
+
         //get token from header request
         let token = getToken(req, next) as string;
 
@@ -117,7 +127,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         }
 
         //query for get section by id from DB
-        Section.findById(req.params.id , function (err: Error, section: ISection | null) {
+        Section.findById(id, function (err: Error, section: ISection | null) {
             if (err) { return next(err); }
             if (!section) { return next(new Error("Not Found")); }
             //send response to client with section    
@@ -137,6 +147,11 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
     try {
         //get id from url
         let id = req.params.id as Object;
+
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
 
         const sectionBody = req.body;
         //get token from header request
@@ -177,6 +192,10 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
         let id = req.params.id;
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
 
         //get token from header request
         let token = getToken(req, next) as string;

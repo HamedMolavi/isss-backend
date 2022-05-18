@@ -30,6 +30,10 @@ router.post("/register", function (req, res, next) {
         try {
             //get jason from body request
             const { name, department } = req.body;
+            //verify body request
+            if (!name || !department) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -105,6 +109,11 @@ router.get("/sections", function (req, res, next) {
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            let id = req.params.id;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -114,7 +123,7 @@ router.get("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get section by id from DB
-            section_1.default.findById(req.params.id, function (err, section) {
+            section_1.default.findById(id, function (err, section) {
                 if (err) {
                     return next(err);
                 }
@@ -139,6 +148,10 @@ router.put("/:id", function (req, res, next) {
         try {
             //get id from url
             let id = req.params.id;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             const sectionBody = req.body;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
@@ -185,6 +198,10 @@ router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let id = req.params.id;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token

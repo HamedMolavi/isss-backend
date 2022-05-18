@@ -30,6 +30,10 @@ router.post("/register", function (req, res, next) {
         try {
             //get jason from body request
             const { name } = req.body;
+            //verify body request
+            if (!name) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -104,6 +108,11 @@ router.get("/departements", function (req, res, next) {
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            let id = req.params.id;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -138,6 +147,10 @@ router.put("/:id", function (req, res, next) {
         try {
             //get id from url
             let id = req.params.id;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             const departementBody = req.body;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
@@ -183,6 +196,10 @@ router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let id = req.params.id;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token

@@ -30,6 +30,10 @@ router.post("/register", function (req, res, next) {
         try {
             //get jason from body request
             const { ip, name, username, password, rstpLink } = req.body;
+            //verify body request
+            if (!ip || !name || !username || !password || !rstpLink) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -109,6 +113,11 @@ router.get("/cameras", function (req, res, next) {
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            let id = req.params.id;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -143,7 +152,10 @@ router.put("/:id", function (req, res, next) {
         try {
             //get id from url
             let id = req.params.id;
-            // const { username, password, name, email, role } = req.body;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             const cameraBody = req.body;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
@@ -193,6 +205,10 @@ router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let id = req.params.id;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token

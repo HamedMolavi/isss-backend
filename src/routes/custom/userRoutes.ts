@@ -37,6 +37,11 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //get jason from body request
         const { username, password, name, email, role } = req.body;
 
+        //verify body request
+        if (!username || !password || !name || !email || !role) {
+            return next({ status: 400, message: "Bad request" });
+        }
+
         //get token from header request
         let token: string = getToken(req, next) as string;
 
@@ -117,6 +122,12 @@ router.get("/users", async function (req: Request, res: Response, next: NextFunc
 //route for get user by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        let id : string = req.params.id;
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
+
         //get token from header request
         let token = getToken(req, next) as string;
 
@@ -130,7 +141,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         }
 
         //query for get user by id from DB
-        User.findById(req.params.id , function (err: Error, user: any) {
+        User.findById(id, function (err: Error, user: any) {
             if (err) { return next(err); }
             if (!user) { return next(new Error("Not Found")); }
             //send response to client with user    
@@ -150,7 +161,10 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
     try {
         //get id from url
         let id = req.params.id as Object;
-        // const { username, password, name, email, role } = req.body;
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
         const userBody = req.body;
         //get token from header request
         let token = getToken(req, next) as string;
@@ -196,6 +210,10 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
         let id = req.params.id;
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
 
         //get token from header request
         let token = getToken(req, next) as string;
@@ -233,6 +251,10 @@ router.post("/login", async function (req: Request, res: Response, next: Functio
     try {
         //get jason from body request
         const { username, password } = req.body;
+        //verify body request
+        if (!username || !password) {
+            return next({ status: 400, message: "Bad request" });
+        }
         //get user from DB
         User.findOne({ username: username }, function (err: Error, user: any) {
             if (err) { return next(err) };

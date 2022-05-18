@@ -35,7 +35,10 @@ router.post("/register", async function (req: Request, res: Response, next: Next
     try {
         //get jason from body request
         const { name } = req.body;
-
+        //verify body request
+        if (!name) {
+            return next({ status: 400, message: "Bad request" });
+        }
         //get token from header request
         let token: string = getToken(req, next) as string;
 
@@ -104,6 +107,12 @@ router.get("/departements", async function (req: Request, res: Response, next: N
 //route for get departement by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        let id: string = req.params.id;
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
+
         //get token from header request
         let token = getToken(req, next) as string;
 
@@ -115,7 +124,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         }
 
         //query for get departement by id from DB
-        Departement.findById(req.params.id , function (err: Error, departement: IDepartement | null) {
+        Departement.findById(req.params.id, function (err: Error, departement: IDepartement | null) {
             if (err) { return next(err); }
             if (!departement) { return next(new Error("Not Found")); }
             //send response to client with departement    
@@ -134,7 +143,12 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
-        let id = req.params.id as Object;
+        let id: string = req.params.id;
+
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
 
         const departementBody = req.body;
         //get token from header request
@@ -173,7 +187,11 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for delete departement
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
-        let id = req.params.id;
+        let id: string = req.params.id;
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
 
         //get token from header request
         let token = getToken(req, next) as string;

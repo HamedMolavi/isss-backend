@@ -31,6 +31,10 @@ router.post("/register", function (req, res, next) {
         try {
             //get jason from body request
             const { username, password, name, email, role } = req.body;
+            //verify body request
+            if (!username || !password || !name || !email || !role) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -117,6 +121,11 @@ router.get("/users", function (req, res, next) {
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            let id = req.params.id;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -129,7 +138,7 @@ router.get("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Unauthorized" });
             }
             //query for get user by id from DB
-            user_1.default.findById(req.params.id, function (err, user) {
+            user_1.default.findById(id, function (err, user) {
                 if (err) {
                     return next(err);
                 }
@@ -154,7 +163,10 @@ router.put("/:id", function (req, res, next) {
         try {
             //get id from url
             let id = req.params.id;
-            // const { username, password, name, email, role } = req.body;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             const userBody = req.body;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
@@ -207,6 +219,10 @@ router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let id = req.params.id;
+            //verify body request
+            if (!id) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -248,6 +264,10 @@ router.post("/login", function (req, res, next) {
         try {
             //get jason from body request
             const { username, password } = req.body;
+            //verify body request
+            if (!username || !password) {
+                return next({ status: 400, message: "Bad request" });
+            }
             //get user from DB
             user_1.default.findOne({ username: username }, function (err, user) {
                 if (err) {
