@@ -14,6 +14,7 @@ import setUpPassport from "./tools/setuppassport";
 import passport from 'passport';
 import errorHandler from './error/errorHandler';
 import routes from './routes/index';
+import { createStream } from 'rotating-file-stream';
 
 //initial file .env
 dotenv.config();
@@ -57,13 +58,16 @@ app.use(flash());
 
 //add logger
 app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
-// create a write stream (in append mode)
-//const accessLogStream = fs.createWriteStream(`${__dirname}/access.log`, {
- //   flags:
- //       'a'
-//});
-// setup the logger
-//app.use(logger('combined', { stream: accessLogStream }));
+//add logger in file
+app.use(logger(process.env.REQUEST_LOG_FORMAT || 'dev', {
+    stream: process.env.REQUEST_LOG_FILE ?
+        createStream(process.env.REQUEST_LOG_FILE, {
+            size: '10M', // rotate every 10 MegaBytes written
+            interval: '1d', // rotate daily
+            compress: 'gzip' // compress rotated files
+        })
+        : process.stdout
+}));
 
 //create route for test
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
