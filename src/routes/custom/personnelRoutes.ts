@@ -56,7 +56,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 
         let newPersonnel = new Personnel();
         //query for save new personnel in DB
-        Personnel.findOne({ name: name }, async function (err: Error, personnel: IPersonnel) {
+        Personnel.findOne({ name: name }, async function (err: Error, personnel: IPersonnel | null) {
             if (err) { return next(err); }
             if (personnel) {
                 req.flash("error", "personnel already exists");
@@ -75,7 +75,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             //send response to client with new personnel 
             return res.status(201).json({
                 message: 'personnel created',
-                personnel: personnel
+                personnel: newPersonnel
             });
         });
     } catch (err) {
