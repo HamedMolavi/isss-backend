@@ -53,7 +53,7 @@ app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
 app.use((0, connect_flash_1.default)());
 //add logger
-app.use((0, morgan_1.default)('dev'));
+app.use((0, morgan_1.default)(process.env.REQUEST_LOG_FORMAT));
 //create route for test
 app.get('/', (req, res, next) => {
     res.status(200).json({

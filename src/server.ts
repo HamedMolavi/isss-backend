@@ -56,7 +56,7 @@ app.use(passport.session());
 app.use(flash());
 
 //add logger
-app.use(logger('dev'));
+app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
 
 //create route for test
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
