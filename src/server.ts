@@ -1,4 +1,5 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
+import * as util from 'util';
 import fs from 'fs';
 import http from 'http';
 import https from 'https';
@@ -81,6 +82,14 @@ app.use(routes);
 
 //add error handler
 app.use(errorHandler);
+//for get unhandeled error in express
+process.on('uncaughtException', function (err) {
+    console.error(`I've crashed!!! - ${(err.stack || err)}`);
+});
+//for get unhandeled rejection in express
+process.on('unhandledRejection', (reason, p) => {
+    console.error(`Unhandled Rejection at: ${util.inspect(p)} reason: ${reason}`);
+});
 
 //run https server on port 4000
 https.createServer(options, app).listen(PORT_HTTPS, () => {
