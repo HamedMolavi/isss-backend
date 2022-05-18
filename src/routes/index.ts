@@ -5,6 +5,7 @@ import fileRoutes from './custom/fileRoutes';
 import departementRoutes from './custom/departementRoutes';
 import sectionRoutes from './custom/sectionRoutes';
 import jobTitleRoutes from './custom/jobTitleRoutes';
+import personnelRoutes from './custom/personnelRoutes';
 
 //create router for add to server 
 const router: Router = Router();
@@ -16,6 +17,7 @@ router.use('/file', fileRoutes);
 router.use('/departement', departementRoutes);
 router.use('/section', sectionRoutes);
 router.use('/jobtitle', jobTitleRoutes);
+router.use('/personnel', personnelRoutes);
 
 
 export default router;

@@ -10,6 +10,7 @@ const fileRoutes_1 = __importDefault(require("./custom/fileRoutes"));
 const departementRoutes_1 = __importDefault(require("./custom/departementRoutes"));
 const sectionRoutes_1 = __importDefault(require("./custom/sectionRoutes"));
 const jobTitleRoutes_1 = __importDefault(require("./custom/jobTitleRoutes"));
+const personnelRoutes_1 = __importDefault(require("./custom/personnelRoutes"));
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add rotes app
@@ -19,4 +20,5 @@ router.use('/file', fileRoutes_1.default);
 router.use('/departement', departementRoutes_1.default);
 router.use('/section', sectionRoutes_1.default);
 router.use('/jobtitle', jobTitleRoutes_1.default);
+router.use('/personnel', personnelRoutes_1.default);
 exports.default = router;
