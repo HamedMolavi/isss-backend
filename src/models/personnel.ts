@@ -4,7 +4,7 @@ import mongoose, { Schema } from "mongoose";
 interface IPersonnel {
     name: string;
     family: string;
-    phone : string;
+    phone: string;
     jobTitle: string;
 }
 
