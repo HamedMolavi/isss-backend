@@ -1,0 +1,49 @@
+import { expect } from 'chai';
+import { Disconnect } from '../../db/connect';
+import mongoose from 'mongoose';
+import { dbUri } from '../../server';
+
+//test section models
+describe('section', function () {
+
+    let Section: any;
+    //connect to DB before test
+    beforeEach(function (done) {
+        //connect to DB
+        mongoose.connect(dbUri);
+        //listen for connection events
+        mongoose.connection.once('connected', () => {
+            mongoose.connection.db.dropDatabase();
+
+            require('../../models/section').registerModels;
+            // This is the right model because registerModels set it up for us.
+            Section = mongoose.model('Section');
+            done();
+        });
+    });
+    //disconnect from DB after test
+    afterEach(function (done) {
+        Disconnect();
+        done();
+    });
+    //test section model
+    describe('register section', function () {
+        //create section model
+        it('should save section in db', function (done) {
+            var section = new Section({
+                name: 'offece',
+                departement:new mongoose.Types.ObjectId('6283724be1996b883080a495')
+            });
+            //test this section model
+            section.save().then(() => {
+                expect(section.name).to.equal('offece');
+               // expect(section.departement).to.equal('5c9b8f8f8f8f8f8f8f8f8f');
+                done();
+            }
+            ).catch((err: Error) => {
+                done(err);
+            });
+        });
+
+    });
+});
