@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 //define AI type
-interface IAI {
+export interface IAI {
     start: string;
     end: string;
     thresholdid: number;
