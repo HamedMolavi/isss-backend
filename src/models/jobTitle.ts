@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 //define jobTitle type
-export interface IJobTitle {
+interface IJobTitle {
     name: string;
 }
 

@@ -12,7 +12,6 @@ const sectionRoutes_1 = __importDefault(require("./custom/sectionRoutes"));
 const jobTitleRoutes_1 = __importDefault(require("./custom/jobTitleRoutes"));
 const personnelRoutes_1 = __importDefault(require("./custom/personnelRoutes"));
 const plateRoutes_1 = __importDefault(require("./custom/plateRoutes"));
-const AIRoutes_1 = __importDefault(require("./custom/AIRoutes"));
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add rotes app
@@ -24,5 +23,4 @@ router.use('/section', sectionRoutes_1.default);
 router.use('/jobtitle', jobTitleRoutes_1.default);
 router.use('/personnel', personnelRoutes_1.default);
 router.use('/plate', plateRoutes_1.default);
-router.use('/AI', AIRoutes_1.default);
 exports.default = router;

@@ -1,6 +1,23 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Plate, { IPlate } from "../../models/plate";
-import { authorize, getToken, ICritential } from "./../../tools/authentication";
+import Plate from "../../models/plate";
+import { authorize, getToken } from "./../../tools/authentication";
+
+
+//define token type after verify
+interface ICritential {
+    id: string;
+    email: string;
+    role: string;
+    exp: number;
+    iat: number;
+}
+//define plate type 
+interface IPlate {
+    number: string;
+    carBrand: string;
+    color: string;
+    owner: string;
+}
 
 
 //create router for add to routes file 
@@ -19,7 +36,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { number, carBrand, color, owner } = req.body;
+        const {number , carBrand , color, owner} = req.body;
         //verify body request
         if (!number || !carBrand || !color || !owner) {
             return next({ status: 400, message: "Bad request" });
@@ -49,7 +66,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
                 number: number,
                 carBrand: carBrand,
                 color: color,
-                owner: owner
+                owner: owner    
             });
 
             //save new plate in DB
@@ -132,7 +149,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
-        let id: string = req.params.id;
+        let id :string = req.params.id;
 
         //verify body request
         if (!id) {
@@ -179,7 +196,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for delete plate
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
-        let id: string = req.params.id;
+        let id : string = req.params.id;
         //verify body request
         if (!id) {
             return next({ status: 400, message: "Bad request" });

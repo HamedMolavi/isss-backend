@@ -1,6 +1,21 @@
 import { Router, Request, Response, NextFunction } from "express";
-import JobTitle, { IJobTitle } from "./../../models/jobTitle";
-import { authorize, getToken, ICritential } from "./../../tools/authentication";
+import JobTitle from "./../../models/jobTitle";
+import { authorize, getToken } from "./../../tools/authentication";
+
+
+//define token type after verify
+interface ICritential {
+    id: string;
+    email: string;
+    role: string;
+    exp: number;
+    iat: number;
+}
+//define jobTitle type 
+interface IJobTitle {
+    id: string;
+    name: string;
+}
 
 
 //create router for add to server file 
