@@ -15,7 +15,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const user_1 = __importDefault(require("../../models/user"));
 const authentication_1 = require("../../tools/authentication");
-;
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add error handler middleware

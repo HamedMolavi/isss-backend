@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define plate type
-interface IPlate {
+export interface IPlate {
     number: string,
     carBrand: string;
     color: string;
