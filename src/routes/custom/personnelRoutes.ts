@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Personnel from "./../../models/personnel";
+import Personnel, { IPersonnel } from "./../../models/personnel";
 import { authorize, getToken } from "./../../tools/authentication";
 
 
@@ -11,15 +11,6 @@ interface ICritential {
     exp: number;
     iat: number;
 }
-//define perssonel type 
-interface IPersonnel {
-    id: string;
-    name: string;
-    family: string;
-    phone: string;
-    jobTitle: string;
-}
-
 
 //create router for add to routes file 
 const router: Router = Router();

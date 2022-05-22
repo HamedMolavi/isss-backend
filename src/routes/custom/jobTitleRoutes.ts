@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import JobTitle from "./../../models/jobTitle";
+import JobTitle, { IJobTitle } from "./../../models/jobTitle";
 import { authorize, getToken } from "./../../tools/authentication";
 
 
@@ -10,11 +10,6 @@ interface ICritential {
     role: string;
     exp: number;
     iat: number;
-}
-//define jobTitle type 
-interface IJobTitle {
-    id: string;
-    name: string;
 }
 
 

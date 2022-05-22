@@ -17,7 +17,7 @@ describe('server run and crud AI', function () {
             start: "2019-01-01T00:00:00.000Z",
             end: "2019-01-01T00:00:00.000Z",
             type: "type1",
-        }, (err: Error, Ai: any) => {
+        }, (err: Error, Ai: IAI) => {
             _AI = Ai;
             done();
         });
@@ -80,7 +80,6 @@ describe('server run and crud AI', function () {
                 expect(userResponse.minTime).to.equal(_AI.minTime);
                 expect(userResponse.zone[0]).to.equal('zone1');
                 expect(userResponse.zone[1]).to.equal('zone2');
-               // expect(userResponse.AI.zone).to.equal('zone2');
                 expect(userResponse.type).to.equal(_AI.type);
                 expect(userResponse.minPeople).to.equal(_AI.minPeople);
                 expect(userResponse.maxPeople).to.equal(_AI.maxPeople);

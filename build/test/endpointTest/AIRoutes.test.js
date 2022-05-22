@@ -81,7 +81,6 @@ describe('server run and crud AI', function () {
             (0, chai_1.expect)(userResponse.minTime).to.equal(_AI.minTime);
             (0, chai_1.expect)(userResponse.zone[0]).to.equal('zone1');
             (0, chai_1.expect)(userResponse.zone[1]).to.equal('zone2');
-            // expect(userResponse.AI.zone).to.equal('zone2');
             (0, chai_1.expect)(userResponse.type).to.equal(_AI.type);
             (0, chai_1.expect)(userResponse.minPeople).to.equal(_AI.minPeople);
             (0, chai_1.expect)(userResponse.maxPeople).to.equal(_AI.maxPeople);

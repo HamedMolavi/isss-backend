@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Section from "./../../models/section";
+import Section, { ISection } from "./../../models/section";
 import { authorize, getToken } from "./../../tools/authentication";
 
 
@@ -11,13 +11,6 @@ interface ICritential {
     exp: number;
     iat: number;
 }
-//define section type 
-interface ISection {
-    id: string;
-    name: string;
-    departement: string;
-}
-
 
 //create router for add to routes file 
 const router: Router = Router();

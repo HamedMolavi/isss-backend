@@ -1,15 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import User from '../../models/user';
+import User, { IUser } from '../../models/user';
 import { authorize, getToken } from "../../tools/authentication";
 
-//define user type
-interface IUser {
-    name: string;
-    username: string;
-    password: string;
-    email: string;
-    role: string;
-};
+
 //define token type after verify
 interface ICritential {
     id: string;
@@ -18,7 +11,6 @@ interface ICritential {
     exp: number;
     iat: number;
 }
-
 
 //create router for add to server 
 const router: Router = Router();
@@ -122,7 +114,7 @@ router.get("/users", async function (req: Request, res: Response, next: NextFunc
 //route for get user by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
-        let id : string = req.params.id;
+        let id: string = req.params.id;
         //verify body request
         if (!id) {
             return next({ status: 400, message: "Bad request" });
