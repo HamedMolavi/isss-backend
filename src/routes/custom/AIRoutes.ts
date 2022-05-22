@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Departement, { IDepartement } from "./../../models/departement";
+import AI, { IAI } from "./../../models/AI";
 import { authorize, getToken, ICritential } from "./../../tools/authentication";
 
 //create router for add to server file 
@@ -14,15 +14,23 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 
-//add route for register new departement
+//add route for register new AI
 router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { name } = req.body;
+        const { start, end, thresholdid, minTime, zone, type, minPeople, maxPeople } = req.body;
         //verify body request
-        if (!name) {
+        if (!start || !end || !zone || !type) {
             return next({ status: 400, message: "Bad request" });
         }
+        if (type === 'FireDetection' && !thresholdid) {
+            return next({ status: 400, message: "Bad request" });
+        } else if (type === 'FaceRecognition' && !minTime && !thresholdid) {
+            return next({ status: 400, message: "Bad request" });
+        } else if (type === 'PeopleCounting' && !minPeople && !maxPeople) {
+            return next({ status: 400, message: "Bad request" });
+        }
+
         //get token from header request
         let token: string = getToken(req, next) as string;
 
@@ -34,34 +42,41 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             return next({ status: 401, message: "Token expired" });
         }
 
-        let newDepartement = new Departement();
-        //query for save new departement in DB
-        Departement.findOne({ name: name }, async function (err: Error, departement: IDepartement) {
+        let newAi = new AI();
+        //query for save new AI in DB
+        AI.findOne({ start: start, end: end, type: type }, async function (err: Error, Ai: IAI) {
             if (err) { return next(err); }
-            if (departement) {
-                req.flash("error", "departement already exists");
-                return res.status(201).json({ message: "departement already exists" });
+            if (Ai) {
+                req.flash("error", "AI already exists");
+                return res.status(201).json({ message: "AI already exists" });
             }
-            //fill new departement
-            newDepartement = new Departement({
-                name: name
+            //fill new AI
+            newAi = new AI({
+                start: start,
+                end: end,
+                thresholdid: thresholdid ?? 0,
+                minTime: minTime ?? null,
+                zone: zone ?? null,
+                type: type,
+                minPeople: minPeople ?? 0,
+                maxPeople: maxPeople ?? 0
             });
 
-            //save new departement in DB
-            await newDepartement.save(next);
-            //send response to client with new departement 
+            //save new AI in DB
+            await newAi.save(next);
+            //send response to client with new AI 
             return res.status(201).json({
-                message: 'departement created',
-                departement: newDepartement
+                message: 'AI model created',
+                AI: newAi
             });
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not create the departement: ${err}` });
+        return next({ status: 500, message: `Could not create the AI: ${err}` });
     }
 });
 
-//route for get departements list  
-router.get("/departements", async function (req: Request, res: Response, next: NextFunction) {
+//route for get AIs list  
+router.get("/ais", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -73,22 +88,22 @@ router.get("/departements", async function (req: Request, res: Response, next: N
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get departements from DB
-        Departement.find({}, function (err: Error, departements: IDepartement[] | null) {
+        //query for get AI from DB
+        AI.find({}, function (err: Error, AIs: IAI[] | null) {
             if (err) { return next(err); }
-            if (!departements) { return next(new Error("Not Found")); }
-            //send response to client with departement    
+            if (!AIs) { return next(new Error("Not Found")); }
+            //send response to client with AI    
             return res.status(200).json({
                 message: 'Success',
-                departements: departements
+                AIs: AIs
             });
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the departements: ${err}` });
+        return next({ status: 500, message: `Could not get the AIs: ${err}` });
     }
 });
 
-//route for get departement by id from DB 
+//route for get AI by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         let id: string = req.params.id;
@@ -107,23 +122,23 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get departement by id from DB
-        Departement.findById(req.params.id, function (err: Error, departement: IDepartement | null) {
+        //query for get AI by id from DB
+        AI.findById(req.params.id, function (err: Error, Ai: IAI | null) {
             if (err) { return next(err); }
-            if (!departement) { return next(new Error("Not Found")); }
-            //send response to client with departement    
+            if (!Ai) { return next(new Error("Not Found")); }
+            //send response to client with AI    
             return res.status(200).json({
                 message: 'Success',
-                departement: departement
+                AI: Ai
             });
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the departement: ${err}` });
+        return next({ status: 500, message: `Could not get the AI: ${err}` });
     }
 });
 
 
-//add route for edit departement
+//add route for edit AI
 router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
@@ -134,7 +149,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 400, message: "Bad request" });
         }
 
-        const departementBody = req.body;
+        const AIBody = req.body;
         //get token from header request
         let token = getToken(req, next) as string;
 
@@ -146,29 +161,36 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Token expired" })
         }
         //query for get camera by id from DB
-        Departement.findById(id, async function (err: Error, departement: IDepartement | null) {
+        AI.findById(id, async function (err: Error, ai: IAI | null) {
             if (err) { return next(err); }
-            if (!departement) { return next({ status: 401, message: "Not Found" }) };
-            //update departement model
-            let updateDepartement = new Departement({
+            if (!AI) { return next({ status: 401, message: "Not Found" }) };
+            //update AI model
+            let updateAI = new AI({
                 id: id,
-                name: departementBody.name ?? departement.name,
+                start: AIBody.start ?? ai?.start,
+                end: AIBody.end ?? ai?.end,
+                thresholdid: AIBody.thresholdid ?? ai?.thresholdid,
+                minTime: AIBody.minTime ?? ai?.minTime,
+                zone: AIBody.zone ?? ai?.zone,
+                type: AIBody.type ?? ai?.type,
+                minPeople: AIBody.minPeople ?? ai?.minPeople,
+                maxPeople: AIBody.maxPeople ?? ai?.maxPeople
             });
-            //save edit departement in DB
-            await updateDepartement.set(next);
-            //return response with message and departement
+            //save edit AI in DB
+            await updateAI.set(next);
+            //return response with message and AI
             return res.status(201).json({
-                message: 'Departement Edited',
-                departement: updateDepartement
+                message: 'AI Edited',
+                AI: updateAI
             });
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not edit the departement: ${err}` });
+        return next({ status: 500, message: `Could not edit the AI: ${err}` });
     }
 });
 
 
-//add route for delete departement
+//add route for delete AI
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
         let id: string = req.params.id;
@@ -188,20 +210,20 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get departement by id from DB
-        Departement.findById(id, async function (err: Error, departement: any) {
+        //query for get AI by id from DB
+        AI.findById(id, async function (err: Error, Ai: any) {
             if (err) { return next(err); }
-            if (!departement) { return next(new Error("Not Found")); }
-            //delete departement in DB
-            await departement.delete(next);
-            //send response to client with departement
+            if (!Ai) { return next(new Error("Not Found")); }
+            //delete AI in DB
+            await Ai.delete(next);
+            //send response to client with AI
             return res.status(201).json({
-                message: 'departement Deleted',
-                departement: {}
+                message: 'AI Deleted',
+                AI: {}
             });
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not delete the departement: ${err}` });
+        return next({ status: 500, message: `Could not delete the AI: ${err}` });
     }
 
 });
