@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 //define personnel type
-interface IPersonnel {
+export interface IPersonnel {
     name: string;
     family: string;
     phone: string;

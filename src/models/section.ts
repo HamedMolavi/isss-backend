@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define section type
-interface ISection {
+export interface ISection {
     name: string;
     departement: string;
 }

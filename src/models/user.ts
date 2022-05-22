@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 //initial file .env
 dotenv.config();
 
-interface IUser {
+export interface IUser {
     name: string,
     email: string,
     username: string;
@@ -57,7 +57,7 @@ UserSchema.pre("save", function (done: Function) {
 });
 
 //check password
-UserSchema.methods.checkPassword = function (guess : string, done:Function) {
+UserSchema.methods.checkPassword = function (guess: string, done: Function) {
     console.log(typeof guess);
     bcrypt.compare(guess, this.password, function (err, isMatch) {
         done(err, isMatch);

@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define camera type
-interface ICamera {
+export interface ICamera {
     ip: string,
     name: string,
     username: string;

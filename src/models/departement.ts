@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define departement type
-interface IDepartement {
+export interface IDepartement {
     name: string;
 }
 

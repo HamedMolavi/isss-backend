@@ -1,22 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Section from "./../../models/section";
-import { authorize, getToken } from "./../../tools/authentication";
-
-
-//define token type after verify
-interface ICritential {
-    id: string;
-    email: string;
-    role: string;
-    exp: number;
-    iat: number;
-}
-//define section type 
-interface ISection {
-    id: string;
-    name: string;
-    departement: string;
-}
+import Section, { ISection } from "./../../models/section";
+import { authorize, getToken, ICritential } from "./../../tools/authentication";
 
 
 //create router for add to routes file 

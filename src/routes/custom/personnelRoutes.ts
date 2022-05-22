@@ -1,24 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Personnel from "./../../models/personnel";
-import { authorize, getToken } from "./../../tools/authentication";
-
-
-//define token type after verify
-interface ICritential {
-    id: string;
-    email: string;
-    role: string;
-    exp: number;
-    iat: number;
-}
-//define perssonel type 
-interface IPersonnel {
-    id: string;
-    name: string;
-    family: string;
-    phone: string;
-    jobTitle: string;
-}
+import Personnel, { IPersonnel } from "./../../models/personnel";
+import { authorize, getToken, ICritential } from "./../../tools/authentication";
 
 
 //create router for add to routes file 
