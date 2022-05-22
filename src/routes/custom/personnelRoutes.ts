@@ -72,7 +72,7 @@ router.get("/personnels", async function (req: Request, res: Response, next: Nex
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
@@ -106,7 +106,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
@@ -144,7 +144,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
@@ -177,7 +177,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 
 
 //add route for delete personnel
-router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
+router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         let id = req.params.id;
         //verify body request
@@ -189,7 +189,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {

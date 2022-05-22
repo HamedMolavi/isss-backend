@@ -44,7 +44,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 
         let newAi = new AI();
         //query for save new AI in DB
-        AI.findOne({ start: start, end: end, type: type }, async function (err: Error, Ai: IAI) {
+        AI.findOne({ start: start, end: end, type: type }, async function (err: Error, Ai: IAI | null) {
             if (err) { return next(err); }
             if (Ai) {
                 req.flash("error", "AI already exists");
@@ -82,7 +82,7 @@ router.get("/ais", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
@@ -116,7 +116,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
@@ -154,7 +154,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
@@ -191,7 +191,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 
 
 //add route for delete AI
-router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
+router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         let id: string = req.params.id;
         //verify body request
@@ -203,7 +203,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {

@@ -40,7 +40,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 
         let newUser = new User();
         //query for save new user in DB
-        User.findOne({ username: username }, async function (err: Error, user: IUser) {
+        User.findOne({ username: username }, async function (err: Error, user: IUser | null) {
             if (err) { return next(err); }
             if (user) {
                 req.flash("error", "User already exists");
@@ -77,7 +77,7 @@ router.get("/users", async function (req: Request, res: Response, next: NextFunc
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
@@ -86,7 +86,7 @@ router.get("/users", async function (req: Request, res: Response, next: NextFunc
         }
 
         //query for get user by username from DB
-        User.find({}, async function (err: Error, users: any) {
+        User.find({}, async function (err: Error, users: IUser[] | null) {
             if (err) { return next(err); }
             if (!users) { return next(new Error("Not Found")); }
             //send response to client with user    
@@ -115,7 +115,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
@@ -124,7 +124,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         }
 
         //query for get user by id from DB
-        User.findById(id, function (err: Error, user: any) {
+        User.findById(id, function (err: Error, user: IUser | null) {
             if (err) { return next(err); }
             if (!user) { return next(new Error("Not Found")); }
             //send response to client with user    
@@ -153,7 +153,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
@@ -162,7 +162,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Unauthorized" });
         }
         //query for get user by username from DB
-        User.findById(id, async function (err: Error, user: any) {
+        User.findById(id, async function (err: Error, user: IUser | null) {
             if (err) { return next(err); }
             if (!user) { return next({ status: 401, message: "Not Found" }) };
             //check token with user
@@ -190,7 +190,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 
 
 //add route for delete user
-router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
+router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         let id = req.params.id;
         //verify body request
@@ -202,7 +202,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {

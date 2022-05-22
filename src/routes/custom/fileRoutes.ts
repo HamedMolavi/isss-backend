@@ -1,7 +1,7 @@
 import uploadFile, { fileName, location } from './../../tools/fileUpload';
 import { NextFunction, Router, Request, Response } from 'express';
 import fs from 'fs';
-import { authorize, getToken } from './../../tools/authentication';
+import { authorize, getToken, ICritential } from './../../tools/authentication';
 
 //create router for add to server 
 const router: Router = Router();
@@ -23,7 +23,7 @@ router.post('/upload', async function (req: Request, res: Response, next: NextFu
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
@@ -52,7 +52,7 @@ router.get('/download/:fileName', async function (req: Request, res: Response, n
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
@@ -81,7 +81,7 @@ router.get('/list', async function (req: Request, res: Response, next: NextFunct
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {

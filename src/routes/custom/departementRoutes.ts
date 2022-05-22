@@ -36,7 +36,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 
         let newDepartement = new Departement();
         //query for save new departement in DB
-        Departement.findOne({ name: name }, async function (err: Error, departement: IDepartement) {
+        Departement.findOne({ name: name }, async function (err: Error, departement: IDepartement | null) {
             if (err) { return next(err); }
             if (departement) {
                 req.flash("error", "departement already exists");
@@ -67,7 +67,7 @@ router.get("/departements", async function (req: Request, res: Response, next: N
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
@@ -101,7 +101,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
@@ -139,7 +139,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
@@ -181,7 +181,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {

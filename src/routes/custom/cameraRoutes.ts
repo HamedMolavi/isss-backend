@@ -37,7 +37,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 
         let newCamera = new Camera();
         //query for save new Camera in DB
-        Camera.findOne({ name: name }, async function (err: Error, camera: ICamera) {
+        Camera.findOne({ name: name }, async function (err: Error, camera: ICamera | null) {
             if (err) { return next(err); }
             if (camera) {
                 req.flash("error", "Camera already exists");
@@ -72,14 +72,14 @@ router.get("/cameras", async function (req: Request, res: Response, next: NextFu
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
         }
 
         //query for get cameras from DB
-        Camera.find({}, function (err: Error, cameras: any) {
+        Camera.find({}, function (err: Error, cameras: ICamera | null) {
             if (err) { return next(err); }
             if (!cameras) { return next(new Error("Not Found")); }
             //send response to client with camera    
@@ -105,14 +105,14 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
         }
 
         //query for get camera by id from DB
-        Camera.findById(req.params.id, function (err: Error, camera: any) {
+        Camera.findById(req.params.id, function (err: Error, camera: ICamera | null) {
             if (err) { return next(err); }
             if (!camera) { return next(new Error("Not Found")); }
             //send response to client with camera    
@@ -143,14 +143,14 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
         }
         //query for get user by id from DB
-        Camera.findById(id, async function (err: Error, camera: any) {
+        Camera.findById(id, async function (err: Error, camera: ICamera | null) {
             if (err) { return next(err); }
             if (!camera) { return next({ status: 401, message: "Not Found" }) };
             //fill camera
@@ -177,7 +177,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 
 
 //add route for delete camera
-router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
+router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         let id = req.params.id;
         //verify body request
@@ -189,7 +189,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         let token = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
