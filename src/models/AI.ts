@@ -4,7 +4,7 @@ import mongoose, { Schema } from "mongoose";
 interface IAI {
     start: string;
     end: string;
-    thresholdid: string;
+    thresholdid: number;
     minTime: string;
     zone: String[];
     type: string;
@@ -16,7 +16,7 @@ interface IAI {
 const AISchema: Schema<IAI> = new Schema({
     start: { type: String, required: true },
     end: { type: String, required: true },
-    thresholdid: { type: String, required: false },
+    thresholdid: { type: Number, required: false },
     minTime: { type: String, required: false },
     zone: { type: [String], required: true },
     type: { type: String, required: true },
