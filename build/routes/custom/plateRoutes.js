@@ -171,23 +171,19 @@ router.put("/:id", function (req, res, next) {
                         return next(err);
                     }
                     if (!plate) {
-                        return next({ status: 401, message: "Not Found" });
+                        return next(new Error("Not Found"));
                     }
-                    ;
-                    //update plate model
-                    let updatePlate = new plate_1.default({
-                        id: id,
-                        number: (_a = plateBody.number) !== null && _a !== void 0 ? _a : plate.number,
-                        carBrand: (_b = plateBody.carBrand) !== null && _b !== void 0 ? _b : plate.carBrand,
-                        color: (_c = plateBody.color) !== null && _c !== void 0 ? _c : plate.color,
-                        owner: (_d = plateBody.owner) !== null && _d !== void 0 ? _d : plate.owner
-                    });
-                    //save edit plate in DB
-                    yield updatePlate.set(next);
-                    //return response with message and plate
+                    //fill plate
+                    plate.number = (_a = plateBody.number) !== null && _a !== void 0 ? _a : plate.number;
+                    plate.carBrand = (_b = plateBody.carBrand) !== null && _b !== void 0 ? _b : plate.carBrand;
+                    plate.color = (_c = plateBody.color) !== null && _c !== void 0 ? _c : plate.color;
+                    plate.owner = (_d = plateBody.owner) !== null && _d !== void 0 ? _d : plate.owner;
+                    //save plate in DB
+                    yield plate.save(next);
+                    //send response to client with plate
                     return res.status(201).json({
-                        message: 'plate Edited',
-                        plate: updatePlate
+                        message: 'Success',
+                        plate: plate
                     });
                 });
             });
@@ -215,21 +211,17 @@ router.delete("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get plate by id from DB
-            plate_1.default.findById(id, function (err, plate) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!plate) {
-                        return next(new Error("Not Found"));
-                    }
-                    //delete plate in DB
-                    yield plate.delete(next);
-                    //send response to client with plate
-                    return res.status(201).json({
-                        message: 'plate Deleted',
-                        plate: {}
-                    });
+            plate_1.default.findByIdAndDelete(id, function (err, plate) {
+                if (err) {
+                    return next(err);
+                }
+                if (!plate) {
+                    return next(new Error("Not Found"));
+                }
+                //send response to client with plate
+                return res.status(201).json({
+                    message: 'Success',
+                    plate: plate
                 });
             });
         }

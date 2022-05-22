@@ -56,7 +56,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             await newCamera.save(next);
             //send response to client with new camera 
             return res.status(201).json({
-                message: 'Camera created',
+                message: 'Success',
                 camera: newCamera
             });
         });
@@ -150,24 +150,21 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Token expired" })
         }
         //query for get user by id from DB
-        Camera.findById(id, async function (err: Error, camera: ICamera | null) {
+        Camera.findById(id, function (err: Error, camera: ICamera | null) {
             if (err) { return next(err); }
-            if (!camera) { return next({ status: 401, message: "Not Found" }) };
+            if (!camera) { return next(new Error("Not Found")); }
             //fill camera
-            let updateCamera = new Camera({
-                id: id,
-                ip: cameraBody.ip ?? camera.ip,
-                name: cameraBody.name ?? camera.name,
-                username: cameraBody.username ?? camera.username,
-                password: cameraBody.password ?? camera.password,
-                rstpLink: cameraBody.rstpLink ?? camera.rstpLink
-            });
-            //save edit user in DB
-            await updateCamera.set(next);
-            //return response with message and camera
+            camera.ip = cameraBody.ip ?? camera.ip;
+            camera.name = cameraBody.name ?? camera.name;
+            camera.username = cameraBody.username ?? camera.username;
+            camera.password = cameraBody.password ?? camera.password;
+            camera.rstpLink = cameraBody.rstpLink ?? camera.rstpLink;
+            //save camera in DB
+            camera.save(next);
+            //send response to client with camera
             return res.status(201).json({
-                message: 'Camera Edited',
-                camera: updateCamera
+                message: 'Success',
+                camera: camera
             });
         });
     } catch (err) {
@@ -197,14 +194,12 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         }
 
         //query for get camera by username from DB
-        Camera.findById(id, async function (err: Error, camera: any) {
+        Camera.findByIdAndDelete(id, function (err: Error, camera: ICamera | null) {
             if (err) { return next(err); }
             if (!camera) { return next(new Error("Not Found")); }
-            //delete camera in DB
-            await camera.delete(next);
             //send response to client with camera
             return res.status(201).json({
-                message: 'camera Deleted',
+                message: 'Success',
                 camera: {}
             });
         });

@@ -13,7 +13,7 @@ describe('server run and crud departement', function () {
     //get departenet test from DB
     beforeEach(function (done) {
         //find departement by name
-        Departement.findOne({ name: 'office' }, (err: Error, departement: any) => {
+        Departement.findOne({}, (err: Error, departement: any) => {
             _departement = departement;
             done();
         });
@@ -95,7 +95,7 @@ describe('server run and crud departement', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("departement Deleted");
+                expect(result.message).to.equal("Success");
                 // Done
                 done();
             });

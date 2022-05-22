@@ -1,3 +1,4 @@
+import { NextFunction } from "express";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define plate type
@@ -6,6 +7,7 @@ export interface IPlate {
     carBrand: string;
     color: string;
     owner: string;
+    save: (next : NextFunction) => Promise<void>;
 }
 
 

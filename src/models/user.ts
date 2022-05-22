@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { NextFunction } from "express";
 
 
 //initial file .env

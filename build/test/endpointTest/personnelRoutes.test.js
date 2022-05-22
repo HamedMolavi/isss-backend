@@ -15,7 +15,7 @@ describe('server run and crud personnel', function () {
     //get personnel test from DB
     beforeEach(function (done) {
         //find personnel by name
-        personnel_1.default.findOne({ name: 'jack' }, (err, personnel) => {
+        personnel_1.default.findOne({}, (err, personnel) => {
             _personnel = personnel;
             done();
         });
@@ -106,7 +106,7 @@ describe('server run and crud personnel', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("personnel Deleted");
+            (0, chai_1.expect)(result.message).to.equal("Success");
             // Done
             done();
         });

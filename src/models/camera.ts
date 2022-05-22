@@ -1,3 +1,4 @@
+import { NextFunction } from "express";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define camera type
@@ -7,6 +8,7 @@ export interface ICamera {
     username: string;
     password: string;
     rstpLink: string;
+    save: (next : NextFunction) => Promise<void>;
 }
 
 

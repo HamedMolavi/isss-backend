@@ -177,34 +177,30 @@ router.put("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get camera by id from DB
-            AI_1.default.findById(id, function (err, ai) {
+            AI_1.default.findById(id, function (err, Ai) {
                 var _a, _b, _c, _d, _e, _f, _g, _h;
                 return __awaiter(this, void 0, void 0, function* () {
                     if (err) {
                         return next(err);
                     }
-                    if (!AI_1.default) {
-                        return next({ status: 401, message: "Not Found" });
+                    if (!Ai) {
+                        return next(new Error("Not Found"));
                     }
-                    ;
-                    //update AI model
-                    let updateAI = new AI_1.default({
-                        id: id,
-                        start: (_a = AIBody.start) !== null && _a !== void 0 ? _a : ai === null || ai === void 0 ? void 0 : ai.start,
-                        end: (_b = AIBody.end) !== null && _b !== void 0 ? _b : ai === null || ai === void 0 ? void 0 : ai.end,
-                        thresholdid: (_c = AIBody.thresholdid) !== null && _c !== void 0 ? _c : ai === null || ai === void 0 ? void 0 : ai.thresholdid,
-                        minTime: (_d = AIBody.minTime) !== null && _d !== void 0 ? _d : ai === null || ai === void 0 ? void 0 : ai.minTime,
-                        zone: (_e = AIBody.zone) !== null && _e !== void 0 ? _e : ai === null || ai === void 0 ? void 0 : ai.zone,
-                        type: (_f = AIBody.type) !== null && _f !== void 0 ? _f : ai === null || ai === void 0 ? void 0 : ai.type,
-                        minPeople: (_g = AIBody.minPeople) !== null && _g !== void 0 ? _g : ai === null || ai === void 0 ? void 0 : ai.minPeople,
-                        maxPeople: (_h = AIBody.maxPeople) !== null && _h !== void 0 ? _h : ai === null || ai === void 0 ? void 0 : ai.maxPeople
-                    });
-                    //save edit AI in DB
-                    yield updateAI.set(next);
-                    //return response with message and AI
+                    //fill AI
+                    Ai.start = (_a = AIBody.start) !== null && _a !== void 0 ? _a : Ai.start;
+                    Ai.end = (_b = AIBody.end) !== null && _b !== void 0 ? _b : Ai.end;
+                    Ai.thresholdid = (_c = AIBody.thresholdid) !== null && _c !== void 0 ? _c : Ai.thresholdid;
+                    Ai.minTime = (_d = AIBody.minTime) !== null && _d !== void 0 ? _d : Ai.minTime;
+                    Ai.zone = (_e = AIBody.zone) !== null && _e !== void 0 ? _e : Ai.zone;
+                    Ai.type = (_f = AIBody.type) !== null && _f !== void 0 ? _f : Ai.type;
+                    Ai.minPeople = (_g = AIBody.minPeople) !== null && _g !== void 0 ? _g : Ai.minPeople;
+                    Ai.maxPeople = (_h = AIBody.maxPeople) !== null && _h !== void 0 ? _h : Ai.maxPeople;
+                    //save AI in DB
+                    yield Ai.save(next);
+                    //send response to client with AI
                     return res.status(201).json({
-                        message: 'AI Edited',
-                        AI: updateAI
+                        message: 'AI model updated',
+                        AI: Ai
                     });
                 });
             });
@@ -232,21 +228,18 @@ router.delete("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get AI by id from DB
-            AI_1.default.findById(id, function (err, Ai) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!Ai) {
-                        return next(new Error("Not Found"));
-                    }
-                    //delete AI in DB
-                    yield Ai.delete(next);
-                    //send response to client with AI
-                    return res.status(201).json({
-                        message: 'AI Deleted',
-                        AI: {}
-                    });
+            AI_1.default.findByIdAndDelete(id, function (err, ai) {
+                if (err) {
+                    return next(err);
+                }
+                if (!ai) {
+                    return next({ status: 401, message: "Not Found" });
+                }
+                ;
+                //send response to client with AI
+                return res.status(201).json({
+                    message: 'Success',
+                    AI: {}
                 });
             });
         }

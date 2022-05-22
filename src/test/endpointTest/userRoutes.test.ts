@@ -150,7 +150,7 @@ describe('server run and server runnig and register user', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal('User Deleted');
+                expect(result.message).to.equal('Success');
                 // Done
                 done();
             });

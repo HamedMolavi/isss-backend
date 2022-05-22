@@ -15,7 +15,7 @@ describe('server run and crud section', function () {
     //get departenet test from DB
     beforeEach(function (done) {
         //find section by name
-        section_1.default.findOne({ name: 'section1' }, (err, section) => {
+        section_1.default.findOne({}, (err, section) => {
             _section = section;
             done();
         });
@@ -97,7 +97,7 @@ describe('server run and crud section', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("section Deleted");
+            (0, chai_1.expect)(result.message).to.equal("Success");
             // Done
             done();
         });

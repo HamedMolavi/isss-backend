@@ -149,18 +149,15 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //query for get jobTitle by id from DB
         JobTitle.findById(id, async function (err: Error, jobTitle: IJobTitle | null) {
             if (err) { return next(err); }
-            if (!jobTitle) { return next({ status: 401, message: "Not Found" }) };
-            //update jobTitle model
-            let updateJobTitle = new JobTitle({
-                id: id,
-                name: jobTitleBody.name ?? jobTitle.name,
-            });
-            //save edit jobTitle in DB
-            await updateJobTitle.set(next);
-            //return response with message and jobTitle
+            if (!jobTitle) { return next(new Error("Not Found")); }
+            //fill jobTitle
+            jobTitle.name = jobTitleBody.name ?? jobTitle.name;
+            //save jobTitle in DB
+            await jobTitle.save(next);
+            //send response to client with jobTitle
             return res.status(201).json({
-                message: 'jobTitle Edited',
-                jobTitle: updateJobTitle
+                message: 'Success',
+                jobTitle: jobTitle
             });
         });
     } catch (err) {
@@ -190,15 +187,13 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         }
 
         //query for get jobTitle by id from DB
-        JobTitle.findById(id, async function (err: Error, jobTitle: any) {
+        JobTitle.findByIdAndDelete(id, function (err: Error, jobTitle: IJobTitle | null) {
             if (err) { return next(err); }
             if (!jobTitle) { return next(new Error("Not Found")); }
-            //delete jobTitle in DB
-            await jobTitle.delete(next);
             //send response to client with jobTitle
             return res.status(201).json({
-                message: 'jobTitle Deleted',
-                jobTitle: {}
+                message: 'Success',
+                jobTitle: jobTitle
             });
         });
     } catch (err) {

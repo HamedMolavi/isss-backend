@@ -66,7 +66,7 @@ router.post("/register", function (req, res, next) {
                     yield newCamera.save(next);
                     //send response to client with new camera 
                     return res.status(201).json({
-                        message: 'Camera created',
+                        message: 'Success',
                         camera: newCamera
                     });
                 });
@@ -168,30 +168,24 @@ router.put("/:id", function (req, res, next) {
             //query for get user by id from DB
             camera_1.default.findById(id, function (err, camera) {
                 var _a, _b, _c, _d, _e;
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!camera) {
-                        return next({ status: 401, message: "Not Found" });
-                    }
-                    ;
-                    //fill camera
-                    let updateCamera = new camera_1.default({
-                        id: id,
-                        ip: (_a = cameraBody.ip) !== null && _a !== void 0 ? _a : camera.ip,
-                        name: (_b = cameraBody.name) !== null && _b !== void 0 ? _b : camera.name,
-                        username: (_c = cameraBody.username) !== null && _c !== void 0 ? _c : camera.username,
-                        password: (_d = cameraBody.password) !== null && _d !== void 0 ? _d : camera.password,
-                        rstpLink: (_e = cameraBody.rstpLink) !== null && _e !== void 0 ? _e : camera.rstpLink
-                    });
-                    //save edit user in DB
-                    yield updateCamera.set(next);
-                    //return response with message and camera
-                    return res.status(201).json({
-                        message: 'Camera Edited',
-                        camera: updateCamera
-                    });
+                if (err) {
+                    return next(err);
+                }
+                if (!camera) {
+                    return next(new Error("Not Found"));
+                }
+                //fill camera
+                camera.ip = (_a = cameraBody.ip) !== null && _a !== void 0 ? _a : camera.ip;
+                camera.name = (_b = cameraBody.name) !== null && _b !== void 0 ? _b : camera.name;
+                camera.username = (_c = cameraBody.username) !== null && _c !== void 0 ? _c : camera.username;
+                camera.password = (_d = cameraBody.password) !== null && _d !== void 0 ? _d : camera.password;
+                camera.rstpLink = (_e = cameraBody.rstpLink) !== null && _e !== void 0 ? _e : camera.rstpLink;
+                //save camera in DB
+                camera.save(next);
+                //send response to client with camera
+                return res.status(201).json({
+                    message: 'Success',
+                    camera: camera
                 });
             });
         }
@@ -218,21 +212,17 @@ router.delete("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get camera by username from DB
-            camera_1.default.findById(id, function (err, camera) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!camera) {
-                        return next(new Error("Not Found"));
-                    }
-                    //delete camera in DB
-                    yield camera.delete(next);
-                    //send response to client with camera
-                    return res.status(201).json({
-                        message: 'camera Deleted',
-                        camera: {}
-                    });
+            camera_1.default.findByIdAndDelete(id, function (err, camera) {
+                if (err) {
+                    return next(err);
+                }
+                if (!camera) {
+                    return next(new Error("Not Found"));
+                }
+                //send response to client with camera
+                return res.status(201).json({
+                    message: 'Success',
+                    camera: {}
                 });
             });
         }

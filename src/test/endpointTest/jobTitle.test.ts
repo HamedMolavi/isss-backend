@@ -17,7 +17,7 @@ describe('server run and crud jobTitle', function () {
     //get jobTitle test from DB
     beforeEach(function (done) {
         //find jobTitle by name
-        JobTitle.findOne({ name: 'developer' }, (err: Error, jobTitle: IJobTitle | null) => {
+        JobTitle.findOne({}, (err: Error, jobTitle: IJobTitle | null) => {
             _jobTitle = jobTitle;
             done();
         });
@@ -99,7 +99,7 @@ describe('server run and crud jobTitle', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("jobTitle Deleted");
+                expect(result.message).to.equal("Success");
                 // Done
                 done();
             });

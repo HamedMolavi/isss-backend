@@ -160,28 +160,27 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
         }
+
         //query for get camera by id from DB
-        AI.findById(id, async function (err: Error, ai: IAI | null) {
+        AI.findById(id,async function (err: Error, Ai: IAI | null) {
             if (err) { return next(err); }
-            if (!AI) { return next({ status: 401, message: "Not Found" }) };
-            //update AI model
-            let updateAI = new AI({
-                id: id,
-                start: AIBody.start ?? ai?.start,
-                end: AIBody.end ?? ai?.end,
-                thresholdid: AIBody.thresholdid ?? ai?.thresholdid,
-                minTime: AIBody.minTime ?? ai?.minTime,
-                zone: AIBody.zone ?? ai?.zone,
-                type: AIBody.type ?? ai?.type,
-                minPeople: AIBody.minPeople ?? ai?.minPeople,
-                maxPeople: AIBody.maxPeople ?? ai?.maxPeople
-            });
-            //save edit AI in DB
-            await updateAI.set(next);
-            //return response with message and AI
+            if (!Ai) { return next(new Error("Not Found")); }
+            //fill AI
+            Ai.start = AIBody.start ?? Ai.start;
+            Ai.end = AIBody.end ?? Ai.end;
+            Ai.thresholdid = AIBody.thresholdid ?? Ai.thresholdid;
+            Ai.minTime = AIBody.minTime ?? Ai.minTime;
+            Ai.zone = AIBody.zone ?? Ai.zone;
+            Ai.type = AIBody.type ?? Ai.type;
+            Ai.minPeople = AIBody.minPeople ?? Ai.minPeople;
+            Ai.maxPeople = AIBody.maxPeople ?? Ai.maxPeople;
+
+            //save AI in DB
+            await Ai.save(next);
+            //send response to client with AI
             return res.status(201).json({
-                message: 'AI Edited',
-                AI: updateAI
+                message: 'AI model updated',
+                AI: Ai
             });
         });
     } catch (err) {
@@ -209,16 +208,13 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
         }
-
         //query for get AI by id from DB
-        AI.findById(id, async function (err: Error, Ai: any) {
+        AI.findByIdAndDelete(id, function (err: Error, ai: IAI | null) {
             if (err) { return next(err); }
-            if (!Ai) { return next(new Error("Not Found")); }
-            //delete AI in DB
-            await Ai.delete(next);
+            if (!ai) { return next({ status: 401, message: "Not Found" }) };
             //send response to client with AI
             return res.status(201).json({
-                message: 'AI Deleted',
+                message: 'Success',
                 AI: {}
             });
         });

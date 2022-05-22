@@ -30,7 +30,7 @@ describe('server run and server runnig and crud camera', function () {
             }
             if (res.body.message !== 'Camera already exists') {
                 let response = res.body;
-                (0, chai_1.expect)(response.message).to.equal("Camera created");
+                (0, chai_1.expect)(response.message).to.equal("Success");
                 (0, chai_1.expect)(response.camera.ip).to.equal('172.10.10.1');
                 (0, chai_1.expect)(response.camera.name).to.equal('offece');
                 (0, chai_1.expect)(response.camera.username).to.equal('test');
@@ -45,7 +45,7 @@ describe('server run and server runnig and crud camera', function () {
         });
     });
     beforeEach(function (done) {
-        camera_1.default.findOne({ username: 'test' }, (err, camera) => {
+        camera_1.default.findOne({}, (err, camera) => {
             _camera = camera;
             done();
         });
@@ -109,7 +109,7 @@ describe('server run and server runnig and crud camera', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("camera Deleted");
+            (0, chai_1.expect)(result.message).to.equal("Success");
             // Done
             done();
         });

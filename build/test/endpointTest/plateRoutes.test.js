@@ -14,7 +14,7 @@ describe('server run and crud plate', function () {
     //get plate test from DB
     beforeEach(function (done) {
         //find plate by name
-        plate_1.default.findOne({ number: '1234567' }, (err, plate) => {
+        plate_1.default.findOne({}, (err, plate) => {
             _plate = plate;
             done();
         });
@@ -107,7 +107,7 @@ describe('server run and crud plate', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("plate Deleted");
+            (0, chai_1.expect)(result.message).to.equal("Success");
             // Done
             done();
         });

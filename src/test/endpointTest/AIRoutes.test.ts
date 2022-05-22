@@ -13,11 +13,7 @@ describe('server run and crud AI', function () {
     //get AI test from DB
     beforeEach(function (done) {
         //find AI by name
-        AI.findOne({
-            start: "2019-01-01T00:00:00.000Z",
-            end: "2019-01-01T00:00:00.000Z",
-            type: "type1",
-        }, (err: Error, Ai: IAI) => {
+        AI.findOne({}, (err: Error, Ai: IAI) => {
             _AI = Ai;
             done();
         });
@@ -122,7 +118,7 @@ describe('server run and crud AI', function () {
 
     //test route for delete AI in DB 
     it('should send back a JSON object for delete AI', function (done) {
-
+        console.log(_AI._id + "this idddddddddddddddddddddddddddddddddddddd");
         request(app)
             .delete('/AI/' + _AI._id)
             .set('Content-Type', 'application/json')
@@ -131,7 +127,7 @@ describe('server run and crud AI', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("AI Deleted");
+                expect(result.message).to.equal("Success");
                 // Done
                 done();
             });

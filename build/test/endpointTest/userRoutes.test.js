@@ -149,7 +149,7 @@ describe('server run and server runnig and register user', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal('User Deleted');
+            (0, chai_1.expect)(result.message).to.equal('Success');
             // Done
             done();
         });

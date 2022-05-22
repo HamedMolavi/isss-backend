@@ -1,8 +1,10 @@
+import { NextFunction } from "express";
 import mongoose, { Schema } from "mongoose";
 
 //define jobTitle type
 export interface IJobTitle {
     name: string;
+    save: (next : NextFunction) => Promise<void>;
 }
 
 
