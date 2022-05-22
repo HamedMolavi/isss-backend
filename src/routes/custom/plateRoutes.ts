@@ -153,21 +153,18 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //query for get plate by id from DB
         Plate.findById(id, async function (err: Error, plate: IPlate | null) {
             if (err) { return next(err); }
-            if (!plate) { return next({ status: 401, message: "Not Found" }) };
-            //update plate model
-            let updatePlate = new Plate({
-                id: id,
-                number: plateBody.number ?? plate.number,
-                carBrand: plateBody.carBrand ?? plate.carBrand,
-                color: plateBody.color ?? plate.color,
-                owner: plateBody.owner ?? plate.owner
-            });
-            //save edit plate in DB
-            await updatePlate.set(next);
-            //return response with message and plate
+            if (!plate) { return next(new Error("Not Found")); }
+            //fill plate
+            plate.number = plateBody.number ?? plate.number;
+            plate.carBrand = plateBody.carBrand ?? plate.carBrand;
+            plate.color = plateBody.color ?? plate.color;
+            plate.owner = plateBody.owner ?? plate.owner;
+            //save plate in DB
+            await plate.save(next);
+            //send response to client with plate
             return res.status(201).json({
-                message: 'plate Edited',
-                plate: updatePlate
+                message: 'Success',
+                plate: plate
             });
         });
     } catch (err) {
@@ -197,15 +194,13 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         }
 
         //query for get plate by id from DB
-        Plate.findById(id, async function (err: Error, plate: any) {
+        Plate.findByIdAndDelete(id, function (err: Error, plate: IPlate | null) {
             if (err) { return next(err); }
             if (!plate) { return next(new Error("Not Found")); }
-            //delete plate in DB
-            await plate.delete(next);
             //send response to client with plate
             return res.status(201).json({
-                message: 'plate Deleted',
-                plate: {}
+                message: 'Success',
+                plate: plate
             });
         });
     } catch (err) {

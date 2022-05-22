@@ -14,11 +14,7 @@ describe('server run and crud AI', function () {
     //get AI test from DB
     beforeEach(function (done) {
         //find AI by name
-        AI_1.default.findOne({
-            start: "2019-01-01T00:00:00.000Z",
-            end: "2019-01-01T00:00:00.000Z",
-            type: "type1",
-        }, (err, Ai) => {
+        AI_1.default.findOne({}, (err, Ai) => {
             _AI = Ai;
             done();
         });
@@ -121,6 +117,7 @@ describe('server run and crud AI', function () {
     });
     //test route for delete AI in DB 
     it('should send back a JSON object for delete AI', function (done) {
+        console.log(_AI._id + "this idddddddddddddddddddddddddddddddddddddd");
         (0, supertest_1.default)(server_1.default)
             .delete('/AI/' + _AI._id)
             .set('Content-Type', 'application/json')
@@ -131,7 +128,7 @@ describe('server run and crud AI', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("AI Deleted");
+            (0, chai_1.expect)(result.message).to.equal("Success");
             // Done
             done();
         });

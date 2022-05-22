@@ -148,18 +148,15 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //query for get camera by id from DB
         Departement.findById(id, async function (err: Error, departement: IDepartement | null) {
             if (err) { return next(err); }
-            if (!departement) { return next({ status: 401, message: "Not Found" }) };
-            //update departement model
-            let updateDepartement = new Departement({
-                id: id,
-                name: departementBody.name ?? departement.name,
-            });
-            //save edit departement in DB
-            await updateDepartement.set(next);
-            //return response with message and departement
+            if (!departement) { return next(new Error("Not Found")); }
+            //fill departement
+            departement.name = departementBody.name ?? departement.name;
+            //save departement in DB
+            await departement.save(next);
+            //send response to client with departement
             return res.status(201).json({
-                message: 'Departement Edited',
-                departement: updateDepartement
+                message: 'Success',
+                departement: departement
             });
         });
     } catch (err) {
@@ -189,15 +186,13 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         }
 
         //query for get departement by id from DB
-        Departement.findById(id, async function (err: Error, departement: any) {
+        Departement.findByIdAndDelete(id, function (err: Error, departement: IDepartement | null) {
             if (err) { return next(err); }
             if (!departement) { return next(new Error("Not Found")); }
-            //delete departement in DB
-            await departement.delete(next);
             //send response to client with departement
             return res.status(201).json({
-                message: 'departement Deleted',
-                departement: {}
+                message: 'Success',
+                departement: departement
             });
         });
     } catch (err) {

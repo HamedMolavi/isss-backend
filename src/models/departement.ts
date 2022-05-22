@@ -1,8 +1,10 @@
+import { NextFunction } from "express";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define departement type
 export interface IDepartement {
     name: string;
+    save: (next : NextFunction) => Promise<void>;
 }
 
 

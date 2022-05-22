@@ -186,24 +186,20 @@ router.put("/:id", function (req, res, next) {
                         return next(err);
                     }
                     if (!user) {
-                        return next({ status: 401, message: "Not Found" });
+                        return next(new Error("Not Found"));
                     }
-                    ;
-                    //check token with user
-                    let updateUser = new user_1.default({
-                        id: id,
-                        name: (_a = userBody.name) !== null && _a !== void 0 ? _a : user.name,
-                        email: (_b = userBody.email) !== null && _b !== void 0 ? _b : user.email,
-                        username: (_c = userBody.username) !== null && _c !== void 0 ? _c : user.username,
-                        password: (_d = userBody.password) !== null && _d !== void 0 ? _d : user.password,
-                        role: (_e = userBody.role) !== null && _e !== void 0 ? _e : user.role
-                    });
-                    //save edit user in DB
-                    yield updateUser.set(next);
-                    //return response with message and user
+                    //fill user
+                    user.name = (_a = userBody.name) !== null && _a !== void 0 ? _a : user.name;
+                    user.email = (_b = userBody.email) !== null && _b !== void 0 ? _b : user.email;
+                    user.role = (_c = userBody.role) !== null && _c !== void 0 ? _c : user.role;
+                    user.username = (_d = userBody.username) !== null && _d !== void 0 ? _d : user.username;
+                    user.password = (_e = userBody.password) !== null && _e !== void 0 ? _e : user.password;
+                    //save section in DB
+                    yield user.save(next);
+                    //send response to client with section
                     return res.status(201).json({
-                        message: 'User Edited',
-                        user: updateUser
+                        message: 'Success',
+                        user: user
                     });
                 });
             });
@@ -234,21 +230,17 @@ router.delete("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Unauthorized" });
             }
             //query for get user by id from DB
-            user_1.default.findById(id, function (err, user) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!user) {
-                        return next(new Error("Not Found"));
-                    }
-                    //delete user in DB
-                    yield user.delete(next);
-                    //return response with message 
-                    return res.status(201).json({
-                        message: 'User Deleted',
-                        user: {}
-                    });
+            user_1.default.findByIdAndDelete(id, function (err, user) {
+                if (err) {
+                    return next(err);
+                }
+                if (!user) {
+                    return next(new Error("Not Found"));
+                }
+                //send response to client with user
+                return res.status(201).json({
+                    message: 'Success',
+                    user: user
                 });
             });
         }

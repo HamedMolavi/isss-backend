@@ -14,7 +14,7 @@ describe('server run and crud section', function () {
     //get departenet test from DB
     beforeEach(function (done) {
         //find section by name
-        Section.findOne({ name: 'section1' }, (err: Error, section: any) => {
+        Section.findOne({ }, (err: Error, section: any) => {
             _section = section;
             done();
         });
@@ -98,7 +98,7 @@ describe('server run and crud section', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("section Deleted");
+                expect(result.message).to.equal("Success");
                 // Done
                 done();
             });

@@ -1,3 +1,4 @@
+import { NextFunction } from "express";
 import mongoose, { Schema } from "mongoose";
 
 //define AI type
@@ -10,6 +11,7 @@ export interface IAI {
     type: string;
     minPeople: number;
     maxPeople: number;
+    save: (next : NextFunction) => Promise<void>;
 }
 
 //create AI model with schema for save in DB

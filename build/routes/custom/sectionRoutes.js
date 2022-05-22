@@ -169,21 +169,17 @@ router.put("/:id", function (req, res, next) {
                         return next(err);
                     }
                     if (!section) {
-                        return next({ status: 401, message: "Not Found" });
+                        return next(new Error("Not Found"));
                     }
-                    ;
-                    //update section model
-                    let updateSection = new section_1.default({
-                        id: id,
-                        name: (_a = sectionBody.name) !== null && _a !== void 0 ? _a : section.name,
-                        departement: (_b = sectionBody.departement) !== null && _b !== void 0 ? _b : section.departement,
-                    });
-                    //save edit section in DB
-                    yield updateSection.set(next);
-                    //return response with message and section
+                    //fill section
+                    section.name = (_a = sectionBody.name) !== null && _a !== void 0 ? _a : section.name;
+                    section.departement = (_b = sectionBody.departement) !== null && _b !== void 0 ? _b : section.departement;
+                    //save section in DB
+                    yield section.save(next);
+                    //send response to client with section
                     return res.status(201).json({
-                        message: 'Departement Edited',
-                        section: updateSection
+                        message: 'Success',
+                        section: section
                     });
                 });
             });
@@ -211,21 +207,17 @@ router.delete("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get section by id from DB
-            section_1.default.findById(id, function (err, section) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!section) {
-                        return next(new Error("Not Found"));
-                    }
-                    //delete section in DB
-                    yield section.delete(next);
-                    //send response to client with departement
-                    return res.status(201).json({
-                        message: 'section Deleted',
-                        section: {}
-                    });
+            section_1.default.findByIdAndDelete(id, function (err, section) {
+                if (err) {
+                    return next(err);
+                }
+                if (!section) {
+                    return next(new Error("Not Found"));
+                }
+                //send response to client with message
+                return res.status(201).json({
+                    message: 'Success',
+                    section: section
                 });
             });
         }

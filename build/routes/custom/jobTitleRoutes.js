@@ -168,20 +168,16 @@ router.put("/:id", function (req, res, next) {
                         return next(err);
                     }
                     if (!jobTitle) {
-                        return next({ status: 401, message: "Not Found" });
+                        return next(new Error("Not Found"));
                     }
-                    ;
-                    //update jobTitle model
-                    let updateJobTitle = new jobTitle_1.default({
-                        id: id,
-                        name: (_a = jobTitleBody.name) !== null && _a !== void 0 ? _a : jobTitle.name,
-                    });
-                    //save edit jobTitle in DB
-                    yield updateJobTitle.set(next);
-                    //return response with message and jobTitle
+                    //fill jobTitle
+                    jobTitle.name = (_a = jobTitleBody.name) !== null && _a !== void 0 ? _a : jobTitle.name;
+                    //save jobTitle in DB
+                    yield jobTitle.save(next);
+                    //send response to client with jobTitle
                     return res.status(201).json({
-                        message: 'jobTitle Edited',
-                        jobTitle: updateJobTitle
+                        message: 'Success',
+                        jobTitle: jobTitle
                     });
                 });
             });
@@ -209,21 +205,17 @@ router.delete("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get jobTitle by id from DB
-            jobTitle_1.default.findById(id, function (err, jobTitle) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!jobTitle) {
-                        return next(new Error("Not Found"));
-                    }
-                    //delete jobTitle in DB
-                    yield jobTitle.delete(next);
-                    //send response to client with jobTitle
-                    return res.status(201).json({
-                        message: 'jobTitle Deleted',
-                        jobTitle: {}
-                    });
+            jobTitle_1.default.findByIdAndDelete(id, function (err, jobTitle) {
+                if (err) {
+                    return next(err);
+                }
+                if (!jobTitle) {
+                    return next(new Error("Not Found"));
+                }
+                //send response to client with jobTitle
+                return res.status(201).json({
+                    message: 'Success',
+                    jobTitle: jobTitle
                 });
             });
         }

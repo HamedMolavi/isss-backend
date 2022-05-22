@@ -162,24 +162,22 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Unauthorized" });
         }
         //query for get user by username from DB
-        User.findById(id, async function (err: Error, user: IUser | null) {
+        User.findById(id, async function (err: Error, user: any | null) {
             if (err) { return next(err); }
-            if (!user) { return next({ status: 401, message: "Not Found" }) };
-            //check token with user
-            let updateUser = new User({
-                id: id,
-                name: userBody.name ?? user.name,
-                email: userBody.email ?? user.email,
-                username: userBody.username ?? user.username,
-                password: userBody.password ?? user.password,
-                role: userBody.role ?? user.role
-            });
-            //save edit user in DB
-            await updateUser.set(next);
-            //return response with message and user
+            if (!user) { return next(new Error("Not Found")); }
+
+            //fill user
+            user.name = userBody.name ?? user.name;
+            user.email = userBody.email ?? user.email;
+            user.role = userBody.role ?? user.role;
+            user.username = userBody.username ?? user.username;
+            user.password = userBody.password ?? user.password;
+            //save section in DB
+            await user.save(next);
+            //send response to client with section
             return res.status(201).json({
-                message: 'User Edited',
-                user: updateUser
+                message: 'Success',
+                user: user
             });
         });
     } catch (err) {
@@ -212,15 +210,13 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         }
 
         //query for get user by id from DB
-        User.findById(id, async function (err: Error, user: any) {
+        User.findByIdAndDelete(id, function (err: Error, user: IUser | null) {
             if (err) { return next(err); }
             if (!user) { return next(new Error("Not Found")); }
-            //delete user in DB
-            await user.delete(next);
-            //return response with message 
+            //send response to client with user
             return res.status(201).json({
-                message: 'User Deleted',
-                user: {}
+                message: 'Success',
+                user: user
             });
         });
     } catch (err) {

@@ -1,3 +1,4 @@
+import { NextFunction } from "express";
 import mongoose, { Schema } from "mongoose";
 
 //define personnel type
@@ -6,6 +7,7 @@ export interface IPersonnel {
     family: string;
     phone: string;
     jobTitle: string;
+    save: (next : NextFunction) => Promise<void>;
 }
 
 //create personnel model with schema for save in DB

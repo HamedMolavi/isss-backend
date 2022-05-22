@@ -168,20 +168,16 @@ router.put("/:id", function (req, res, next) {
                         return next(err);
                     }
                     if (!departement) {
-                        return next({ status: 401, message: "Not Found" });
+                        return next(new Error("Not Found"));
                     }
-                    ;
-                    //update departement model
-                    let updateDepartement = new departement_1.default({
-                        id: id,
-                        name: (_a = departementBody.name) !== null && _a !== void 0 ? _a : departement.name,
-                    });
-                    //save edit departement in DB
-                    yield updateDepartement.set(next);
-                    //return response with message and departement
+                    //fill departement
+                    departement.name = (_a = departementBody.name) !== null && _a !== void 0 ? _a : departement.name;
+                    //save departement in DB
+                    yield departement.save(next);
+                    //send response to client with departement
                     return res.status(201).json({
-                        message: 'Departement Edited',
-                        departement: updateDepartement
+                        message: 'Success',
+                        departement: departement
                     });
                 });
             });
@@ -209,21 +205,17 @@ router.delete("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get departement by id from DB
-            departement_1.default.findById(id, function (err, departement) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!departement) {
-                        return next(new Error("Not Found"));
-                    }
-                    //delete departement in DB
-                    yield departement.delete(next);
-                    //send response to client with departement
-                    return res.status(201).json({
-                        message: 'departement Deleted',
-                        departement: {}
-                    });
+            departement_1.default.findByIdAndDelete(id, function (err, departement) {
+                if (err) {
+                    return next(err);
+                }
+                if (!departement) {
+                    return next(new Error("Not Found"));
+                }
+                //send response to client with departement
+                return res.status(201).json({
+                    message: 'Success',
+                    departement: departement
                 });
             });
         }

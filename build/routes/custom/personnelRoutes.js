@@ -171,23 +171,19 @@ router.put("/:id", function (req, res, next) {
                         return next(err);
                     }
                     if (!personnel) {
-                        return next({ status: 401, message: "Not Found" });
+                        return next(new Error("Not Found"));
                     }
-                    ;
-                    //update personnel model
-                    let updatePersonnel = new personnel_1.default({
-                        id: id,
-                        name: (_a = personnelBody.name) !== null && _a !== void 0 ? _a : personnel.name,
-                        family: (_b = personnelBody.family) !== null && _b !== void 0 ? _b : personnel.family,
-                        phone: (_c = personnelBody.phone) !== null && _c !== void 0 ? _c : personnel.phone,
-                        jobTitle: (_d = personnelBody.jobTitle) !== null && _d !== void 0 ? _d : personnel.jobTitle
-                    });
-                    //save edit personnel in DB
-                    yield updatePersonnel.set(next);
-                    //return response with message and personnel
+                    //fill personnel    
+                    personnel.name = (_a = personnelBody.name) !== null && _a !== void 0 ? _a : personnel.name;
+                    personnel.family = (_b = personnelBody.family) !== null && _b !== void 0 ? _b : personnel.family;
+                    personnel.phone = (_c = personnelBody.phone) !== null && _c !== void 0 ? _c : personnel.phone;
+                    personnel.jobTitle = (_d = personnelBody.jobTitle) !== null && _d !== void 0 ? _d : personnel.jobTitle;
+                    //query for save personnel in DB
+                    yield personnel.save(next);
+                    //send response to client with personnel
                     return res.status(201).json({
-                        message: 'personnel Edited',
-                        personnel: updatePersonnel
+                        message: 'Success',
+                        personnel: personnel
                     });
                 });
             });
@@ -215,21 +211,17 @@ router.delete("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get personnel by id from DB
-            personnel_1.default.findById(id, function (err, personnel) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!personnel) {
-                        return next(new Error("Not Found"));
-                    }
-                    //delete personnel in DB
-                    yield personnel.delete(next);
-                    //send response to client with personnel
-                    return res.status(201).json({
-                        message: 'personnel Deleted',
-                        personnel: {}
-                    });
+            personnel_1.default.findByIdAndDelete(id, function (err, personnel) {
+                if (err) {
+                    return next(err);
+                }
+                if (!personnel) {
+                    return next(new Error("Not Found"));
+                }
+                //send response to client with personnel
+                return res.status(201).json({
+                    message: 'Success',
+                    personnel: personnel
                 });
             });
         }

@@ -1,9 +1,11 @@
+import { NextFunction } from "express";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define section type
 export interface ISection {
     name: string;
     departement: string;
+    save: (next : NextFunction) => Promise<void>;
 }
 
 

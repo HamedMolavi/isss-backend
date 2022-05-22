@@ -151,19 +151,16 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //query for get section by id from DB
         Section.findById(id, async function (err: Error, section: ISection | null) {
             if (err) { return next(err); }
-            if (!section) { return next({ status: 401, message: "Not Found" }) };
-            //update section model
-            let updateSection = new Section({
-                id: id,
-                name: sectionBody.name ?? section.name,
-                departement: sectionBody.departement ?? section.departement,
-            });
-            //save edit section in DB
-            await updateSection.set(next);
-            //return response with message and section
+            if (!section) { return next(new Error("Not Found")); }
+            //fill section
+            section.name = sectionBody.name ?? section.name;
+            section.departement = sectionBody.departement ?? section.departement;
+            //save section in DB
+            await section.save(next);
+            //send response to client with section
             return res.status(201).json({
-                message: 'Departement Edited',
-                section: updateSection
+                message: 'Success',
+                section: section
             });
         });
     } catch (err) {
@@ -193,15 +190,13 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         }
 
         //query for get section by id from DB
-        Section.findById(id, async function (err: Error, section: any) {
+        Section.findByIdAndDelete(id, function (err: Error, section: ISection | null) {
             if (err) { return next(err); }
             if (!section) { return next(new Error("Not Found")); }
-            //delete section in DB
-            await section.delete(next);
-            //send response to client with departement
+            //send response to client with message
             return res.status(201).json({
-                message: 'section Deleted',
-                section: {}
+                message: 'Success',
+                section: section
             });
         });
     } catch (err) {

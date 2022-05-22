@@ -153,21 +153,19 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //query for get personnel by id from DB
         Personnel.findById(id, async function (err: Error, personnel: IPersonnel | null) {
             if (err) { return next(err); }
-            if (!personnel) { return next({ status: 401, message: "Not Found" }) };
-            //update personnel model
-            let updatePersonnel = new Personnel({
-                id: id,
-                name: personnelBody.name ?? personnel.name,
-                family: personnelBody.family ?? personnel.family,
-                phone: personnelBody.phone ?? personnel.phone,
-                jobTitle: personnelBody.jobTitle ?? personnel.jobTitle
-            });
-            //save edit personnel in DB
-            await updatePersonnel.set(next);
-            //return response with message and personnel
+            if (!personnel) { return next(new Error("Not Found")); }
+            //fill personnel    
+            personnel.name = personnelBody.name ?? personnel.name;
+            personnel.family = personnelBody.family ?? personnel.family;
+            personnel.phone = personnelBody.phone ?? personnel.phone;
+            personnel.jobTitle = personnelBody.jobTitle ?? personnel.jobTitle;
+
+            //query for save personnel in DB
+            await personnel.save(next);
+            //send response to client with personnel
             return res.status(201).json({
-                message: 'personnel Edited',
-                personnel: updatePersonnel
+                message: 'Success',
+                personnel: personnel
             });
         });
     } catch (err) {
@@ -197,15 +195,13 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         }
 
         //query for get personnel by id from DB
-        Personnel.findById(id, async function (err: Error, personnel: any) {
+        Personnel.findByIdAndDelete(id, function (err: Error, personnel: IPersonnel | null) {
             if (err) { return next(err); }
             if (!personnel) { return next(new Error("Not Found")); }
-            //delete personnel in DB
-            await personnel.delete(next);
             //send response to client with personnel
             return res.status(201).json({
-                message: 'personnel Deleted',
-                personnel: {}
+                message: 'Success',
+                personnel: personnel
             });
         });
     } catch (err) {
