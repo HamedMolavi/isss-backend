@@ -1,16 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Request } from "express";
 
-
-//define token type after verify
-export interface ICritential {
-    id: string;
-    email: string;
-    role: string;
-    exp: number;
-    iat: number;
-}
-
 //verify token
 export function authorize(token: string) {
     //get secret key from environment

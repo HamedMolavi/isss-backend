@@ -1,6 +1,25 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Camera, { ICamera } from "./../../models/camera";
-import { authorize, getToken, ICritential } from "../../tools/authentication";
+import Camera from "./../../models/camera";
+import { authorize, getToken } from "../../tools/authentication";
+
+
+//define token type after verify
+interface ICritential {
+    id: string;
+    email: string;
+    role: string;
+    exp: number;
+    iat: number;
+}
+//define camera type 
+interface ICamera {
+    ip: string,
+    name: string,
+    username: string;
+    password: string;
+    rstpLink: string;
+}
+
 
 //create router for add to server 
 const router: Router = Router();
