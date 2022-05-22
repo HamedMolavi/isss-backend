@@ -1,16 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Departement , {IDepartement} from "./../../models/departement";
-import { authorize, getToken } from "./../../tools/authentication";
-
-
-//define token type after verify
-interface ICritential {
-    id: string;
-    email: string;
-    role: string;
-    exp: number;
-    iat: number;
-}
+import Departement, { IDepartement } from "./../../models/departement";
+import { authorize, getToken, ICritential } from "./../../tools/authentication";
 
 //create router for add to server file 
 const router: Router = Router();

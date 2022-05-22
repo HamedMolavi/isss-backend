@@ -1,16 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import User, { IUser } from '../../models/user';
-import { authorize, getToken } from "../../tools/authentication";
+import { authorize, getToken, ICritential } from "../../tools/authentication";
 
-
-//define token type after verify
-interface ICritential {
-    id: string;
-    email: string;
-    role: string;
-    exp: number;
-    iat: number;
-}
 
 //create router for add to server 
 const router: Router = Router();
