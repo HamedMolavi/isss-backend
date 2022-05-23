@@ -15,7 +15,12 @@ describe('server run and crud section', function () {
     //get departenet test from DB
     beforeEach(function (done) {
         //find section by name
-        section_1.default.findOne({}, (err, section) => {
+        section_1.default.findOne({
+            name: { $in: ['section1', 'section2'] }
+        }, (err, section) => {
+            if (err) {
+                console.log(err);
+            }
             _section = section;
             done();
         });

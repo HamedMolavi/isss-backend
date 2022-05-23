@@ -179,27 +179,23 @@ router.put("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Unauthorized" });
             }
             //query for get user by username from DB
-            user_1.default.findById(id, function (err, user) {
-                var _a, _b, _c, _d, _e;
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!user) {
-                        return next(new Error("Not Found"));
-                    }
-                    //fill user
-                    user.name = (_a = userBody.name) !== null && _a !== void 0 ? _a : user.name;
-                    user.email = (_b = userBody.email) !== null && _b !== void 0 ? _b : user.email;
-                    user.role = (_c = userBody.role) !== null && _c !== void 0 ? _c : user.role;
-                    user.username = (_d = userBody.username) !== null && _d !== void 0 ? _d : user.username;
-                    user.password = (_e = userBody.password) !== null && _e !== void 0 ? _e : user.password;
-                    //save section in DB
-                    yield user.save(next);
-                    //send response to client with section
-                    return res.status(201).json({
-                        message: 'Success',
-                        user: user
+            user_1.default.findByIdAndUpdate(id, { $set: userBody }, function (err, user) {
+                if (err) {
+                    return next(err);
+                }
+                if (!user) {
+                    return next(new Error("Not Found"));
+                }
+                user_1.default.findById(id, function (err, updateUser) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        if (err) {
+                            return next(err);
+                        }
+                        //send response to client with section
+                        return res.status(201).json({
+                            message: 'Success',
+                            user: updateUser
+                        });
                     });
                 });
             });

@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define camera type
 export interface ICamera {
+    _id: mongoose.Types.ObjectId;
     ip: string,
     name: string,
     username: string;

@@ -59,7 +59,13 @@ describe('server run and server runnig and register user', function () {
         });
     });
     beforeEach(function (done) {
-        user_1.default.findOne({ username: 'john' }, (err, user) => {
+        user_1.default.findOne({
+            name: { $in: ['John', 'jack'] },
+            email: { $in: ['john@test.com', 'jack@test.com'] }
+        }, (err, user) => {
+            if (err) {
+                console.log(err);
+            }
             _user = user;
             done();
         });

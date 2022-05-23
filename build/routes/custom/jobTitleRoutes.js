@@ -161,23 +161,23 @@ router.put("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get jobTitle by id from DB
-            jobTitle_1.default.findById(id, function (err, jobTitle) {
-                var _a;
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!jobTitle) {
-                        return next(new Error("Not Found"));
-                    }
-                    //fill jobTitle
-                    jobTitle.name = (_a = jobTitleBody.name) !== null && _a !== void 0 ? _a : jobTitle.name;
-                    //save jobTitle in DB
-                    yield jobTitle.save(next);
-                    //send response to client with jobTitle
-                    return res.status(201).json({
-                        message: 'Success',
-                        jobTitle: jobTitle
+            jobTitle_1.default.findByIdAndUpdate(id, { $set: jobTitleBody }, function (err, jobTitle) {
+                if (err) {
+                    return next(err);
+                }
+                if (!jobTitle) {
+                    return next(new Error("Not Found"));
+                }
+                jobTitle_1.default.findById(id, function (err, updateJobTitle) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        if (err) {
+                            return next(err);
+                        }
+                        //send response to client with jobTitle
+                        return res.status(201).json({
+                            message: 'Success',
+                            jobTitle: updateJobTitle
+                        });
                     });
                 });
             });

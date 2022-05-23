@@ -1,23 +1,15 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
-import Departement from '../../models/departement';
+import Departement, { IDepartement } from '../../models/departement';
 
 
 const token = process.env.sample_token;
-let _departement: any;
+let _departement: IDepartement;
+let _updateDepartement: IDepartement;
 
 //create testing for register new departement and edit , delete ,get departement
 describe('server run and crud departement', function () {
-
-    //get departenet test from DB
-    beforeEach(function (done) {
-        //find departement by name
-        Departement.findOne({}, (err: Error, departement: any) => {
-            _departement = departement;
-            done();
-        });
-    });
 
     //test route for register new departement in DB
     it('should send back a JSON object with departement for create new departement', function (done) {
@@ -40,13 +32,24 @@ describe('server run and crud departement', function () {
                 // Done
                 done();
             });
-
     });
 
+    //get departenet test from DB
+    beforeEach(function (done) {
+
+        Departement.findOne({
+            name :{$in: ['office','bank']}
+        },function (err: Error, departement: IDepartement){
+            if (err) {
+                console.log(err);
+            }
+            _departement = departement;
+            done();
+        });
+    });
 
     //test route for get departement by id from DB
     it('should send back a JSON object for get departement with id', function (done) {
-
 
         //test route for get camera in DB
         request(app)

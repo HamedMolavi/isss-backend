@@ -3,6 +3,7 @@ import mongoose, { Schema } from "mongoose";
 
 //define personnel type
 export interface IPersonnel {
+    _id: mongoose.Types.ObjectId;
     name: string;
     family: string;
     phone: string;

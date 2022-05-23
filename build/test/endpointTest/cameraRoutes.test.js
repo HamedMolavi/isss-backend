@@ -18,7 +18,7 @@ describe('server run and server runnig and crud camera', function () {
             .set('Authorization', `Bearer ${token}`)
             .send({
             ip: '172.10.10.1',
-            name: 'offece',
+            name: 'office',
             username: 'test',
             password: '12345',
             rstpLink: 'rtsp://192.168.1.111:554/media/video1'
@@ -32,7 +32,7 @@ describe('server run and server runnig and crud camera', function () {
                 let response = res.body;
                 (0, chai_1.expect)(response.message).to.equal("Success");
                 (0, chai_1.expect)(response.camera.ip).to.equal('172.10.10.1');
-                (0, chai_1.expect)(response.camera.name).to.equal('offece');
+                (0, chai_1.expect)(response.camera.name).to.equal('office');
                 (0, chai_1.expect)(response.camera.username).to.equal('test');
                 (0, chai_1.expect)(response.camera.password).to.equal('12345');
                 (0, chai_1.expect)(response.camera.rstpLink).to.equal('rtsp://192.168.1.111:554/media/video1');
@@ -45,8 +45,14 @@ describe('server run and server runnig and crud camera', function () {
         });
     });
     beforeEach(function (done) {
-        camera_1.default.findOne({}, (err, camera) => {
+        camera_1.default.findOne({
+            name: { $in: ['office', 'bank'] },
+        }, (err, camera) => {
+            if (err) {
+                console.log(err);
+            }
             _camera = camera;
+            console.log(_camera);
             done();
         });
     });

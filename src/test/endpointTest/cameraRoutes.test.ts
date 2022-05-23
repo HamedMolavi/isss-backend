@@ -1,11 +1,11 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
-import Camera from '../../models/camera';
+import Camera, { ICamera } from '../../models/camera';
 
 
 const token = process.env.sample_token;
-let _camera: any;
+let _camera: ICamera;
 
 
 describe('server run and server runnig and crud camera', function () {
@@ -18,7 +18,7 @@ describe('server run and server runnig and crud camera', function () {
             .set('Authorization', `Bearer ${token}`)
             .send({
                 ip: '172.10.10.1',
-                name: 'offece',
+                name: 'office',
                 username: 'test',
                 password: '12345',
                 rstpLink: 'rtsp://192.168.1.111:554/media/video1'
@@ -30,7 +30,7 @@ describe('server run and server runnig and crud camera', function () {
                     let response = res.body;
                     expect(response.message).to.equal("Success");
                     expect(response.camera.ip).to.equal('172.10.10.1');
-                    expect(response.camera.name).to.equal('offece');
+                    expect(response.camera.name).to.equal('office');
                     expect(response.camera.username).to.equal('test');
                     expect(response.camera.password).to.equal('12345');
                     expect(response.camera.rstpLink).to.equal('rtsp://192.168.1.111:554/media/video1');
@@ -44,8 +44,14 @@ describe('server run and server runnig and crud camera', function () {
     });
 
     beforeEach(function (done) {
-        Camera.findOne({}, (err: Error, camera: any) => {
+        Camera.findOne({
+            name: { $in: ['office', 'bank'] },
+        }, (err: Error, camera: ICamera) => {
+            if (err) {
+                console.log(err);
+            }
             _camera = camera;
+            console.log(_camera);
             done();
         });
     });
@@ -101,7 +107,6 @@ describe('server run and server runnig and crud camera', function () {
 
     //test route for delete camera in DB 
     it('should send back a JSON object for delete camera', function (done) {
-
         request(app)
             .delete('/camera/' + _camera._id)
             .set('Content-Type', 'application/json')

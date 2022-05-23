@@ -106,40 +106,38 @@ router.get("/departements", function (req, res, next) {
 });
 //route for get departement by id from DB 
 router.get("/:id", function (req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            let id = req.params.id;
-            //verify body request
-            if (!id) {
-                return next({ status: 400, message: "Bad request" });
+    try {
+        let id = req.params.id;
+        //verify body request
+        if (!id) {
+            return next({ status: 400, message: "Bad request" });
+        }
+        //get token from header request
+        let token = (0, authentication_1.getToken)(req, next);
+        //verify token
+        let critential = (0, authentication_1.authorize)(token);
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            return next({ status: 401, message: "Token expired" });
+        }
+        //query for get departement by id from DB
+        departement_1.default.findById(id, function (err, departement) {
+            if (err) {
+                return next(err);
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                return next({ status: 401, message: "Token expired" });
+            if (!departement) {
+                return next(new Error("Not Found"));
             }
-            //query for get departement by id from DB
-            departement_1.default.findById(req.params.id, function (err, departement) {
-                if (err) {
-                    return next(err);
-                }
-                if (!departement) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with departement    
-                return res.status(200).json({
-                    message: 'Success',
-                    departement: departement
-                });
+            //send response to client with departement    
+            return res.status(200).json({
+                message: 'Success',
+                departement: departement
             });
-        }
-        catch (err) {
-            return next({ status: 500, message: `Could not get the departement: ${err}` });
-        }
-    });
+        });
+    }
+    catch (err) {
+        return next({ status: 500, message: `Could not get the departement: ${err}` });
+    }
 });
 //add route for edit departement
 router.put("/:id", function (req, res, next) {
@@ -160,24 +158,24 @@ router.put("/:id", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get camera by id from DB
-            departement_1.default.findById(id, function (err, departement) {
-                var _a;
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!departement) {
-                        return next(new Error("Not Found"));
-                    }
-                    //fill departement
-                    departement.name = (_a = departementBody.name) !== null && _a !== void 0 ? _a : departement.name;
-                    //save departement in DB
-                    yield departement.save(next);
-                    //send response to client with departement
-                    return res.status(201).json({
-                        message: 'Success',
-                        departement: departement
+            //query for get camera by id from DB and update
+            departement_1.default.findByIdAndUpdate(id, { $set: departementBody }, function (err, departement) {
+                if (err) {
+                    return next(err);
+                }
+                if (!departement) {
+                    return next(new Error("Not Found"));
+                }
+                departement_1.default.findById(id, function (err, updateDepartement) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        if (err) {
+                            return next(err);
+                        }
+                        //send response to client with departement
+                        return res.status(201).json({
+                            message: 'Success',
+                            departement: updateDepartement
+                        });
                     });
                 });
             });

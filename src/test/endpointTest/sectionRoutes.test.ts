@@ -1,7 +1,7 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
-import Section from '../../models/section';
+import Section, { ISection } from '../../models/section';
 import mongoose from 'mongoose';
 
 
@@ -14,7 +14,12 @@ describe('server run and crud section', function () {
     //get departenet test from DB
     beforeEach(function (done) {
         //find section by name
-        Section.findOne({ }, (err: Error, section: any) => {
+        Section.findOne({
+            name: { $in: ['section1', 'section2'] }
+        }, (err: Error, section: ISection) => {
+            if (err) {
+                console.log(err);
+            }
             _section = section;
             done();
         });

@@ -137,8 +137,8 @@ router.get("/:id", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get AI by id from DB
-            AI_1.default.findById(req.params.id, function (err, Ai) {
+            //query for get AI from DB by id
+            AI_1.default.findById(id, function (err, Ai) {
                 if (err) {
                     return next(err);
                 }
@@ -177,30 +177,23 @@ router.put("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get camera by id from DB
-            AI_1.default.findById(id, function (err, Ai) {
-                var _a, _b, _c, _d, _e, _f, _g, _h;
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!Ai) {
-                        return next(new Error("Not Found"));
-                    }
-                    //fill AI
-                    Ai.start = (_a = AIBody.start) !== null && _a !== void 0 ? _a : Ai.start;
-                    Ai.end = (_b = AIBody.end) !== null && _b !== void 0 ? _b : Ai.end;
-                    Ai.thresholdid = (_c = AIBody.thresholdid) !== null && _c !== void 0 ? _c : Ai.thresholdid;
-                    Ai.minTime = (_d = AIBody.minTime) !== null && _d !== void 0 ? _d : Ai.minTime;
-                    Ai.zone = (_e = AIBody.zone) !== null && _e !== void 0 ? _e : Ai.zone;
-                    Ai.type = (_f = AIBody.type) !== null && _f !== void 0 ? _f : Ai.type;
-                    Ai.minPeople = (_g = AIBody.minPeople) !== null && _g !== void 0 ? _g : Ai.minPeople;
-                    Ai.maxPeople = (_h = AIBody.maxPeople) !== null && _h !== void 0 ? _h : Ai.maxPeople;
-                    //save AI in DB
-                    yield Ai.save(next);
-                    //send response to client with AI
-                    return res.status(201).json({
-                        message: 'AI model updated',
-                        AI: Ai
+            AI_1.default.findByIdAndUpdate(id, { $set: AIBody }, function (err, Ai) {
+                if (err) {
+                    return next(err);
+                }
+                if (!Ai) {
+                    return next(new Error("Not Found"));
+                }
+                AI_1.default.findById(id, function (err, updateAi) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        if (err) {
+                            return next(err);
+                        }
+                        //send response to client with AI
+                        return res.status(201).json({
+                            message: 'AI model updated',
+                            AI: updateAi
+                        });
                     });
                 });
             });

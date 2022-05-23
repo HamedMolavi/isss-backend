@@ -162,24 +162,23 @@ router.put("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get section by id from DB
-            section_1.default.findById(id, function (err, section) {
-                var _a, _b;
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!section) {
-                        return next(new Error("Not Found"));
-                    }
-                    //fill section
-                    section.name = (_a = sectionBody.name) !== null && _a !== void 0 ? _a : section.name;
-                    section.departement = (_b = sectionBody.departement) !== null && _b !== void 0 ? _b : section.departement;
-                    //save section in DB
-                    yield section.save(next);
-                    //send response to client with section
-                    return res.status(201).json({
-                        message: 'Success',
-                        section: section
+            section_1.default.findByIdAndUpdate(id, { $set: sectionBody }, function (err, section) {
+                if (err) {
+                    return next(err);
+                }
+                if (!section) {
+                    return next(new Error("Not Found"));
+                }
+                section_1.default.findById(id, function (err, updateSection) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        if (err) {
+                            return next(err);
+                        }
+                        //send response to client with section
+                        return res.status(201).json({
+                            message: 'Success',
+                            section: updateSection
+                        });
                     });
                 });
             });

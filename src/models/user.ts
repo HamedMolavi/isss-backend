@@ -7,8 +7,9 @@ import { NextFunction } from "express";
 
 //initial file .env
 dotenv.config();
-
+//create user type 
 export interface IUser {
+    _id: mongoose.Types.ObjectId;
     name: string,
     email: string,
     username: string;
@@ -17,6 +18,7 @@ export interface IUser {
 }
 
 interface IUserDocument extends IUser, Document {
+    _id: mongoose.Types.ObjectId;
     setPassword: (password: string) => Promise<void>;
     checkPassword: (password: string) => Promise<boolean>;
     generateJWT: () => any;

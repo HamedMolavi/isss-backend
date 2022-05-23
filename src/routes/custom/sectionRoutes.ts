@@ -149,18 +149,16 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Token expired" })
         }
         //query for get section by id from DB
-        Section.findById(id, async function (err: Error, section: ISection | null) {
+        Section.findByIdAndUpdate(id, { $set: sectionBody }, function (err: Error, section: ISection | null) {
             if (err) { return next(err); }
             if (!section) { return next(new Error("Not Found")); }
-            //fill section
-            section.name = sectionBody.name ?? section.name;
-            section.departement = sectionBody.departement ?? section.departement;
-            //save section in DB
-            await section.save(next);
-            //send response to client with section
-            return res.status(201).json({
-                message: 'Success',
-                section: section
+            Section.findById(id, async function (err: Error, updateSection: ISection | null) {
+                if (err) { return next(err); }
+                //send response to client with section
+                return res.status(201).json({
+                    message: 'Success',
+                    section: updateSection
+                });
             });
         });
     } catch (err) {
