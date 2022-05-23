@@ -164,26 +164,23 @@ router.put("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get plate by id from DB
-            plate_1.default.findById(id, function (err, plate) {
-                var _a, _b, _c, _d;
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!plate) {
-                        return next(new Error("Not Found"));
-                    }
-                    //fill plate
-                    plate.number = (_a = plateBody.number) !== null && _a !== void 0 ? _a : plate.number;
-                    plate.carBrand = (_b = plateBody.carBrand) !== null && _b !== void 0 ? _b : plate.carBrand;
-                    plate.color = (_c = plateBody.color) !== null && _c !== void 0 ? _c : plate.color;
-                    plate.owner = (_d = plateBody.owner) !== null && _d !== void 0 ? _d : plate.owner;
-                    //save plate in DB
-                    yield plate.save(next);
-                    //send response to client with plate
-                    return res.status(201).json({
-                        message: 'Success',
-                        plate: plate
+            plate_1.default.findByIdAndUpdate(id, { $set: plateBody }, function (err, plate) {
+                if (err) {
+                    return next(err);
+                }
+                if (!plate) {
+                    return next(new Error("Not Found"));
+                }
+                plate_1.default.findById(id, function (err, updatePlate) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        if (err) {
+                            return next(err);
+                        }
+                        //send response to client with plate
+                        return res.status(201).json({
+                            message: 'Success',
+                            plate: updatePlate
+                        });
                     });
                 });
             });

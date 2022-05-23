@@ -121,9 +121,8 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
         }
-
-        //query for get AI by id from DB
-        AI.findById(req.params.id, function (err: Error, Ai: IAI | null) {
+        //query for get AI from DB by id
+        AI.findById(id, function (err: Error, Ai: IAI | null) {
             if (err) { return next(err); }
             if (!Ai) { return next(new Error("Not Found")); }
             //send response to client with AI    
@@ -162,25 +161,16 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         }
 
         //query for get camera by id from DB
-        AI.findById(id,async function (err: Error, Ai: IAI | null) {
+        AI.findByIdAndUpdate(id, { $set: AIBody }, function (err: Error, Ai: IAI | null) {
             if (err) { return next(err); }
             if (!Ai) { return next(new Error("Not Found")); }
-            //fill AI
-            Ai.start = AIBody.start ?? Ai.start;
-            Ai.end = AIBody.end ?? Ai.end;
-            Ai.thresholdid = AIBody.thresholdid ?? Ai.thresholdid;
-            Ai.minTime = AIBody.minTime ?? Ai.minTime;
-            Ai.zone = AIBody.zone ?? Ai.zone;
-            Ai.type = AIBody.type ?? Ai.type;
-            Ai.minPeople = AIBody.minPeople ?? Ai.minPeople;
-            Ai.maxPeople = AIBody.maxPeople ?? Ai.maxPeople;
-
-            //save AI in DB
-            await Ai.save(next);
-            //send response to client with AI
-            return res.status(201).json({
-                message: 'AI model updated',
-                AI: Ai
+            AI.findById(id, async function (err: Error, updateAi: IAI | null) {
+                if (err) { return next(err); }
+                //send response to client with AI
+                return res.status(201).json({
+                    message: 'AI model updated',
+                    AI: updateAi
+                });
             });
         });
     } catch (err) {

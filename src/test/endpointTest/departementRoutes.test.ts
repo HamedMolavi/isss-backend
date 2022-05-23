@@ -34,7 +34,6 @@ describe('server run and crud departement', function () {
             });
     });
 
-
     //get departenet test from DB
     beforeEach(function (done) {
 

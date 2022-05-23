@@ -166,26 +166,22 @@ router.put("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get user by id from DB
-            camera_1.default.findById(id, function (err, camera) {
-                var _a, _b, _c, _d, _e;
+            camera_1.default.findByIdAndUpdate(id, { $set: cameraBody }, function (err, camera) {
                 if (err) {
                     return next(err);
                 }
                 if (!camera) {
                     return next(new Error("Not Found"));
                 }
-                //fill camera
-                camera.ip = (_a = cameraBody.ip) !== null && _a !== void 0 ? _a : camera.ip;
-                camera.name = (_b = cameraBody.name) !== null && _b !== void 0 ? _b : camera.name;
-                camera.username = (_c = cameraBody.username) !== null && _c !== void 0 ? _c : camera.username;
-                camera.password = (_d = cameraBody.password) !== null && _d !== void 0 ? _d : camera.password;
-                camera.rstpLink = (_e = cameraBody.rstpLink) !== null && _e !== void 0 ? _e : camera.rstpLink;
-                //save camera in DB
-                camera.save(next);
-                //send response to client with camera
-                return res.status(201).json({
-                    message: 'Success',
-                    camera: camera
+                camera_1.default.findById(id, function (err, updateCamera) {
+                    if (err) {
+                        return next(err);
+                    }
+                    //send response to client with camera
+                    return res.status(201).json({
+                        message: 'Success',
+                        camera: updateCamera
+                    });
                 });
             });
         }

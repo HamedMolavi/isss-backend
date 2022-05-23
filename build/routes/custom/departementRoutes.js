@@ -158,24 +158,24 @@ router.put("/:id", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get camera by id from DB
-            departement_1.default.findById(id, function (err, departement) {
-                var _a;
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!departement) {
-                        return next(new Error("Not Found"));
-                    }
-                    //fill departement
-                    departement.name = (_a = departementBody.name) !== null && _a !== void 0 ? _a : departement.name;
-                    //save departement in DB
-                    yield departement.save(next);
-                    //send response to client with departement
-                    return res.status(201).json({
-                        message: 'Success',
-                        departement: departement
+            //query for get camera by id from DB and update
+            departement_1.default.findByIdAndUpdate(id, { $set: departementBody }, function (err, departement) {
+                if (err) {
+                    return next(err);
+                }
+                if (!departement) {
+                    return next(new Error("Not Found"));
+                }
+                departement_1.default.findById(id, function (err, updateDepartement) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        if (err) {
+                            return next(err);
+                        }
+                        //send response to client with departement
+                        return res.status(201).json({
+                            message: 'Success',
+                            departement: updateDepartement
+                        });
                     });
                 });
             });

@@ -151,21 +151,16 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Token expired" })
         }
         //query for get personnel by id from DB
-        Personnel.findById(id, async function (err: Error, personnel: IPersonnel | null) {
+        Personnel.findByIdAndUpdate(id, { $set: personnelBody }, function (err: Error, personnel: IPersonnel | null) {
             if (err) { return next(err); }
             if (!personnel) { return next(new Error("Not Found")); }
-            //fill personnel    
-            personnel.name = personnelBody.name ?? personnel.name;
-            personnel.family = personnelBody.family ?? personnel.family;
-            personnel.phone = personnelBody.phone ?? personnel.phone;
-            personnel.jobTitle = personnelBody.jobTitle ?? personnel.jobTitle;
-
-            //query for save personnel in DB
-            await personnel.save(next);
-            //send response to client with personnel
-            return res.status(201).json({
-                message: 'Success',
-                personnel: personnel
+            Personnel.findById(id, async function (err: Error, updatePersonnel: IPersonnel | null) {
+                if (err) { return next(err); }
+                //send response to client with personnel
+                return res.status(201).json({
+                    message: 'Success',
+                    personnel: updatePersonnel
+                });
             });
         });
     } catch (err) {

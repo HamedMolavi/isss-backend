@@ -145,18 +145,17 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
         }
-        //query for get camera by id from DB
-        Departement.findById(id, async function (err: Error, departement: IDepartement | null) {
+        //query for get camera by id from DB and update
+        Departement.findByIdAndUpdate(id, { $set: departementBody }, function (err: Error, departement: IDepartement | null) {
             if (err) { return next(err); }
             if (!departement) { return next(new Error("Not Found")); }
-            //fill departement
-            departement.name = departementBody.name ?? departement.name;
-            //save departement in DB
-            await departement.save(next);
-            //send response to client with departement
-            return res.status(201).json({
-                message: 'Success',
-                departement: departement
+            Departement.findById(id, async function (err: Error, updateDepartement: IDepartement | null) {
+                if (err) { return next(err); }
+                //send response to client with departement
+                return res.status(201).json({
+                    message: 'Success',
+                    departement: updateDepartement
+                });
             });
         });
     } catch (err) {

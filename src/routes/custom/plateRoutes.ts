@@ -151,20 +151,16 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Token expired" })
         }
         //query for get plate by id from DB
-        Plate.findById(id, async function (err: Error, plate: IPlate | null) {
+        Plate.findByIdAndUpdate(id, { $set: plateBody }, function (err: Error, plate: IPlate | null) {
             if (err) { return next(err); }
             if (!plate) { return next(new Error("Not Found")); }
-            //fill plate
-            plate.number = plateBody.number ?? plate.number;
-            plate.carBrand = plateBody.carBrand ?? plate.carBrand;
-            plate.color = plateBody.color ?? plate.color;
-            plate.owner = plateBody.owner ?? plate.owner;
-            //save plate in DB
-            await plate.save(next);
-            //send response to client with plate
-            return res.status(201).json({
-                message: 'Success',
-                plate: plate
+            Plate.findById(id, async function (err: Error, updatePlate: IPlate | null) {
+                if (err) { return next(err); }
+                //send response to client with plate
+                return res.status(201).json({
+                    message: 'Success',
+                    plate: updatePlate
+                });
             });
         });
     } catch (err) {

@@ -164,26 +164,23 @@ router.put("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get personnel by id from DB
-            personnel_1.default.findById(id, function (err, personnel) {
-                var _a, _b, _c, _d;
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!personnel) {
-                        return next(new Error("Not Found"));
-                    }
-                    //fill personnel    
-                    personnel.name = (_a = personnelBody.name) !== null && _a !== void 0 ? _a : personnel.name;
-                    personnel.family = (_b = personnelBody.family) !== null && _b !== void 0 ? _b : personnel.family;
-                    personnel.phone = (_c = personnelBody.phone) !== null && _c !== void 0 ? _c : personnel.phone;
-                    personnel.jobTitle = (_d = personnelBody.jobTitle) !== null && _d !== void 0 ? _d : personnel.jobTitle;
-                    //query for save personnel in DB
-                    yield personnel.save(next);
-                    //send response to client with personnel
-                    return res.status(201).json({
-                        message: 'Success',
-                        personnel: personnel
+            personnel_1.default.findByIdAndUpdate(id, { $set: personnelBody }, function (err, personnel) {
+                if (err) {
+                    return next(err);
+                }
+                if (!personnel) {
+                    return next(new Error("Not Found"));
+                }
+                personnel_1.default.findById(id, function (err, updatePersonnel) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        if (err) {
+                            return next(err);
+                        }
+                        //send response to client with personnel
+                        return res.status(201).json({
+                            message: 'Success',
+                            personnel: updatePersonnel
+                        });
                     });
                 });
             });

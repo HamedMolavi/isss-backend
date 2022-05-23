@@ -162,22 +162,16 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Unauthorized" });
         }
         //query for get user by username from DB
-        User.findById(id, async function (err: Error, user: any | null) {
+        User.findByIdAndUpdate(id, { $set: userBody }, function (err: Error, user: IUser | null) {
             if (err) { return next(err); }
             if (!user) { return next(new Error("Not Found")); }
-
-            //fill user
-            user.name = userBody.name ?? user.name;
-            user.email = userBody.email ?? user.email;
-            user.role = userBody.role ?? user.role;
-            user.username = userBody.username ?? user.username;
-            user.password = userBody.password ?? user.password;
-            //save section in DB
-            await user.save(next);
-            //send response to client with section
-            return res.status(201).json({
-                message: 'Success',
-                user: user
+            User.findById(id, async function (err: Error, updateUser: any | null) {
+                if (err) { return next(err); }
+                //send response to client with section
+                return res.status(201).json({
+                    message: 'Success',
+                    user: updateUser
+                });
             });
         });
     } catch (err) {
