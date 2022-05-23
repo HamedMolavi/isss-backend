@@ -14,7 +14,13 @@ describe('server run and crud plate', function () {
     //get plate test from DB
     beforeEach(function (done) {
         //find plate by name
-        plate_1.default.findOne({}, (err, plate) => {
+        plate_1.default.findOne({
+            ncolor: { $in: ['red', 'blue'] },
+            number: { $in: ['1234567', '9876543'] }
+        }, (err, plate) => {
+            if (err) {
+                console.log(err);
+            }
             _plate = plate;
             done();
         });

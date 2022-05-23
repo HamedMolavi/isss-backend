@@ -1,7 +1,7 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
-import Personnel from '../../models/personnel';
+import Personnel, { IPersonnel } from '../../models/personnel';
 import mongoose from 'mongoose';
 
 
@@ -10,15 +10,6 @@ let _personnel: any;
 
 //create testing for register new personnel and edit , delete ,get personnel
 describe('server run and crud personnel', function () {
-
-    //get personnel test from DB
-    beforeEach(function (done) {
-        //find personnel by name
-        Personnel.findOne({}, (err: Error, personnel: any) => {
-            _personnel = personnel;
-            done();
-        });
-    });
 
     //test route for register new personnel in DB
     it('should send back a JSON object with section for create new personnel', function (done) {
@@ -49,6 +40,22 @@ describe('server run and crud personnel', function () {
 
     });
 
+
+
+    //get personnel test from DB
+    beforeEach(function (done) {
+        //find personnel by name
+        Personnel.findOne({
+            name: { $in: ['jack', 'john'] },
+            family: { $in: ['jackson', 'johnson'] },
+        }, (err: Error, personnel: IPersonnel) => {
+            if (err) {
+                console.log(err);
+            }
+            _personnel = personnel;
+            done();
+        });
+    });
 
     //test route for get personnel by id from DB
     it('should send back a JSON object for get personnel with id', function (done) {

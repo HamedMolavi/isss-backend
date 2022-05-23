@@ -9,16 +9,9 @@ const supertest_1 = __importDefault(require("supertest"));
 const departement_1 = __importDefault(require("../../models/departement"));
 const token = process.env.sample_token;
 let _departement;
+let _updateDepartement;
 //create testing for register new departement and edit , delete ,get departement
 describe('server run and crud departement', function () {
-    //get departenet test from DB
-    beforeEach(function (done) {
-        //find departement by name
-        departement_1.default.findOne({}, (err, departement) => {
-            _departement = departement;
-            done();
-        });
-    });
     //test route for register new departement in DB
     it('should send back a JSON object with departement for create new departement', function (done) {
         (0, supertest_1.default)(server_1.default)
@@ -41,6 +34,18 @@ describe('server run and crud departement', function () {
                 let response = null;
             }
             // Done
+            done();
+        });
+    });
+    //get departenet test from DB
+    beforeEach(function (done) {
+        departement_1.default.findOne({
+            name: { $in: ['office', 'bank'] }
+        }, function (err, departement) {
+            if (err) {
+                console.log(err);
+            }
+            _departement = departement;
             done();
         });
     });

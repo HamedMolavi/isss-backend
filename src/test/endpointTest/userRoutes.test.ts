@@ -1,12 +1,11 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
-import User from './../../models/user';
-import mongoose from 'mongoose';
+import User, { IUser } from './../../models/user';
 
 
 const token = process.env.sample_token;
-let _user: any;
+let _user: IUser;
 
 
 describe('server run and server runnig and register user', function () {
@@ -57,7 +56,13 @@ describe('server run and server runnig and register user', function () {
     });
 
     beforeEach(function (done) {
-        User.findOne({ username: 'john' }, (err: Error, user: any) => {
+        User.findOne({
+            name: { $in: ['John', 'jack'] },
+            email: { $in: ['john@test.com', 'jack@test.com'] }
+        }, (err: Error, user: IUser) => {
+            if (err) {
+                console.log(err);
+            }
             _user = user;
             done();
         });

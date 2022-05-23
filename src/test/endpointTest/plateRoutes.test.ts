@@ -1,8 +1,7 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
-import Plate from '../../models/plate';
-import mongoose from 'mongoose';
+import Plate, { IPlate } from '../../models/plate';
 
 
 const token = process.env.sample_token;
@@ -14,7 +13,13 @@ describe('server run and crud plate', function () {
     //get plate test from DB
     beforeEach(function (done) {
         //find plate by name
-        Plate.findOne({}, (err: Error, plate: any) => {
+        Plate.findOne({
+            ncolor: { $in: ['red', 'blue'] },
+            number: { $in: ['1234567', '9876543'] }
+        }, (err: Error, plate: IPlate) => {
+            if (err) {
+                console.log(err);
+            }
             _plate = plate;
             done();
         });
@@ -27,10 +32,10 @@ describe('server run and crud plate', function () {
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
-                number : '1234567',
-                carBrand :'BMW',
-                color : 'red',
-                owner:'jhon'
+                number: '1234567',
+                carBrand: 'BMW',
+                color: 'red',
+                owner: 'jhon'
             })
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {

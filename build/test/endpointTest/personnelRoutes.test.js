@@ -12,14 +12,6 @@ const token = process.env.sample_token;
 let _personnel;
 //create testing for register new personnel and edit , delete ,get personnel
 describe('server run and crud personnel', function () {
-    //get personnel test from DB
-    beforeEach(function (done) {
-        //find personnel by name
-        personnel_1.default.findOne({}, (err, personnel) => {
-            _personnel = personnel;
-            done();
-        });
-    });
     //test route for register new personnel in DB
     it('should send back a JSON object with section for create new personnel', function (done) {
         (0, supertest_1.default)(server_1.default)
@@ -47,6 +39,20 @@ describe('server run and crud personnel', function () {
                 let response = null;
             }
             // Done
+            done();
+        });
+    });
+    //get personnel test from DB
+    beforeEach(function (done) {
+        //find personnel by name
+        personnel_1.default.findOne({
+            name: { $in: ['jack', 'john'] },
+            family: { $in: ['jackson', 'johnson'] },
+        }, (err, personnel) => {
+            if (err) {
+                console.log(err);
+            }
+            _personnel = personnel;
             done();
         });
     });

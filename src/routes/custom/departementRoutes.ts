@@ -89,7 +89,7 @@ router.get("/departements", async function (req: Request, res: Response, next: N
 });
 
 //route for get departement by id from DB 
-router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/:id", function (req: Request, res: Response, next: NextFunction) {
     try {
         let id: string = req.params.id;
         //verify body request
@@ -108,7 +108,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         }
 
         //query for get departement by id from DB
-        Departement.findById(req.params.id, function (err: Error, departement: IDepartement | null) {
+        Departement.findById(id, function (err: Error, departement: IDepartement | null) {
             if (err) { return next(err); }
             if (!departement) { return next(new Error("Not Found")); }
             //send response to client with departement    

@@ -1,27 +1,14 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
-import JobTitle from '../../models/jobTitle';
+import JobTitle, { IJobTitle } from '../../models/jobTitle';
 
-interface IJobTitle {
-    id: string;
-    name: string;
-}
 
 const token = process.env.sample_token;
-let _jobTitle: any;
+let _jobTitle: IJobTitle;
 
 //create testing for register new jobTitle and edit , delete ,get jobTitle
 describe('server run and crud jobTitle', function () {
-
-    //get jobTitle test from DB
-    beforeEach(function (done) {
-        //find jobTitle by name
-        JobTitle.findOne({}, (err: Error, jobTitle: IJobTitle | null) => {
-            _jobTitle = jobTitle;
-            done();
-        });
-    });
 
     //test route for register new jobTitle in DB
     it('should send back a JSON object with jobTitle for create new jobTitle', function (done) {
@@ -47,6 +34,20 @@ describe('server run and crud jobTitle', function () {
 
     });
 
+
+    //get jobTitle test from DB
+    beforeEach(function (done) {
+        //find jobTitle by name
+        JobTitle.findOne({
+            name: { $in: ['developer', 'police'] }
+        }, (err: Error, jobTitle: IJobTitle) => {
+            if (err) {
+                console.log(err);
+            }
+            _jobTitle = jobTitle;
+            done();
+        });
+    });
 
     //test route for get jobTitle by id from DB
     it('should send back a JSON object for get jobTitle with id', function (done) {

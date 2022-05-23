@@ -3,6 +3,7 @@ import mongoose, { Schema } from "mongoose";
 
 //define AI type
 export interface IAI {
+    _id: mongoose.Types.ObjectId;
     start: string;
     end: string;
     thresholdid: number;

@@ -3,6 +3,7 @@ import mongoose, { Schema } from "mongoose";
 
 //define jobTitle type
 export interface IJobTitle {
+    _id: mongoose.Types.ObjectId;
     name: string;
     save: (next : NextFunction) => Promise<void>;
 }

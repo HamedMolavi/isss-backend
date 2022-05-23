@@ -2,18 +2,25 @@ import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
 import AI, { IAI } from '../../models/AI';
+import mongoose from 'mongoose';
 
 
 const token = process.env.sample_token;
-let _AI: any;
+let _AI: IAI;
 
 //create testing for register new AI and edit , delete ,get personnel
 describe('server run and crud AI', function () {
 
     //get AI test from DB
     beforeEach(function (done) {
-        //find AI by name
-        AI.findOne({}, (err: Error, Ai: IAI) => {
+        //find AI by minTime and type
+        AI.findOne({
+            minTime: "2019-01-01T00:00:00.000Z",
+            type: "type1",
+        }, function (err: Error, Ai: IAI ) {
+            if (err) {
+                console.log(err);
+            }
             _AI = Ai;
             done();
         });
@@ -118,7 +125,7 @@ describe('server run and crud AI', function () {
 
     //test route for delete AI in DB 
     it('should send back a JSON object for delete AI', function (done) {
-        console.log(_AI._id + "this idddddddddddddddddddddddddddddddddddddd");
+        ;
         request(app)
             .delete('/AI/' + _AI._id)
             .set('Content-Type', 'application/json')

@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define plate type
 export interface IPlate {
+    _id: mongoose.Types.ObjectId;
     number: string,
     carBrand: string;
     color: string;

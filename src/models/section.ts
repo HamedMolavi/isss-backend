@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 //define section type
 export interface ISection {
+    _id: mongoose.Types.ObjectId;
     name: string;
     departement: string;
     save: (next : NextFunction) => Promise<void>;

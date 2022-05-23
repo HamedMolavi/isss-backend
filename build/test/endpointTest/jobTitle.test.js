@@ -11,14 +11,6 @@ const token = process.env.sample_token;
 let _jobTitle;
 //create testing for register new jobTitle and edit , delete ,get jobTitle
 describe('server run and crud jobTitle', function () {
-    //get jobTitle test from DB
-    beforeEach(function (done) {
-        //find jobTitle by name
-        jobTitle_1.default.findOne({}, (err, jobTitle) => {
-            _jobTitle = jobTitle;
-            done();
-        });
-    });
     //test route for register new jobTitle in DB
     it('should send back a JSON object with jobTitle for create new jobTitle', function (done) {
         (0, supertest_1.default)(server_1.default)
@@ -41,6 +33,19 @@ describe('server run and crud jobTitle', function () {
                 let response = null;
             }
             // Done
+            done();
+        });
+    });
+    //get jobTitle test from DB
+    beforeEach(function (done) {
+        //find jobTitle by name
+        jobTitle_1.default.findOne({
+            name: { $in: ['developer', 'police'] }
+        }, (err, jobTitle) => {
+            if (err) {
+                console.log(err);
+            }
+            _jobTitle = jobTitle;
             done();
         });
     });

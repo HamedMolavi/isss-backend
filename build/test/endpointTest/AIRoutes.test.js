@@ -13,8 +13,14 @@ let _AI;
 describe('server run and crud AI', function () {
     //get AI test from DB
     beforeEach(function (done) {
-        //find AI by name
-        AI_1.default.findOne({}, (err, Ai) => {
+        //find AI by minTime and type
+        AI_1.default.findOne({
+            minTime: "2019-01-01T00:00:00.000Z",
+            type: "type1",
+        }, function (err, Ai) {
+            if (err) {
+                console.log(err);
+            }
             _AI = Ai;
             done();
         });
@@ -117,7 +123,7 @@ describe('server run and crud AI', function () {
     });
     //test route for delete AI in DB 
     it('should send back a JSON object for delete AI', function (done) {
-        console.log(_AI._id + "this idddddddddddddddddddddddddddddddddddddd");
+        ;
         (0, supertest_1.default)(server_1.default)
             .delete('/AI/' + _AI._id)
             .set('Content-Type', 'application/json')
