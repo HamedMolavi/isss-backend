@@ -79,6 +79,30 @@ describe('server run and server runnig and crud camera', function () {
     });
 
 
+    //test route for get cameras from DB
+    it('should send back a JSON object for get all cameras', function (done) {
+
+
+        //test route for get camera in DB
+        request(app)
+            .get('/camera/list')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+                if (err) { return done(err); }
+                let userResponse = res.body.cameras;
+
+                expect(userResponse[0]).to.have.property('ip');
+                expect(userResponse[0]).to.have.property('name');
+                expect(userResponse[0]).to.have.property('username');
+                expect(userResponse[0]).to.have.property('password');
+                expect(userResponse[0]).to.have.property('rstpLink');
+                // Done
+                done();
+            });
+    });
+
+
     //test route for edite camera in DB
     it('should send back a JSON object with id for edit camera', function (done) {
         let cameraEditJson = {

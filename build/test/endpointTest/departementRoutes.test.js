@@ -49,6 +49,23 @@ describe('server run and crud departement', function () {
             done();
         });
     });
+    //test route for get all departements from DB
+    it('should send back a JSON object for get all departements', function (done) {
+        //test route for get camera in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/departement/list')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.departements;
+            (0, chai_1.expect)(userResponse[0]).to.have.property('name');
+            // Done
+            done();
+        });
+    });
     //test route for get departement by id from DB
     it('should send back a JSON object for get departement with id', function (done) {
         //test route for get camera in DB

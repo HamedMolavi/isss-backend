@@ -91,6 +91,32 @@ describe('server run and crud AI', function () {
             });
     });
 
+     //test route for get all AIs 
+     it('should send back a JSON object for get all AIs', function (done) {
+
+        //test route for get AIs in DB
+        request(app)
+            .get('/AI/list')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+                if (err) { return done(err); }
+                let userResponse = res.body.AIs;
+
+                expect(userResponse[0]).to.have.property('start');
+                expect(userResponse[0]).to.have.property('end');
+                expect(userResponse[0]).to.have.property('thresholdid');
+                expect(userResponse[0]).to.have.property('minTime');
+                expect(userResponse[0]).to.have.property('zone');
+                expect(userResponse[0]).to.have.property('type');
+                expect(userResponse[0]).to.have.property('minPeople');
+                expect(userResponse[0]).to.have.property('maxPeople');
+
+                // Done
+                done();
+            });
+    });
+
 
     //test route for edite AI in DB
     it('should send back a JSON object with id for edit AI', function (done) {

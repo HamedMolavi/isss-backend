@@ -56,6 +56,28 @@ describe('server run and crud plate', function () {
 
     });
 
+    //test route for get plate by id from DB
+    it('should send back a JSON object for get all plates', function (done) {
+
+
+        //test route for get plate in DB
+        request(app)
+            .get('/plate/list')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+                if (err) { return done(err); }
+                let userResponse = res.body.plates;
+                expect(userResponse[0]).have.to.property('number');
+                expect(userResponse[0]).have.to.property('carBrand');
+                expect(userResponse[0]).have.to.property('color');
+                expect(userResponse[0]).have.to.property('owner');
+
+                // Done
+                done();
+            });
+    });
+
 
     //test route for get plate by id from DB
     it('should send back a JSON object for get plate with id', function (done) {

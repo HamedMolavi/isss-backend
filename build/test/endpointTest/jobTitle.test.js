@@ -49,6 +49,23 @@ describe('server run and crud jobTitle', function () {
             done();
         });
     });
+    //test route for get all jobTitles from DB
+    it('should send back a JSON object for get all jobTitle', function (done) {
+        //test route for get camera in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/jobTitle/list')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.jobTitles;
+            (0, chai_1.expect)(userResponse[0]).have.to.property('name');
+            // Done
+            done();
+        });
+    });
     //test route for get jobTitle by id from DB
     it('should send back a JSON object for get jobTitle with id', function (done) {
         //test route for get camera in DB

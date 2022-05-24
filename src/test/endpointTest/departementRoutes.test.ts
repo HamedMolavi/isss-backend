@@ -38,8 +38,8 @@ describe('server run and crud departement', function () {
     beforeEach(function (done) {
 
         Departement.findOne({
-            name :{$in: ['office','bank']}
-        },function (err: Error, departement: IDepartement){
+            name: { $in: ['office', 'bank'] }
+        }, function (err: Error, departement: IDepartement) {
             if (err) {
                 console.log(err);
             }
@@ -47,6 +47,25 @@ describe('server run and crud departement', function () {
             done();
         });
     });
+
+    //test route for get all departements from DB
+    it('should send back a JSON object for get all departements', function (done) {
+
+        //test route for get camera in DB
+        request(app)
+            .get('/departement/list')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+                if (err) { return done(err); }
+                let userResponse = res.body.departements;
+
+                expect(userResponse[0]).to.have.property('name');
+                // Done
+                done();
+            });
+    });
+
 
     //test route for get departement by id from DB
     it('should send back a JSON object for get departement with id', function (done) {

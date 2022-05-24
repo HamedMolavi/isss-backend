@@ -56,6 +56,26 @@ describe('server run and crud personnel', function () {
             done();
         });
     });
+    //test route for get all personnels from DB
+    it('should send back a JSON object for get all personnels', function (done) {
+        //test route for get personnel in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/personnel/list')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.personnels;
+            (0, chai_1.expect)(userResponse[0]).have.to.property('name');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('family');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('phone');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('jobTitle');
+            // Done
+            done();
+        });
+    });
     //test route for get personnel by id from DB
     it('should send back a JSON object for get personnel with id', function (done) {
         //test route for get personnel in DB

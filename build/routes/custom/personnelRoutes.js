@@ -76,7 +76,7 @@ router.post("/register", function (req, res, next) {
     });
 });
 //route for get personnels list  
-router.get("/personnels", function (req, res, next) {
+router.get("/list", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request
@@ -107,7 +107,7 @@ router.get("/personnels", function (req, res, next) {
         }
     });
 });
-//route for get personnels by id from DB 
+//route for get personnel by id from DB 
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
