@@ -66,7 +66,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 });
 
 //route for get personnels list  
-router.get("/personnels", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;
@@ -93,7 +93,7 @@ router.get("/personnels", async function (req: Request, res: Response, next: Nex
     }
 });
 
-//route for get personnels by id from DB 
+//route for get personnel by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         let id: string = req.params.id;

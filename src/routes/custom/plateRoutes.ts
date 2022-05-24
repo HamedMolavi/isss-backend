@@ -66,7 +66,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 });
 
 //route for get plate list  
-router.get("/plates", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
         let token = getToken(req, next) as string;

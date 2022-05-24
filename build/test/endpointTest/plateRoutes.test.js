@@ -57,6 +57,26 @@ describe('server run and crud plate', function () {
         });
     });
     //test route for get plate by id from DB
+    it('should send back a JSON object for get all plates', function (done) {
+        //test route for get plate in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/plate/list')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.plates;
+            (0, chai_1.expect)(userResponse[0]).have.to.property('number');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('carBrand');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('color');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('owner');
+            // Done
+            done();
+        });
+    });
+    //test route for get plate by id from DB
     it('should send back a JSON object for get plate with id', function (done) {
         //test route for get plate in DB
         (0, supertest_1.default)(server_1.default)

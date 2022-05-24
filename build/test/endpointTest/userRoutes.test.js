@@ -70,6 +70,27 @@ describe('server run and server runnig and register user', function () {
             done();
         });
     });
+    //test route for get all user from DB
+    it('should send back a JSON object for get all user', function (done) {
+        //test route for get all user in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/user/list')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.users;
+            (0, chai_1.expect)(userResponse[0]).have.to.property('name');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('email');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('username');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('password');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('role');
+            // Done
+            done();
+        });
+    });
     //test route for get user by id from DB
     it('should send back a JSON object for get user with id', function (done) {
         //test route for get user in DB

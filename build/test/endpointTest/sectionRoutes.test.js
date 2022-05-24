@@ -51,6 +51,23 @@ describe('server run and crud section', function () {
             done();
         });
     });
+    //test route for get all sections from DB
+    it('should send back a JSON object for get all sections', function (done) {
+        //test route for get section in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/section/list')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.sections;
+            (0, chai_1.expect)(userResponse[0]).to.have.property('name');
+            // Done
+            done();
+        });
+    });
     //test route for get section by id from DB
     it('should send back a JSON object for get section with id', function (done) {
         //test route for get section in DB
