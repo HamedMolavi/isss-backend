@@ -2,7 +2,6 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { NextFunction } from "express";
 
 
 //initial file .env
@@ -10,10 +9,9 @@ dotenv.config();
 //create user type 
 export interface IUser {
     _id: mongoose.Types.ObjectId;
-    name: string,
-    email: string,
     username: string;
     password: string;
+    phone_number: string;
     role: string;
 }
 
@@ -34,10 +32,9 @@ interface IUserModel extends Model<IUserDocument> {
 
 //create user model with schema for save in DB
 const UserSchema: Schema<IUserDocument> = new Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true },
     username: { type: String, required: true },
     password: { type: String, required: true },
+    phone_number: { type: String, required: true },
     role: { type: String, required: true },
 });
 

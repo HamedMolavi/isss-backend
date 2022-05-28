@@ -31,17 +31,14 @@ describe('users', function () {
 
         it('should save user in db', function (done) {
             var user = new User({
-                name: 'John',
-                email: 'john@test.com',
                 username: 'john',
                 password: 12345,
-                role: 'admin',
+                phone_number: '0987654321',
+                role: 'user'
             });
             user.save().then(() => {
-                expect(user.name).to.equal('John');
-                expect(user.email).to.equal('john@test.com');
                 expect(user.username).to.equal('john');
-                expect(user.role).to.equal('admin');
+                expect(user.role).to.equal('user');
                 done();
             }
             ).catch((err: Error) => {

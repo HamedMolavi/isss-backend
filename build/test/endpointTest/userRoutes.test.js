@@ -10,58 +10,53 @@ const user_1 = __importDefault(require("./../../models/user"));
 const token = process.env.sample_token;
 let _user;
 describe('server run and server runnig and register user', function () {
-    describe('first test for registe new user and runnig app', function () {
-        //test default rote for server is running
-        it('should return a 200 response and message application works', function (done) {
-            (0, supertest_1.default)(server_1.default)
-                .get('/')
-                .expect(200, function (err, res) {
-                if (err) {
-                    return done(err);
-                }
-                (0, chai_1.expect)(res.body.message).to.equal("Application works!");
-                done();
-            });
-        });
-        //test route for register new user in DB
-        it('should send back a JSON object with user for create new user', function (done) {
-            (0, supertest_1.default)(server_1.default)
-                .post('/user/register')
-                .set('Content-Type', 'application/json')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                name: 'John',
-                email: 'john@test.com',
-                username: 'john',
-                password: 12345,
-                role: 'admin',
-            })
-                .expect('Content-Type', /json/)
-                .expect(201, function (err, res) {
-                if (err) {
-                    return done(err);
-                }
-                if (res.body.message !== 'User already exists') {
-                    let response = res.body;
-                    (0, chai_1.expect)(response.message).to.equal('User created');
-                    (0, chai_1.expect)(response.user.name).to.equal('John');
-                    (0, chai_1.expect)(response.user.email).to.equal('john@test.com');
-                    (0, chai_1.expect)(response.user.username).to.equal('john');
-                    (0, chai_1.expect)(response.user.password).to.equal('12345');
-                    (0, chai_1.expect)(response.user.role).to.equal('admin');
-                }
-                else {
-                    let response = null;
-                }
-                // Done
-                done();
-            });
+    // describe('first test for registe new user and runnig app', function () {
+    //test default rote for server is running
+    it('should return a 200 response and message application works', function (done) {
+        (0, supertest_1.default)(server_1.default)
+            .get('/')
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            (0, chai_1.expect)(res.body.message).to.equal("Application works!");
+            done();
         });
     });
+    //test route for register new user in DB
+    it('should send back a JSON object with user for create new user', function (done) {
+        (0, supertest_1.default)(server_1.default)
+            .post('/user/register')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+            username: 'test',
+            password: '12345',
+            phone_number: '0987654321'
+        })
+            .expect('Content-Type', /json/)
+            .expect(201, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            if (res.body.message !== 'User already exists') {
+                let user = res.body.user;
+                (0, chai_1.expect)(res.body.message).to.equal('User created');
+                (0, chai_1.expect)(user.username).to.equal('test');
+                (0, chai_1.expect)(user.phone_number).to.equal('0987654321');
+                (0, chai_1.expect)(user.role).to.equal('user');
+            }
+            else {
+                let response = null;
+            }
+            // Done
+            done();
+        });
+    });
+    // });
     beforeEach(function (done) {
         user_1.default.findOne({
-            name: { $in: ['John', 'jack'] },
-            email: { $in: ['john@test.com', 'jack@test.com'] }
+            username: { $in: ['test', 'jack'] },
         }, (err, user) => {
             if (err) {
                 console.log(err);
@@ -74,7 +69,7 @@ describe('server run and server runnig and register user', function () {
     it('should send back a JSON object for get all user', function (done) {
         //test route for get all user in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/user/list')
+            .get('/user/list/1')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -82,11 +77,10 @@ describe('server run and server runnig and register user', function () {
                 return done(err);
             }
             let userResponse = res.body.users;
-            (0, chai_1.expect)(userResponse[0]).have.to.property('name');
-            (0, chai_1.expect)(userResponse[0]).have.to.property('email');
             (0, chai_1.expect)(userResponse[0]).have.to.property('username');
-            (0, chai_1.expect)(userResponse[0]).have.to.property('password');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('phone_number');
             (0, chai_1.expect)(userResponse[0]).have.to.property('role');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('password');
             // Done
             done();
         });
@@ -103,11 +97,10 @@ describe('server run and server runnig and register user', function () {
                 return done(err);
             }
             let userResponse = res.body.user;
-            (0, chai_1.expect)(userResponse.name).to.equal(_user.name);
-            (0, chai_1.expect)(userResponse.email).to.equal(_user.email);
             (0, chai_1.expect)(userResponse.username).to.equal(_user.username);
-            (0, chai_1.expect)(userResponse.password).to.equal(_user.password);
+            (0, chai_1.expect)(userResponse.phone_number).to.equal(_user.phone_number);
             (0, chai_1.expect)(userResponse.role).to.equal(_user.role);
+            (0, chai_1.expect)(userResponse.password).to.equal(_user.password);
             // Done
             done();
         });
@@ -115,8 +108,7 @@ describe('server run and server runnig and register user', function () {
     //test route for edite user in DB
     it('should send back a JSON object with id for edit user', function (done) {
         let userEditJson = {
-            name: 'jack',
-            email: 'jack@test.com',
+            username: 'jack',
         };
         console.log(_user);
         (0, supertest_1.default)(server_1.default)
@@ -130,9 +122,8 @@ describe('server run and server runnig and register user', function () {
                 return done(err);
             }
             let user = res.body.user;
-            (0, chai_1.expect)(user.name).to.equal(userEditJson.name);
-            (0, chai_1.expect)(user.email).to.equal(userEditJson.email);
-            (0, chai_1.expect)(user.username).to.equal(user.username);
+            (0, chai_1.expect)(user.username).to.equal(userEditJson.username);
+            (0, chai_1.expect)(user.phone_number).to.equal(_user.phone_number);
             (0, chai_1.expect)(user.password).to.equal(_user.password);
             (0, chai_1.expect)(user.role).to.equal(_user.role);
             // Done
@@ -141,6 +132,16 @@ describe('server run and server runnig and register user', function () {
     });
     //test route for login user 
     it('should send back a JSON object for login user', function (done) {
+        let loginUser;
+        //get user from DB
+        user_1.default.findOne({
+            username: { $in: ['john'] },
+        }, (err, user) => {
+            if (err) {
+                console.log(err);
+            }
+            loginUser = user;
+        });
         (0, supertest_1.default)(server_1.default)
             .post('/user/login')
             .set('Content-Type', 'application/json')
@@ -153,13 +154,11 @@ describe('server run and server runnig and register user', function () {
             if (err) {
                 return done(err);
             }
-            let response = res.body;
-            (0, chai_1.expect)(response.user._id).to.equal(_user._id.toString());
-            (0, chai_1.expect)(response.user.name).to.equal(_user.name);
-            (0, chai_1.expect)(response.user.email).to.equal(_user.email);
-            (0, chai_1.expect)(response.user.username).to.equal(_user.username);
-            (0, chai_1.expect)(response.user.password).to.equal(_user.password);
-            (0, chai_1.expect)(response.user.role).to.equal(_user.role);
+            let user = res.body.user;
+            // expect(user._id.toString()).to.equal(loginUser._id.toString());
+            (0, chai_1.expect)(user.username).to.equal(loginUser.username);
+            (0, chai_1.expect)(user.password).to.equal(loginUser.password);
+            (0, chai_1.expect)(user.role).to.equal(loginUser.role);
             // Done
             done();
         });

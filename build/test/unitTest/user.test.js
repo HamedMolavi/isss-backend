@@ -32,17 +32,14 @@ describe('users', function () {
     describe('register user', function () {
         it('should save user in db', function (done) {
             var user = new User({
-                name: 'John',
-                email: 'john@test.com',
                 username: 'john',
                 password: 12345,
-                role: 'admin',
+                phone_number: '0987654321',
+                role: 'user'
             });
             user.save().then(() => {
-                (0, chai_1.expect)(user.name).to.equal('John');
-                (0, chai_1.expect)(user.email).to.equal('john@test.com');
                 (0, chai_1.expect)(user.username).to.equal('john');
-                (0, chai_1.expect)(user.role).to.equal('admin');
+                (0, chai_1.expect)(user.role).to.equal('user');
                 done();
             }).catch((err) => {
                 done(err);
