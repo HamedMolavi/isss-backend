@@ -4,22 +4,26 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 //define camera type
 export interface ICamera {
     _id: mongoose.Types.ObjectId;
-    ip: string,
     name: string,
+    section_id: mongoose.Types.ObjectId,
+    url: string,
+    ip: string,
     username: string;
     password: string;
-    rstpLink: string;
-    save: (next : NextFunction) => Promise<void>;
+    is_enabled: boolean;
+    save: (next: NextFunction) => Promise<void>;
 }
 
 
 //create camera model with schema for save in DB
 const CameraSchema: Schema<ICamera> = new Schema({
-    ip: { type: String, required: true },
     name: { type: String, required: true },
+    section_id: { type: Schema.Types.ObjectId, ref: 'Section' },
+    url: { type: String, required: true },
+    ip: { type: String, required: true },
     username: { type: String, required: true },
     password: { type: String, required: true },
-    rstpLink: { type: String, required: true },
+    is_enabled: { type: Boolean, required: true },
 });
 
 // Compile model from schema

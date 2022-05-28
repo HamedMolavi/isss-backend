@@ -31,19 +31,23 @@ describe('camera', function () {
         //create camera model
         it('should save user in db', function (done) {
             var camera = new Camera({
-                ip: '172.10.10.1',
                 name: 'offece',
+                section_id: new mongoose.Types.ObjectId('6283724be1996b883080a495'),
+                url: 'rtsp://192.168.1.111:554/media/video1',
+                ip: '172.10.10.1',
                 username: 'test',
                 password: '12345',
-                rstpLink: 'rtsp://192.168.1.111:554/media/video1'
+                is_enabled: true
             });
             //test this camera model
             camera.save().then(() => {
-                expect(camera.ip).to.equal('172.10.10.1');
                 expect(camera.name).to.equal('offece');
+                expect(camera.section_id.toString()).to.equal('6283724be1996b883080a495');
+                expect(camera.url).to.equal('rtsp://192.168.1.111:554/media/video1');
+                expect(camera.ip).to.equal('172.10.10.1');
                 expect(camera.username).to.equal('test');
                 expect(camera.password).to.equal('12345');
-                expect(camera.rstpLink).to.equal('rtsp://192.168.1.111:554/media/video1');
+                expect(camera.is_enabled).to.equal(true);
                 done();
             }
             ).catch((err: Error) => {

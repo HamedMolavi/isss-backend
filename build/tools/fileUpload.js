@@ -18,7 +18,6 @@ let storage = multer_1.default.diskStorage({
     },
     //define file name
     filename: (req, file, cb) => {
-        console.log(file.originalname);
         exports.fileName = `${createGuid_1.default.newGuid()}.jpg`;
         cb(null, exports.fileName);
     },

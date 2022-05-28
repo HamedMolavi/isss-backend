@@ -5,13 +5,15 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IDepartement {
     _id: mongoose.Types.ObjectId;
     name: string;
-    save: (next : NextFunction) => Promise<void>;
+    created_date: Date;
+    save: (next: NextFunction) => Promise<void>;
 }
 
 
 //create departement model with schema for save in DB
 const DepartementSchema: Schema<IDepartement> = new Schema({
     name: { type: String, required: true },
+    created_date: { type: Date, default: Date.now }
 });
 
 // Compile model from schema
