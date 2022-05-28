@@ -28,7 +28,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 const SectionSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     //add realational ducoment to departement
-    departement: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Departement' },
+    departement_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Departement" }
 });
 // Compile model from schema
 const Section = mongoose_1.default.model("Section", SectionSchema);

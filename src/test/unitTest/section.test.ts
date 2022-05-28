@@ -32,18 +32,16 @@ describe('section', function () {
         it('should save section in db', function (done) {
             var section = new Section({
                 name: 'offece',
-                departement:new mongoose.Types.ObjectId('6283724be1996b883080a495')
+                departement_id: new mongoose.Types.ObjectId('6283724be1996b883080a495')
             });
             //test this section model
             section.save().then(() => {
                 expect(section.name).to.equal('offece');
-                expect(section.departement.toString()).to.equal('6283724be1996b883080a495');
+                expect(section.departement_id.toString()).to.equal('6283724be1996b883080a495');
                 done();
-            }
-            ).catch((err: Error) => {
+            }).catch((err: Error) => {
                 done(err);
             });
         });
-
     });
 });

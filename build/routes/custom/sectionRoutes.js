@@ -29,9 +29,10 @@ router.post("/register", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { name, department } = req.body;
+            const { name, departement_id } = req.body;
             //verify body request
-            if (!name || !department) {
+            if (!name || !departement_id) {
+                req.flash("error", "Please enter all fields");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -40,32 +41,27 @@ router.post("/register", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Your token has expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            let newSection = new section_1.default();
             //query for save new section in DB
-            section_1.default.findOne({ name: name }, function (err, section) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (section) {
-                        req.flash("error", "section already exists");
-                        return res.status(201).json({ message: "section already exists" });
-                    }
-                    //fill new section
-                    newSection = new section_1.default({
-                        name: name,
-                        departement: department !== null && department !== void 0 ? department : null
-                    });
-                    //save new section in DB
-                    yield newSection.save(next);
-                    //send response to client with new section 
-                    return res.status(201).json({
-                        message: 'section created',
-                        section: newSection
-                    });
-                });
+            let section = yield section_1.default.findOne({ name: name }).exec();
+            //check if section exist
+            if (section) {
+                req.flash("error", "Section already exist");
+                return next({ status: 200, message: "Section already exist" });
+            }
+            //set section data
+            let newSection = new section_1.default();
+            newSection.name = name;
+            newSection.departement_id = departement_id;
+            //save section in DB
+            yield newSection.save();
+            req.flash("info", "Section has been registered");
+            //send response
+            return res.status(201).json({
+                message: "section created",
+                section: newSection
             });
         }
         catch (err) {
@@ -83,21 +79,20 @@ router.get("/list", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Your token has expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get sections from DB
-            section_1.default.find({}, function (err, sections) {
-                if (err) {
-                    return next(err);
-                }
-                if (!sections) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with sections    
-                return res.status(200).json({
-                    message: 'Success',
-                    sections: sections
-                });
+            let sections = yield section_1.default.find({}).exec();
+            //return not found if sections not exist
+            if (!sections) {
+                req.flash("error", "Section not found");
+                return next(new Error("Not Found"));
+            }
+            //send response
+            return res.status(200).json({
+                message: "Success",
+                sections: sections
             });
         }
         catch (err) {
@@ -109,9 +104,10 @@ router.get("/list", function (req, res, next) {
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
+                req.flash("error", "Please enter all fields");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -120,21 +116,20 @@ router.get("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Your token has expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get section by id from DB
-            section_1.default.findById(id, function (err, section) {
-                if (err) {
-                    return next(err);
-                }
-                if (!section) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with section    
-                return res.status(200).json({
-                    message: 'Success',
-                    section: section
-                });
+            let section = yield section_1.default.findById(id).exec();
+            //return not found if section not exist
+            if (!section) {
+                req.flash("error", "Section not found");
+                return next(new Error("Not Found"));
+            }
+            //send response
+            return res.status(200).json({
+                message: "Success",
+                section: section
             });
         }
         catch (err) {
@@ -148,10 +143,11 @@ router.put("/:id", function (req, res, next) {
         try {
             //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
+                req.flash("error", "Please enter all fields");
                 return next({ status: 400, message: "Bad request" });
             }
+            //get jason from body request
             const sectionBody = req.body;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
@@ -159,28 +155,20 @@ router.put("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Your token has expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get section by id from DB
-            section_1.default.findByIdAndUpdate(id, { $set: sectionBody }, function (err, section) {
-                if (err) {
-                    return next(err);
-                }
-                if (!section) {
-                    return next(new Error("Not Found"));
-                }
-                section_1.default.findById(id, function (err, updateSection) {
-                    return __awaiter(this, void 0, void 0, function* () {
-                        if (err) {
-                            return next(err);
-                        }
-                        //send response to client with section
-                        return res.status(201).json({
-                            message: 'Success',
-                            section: updateSection
-                        });
-                    });
-                });
+            let section = yield section_1.default.findByIdAndUpdate(id, sectionBody, { new: true }).exec();
+            //return not found if section not exist
+            if (!section) {
+                req.flash("error", "Section not found");
+                return next(new Error("Not Found"));
+            }
+            //send response
+            return res.status(201).json({
+                message: "Success",
+                section: section
             });
         }
         catch (err) {
@@ -192,9 +180,10 @@ router.put("/:id", function (req, res, next) {
 router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
+                req.flash("error", "Please enter id");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -203,21 +192,20 @@ router.delete("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Your token has expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get section by id from DB
-            section_1.default.findByIdAndDelete(id, function (err, section) {
-                if (err) {
-                    return next(err);
-                }
-                if (!section) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with message
-                return res.status(201).json({
-                    message: 'Success',
-                    section: section
-                });
+            let section = yield section_1.default.findByIdAndDelete(id).exec();
+            //return not found if section not exist
+            if (!section) {
+                req.flash("error", "Section not found");
+                return next(new Error("Not Found"));
+            }
+            //send response
+            return res.status(201).json({
+                message: "Success",
+                section: section
             });
         }
         catch (err) {

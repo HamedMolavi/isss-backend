@@ -89,7 +89,11 @@ router.get("/list/:page", async function (req: Request, res: Response, next: Nex
         //return response to client with departements list
         return res.status(200).json({
             message: "Success",
-            departements: departements
+            departements: departements,
+            page: page,
+            perPage: perPage,
+            total: await Departement.countDocuments().exec(),
+            pages: Math.ceil(await Departement.countDocuments().exec() / perPage)
         });
     } catch (err) {
         return next({ status: 500, message: `Could not get the departements: ${err}` });
