@@ -5,8 +5,8 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface ISection {
     _id: mongoose.Types.ObjectId;
     name: string;
-    departement: string;
-    save: (next : NextFunction) => Promise<void>;
+    departement_id: mongoose.Types.ObjectId;
+    save: (next: NextFunction) => Promise<void>;
 }
 
 
@@ -14,7 +14,7 @@ export interface ISection {
 const SectionSchema: Schema<ISection> = new Schema({
     name: { type: String, required: true },
     //add realational ducoment to departement
-    departement: { type: Schema.Types.ObjectId, ref: 'Departement' },
+    departement_id: { type: Schema.Types.ObjectId, ref: "Departement" }
 });
 
 // Compile model from schema

@@ -96,7 +96,11 @@ router.get("/list/:page", function (req, res, next) {
             //return response to client with departements list
             return res.status(200).json({
                 message: "Success",
-                departements: departements
+                departements: departements,
+                page: page,
+                perPage: perPage,
+                total: yield departement_1.default.countDocuments().exec(),
+                pages: Math.ceil((yield departement_1.default.countDocuments().exec()) / perPage)
             });
         }
         catch (err) {

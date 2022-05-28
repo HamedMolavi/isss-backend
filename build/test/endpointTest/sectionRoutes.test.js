@@ -33,7 +33,7 @@ describe('server run and crud section', function () {
             .set('Authorization', `Bearer ${token}`)
             .send({
             name: 'section1',
-            department: new mongoose_1.default.Types.ObjectId('6283724be1996b883080a495')
+            departement_id: new mongoose_1.default.Types.ObjectId('6283724be1996b883080a495')
         })
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {

@@ -19,9 +19,10 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { name, department } = req.body;
+        const { name, departement_id }: ISection = req.body;
         //verify body request
-        if (!name || !department) {
+        if (!name || !departement_id) {
+            req.flash("error", "Please enter all fields");
             return next({ status: 400, message: "Bad request" });
         }
 
@@ -33,30 +34,31 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Your token has expired");
             return next({ status: 401, message: "Token expired" });
         }
 
-        let newSection = new Section();
         //query for save new section in DB
-        Section.findOne({ name: name }, async function (err: Error, section: ISection) {
-            if (err) { return next(err); }
-            if (section) {
-                req.flash("error", "section already exists");
-                return res.status(201).json({ message: "section already exists" });
-            }
-            //fill new section
-            newSection = new Section({
-                name: name,
-                departement: department ?? null
-            });
+        let section = await Section.findOne({ name: name }).exec();
 
-            //save new section in DB
-            await newSection.save(next);
-            //send response to client with new section 
-            return res.status(201).json({
-                message: 'section created',
-                section: newSection
-            });
+        //check if section exist
+        if (section) {
+            req.flash("error", "Section already exist");
+            return next({ status: 200, message: "Section already exist" });
+        }
+
+        //set section data
+        let newSection = new Section();
+        newSection.name = name;
+        newSection.departement_id = departement_id;
+
+        //save section in DB
+        await newSection.save();
+        req.flash("info", "Section has been registered");
+        //send response
+        return res.status(201).json({
+            message: "section created",
+            section: newSection
         });
     } catch (err) {
         return next({ status: 500, message: `Could not create the section: ${err}` });
@@ -67,24 +69,26 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request
-        let token = getToken(req, next) as string;
+        let token: string = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as ICritential;
+        let critential: ICritential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Your token has expired");
             return next({ status: 401, message: "Token expired" })
         }
-
         //query for get sections from DB
-        Section.find({}, function (err: Error, sections: ISection[] | null) {
-            if (err) { return next(err); }
-            if (!sections) { return next(new Error("Not Found")); }
-            //send response to client with sections    
-            return res.status(200).json({
-                message: 'Success',
-                sections: sections
-            });
+        let sections = await Section.find({}).exec();
+        //return not found if sections not exist
+        if (!sections) {
+            req.flash("error", "Section not found"); 
+            return next(new Error("Not Found")); 
+        }
+        //send response
+        return res.status(200).json({
+            message: "Success",
+            sections: sections
         });
     } catch (err) {
         return next({ status: 500, message: `Could not get the sections: ${err}` });
@@ -94,9 +98,10 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
 //route for get section by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get id from url
         let id: string = req.params.id;
-        //verify body request
         if (!id) {
+            req.flash("error", "Please enter all fields");
             return next({ status: 400, message: "Bad request" });
         }
 
@@ -107,18 +112,21 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Your token has expired");
             return next({ status: 401, message: "Token expired" })
         }
 
         //query for get section by id from DB
-        Section.findById(id, function (err: Error, section: ISection | null) {
-            if (err) { return next(err); }
-            if (!section) { return next(new Error("Not Found")); }
-            //send response to client with section    
-            return res.status(200).json({
-                message: 'Success',
-                section: section
-            });
+        let section = await Section.findById(id).exec();
+        //return not found if section not exist
+        if (!section) {
+            req.flash("error", "Section not found");
+            return next(new Error("Not Found"));
+        }
+        //send response
+        return res.status(200).json({
+            message: "Success",
+            section: section
         });
     } catch (err) {
         return next({ status: 500, message: `Could not get the section: ${err}` });
@@ -131,12 +139,11 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
     try {
         //get id from url
         let id = req.params.id as Object;
-
-        //verify body request
         if (!id) {
+            req.flash("error", "Please enter all fields");
             return next({ status: 400, message: "Bad request" });
         }
-
+        //get jason from body request
         const sectionBody = req.body;
         //get token from header request
         let token = getToken(req, next) as string;
@@ -146,20 +153,20 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Your token has expired");
             return next({ status: 401, message: "Token expired" })
         }
         //query for get section by id from DB
-        Section.findByIdAndUpdate(id, { $set: sectionBody }, function (err: Error, section: ISection | null) {
-            if (err) { return next(err); }
-            if (!section) { return next(new Error("Not Found")); }
-            Section.findById(id, async function (err: Error, updateSection: ISection | null) {
-                if (err) { return next(err); }
-                //send response to client with section
-                return res.status(201).json({
-                    message: 'Success',
-                    section: updateSection
-                });
-            });
+        let section = await Section.findByIdAndUpdate(id, sectionBody, { new: true }).exec();
+        //return not found if section not exist
+        if (!section) {
+            req.flash("error", "Section not found");
+            return next(new Error("Not Found"));
+        }
+        //send response
+        return res.status(201).json({
+            message: "Success",
+            section: section
         });
     } catch (err) {
         return next({ status: 500, message: `Could not edit the section: ${err}` });
@@ -170,32 +177,36 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for delete section
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get id from url
         let id = req.params.id;
-        //verify body request
         if (!id) {
+            req.flash("error", "Please enter id");
             return next({ status: 400, message: "Bad request" });
         }
 
         //get token from header request
-        let token = getToken(req, next) as string;
+        let token : string = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as any;
+        let critential : ICritential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Your token has expired");
             return next({ status: 401, message: "Token expired" })
         }
 
         //query for get section by id from DB
-        Section.findByIdAndDelete(id, function (err: Error, section: ISection | null) {
-            if (err) { return next(err); }
-            if (!section) { return next(new Error("Not Found")); }
-            //send response to client with message
-            return res.status(201).json({
-                message: 'Success',
-                section: section
-            });
+        let section = await Section.findByIdAndDelete(id).exec();
+        //return not found if section not exist
+        if (!section) {
+            req.flash("error", "Section not found");
+            return next(new Error("Not Found"));
+        }
+        //send response
+        return res.status(201).json({
+            message: "Success",
+            section: section
         });
     } catch (err) {
         return next({ status: 500, message: `Could not delete the section: ${err}` });
