@@ -18,10 +18,11 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { username, password, name, email, role } = req.body;
+        const { username, password, phone_number }: IUser = req.body;
 
         //verify body request
-        if (!username || !password || !name || !email || !role) {
+        if (!username || !password || !phone_number) {
+            req.flash("error", "Please enter all fields");
             return next({ status: 400, message: "Bad request" });
         }
 
@@ -33,35 +34,41 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" });
         } else if (critential.role !== "admin") {
+            req.flash("error", "You are not admin");
             return next({ status: 401, message: "Unauthorized" });
         }
 
-        let newUser = new User();
         //query for save new user in DB
-        User.findOne({ username: username }, async function (err: Error, user: IUser | null) {
-            if (err) { return next(err); }
-            if (user) {
-                req.flash("error", "User already exists");
-                return res.status(201).json({ message: "User already exists" });
-            }
+        let user = await User.findOne({
+            $or: [
+                { username: username },
+                { phone_number: phone_number }
+            ]
+        }).exec();
 
-            newUser = new User({
-                username: username,
-                password: password,
-                name: name,
-                email: email,
-                role: role
-            });
-            // newUser.password = await User.setPassword(password);
-            //save new user in DB
-            await newUser.save(next);
-            //send response to client with new user 
-            return res.status(201).json({
-                message: 'User created',
-                user: newUser
-            });
+        //check user in DB
+        if (user) {
+            req.flash("error", "User already exists");
+            return next({ status: 200, message: "User already exists" });
+        }
+
+        //set data for new user
+        let newUser = new User();
+        newUser.username = username;
+        newUser.password = password;
+        newUser.phone_number = phone_number;
+        newUser.role = "user";
+
+        //save new user in DB
+        await newUser.save();
+        req.flash("info", "User created");
+        //send response
+        return res.status(201).json({
+            message: 'User created',
+            user: newUser
         });
     } catch (err) {
         return next({ status: 500, message: `Could not create the user: ${err}` });
@@ -71,8 +78,10 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 });
 
 //route for get users list  
-router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/list/:page", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get page number from url
+        let page: number = parseInt(req.params.page as string) > 0 ? parseInt(req.params.page as string) : 1;
         //get token from header request
         let token = getToken(req, next) as string;
 
@@ -80,20 +89,29 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         } else if (critential.role !== "admin") {
+            req.flash("error", "You are not admin");
             return next({ status: 401, message: "Unauthorized" });
         }
-
+        const perPage: number = 5;
         //query for get user by username from DB
-        User.find({}, async function (err: Error, users: IUser[] | null) {
-            if (err) { return next(err); }
-            if (!users) { return next(new Error("Not Found")); }
-            //send response to client with user    
-            return res.status(200).json({
-                message: 'Success',
-                users: users
-            });
+        let users = await User.find({}).skip((page - 1) * perPage).limit(perPage).exec();
+
+        //send not found if user not found
+        if (!users) {
+            req.flash("error", "User not found");
+            return next({ status: 200, message: "Not Found" });
+        }
+        //send response
+        return res.status(200).json({
+            message: 'Success',
+            users: users,
+            page: page,
+            perPage: perPage,
+            total: await User.countDocuments().exec(),
+            pages: Math.ceil(await User.countDocuments().exec() / perPage)
         });
     } catch (err) {
         return next({ status: 500, message: `Could not get the user: ${err}` });
@@ -105,33 +123,40 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
 //route for get user by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get id from url
         let id: string = req.params.id;
-        //verify body request
         if (!id) {
+            req.flash("error", "Please enter id");
             return next({ status: 400, message: "Bad request" });
         }
 
         //get token from header request
-        let token = getToken(req, next) as string;
+        let token: string = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as ICritential;
+        let critential: ICritential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         } else if (critential.role !== "admin") {
+            req.flash("error", "You are not admin");
             return next({ status: 401, message: "Unauthorized" });
         }
 
         //query for get user by id from DB
-        User.findById(id, function (err: Error, user: IUser | null) {
-            if (err) { return next(err); }
-            if (!user) { return next(new Error("Not Found")); }
-            //send response to client with user    
-            return res.status(200).json({
-                message: 'Success',
-                user: user
-            });
+        let user = await User.findById(id).exec();
+
+        //send not found if user not found
+        if (!user) {
+            req.flash("error", "User not found");
+            return next({ status: 200, message: "Not Found" });
+        }
+
+        //send response
+        return res.status(200).json({
+            message: 'Success',
+            user: user
         });
     } catch (err) {
         return next({ status: 500, message: `Could not get the user: ${err}` });
@@ -143,36 +168,40 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
-        let id = req.params.id as Object;
-        //verify body request
+        let id: string = req.params.id as string;
         if (!id) {
+            req.flash("error", "Please enter id");
             return next({ status: 400, message: "Bad request" });
         }
+        //get jason from body request
         const userBody = req.body;
         //get token from header request
-        let token = getToken(req, next) as string;
+        let token: string = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as ICritential;
+        let critential: ICritential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         } else if (critential.role !== "admin") {
+            req.flash("error", "You are not admin");
             return next({ status: 401, message: "Unauthorized" });
         }
         //query for get user by username from DB
-        User.findByIdAndUpdate(id, { $set: userBody }, function (err: Error, user: IUser | null) {
-            if (err) { return next(err); }
-            if (!user) { return next(new Error("Not Found")); }
-            User.findById(id, async function (err: Error, updateUser: any | null) {
-                if (err) { return next(err); }
-                //send response to client with section
-                return res.status(201).json({
-                    message: 'Success',
-                    user: updateUser
-                });
-            });
+        let user = await User.findByIdAndUpdate(id, userBody, { new: true }).exec();
+
+        //send not found if user not found
+        if (!user) {
+            req.flash("error", "User not found");
+            return next({ status: 200, message: "Not Found" });
+        }
+
+        //send response 
+        return res.status(201).json({
+            message: 'Success',
+            user: user
         });
     } catch (err) {
         return next({ status: 500, message: `Could not edit the user: ${err}` });
@@ -184,34 +213,41 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for delete user
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get id from url
         let id = req.params.id;
-        //verify body request
         if (!id) {
+            req.flash("error", "Please enter id");
             return next({ status: 400, message: "Bad request" });
         }
 
         //get token from header request
-        let token = getToken(req, next) as string;
+        let token: string = getToken(req, next) as string;
 
         //verify token
-        let critential = authorize(token) as ICritential;
+        let critential: ICritential = authorize(token) as ICritential;
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         } else if (critential.role !== "admin") {
+            req.flash("error", "You are not admin");
             return next({ status: 401, message: "Unauthorized" });
         }
 
         //query for get user by id from DB
-        User.findByIdAndDelete(id, function (err: Error, user: IUser | null) {
-            if (err) { return next(err); }
-            if (!user) { return next(new Error("Not Found")); }
-            //send response to client with user
-            return res.status(201).json({
-                message: 'Success',
-                user: user
-            });
+        let user = await User.findByIdAndDelete(id).exec();
+
+        //send not found if user not found
+        if (!user) {
+            req.flash("error", "User not found");
+            return next({ status: 200, message: "Not Found" });
+        }
+
+        //send response
+        return res.status(201).json({
+            message: 'Success',
+            user: user
         });
     } catch (err) {
         return next({ status: 500, message: `Could not delete the user: ${err}` });
@@ -228,20 +264,19 @@ router.post("/login", async function (req: Request, res: Response, next: Functio
         if (!username || !password) {
             return next({ status: 400, message: "Bad request" });
         }
-        //get user from DB
+      //  get user from DB
         User.findOne({ username: username }, function (err: Error, user: any) {
             if (err) { return next(err) };
             if (!user) {
                 return next(new Error("No user has that username!"));
             }
-            //verify password
+           // verify password
             user.checkPassword(password, function (err: Error, isMatch: Function) {
-                console.log(isMatch);
                 if (err) { return next(err); }
                 if (isMatch) {
                     return res.status(200).json({
                         message: 'Success',
-                        user: user
+                        user: user.toAuthJSON()
                     });
                 } else {
                     return next(null, false, { message: "Invalid password." });

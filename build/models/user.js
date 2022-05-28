@@ -34,10 +34,9 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 //create user model with schema for save in DB
 const UserSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true },
     username: { type: String, required: true },
     password: { type: String, required: true },
+    phone_number: { type: String, required: true },
     role: { type: String, required: true },
 });
 //for encrypt password

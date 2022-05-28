@@ -2,6 +2,7 @@ import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
 import User, { IUser } from './../../models/user';
+import mongoose from 'mongoose';
 
 
 const token = process.env.sample_token;
@@ -9,56 +10,51 @@ let _user: IUser;
 
 
 describe('server run and server runnig and register user', function () {
-    describe('first test for registe new user and runnig app', function () {
-        //test default rote for server is running
-        it('should return a 200 response and message application works', function (done) {
-            request(app)
-                .get('/')
-                .expect(200, function (err, res) {
-                    if (err) { return done(err); }
-                    expect(res.body.message).to.equal("Application works!");
-                    done();
-                });
-        });
-
-        //test route for register new user in DB
-        it('should send back a JSON object with user for create new user', function (done) {
-            request(app)
-                .post('/user/register')
-                .set('Content-Type', 'application/json')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    name: 'John',
-                    email: 'john@test.com',
-                    username: 'john',
-                    password: 12345,
-                    role: 'admin',
-                })
-                .expect('Content-Type', /json/)
-                .expect(201, function (err, res) {
-                    if (err) { return done(err); }
-                    if (res.body.message !== 'User already exists') {
-                        let response = res.body;
-                        expect(response.message).to.equal('User created');
-                        expect(response.user.name).to.equal('John');
-                        expect(response.user.email).to.equal('john@test.com');
-                        expect(response.user.username).to.equal('john');
-                        expect(response.user.password).to.equal('12345');
-                        expect(response.user.role).to.equal('admin');
-                    } else {
-                        let response = null;
-                    }
-                    // Done
-                    done();
-                });
-
-        });
+    // describe('first test for registe new user and runnig app', function () {
+    //test default rote for server is running
+    it('should return a 200 response and message application works', function (done) {
+        request(app)
+            .get('/')
+            .expect(200, function (err, res) {
+                if (err) { return done(err); }
+                expect(res.body.message).to.equal("Application works!");
+                done();
+            });
     });
+
+    //test route for register new user in DB
+    it('should send back a JSON object with user for create new user', function (done) {
+        request(app)
+            .post('/user/register')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                username: 'test',
+                password: '12345',
+                phone_number: '0987654321'
+            })
+            .expect('Content-Type', /json/)
+            .expect(201, function (err, res) {
+                if (err) { return done(err); }
+                if (res.body.message !== 'User already exists') {
+                    let user = res.body.user;
+                    expect(res.body.message).to.equal('User created');
+                    expect(user.username).to.equal('test');
+                    expect(user.phone_number).to.equal('0987654321');
+                    expect(user.role).to.equal('user');
+                } else {
+                    let response = null;
+                }
+                // Done
+                done();
+            });
+
+    });
+    // });
 
     beforeEach(function (done) {
         User.findOne({
-            name: { $in: ['John', 'jack'] },
-            email: { $in: ['john@test.com', 'jack@test.com'] }
+            username: { $in: ['test', 'jack'] },
         }, (err: Error, user: IUser) => {
             if (err) {
                 console.log(err);
@@ -74,18 +70,17 @@ describe('server run and server runnig and register user', function () {
 
         //test route for get all user in DB
         request(app)
-            .get('/user/list')
+            .get('/user/list/1')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
                 let userResponse = res.body.users;
 
-                expect(userResponse[0]).have.to.property('name');
-                expect(userResponse[0]).have.to.property('email');
                 expect(userResponse[0]).have.to.property('username');
-                expect(userResponse[0]).have.to.property('password');
+                expect(userResponse[0]).have.to.property('phone_number');
                 expect(userResponse[0]).have.to.property('role');
+                expect(userResponse[0]).have.to.property('password');
                 // Done
                 done();
             });
@@ -103,11 +98,10 @@ describe('server run and server runnig and register user', function () {
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
                 let userResponse = res.body.user;
-                expect(userResponse.name).to.equal(_user.name);
-                expect(userResponse.email).to.equal(_user.email);
                 expect(userResponse.username).to.equal(_user.username);
-                expect(userResponse.password).to.equal(_user.password);
+                expect(userResponse.phone_number).to.equal(_user.phone_number);
                 expect(userResponse.role).to.equal(_user.role);
+                expect(userResponse.password).to.equal(_user.password);
                 // Done
                 done();
             });
@@ -117,8 +111,7 @@ describe('server run and server runnig and register user', function () {
     //test route for edite user in DB
     it('should send back a JSON object with id for edit user', function (done) {
         let userEditJson = {
-            name: 'jack',
-            email: 'jack@test.com',
+            username: 'jack',
         };
         console.log(_user);
         request(app)
@@ -130,9 +123,8 @@ describe('server run and server runnig and register user', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let user = res.body.user;
-                expect(user.name).to.equal(userEditJson.name);
-                expect(user.email).to.equal(userEditJson.email);
-                expect(user.username).to.equal(user.username);
+                expect(user.username).to.equal(userEditJson.username);
+                expect(user.phone_number).to.equal(_user.phone_number);
                 expect(user.password).to.equal(_user.password);
                 expect(user.role).to.equal(_user.role);
                 // Done
@@ -142,6 +134,16 @@ describe('server run and server runnig and register user', function () {
 
     //test route for login user 
     it('should send back a JSON object for login user', function (done) {
+        let loginUser: IUser;
+        //get user from DB
+        User.findOne({
+            username: { $in: ['john'] },
+        }, (err: Error, user: IUser) => {
+            if (err) {
+                console.log(err);
+            }
+            loginUser = user;
+        });
 
         request(app)
             .post('/user/login')
@@ -153,13 +155,11 @@ describe('server run and server runnig and register user', function () {
             .expect('Content-Type', /json/)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let response = res.body;
-                expect(response.user._id).to.equal(_user._id.toString());
-                expect(response.user.name).to.equal(_user.name);
-                expect(response.user.email).to.equal(_user.email);
-                expect(response.user.username).to.equal(_user.username);
-                expect(response.user.password).to.equal(_user.password);
-                expect(response.user.role).to.equal(_user.role);
+                let user = res.body.user;
+                // expect(user._id.toString()).to.equal(loginUser._id.toString());
+                expect(user.username).to.equal(loginUser.username);
+                expect(user.password).to.equal(loginUser.password);
+                expect(user.role).to.equal(loginUser.role);
                 // Done
                 done();
             });

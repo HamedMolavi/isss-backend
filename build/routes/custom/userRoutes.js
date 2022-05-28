@@ -29,9 +29,10 @@ router.post("/register", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { username, password, name, email, role } = req.body;
+            const { username, password, phone_number } = req.body;
             //verify body request
-            if (!username || !password || !name || !email || !role) {
+            if (!username || !password || !phone_number) {
+                req.flash("error", "Please enter all fields");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -40,38 +41,38 @@ router.post("/register", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             else if (critential.role !== "admin") {
+                req.flash("error", "You are not admin");
                 return next({ status: 401, message: "Unauthorized" });
             }
-            let newUser = new user_1.default();
             //query for save new user in DB
-            user_1.default.findOne({ username: username }, function (err, user) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (user) {
-                        req.flash("error", "User already exists");
-                        return res.status(201).json({ message: "User already exists" });
-                    }
-                    newUser = new user_1.default({
-                        username: username,
-                        password: password,
-                        name: name,
-                        email: email,
-                        role: role
-                    });
-                    // newUser.password = await User.setPassword(password);
-                    //save new user in DB
-                    yield newUser.save(next);
-                    //send response to client with new user 
-                    return res.status(201).json({
-                        message: 'User created',
-                        user: newUser
-                    });
-                });
+            let user = yield user_1.default.findOne({
+                $or: [
+                    { username: username },
+                    { phone_number: phone_number }
+                ]
+            }).exec();
+            //check user in DB
+            if (user) {
+                req.flash("error", "User already exists");
+                return next({ status: 200, message: "User already exists" });
+            }
+            //set data for new user
+            let newUser = new user_1.default();
+            newUser.username = username;
+            newUser.password = password;
+            newUser.phone_number = phone_number;
+            newUser.role = "user";
+            //save new user in DB
+            yield newUser.save();
+            req.flash("info", "User created");
+            //send response
+            return res.status(201).json({
+                message: 'User created',
+                user: newUser
             });
         }
         catch (err) {
@@ -80,35 +81,40 @@ router.post("/register", function (req, res, next) {
     });
 });
 //route for get users list  
-router.get("/list", function (req, res, next) {
+router.get("/list/:page", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get page number from url
+            let page = parseInt(req.params.page) > 0 ? parseInt(req.params.page) : 1;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             else if (critential.role !== "admin") {
+                req.flash("error", "You are not admin");
                 return next({ status: 401, message: "Unauthorized" });
             }
+            const perPage = 5;
             //query for get user by username from DB
-            user_1.default.find({}, function (err, users) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (!users) {
-                        return next(new Error("Not Found"));
-                    }
-                    //send response to client with user    
-                    return res.status(200).json({
-                        message: 'Success',
-                        users: users
-                    });
-                });
+            let users = yield user_1.default.find({}).skip((page - 1) * perPage).limit(perPage).exec();
+            //send not found if user not found
+            if (!users) {
+                req.flash("error", "User not found");
+                return next({ status: 200, message: "Not Found" });
+            }
+            //send response
+            return res.status(200).json({
+                message: 'Success',
+                users: users,
+                page: page,
+                perPage: perPage,
+                total: yield user_1.default.countDocuments().exec(),
+                pages: Math.ceil((yield user_1.default.countDocuments().exec()) / perPage)
             });
         }
         catch (err) {
@@ -120,9 +126,10 @@ router.get("/list", function (req, res, next) {
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
+                req.flash("error", "Please enter id");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -131,24 +138,24 @@ router.get("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             else if (critential.role !== "admin") {
+                req.flash("error", "You are not admin");
                 return next({ status: 401, message: "Unauthorized" });
             }
             //query for get user by id from DB
-            user_1.default.findById(id, function (err, user) {
-                if (err) {
-                    return next(err);
-                }
-                if (!user) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with user    
-                return res.status(200).json({
-                    message: 'Success',
-                    user: user
-                });
+            let user = yield user_1.default.findById(id).exec();
+            //send not found if user not found
+            if (!user) {
+                req.flash("error", "User not found");
+                return next({ status: 200, message: "Not Found" });
+            }
+            //send response
+            return res.status(200).json({
+                message: 'Success',
+                user: user
             });
         }
         catch (err) {
@@ -162,10 +169,11 @@ router.put("/:id", function (req, res, next) {
         try {
             //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
+                req.flash("error", "Please enter id");
                 return next({ status: 400, message: "Bad request" });
             }
+            //get jason from body request
             const userBody = req.body;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
@@ -173,31 +181,24 @@ router.put("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             else if (critential.role !== "admin") {
+                req.flash("error", "You are not admin");
                 return next({ status: 401, message: "Unauthorized" });
             }
             //query for get user by username from DB
-            user_1.default.findByIdAndUpdate(id, { $set: userBody }, function (err, user) {
-                if (err) {
-                    return next(err);
-                }
-                if (!user) {
-                    return next(new Error("Not Found"));
-                }
-                user_1.default.findById(id, function (err, updateUser) {
-                    return __awaiter(this, void 0, void 0, function* () {
-                        if (err) {
-                            return next(err);
-                        }
-                        //send response to client with section
-                        return res.status(201).json({
-                            message: 'Success',
-                            user: updateUser
-                        });
-                    });
-                });
+            let user = yield user_1.default.findByIdAndUpdate(id, userBody, { new: true }).exec();
+            //send not found if user not found
+            if (!user) {
+                req.flash("error", "User not found");
+                return next({ status: 200, message: "Not Found" });
+            }
+            //send response 
+            return res.status(201).json({
+                message: 'Success',
+                user: user
             });
         }
         catch (err) {
@@ -209,9 +210,10 @@ router.put("/:id", function (req, res, next) {
 router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
+                req.flash("error", "Please enter id");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -220,24 +222,24 @@ router.delete("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             else if (critential.role !== "admin") {
+                req.flash("error", "You are not admin");
                 return next({ status: 401, message: "Unauthorized" });
             }
             //query for get user by id from DB
-            user_1.default.findByIdAndDelete(id, function (err, user) {
-                if (err) {
-                    return next(err);
-                }
-                if (!user) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with user
-                return res.status(201).json({
-                    message: 'Success',
-                    user: user
-                });
+            let user = yield user_1.default.findByIdAndDelete(id).exec();
+            //send not found if user not found
+            if (!user) {
+                req.flash("error", "User not found");
+                return next({ status: 200, message: "Not Found" });
+            }
+            //send response
+            return res.status(201).json({
+                message: 'Success',
+                user: user
             });
         }
         catch (err) {
@@ -255,7 +257,7 @@ router.post("/login", function (req, res, next) {
             if (!username || !password) {
                 return next({ status: 400, message: "Bad request" });
             }
-            //get user from DB
+            //  get user from DB
             user_1.default.findOne({ username: username }, function (err, user) {
                 if (err) {
                     return next(err);
@@ -264,16 +266,15 @@ router.post("/login", function (req, res, next) {
                 if (!user) {
                     return next(new Error("No user has that username!"));
                 }
-                //verify password
+                // verify password
                 user.checkPassword(password, function (err, isMatch) {
-                    console.log(isMatch);
                     if (err) {
                         return next(err);
                     }
                     if (isMatch) {
                         return res.status(200).json({
                             message: 'Success',
-                            user: user
+                            user: user.toAuthJSON()
                         });
                     }
                     else {
