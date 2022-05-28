@@ -16,7 +16,6 @@ let storage = multer.diskStorage({
     },
     //define file name
     filename: (req, file, cb) => {
-        console.log(file.originalname);
         fileName = `${Guid.newGuid()}.jpg`;
         cb(null, fileName);
     },

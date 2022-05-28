@@ -39,7 +39,7 @@ describe('section', function () {
             //test this section model
             section.save().then(() => {
                 (0, chai_1.expect)(section.name).to.equal('offece');
-                // expect(section.departement).to.equal('5c9b8f8f8f8f8f8f8f8f8f');
+                (0, chai_1.expect)(section.departement.toString()).to.equal('6283724be1996b883080a495');
                 done();
             }).catch((err) => {
                 done(err);

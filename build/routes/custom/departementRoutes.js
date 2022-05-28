@@ -29,9 +29,10 @@ router.post("/register", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { name } = req.body;
+            const { name, created_date } = req.body;
             //verify body request
             if (!name) {
+                req.flash("error", "Departement name is required");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -40,31 +41,28 @@ router.post("/register", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             let newDepartement = new departement_1.default();
             //query for save new departement in DB
-            departement_1.default.findOne({ name: name }, function (err, departement) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (departement) {
-                        req.flash("error", "departement already exists");
-                        return res.status(201).json({ message: "departement already exists" });
-                    }
-                    //fill new departement
-                    newDepartement = new departement_1.default({
-                        name: name
-                    });
-                    //save new departement in DB
-                    yield newDepartement.save(next);
-                    //send response to client with new departement 
-                    return res.status(201).json({
-                        message: 'departement created',
-                        departement: newDepartement
-                    });
-                });
+            let departement = yield departement_1.default.findOne({ name: name }).exec();
+            //retrun error if departement already exists
+            if (departement) {
+                req.flash("error", "Departement already exists");
+                return res.status(201).json({ message: "departement already exists" });
+            }
+            //fill new departement
+            newDepartement = new departement_1.default({
+                name: name,
+                created_date: created_date
+            });
+            //query for save new departement in DB
+            yield newDepartement.save();
+            req.flash("info", "Departement added");
+            return res.status(201).json({
+                message: "departement created",
+                departement: newDepartement
             });
         }
         catch (err) {
@@ -73,30 +71,32 @@ router.post("/register", function (req, res, next) {
     });
 });
 //route for get departements list  
-router.get("/list", function (req, res, next) {
+router.get("/list/:page", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get page number from url
+            let page = parseInt(req.params.page) > 0 ? parseInt(req.params.page) : 1;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get departements from DB
-            departement_1.default.find({}, function (err, departements) {
-                if (err) {
-                    return next(err);
-                }
-                if (!departements) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with departement    
-                return res.status(200).json({
-                    message: 'Success',
-                    departements: departements
-                });
+            const perPage = 5;
+            //query for get departements list
+            let departements = yield departement_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+            //return response not found to client if not found departements
+            if (!departements) {
+                req.flash("error", "Departement not found");
+                return next(new Error("Not Found"));
+            }
+            //return response to client with departements list
+            return res.status(200).json({
+                message: "Success",
+                departements: departements
             });
         }
         catch (err) {
@@ -106,38 +106,40 @@ router.get("/list", function (req, res, next) {
 });
 //route for get departement by id from DB 
 router.get("/:id", function (req, res, next) {
-    try {
-        let id = req.params.id;
-        //verify body request
-        if (!id) {
-            return next({ status: 400, message: "Bad request" });
-        }
-        //get token from header request
-        let token = (0, authentication_1.getToken)(req, next);
-        //verify token
-        let critential = (0, authentication_1.authorize)(token);
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            return next({ status: 401, message: "Token expired" });
-        }
-        //query for get departement by id from DB
-        departement_1.default.findById(id, function (err, departement) {
-            if (err) {
-                return next(err);
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            let id = req.params.id;
+            //verify body request
+            if (!id) {
+                req.flash("error", "Departement id is required");
+                return next({ status: 400, message: "Bad request" });
             }
+            //get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
+                return next({ status: 401, message: "Token expired" });
+            }
+            //query for get departement by id from DB
+            let departement = yield departement_1.default.findById(id).exec();
+            //return response not found to client if not found departement
             if (!departement) {
+                req.flash("error", "Departement not found");
                 return next(new Error("Not Found"));
             }
-            //send response to client with departement    
+            //return response to client with departement
             return res.status(200).json({
-                message: 'Success',
+                message: "Success",
                 departement: departement
             });
-        });
-    }
-    catch (err) {
-        return next({ status: 500, message: `Could not get the departement: ${err}` });
-    }
+        }
+        catch (err) {
+            return next({ status: 500, message: `Could not get the departement: ${err}` });
+        }
+    });
 });
 //add route for edit departement
 router.put("/:id", function (req, res, next) {
@@ -147,6 +149,7 @@ router.put("/:id", function (req, res, next) {
             let id = req.params.id;
             //verify body request
             if (!id) {
+                req.flash("error", "Departement id is required");
                 return next({ status: 400, message: "Bad request" });
             }
             const departementBody = req.body;
@@ -156,28 +159,20 @@ router.put("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get camera by id from DB and update
-            departement_1.default.findByIdAndUpdate(id, { $set: departementBody }, function (err, departement) {
-                if (err) {
-                    return next(err);
-                }
-                if (!departement) {
-                    return next(new Error("Not Found"));
-                }
-                departement_1.default.findById(id, function (err, updateDepartement) {
-                    return __awaiter(this, void 0, void 0, function* () {
-                        if (err) {
-                            return next(err);
-                        }
-                        //send response to client with departement
-                        return res.status(201).json({
-                            message: 'Success',
-                            departement: updateDepartement
-                        });
-                    });
-                });
+            let departement = yield departement_1.default.findByIdAndUpdate(id, departementBody, { new: true }).exec();
+            //return response not found to client if not found departement
+            if (!departement) {
+                req.flash("error", "Departement not found");
+                return next(new Error("Not Found"));
+            }
+            //return response to client with departement
+            return res.status(201).json({
+                message: "Success",
+                departement: departement
             });
         }
         catch (err) {
@@ -192,6 +187,7 @@ router.delete("/:id", function (req, res, next) {
             let id = req.params.id;
             //verify body request
             if (!id) {
+                req.flash("error", "Departement id is required");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -200,21 +196,20 @@ router.delete("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get departement by id from DB
-            departement_1.default.findByIdAndDelete(id, function (err, departement) {
-                if (err) {
-                    return next(err);
-                }
-                if (!departement) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with departement
-                return res.status(201).json({
-                    message: 'Success',
-                    departement: departement
-                });
+            let departement = yield departement_1.default.findByIdAndDelete(id).exec();
+            //return response not found to client if not found departement
+            if (!departement) {
+                req.flash("error", "Departement not found");
+                return next(new Error("Not Found"));
+            }
+            //return response to client with departement
+            return res.status(201).json({
+                message: "Success",
+                departement: departement
             });
         }
         catch (err) {

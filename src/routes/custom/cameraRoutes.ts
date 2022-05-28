@@ -18,9 +18,9 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { ip, name, username, password, rstpLink } = req.body;
+        const { ip, name, username, password, url, is_enabled, section_id }: ICamera = req.body;
         //verify body request
-        if (!ip || !name || !username || !password || !rstpLink) {
+        if (!ip || !name || !username || !password || !url) {
             return next({ status: 400, message: "Bad request" });
         }
 
@@ -37,7 +37,13 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 
         let newCamera = new Camera();
         //query for save new Camera in DB
-        Camera.findOne({ name: name }, async function (err: Error, camera: ICamera | null) {
+        Camera.findOne({
+            $or: [
+                { ip: ip },
+                { name: name },
+                { url: url },
+            ]
+        }, async function (err: Error, camera: ICamera | null) {
             if (err) { return next(err); }
             if (camera) {
                 req.flash("error", "Camera already exists");
@@ -46,12 +52,13 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             //fill new camera
             newCamera = new Camera({
                 ip: ip,
+                section_id: section_id,
                 name: name,
                 username: username,
                 password: password,
-                rstpLink: rstpLink
+                url: url,
+                is_enabled: is_enabled
             });
-            // newUser.password = await User.setPassword(password);
             //save new user in DB
             await newCamera.save(next);
             //send response to client with new camera 
@@ -65,9 +72,12 @@ router.post("/register", async function (req: Request, res: Response, next: Next
     }
 });
 
+
 //route for get cameras list  
-router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/list/:page", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get page from params in url
+        const page: number = parseInt(req.params.page) > 0 ? parseInt(req.params.page) : 1;
         //get token from header request
         let token = getToken(req, next) as string;
 
@@ -78,16 +88,17 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
             return next({ status: 401, message: "Token expired" })
         }
 
+        const perPage: number = 5;
         //query for get cameras from DB
-        Camera.find({}, function (err: Error, cameras: ICamera | null) {
-            if (err) { return next(err); }
-            if (!cameras) { return next(new Error("Not Found")); }
-            //send response to client with camera    
-            return res.status(200).json({
-                message: 'Success',
-                cameras: cameras
-            });
+        let cameras = await Camera.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+        //return response to client for not found cameras
+        if (!cameras) { return next(new Error("Not Found")); }
+        //send response to client with camera
+        return res.status(200).json({
+            message: 'Success',
+            cameras: cameras
         });
+
     } catch (err) {
         return next({ status: 500, message: `Could not get the camera: ${err}` });
     }

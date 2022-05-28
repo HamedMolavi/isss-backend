@@ -53,7 +53,7 @@ describe('server run and crud departement', function () {
     it('should send back a JSON object for get all departements', function (done) {
         //test route for get camera in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/departement/list')
+            .get('/departement/list/1')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

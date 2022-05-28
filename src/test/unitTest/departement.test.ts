@@ -32,6 +32,7 @@ describe('departement', function () {
         it('should save user in db', function (done) {
             var departement = new Departement({
                 name: 'offece',
+                created_date: new Date()
             });
             //test this departement model
             departement.save().then(() => {

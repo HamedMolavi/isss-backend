@@ -27,6 +27,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 //create departement model with schema for save in DB
 const DepartementSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
+    created_date: { type: Date, default: Date.now }
 });
 // Compile model from schema
 const Departement = mongoose_1.default.model("Departement", DepartementSchema);
