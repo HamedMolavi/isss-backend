@@ -133,6 +133,7 @@ describe('server run and server runnig and register user', function () {
     //test route for login user 
     it('should send back a JSON object for login user', function (done) {
         let loginUser;
+        //get user from DB
         user_1.default.findOne({
             username: { $in: ['john'] },
         }, (err, user) => {
