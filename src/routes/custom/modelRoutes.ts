@@ -15,12 +15,12 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 //route for get jobTitle by id from DB 
-router.get("/:name", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/:category", async function (req: Request, res: Response, next: NextFunction) {
     try {
-        //get name from url
-        let name: string = req.params.name;
-        if (!name) {
-            req.flash("error", "name is required");
+        //get category from url
+        let category: string = req.params.category;
+        if (!category) {
+            req.flash("error", "category is required");
             return next({ status: 400, message: "Bad request" });
         }
 
@@ -35,7 +35,7 @@ router.get("/:name", async function (req: Request, res: Response, next: NextFunc
         }
 
         //query for get model by id from DB
-        let model = await Model.findOne({ name: name }).exec();
+        let model = await Model.findOne({ category: category }).exec();
 
         //check model is exist
         if (!model) {
