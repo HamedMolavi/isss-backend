@@ -157,7 +157,6 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 });
 
-
 //add route for edit camera
 router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {

@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 //define schedule type
-export interface IAI {
+export interface ISchedule {
     _id: mongoose.Types.ObjectId;
     model_camera_id: mongoose.Types.ObjectId;
     start_cron: string;
@@ -16,7 +16,7 @@ interface IConfig {
 
 
 //create Schedule with schema for save in DB
-const ScheduleSchema: Schema<IAI> = new Schema({
+const ScheduleSchema: Schema<ISchedule> = new Schema({
     start_cron: { type: String, required: true },
     stop_cron: { type: String, required: true },
     model_camera_id: { type: Schema.Types.ObjectId, ref: 'ModelCamera', required: true },
