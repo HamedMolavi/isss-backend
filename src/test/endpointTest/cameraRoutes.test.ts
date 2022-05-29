@@ -18,8 +18,10 @@ describe('server run and server runnig and crud camera', function () {
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
+                network: '172.10.1.1',
                 name: 'office',
                 section_id: new mongoose.Types.ObjectId('6283724be1996b883080a495'),
+                departement_id: new mongoose.Types.ObjectId('6283724be1996b883080a495'),
                 url: 'rtsp://192.168.1.111:554/media/video1',
                 ip: '172.10.10.1',
                 username: 'test',
@@ -32,8 +34,10 @@ describe('server run and server runnig and crud camera', function () {
                 if (res.body.message !== 'Camera already exists') {
                     let response = res.body.camera;
 
+                    expect(response.network).to.equal('172.10.1.1');
                     expect(response.name).to.equal('office');
                     expect(response.section_id.toString()).to.equal('6283724be1996b883080a495');
+                    expect(response.departement_id.toString()).to.equal('6283724be1996b883080a495');
                     expect(response.url).to.equal('rtsp://192.168.1.111:554/media/video1');
                     expect(response.ip).to.equal('172.10.10.1');
                     expect(response.username).to.equal('test');
@@ -57,15 +61,12 @@ describe('server run and server runnig and crud camera', function () {
                 console.log(err);
             }
             _camera = camera;
-            console.log(_camera);
             done();
         });
     });
 
     //test route for get camera by id from DB
     it('should send back a JSON object for get camera with id', function (done) {
-
-
         //test route for get camera in DB
         request(app)
             .get('/camera/' + _camera._id)
@@ -75,13 +76,17 @@ describe('server run and server runnig and crud camera', function () {
                 if (err) { return done(err); }
                 let userResponse = res.body.camera;
 
-                expect(userResponse.name).to.equal('office');
-                expect(userResponse.section_id.toString()).to.equal('6283724be1996b883080a495');
-                expect(userResponse.url).to.equal('rtsp://192.168.1.111:554/media/video1');
-                expect(userResponse.ip).to.equal('172.10.10.1');
-                expect(userResponse.username).to.equal('test');
-                expect(userResponse.password).to.equal('12345');
-                expect(userResponse.is_enabled).to.equal(true);
+                expect(userResponse.network).to.equal(_camera.network);
+                expect(userResponse.name).to.equal(_camera.name);
+                expect(userResponse.section_id.toString()).to.equal(_camera.section_id.toString());
+                expect(userResponse.departement_id.toString()).to.equal(_camera.departement_id.toString());
+                expect(userResponse.url).to.equal(_camera.url);
+                expect(userResponse.ip).to.equal(_camera.ip);
+                expect(userResponse.username).to.equal(_camera.username);
+                expect(userResponse.password).to.equal(_camera.password);
+                expect(userResponse.is_enabled).to.equal(_camera.is_enabled);
+
+                // Done
                 done();
             });
     });
@@ -100,10 +105,11 @@ describe('server run and server runnig and crud camera', function () {
                 if (err) { return done(err); }
                 let userResponse = res.body.cameras;
 
-
                 expect(userResponse[0]).to.have.property('_id');
+                expect(userResponse[0]).to.have.property('network');
                 expect(userResponse[0]).to.have.property('name');
                 expect(userResponse[0]).to.have.property('section_id');
+                expect(userResponse[0]).to.have.property('departement_id');
                 expect(userResponse[0]).to.have.property('url');
                 expect(userResponse[0]).to.have.property('ip');
                 expect(userResponse[0]).to.have.property('username');
@@ -131,9 +137,11 @@ describe('server run and server runnig and crud camera', function () {
                 if (err) { return done(err); }
                 let camera = res.body.camera;
 
+                expect(camera.network).to.equal(_camera.network);
                 expect(camera.name).to.equal(cameraEditJson.name);
-                expect(camera.section_id.toString()).to.equal(_camera.section_id.toString());
                 expect(camera.ip).to.equal(cameraEditJson.ip);
+                expect(camera.section_id.toString()).to.equal(_camera.section_id.toString());
+                expect(camera.departement_id.toString()).to.equal(_camera.departement_id.toString());
                 expect(camera.url).to.equal(_camera.url);
                 expect(camera.username).to.equal(_camera.username);
                 expect(camera.password).to.equal(_camera.password);

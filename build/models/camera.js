@@ -26,10 +26,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 //create camera model with schema for save in DB
 const CameraSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    section_id: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Section' },
+    network: { type: String, required: true },
+    departement_id: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Departement', required: true },
+    section_id: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Section', required: true },
     url: { type: String, required: true },
     ip: { type: String, required: true },
+    name: { type: String, required: true },
     username: { type: String, required: true },
     password: { type: String, required: true },
     is_enabled: { type: Boolean, required: true },

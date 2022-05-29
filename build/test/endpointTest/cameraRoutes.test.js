@@ -18,8 +18,10 @@ describe('server run and server runnig and crud camera', function () {
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
+            network: '172.10.1.1',
             name: 'office',
             section_id: new mongoose_1.default.Types.ObjectId('6283724be1996b883080a495'),
+            departement_id: new mongoose_1.default.Types.ObjectId('6283724be1996b883080a495'),
             url: 'rtsp://192.168.1.111:554/media/video1',
             ip: '172.10.10.1',
             username: 'test',
@@ -33,8 +35,10 @@ describe('server run and server runnig and crud camera', function () {
             }
             if (res.body.message !== 'Camera already exists') {
                 let response = res.body.camera;
+                (0, chai_1.expect)(response.network).to.equal('172.10.1.1');
                 (0, chai_1.expect)(response.name).to.equal('office');
                 (0, chai_1.expect)(response.section_id.toString()).to.equal('6283724be1996b883080a495');
+                (0, chai_1.expect)(response.departement_id.toString()).to.equal('6283724be1996b883080a495');
                 (0, chai_1.expect)(response.url).to.equal('rtsp://192.168.1.111:554/media/video1');
                 (0, chai_1.expect)(response.ip).to.equal('172.10.10.1');
                 (0, chai_1.expect)(response.username).to.equal('test');
@@ -56,7 +60,6 @@ describe('server run and server runnig and crud camera', function () {
                 console.log(err);
             }
             _camera = camera;
-            console.log(_camera);
             done();
         });
     });
@@ -72,13 +75,16 @@ describe('server run and server runnig and crud camera', function () {
                 return done(err);
             }
             let userResponse = res.body.camera;
-            (0, chai_1.expect)(userResponse.name).to.equal('office');
-            (0, chai_1.expect)(userResponse.section_id.toString()).to.equal('6283724be1996b883080a495');
-            (0, chai_1.expect)(userResponse.url).to.equal('rtsp://192.168.1.111:554/media/video1');
-            (0, chai_1.expect)(userResponse.ip).to.equal('172.10.10.1');
-            (0, chai_1.expect)(userResponse.username).to.equal('test');
-            (0, chai_1.expect)(userResponse.password).to.equal('12345');
-            (0, chai_1.expect)(userResponse.is_enabled).to.equal(true);
+            (0, chai_1.expect)(userResponse.network).to.equal(_camera.network);
+            (0, chai_1.expect)(userResponse.name).to.equal(_camera.name);
+            (0, chai_1.expect)(userResponse.section_id.toString()).to.equal(_camera.section_id.toString());
+            (0, chai_1.expect)(userResponse.departement_id.toString()).to.equal(_camera.departement_id.toString());
+            (0, chai_1.expect)(userResponse.url).to.equal(_camera.url);
+            (0, chai_1.expect)(userResponse.ip).to.equal(_camera.ip);
+            (0, chai_1.expect)(userResponse.username).to.equal(_camera.username);
+            (0, chai_1.expect)(userResponse.password).to.equal(_camera.password);
+            (0, chai_1.expect)(userResponse.is_enabled).to.equal(_camera.is_enabled);
+            // Done
             done();
         });
     });
@@ -95,8 +101,10 @@ describe('server run and server runnig and crud camera', function () {
             }
             let userResponse = res.body.cameras;
             (0, chai_1.expect)(userResponse[0]).to.have.property('_id');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('network');
             (0, chai_1.expect)(userResponse[0]).to.have.property('name');
             (0, chai_1.expect)(userResponse[0]).to.have.property('section_id');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('departement_id');
             (0, chai_1.expect)(userResponse[0]).to.have.property('url');
             (0, chai_1.expect)(userResponse[0]).to.have.property('ip');
             (0, chai_1.expect)(userResponse[0]).to.have.property('username');
@@ -123,9 +131,11 @@ describe('server run and server runnig and crud camera', function () {
                 return done(err);
             }
             let camera = res.body.camera;
+            (0, chai_1.expect)(camera.network).to.equal(_camera.network);
             (0, chai_1.expect)(camera.name).to.equal(cameraEditJson.name);
-            (0, chai_1.expect)(camera.section_id.toString()).to.equal(_camera.section_id.toString());
             (0, chai_1.expect)(camera.ip).to.equal(cameraEditJson.ip);
+            (0, chai_1.expect)(camera.section_id.toString()).to.equal(_camera.section_id.toString());
+            (0, chai_1.expect)(camera.departement_id.toString()).to.equal(_camera.departement_id.toString());
             (0, chai_1.expect)(camera.url).to.equal(_camera.url);
             (0, chai_1.expect)(camera.username).to.equal(_camera.username);
             (0, chai_1.expect)(camera.password).to.equal(_camera.password);

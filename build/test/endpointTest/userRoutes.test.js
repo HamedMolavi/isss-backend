@@ -53,7 +53,6 @@ describe('server run and server runnig and register user', function () {
             done();
         });
     });
-    // });
     beforeEach(function (done) {
         user_1.default.findOne({
             username: { $in: ['test', 'jack'] },
@@ -65,6 +64,40 @@ describe('server run and server runnig and register user', function () {
             done();
         });
     });
+    //test route for login user 
+    it('should send back a JSON object for login user', function (done) {
+        let loginUser;
+        //get user from DB
+        // User.findOne({
+        //     username: { $in: ['john'] },
+        // }, (err: Error, user: IUser) => {
+        //     if (err) {
+        //         console.log(err);
+        //     }
+        //     loginUser = user;
+        // });
+        (0, supertest_1.default)(server_1.default)
+            .post('/user/login')
+            .set('Content-Type', 'application/json')
+            .send({
+            username: "test",
+            password: "12345"
+        })
+            .expect('Content-Type', /json/)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let user = res.body.user;
+            // expect(user._id.toString()).to.equal(loginUser._id.toString());
+            (0, chai_1.expect)(user.username).to.equal(_user.username);
+            (0, chai_1.expect)(user.password).to.equal(_user.password);
+            (0, chai_1.expect)(user.role).to.equal(_user.role);
+            // Done
+            done();
+        });
+    });
+    // });
     //test route for get all user from DB
     it('should send back a JSON object for get all user', function (done) {
         //test route for get all user in DB
@@ -126,39 +159,6 @@ describe('server run and server runnig and register user', function () {
             (0, chai_1.expect)(user.phone_number).to.equal(_user.phone_number);
             (0, chai_1.expect)(user.password).to.equal(_user.password);
             (0, chai_1.expect)(user.role).to.equal(_user.role);
-            // Done
-            done();
-        });
-    });
-    //test route for login user 
-    it('should send back a JSON object for login user', function (done) {
-        let loginUser;
-        //get user from DB
-        user_1.default.findOne({
-            username: { $in: ['john'] },
-        }, (err, user) => {
-            if (err) {
-                console.log(err);
-            }
-            loginUser = user;
-        });
-        (0, supertest_1.default)(server_1.default)
-            .post('/user/login')
-            .set('Content-Type', 'application/json')
-            .send({
-            username: "john",
-            password: "12345"
-        })
-            .expect('Content-Type', /json/)
-            .expect(200, function (err, res) {
-            if (err) {
-                return done(err);
-            }
-            let user = res.body.user;
-            // expect(user._id.toString()).to.equal(loginUser._id.toString());
-            (0, chai_1.expect)(user.username).to.equal(loginUser.username);
-            (0, chai_1.expect)(user.password).to.equal(loginUser.password);
-            (0, chai_1.expect)(user.role).to.equal(loginUser.role);
             // Done
             done();
         });
