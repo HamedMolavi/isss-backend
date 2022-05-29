@@ -24,13 +24,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-//create Schedule with schema for save in DB
-const ScheduleSchema = new mongoose_1.Schema({
-    start_cron: { type: String, required: true },
-    stop_cron: { type: String, required: true },
-    model_camera_id: { type: mongoose_1.Schema.Types.ObjectId, ref: 'ModelCamera', required: true },
-    config: { type: Object }
+//create Model  with schema for save in DB
+const ModelSchema = new mongoose_1.Schema({
+    name: { type: String, required: true },
+    category: { type: String, required: true },
+    uri: { type: String, required: true }
 });
-// Compile model from schema
-const Schedule = mongoose_1.default.model("Schedule", ScheduleSchema);
-exports.default = Schedule;
+// Compile Model from schema
+const Model = mongoose_1.default.model("Model", ModelSchema);
+exports.default = Model;
