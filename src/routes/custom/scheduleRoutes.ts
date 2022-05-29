@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
-import Schedule from "./../../models/schedule";
-import schedule, { ISchedule } from "./../../models/schedule";
+import Schedule, { ISchedule } from "./../../models/schedule";
 import { authorize, getToken, ICritential } from "./../../tools/authentication";
 import { compareTime, convertToCron, convertToCronDay } from "./../../tools/convertTime";
 
@@ -15,6 +14,8 @@ interface IGetParams {
     threshold: number;
     zones: [[number, number, number, number]];
     montionDetection: boolean;
+    min_people: number;
+    max_people: number;
 }
 
 //create router for add to server file 
@@ -33,7 +34,11 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { start, stop, dayOfWeek, model_camera_id, montionDetection, threshold, zones }: IGetParams = req.body;
+        const {
+            start, stop, dayOfWeek, model_camera_id,
+            montionDetection, threshold, zones,
+            min_people, max_people
+        }: IGetParams = req.body;
         //verify body request
         if (!start || !stop || !dayOfWeek || !model_camera_id || !montionDetection || !threshold) {
             req.flash("error", "Please fill all fields");
@@ -82,7 +87,9 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             montionDetection: montionDetection,
             config: {
                 threshold: threshold ?? 0,
-                zones: zones ?? null
+                zones: zones ?? null,
+                min_people: min_people ?? 0,
+                max_people: max_people ?? 0
             }
         });
 
@@ -230,8 +237,6 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
             req.flash("error", "schedule id is required");
             return next({ status: 400, message: "Bad request" });
         }
-        //get body from request
-        const scheduleBody = req.body;
         //get token from header request
         let token = getToken(req, next) as string;
         //verify token
@@ -240,6 +245,38 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         if (critential.exp < Date.now() / 1000) {
             req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
+        }
+        //get body from request
+        const scheduleBody: IGetParams = req.body;
+
+        if(!scheduleBody.start && !scheduleBody.stop && scheduleBody.dayOfWeek){
+            req.flash("error", "start and stop is required");
+            return next({ status: 400, message: "Bad request" });
+        }
+
+        if(scheduleBody.start && !scheduleBody.stop && !scheduleBody.dayOfWeek){
+            req.flash("error", "start and stop is required");
+            return next({ status: 400, message: "Bad request" });
+        }
+
+        if(!scheduleBody.start && scheduleBody.stop && !scheduleBody.dayOfWeek){
+            req.flash("error", "start and stop is required");
+            return next({ status: 400, message: "Bad request" });
+        }
+
+        if (scheduleBody.start && scheduleBody.stop) {
+            //check for valid time
+            if (!compareTime(scheduleBody.start, scheduleBody.stop)) {
+                req.flash("error", "Invalid time");
+                return next({ status: 400, message: "Invalid time" });
+            }
+
+            //convert input time to cron format
+            let start_cron: string = convertToCron(scheduleBody.start);
+            start_cron = convertToCronDay(start_cron, scheduleBody.dayOfWeek.toString());
+            let stop_cron: string = convertToCron(scheduleBody.stop);
+            stop_cron = convertToCronDay(stop_cron, scheduleBody.dayOfWeek.toString());
+
         }
         //query for get schedule by id from DB and update
         let schedule = await Schedule.findByIdAndUpdate(id, scheduleBody, { new: true }).exec();

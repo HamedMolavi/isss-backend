@@ -11,6 +11,8 @@ export interface ISchedule {
 //define config type
 interface IConfig {
     threshold: number;
+    min_people: number;
+    max_people: number;
     zones: [[number, number, number, number]];
 }
 
