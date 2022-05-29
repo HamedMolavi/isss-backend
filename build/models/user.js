@@ -38,6 +38,7 @@ const UserSchema = new mongoose_1.Schema({
     password: { type: String, required: true },
     phone_number: { type: String, required: true },
     role: { type: String, required: true },
+    created_date: { type: Date, default: Date.now },
 });
 //for encrypt password
 const SALT_FACTOR = 10;
@@ -89,6 +90,7 @@ UserSchema.methods.toAuthJSON = function () {
         password: this.password,
         email: this.email,
         role: this.role,
+        create_date: this.created_date,
         token: this.generateJWT(),
     };
 };

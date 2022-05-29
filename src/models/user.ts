@@ -13,6 +13,7 @@ export interface IUser {
     password: string;
     phone_number: string;
     role: string;
+    created_date: Date;
 }
 
 interface IUserDocument extends IUser, Document {
@@ -36,6 +37,7 @@ const UserSchema: Schema<IUserDocument> = new Schema({
     password: { type: String, required: true },
     phone_number: { type: String, required: true },
     role: { type: String, required: true },
+    created_date: { type: Date, default: Date.now },
 });
 
 //for encrypt password
@@ -90,6 +92,7 @@ UserSchema.methods.toAuthJSON = function () {
         password: this.password,
         email: this.email,
         role: this.role,
+        create_date: this.created_date,
         token: this.generateJWT(),
     };
 };
