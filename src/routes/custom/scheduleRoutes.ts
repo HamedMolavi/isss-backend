@@ -36,9 +36,8 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //get jason from body request
         const {
             start, stop, dayOfWeek, model_camera_id,
-            montionDetection, threshold, zones,
-            min_people, max_people
-        }: IGetParams = req.body;
+            montionDetection, threshold, zones, min_people, max_people
+        } = req.body;
         //verify body request
         if (!start || !stop || !dayOfWeek || !model_camera_id || !montionDetection || !threshold) {
             req.flash("error", "Please fill all fields");
