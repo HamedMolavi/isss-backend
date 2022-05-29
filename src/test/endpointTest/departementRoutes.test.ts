@@ -53,13 +53,12 @@ describe('server run and crud departement', function () {
 
         //test route for get camera in DB
         request(app)
-            .get('/departement/list/1')
+            .get('/departement/list?page=1&perPage=1')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
                 let userResponse = res.body.departements;
-
                 expect(userResponse[0]).to.have.property('name');
                 // Done
                 done();

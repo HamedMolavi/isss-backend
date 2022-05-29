@@ -8,6 +8,8 @@ import jobTitleRoutes from './custom/jobTitleRoutes';
 import personnelRoutes from './custom/personnelRoutes';
 import plateRoutes from './custom/plateRoutes';
 import AIRoutes from './custom/AIRoutes';
+import scheduleRoutes from './custom/scheduleRoutes';
+import modelRoutes from './custom/modelRoutes';
 
 //create router for add to server 
 const router: Router = Router();
@@ -22,5 +24,7 @@ router.use('/jobtitle', jobTitleRoutes);
 router.use('/personnel', personnelRoutes);
 router.use('/plate', plateRoutes);
 router.use('/AI', AIRoutes);
+router.use('/schedule', scheduleRoutes);
+router.use('/model', modelRoutes);
 
 export default router;

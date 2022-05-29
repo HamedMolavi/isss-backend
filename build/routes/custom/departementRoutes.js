@@ -70,12 +70,18 @@ router.post("/register", function (req, res, next) {
         }
     });
 });
-//route for get departements list  
-router.get("/list/:page", function (req, res, next) {
+//route for get departement with search from DB 
+router.get("/find", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            //get page number from url
-            let page = parseInt(req.params.page) > 0 ? parseInt(req.params.page) : 1;
+            //get param from url
+            let search = req.query.search;
+            let strLimit = req.query.limit;
+            let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
+            if (!search) {
+                req.flash("error", "Departement id is required");
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -85,7 +91,45 @@ router.get("/list/:page", function (req, res, next) {
                 req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            const perPage = 5;
+            //query for search departement by id from DB
+            let departement = yield departement_1.default.find({
+                name: { $regex: search, $options: "i" }
+            }).limit(limit).exec();
+            //return response not found to client if not found departement
+            if (!departement) {
+                req.flash("error", "Departement not found");
+                return next(new Error("Not Found"));
+            }
+            //return response to client with departement
+            return res.status(200).json({
+                message: "Success",
+                departement: departement
+            });
+        }
+        catch (err) {
+            return next({ status: 500, message: `Could not get the departement: ${err}` });
+        }
+    });
+});
+//route for get departements list  
+router.get("/list", function (req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get page from url
+            let strPage = req.query.page;
+            let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+            //get perPage from url
+            let strPerPage = req.query.perPage;
+            let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+            //get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
+                return next({ status: 401, message: "Token expired" });
+            }
             //query for get departements list
             let departements = yield departement_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
             //return response not found to client if not found departements
