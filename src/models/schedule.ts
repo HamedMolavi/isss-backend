@@ -20,7 +20,7 @@ const ScheduleSchema: Schema<ISchedule> = new Schema({
     start_cron: { type: String, required: true },
     stop_cron: { type: String, required: true },
     model_camera_id: { type: Schema.Types.ObjectId, ref: 'ModelCamera', required: true },
-    config: { type: Schema.Types.Mixed, required: true }
+    config: { type: Object }
 });
 
 // Compile model from schema
