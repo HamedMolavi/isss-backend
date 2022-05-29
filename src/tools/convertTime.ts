@@ -1,7 +1,7 @@
 //for convert time to cron format
 export const convertToCron = (time: string) => {
     let timeArray = time.split(":");
-    return timeArray[1] + " " + timeArray[0] + " * * *";
+    return timeArray[1] + " " + timeArray[0] + " * * ";
 }
 
 //for add day of week to cron format
