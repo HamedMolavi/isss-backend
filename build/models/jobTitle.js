@@ -27,6 +27,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 //create jobTitle model with schema for save in DB
 const JobTitleSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
+    create_date: { type: Date, default: Date.now }
 });
 // Compile model from schema
 const JobTitle = mongoose_1.default.model("JobTitle", JobTitleSchema);

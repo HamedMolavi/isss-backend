@@ -25,6 +25,9 @@ describe('server run and crud jobTitle', function () {
                 if (res.body.message !== 'jobTitle already exists') {
                     let response = res.body;
                     expect(response.jobTitle.name).to.equal('developer');
+                    expect(response.jobTitle).to.have.property('_id');
+                    expect(response.jobTitle).to.have.property('name');
+                    expect(response.jobTitle).to.have.property('create_date');
                 } else {
                     let response = null;
                 }

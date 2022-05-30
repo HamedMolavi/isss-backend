@@ -34,7 +34,6 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             return next({ status: 401, message: "Token expired" });
         }
 
-
         //query for save new jobTitle in DB
         let jobTitle = await JobTitle.findOne({ name: name }).exec();
 
@@ -150,31 +149,36 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
 //route for get jobTitle by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get id from url
         let id: string = req.params.id;
-        //verify body request
         if (!id) {
+            req.flash("error", "JobTitle id is required");
             return next({ status: 400, message: "Bad request" });
         }
 
         //get token from header request
         let token = getToken(req, next) as string;
-
         //verify token
         let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token has been expired");
             return next({ status: 401, message: "Token expired" })
         }
 
         //query for get jobTitle by id from DB
-        JobTitle.findById(req.params.id, function (err: Error, jobTitle: IJobTitle | null) {
-            if (err) { return next(err); }
-            if (!jobTitle) { return next(new Error("Not Found")); }
-            //send response to client with jobTitle    
-            return res.status(200).json({
-                message: 'Success',
-                jobTitle: jobTitle
-            });
+        let jobTitle = await JobTitle.findById(id).exec();
+
+        //return response not found to client if not found jobTitle
+        if (!jobTitle) {
+            req.flash("error", "JobTitle not found");
+            return next(new Error("Not Found"));
+        }
+
+        //send response
+        return res.status(200).json({
+            message: "Success",
+            jobTitle: jobTitle
         });
     } catch (err) {
         return next({ status: 500, message: `Could not get the jobTitle: ${err}` });
@@ -187,35 +191,33 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
     try {
         //get id from url
         let id: string = req.params.id;
-
-        //verify body request
         if (!id) {
+            req.flash("error", "JobTitle id is required");
             return next({ status: 400, message: "Bad request" });
         }
-
+        //get body from request
         const jobTitleBody = req.body;
         //get token from header request
         let token = getToken(req, next) as string;
-
         //verify token
         let critential = authorize(token) as ICritential;
-
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             return next({ status: 401, message: "Token expired" })
         }
         //query for get jobTitle by id from DB
-        JobTitle.findByIdAndUpdate(id, { $set: jobTitleBody }, function (err: Error, jobTitle: IJobTitle | null) {
-            if (err) { return next(err); }
-            if (!jobTitle) { return next(new Error("Not Found")); }
-            JobTitle.findById(id, async function (err: Error, updateJobTitle: IJobTitle | null) {
-                if (err) { return next(err); }
-                //send response to client with jobTitle
-                return res.status(201).json({
-                    message: 'Success',
-                    jobTitle: updateJobTitle
-                });
-            });
+        let jobTitle = await JobTitle.findByIdAndUpdate(id, jobTitleBody, { new: true }).exec();
+
+        //return response not found to client if not found jobTitle
+        if (!jobTitle) {
+            req.flash("error", "JobTitle not found");
+            return next(new Error("Not Found"));
+        }
+        
+        //send response
+        return res.status(201).json({
+            message: "Success",
+            jobTitle: jobTitle
         });
     } catch (err) {
         return next({ status: 500, message: `Could not edit the jobTitle: ${err}` });
@@ -226,32 +228,35 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for delete jobTitle
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get id from url
         let id: string = req.params.id;
-        //verify body request
         if (!id) {
             return next({ status: 400, message: "Bad request" });
         }
 
         //get token from header request
         let token = getToken(req, next) as string;
-
         //verify token
         let critential = authorize(token) as any;
-
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token has been expired");
             return next({ status: 401, message: "Token expired" })
         }
 
         //query for get jobTitle by id from DB
-        JobTitle.findByIdAndDelete(id, function (err: Error, jobTitle: IJobTitle | null) {
-            if (err) { return next(err); }
-            if (!jobTitle) { return next(new Error("Not Found")); }
-            //send response to client with jobTitle
-            return res.status(201).json({
-                message: 'Success',
-                jobTitle: jobTitle
-            });
+        let jobTitle = await JobTitle.findByIdAndDelete(id).exec();
+
+        //return response not found to client if not found jobTitle
+        if (!jobTitle) {
+            req.flash("error", "JobTitle not found");
+            return next(new Error("Not Found"));
+        }
+
+        //send response
+        return res.status(201).json({
+            message: "Success",
+            jobTitle: jobTitle
         });
     } catch (err) {
         return next({ status: 500, message: `Could not delete the jobTitle: ${err}` });
