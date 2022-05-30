@@ -97,7 +97,9 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
         //return response to client with departement
         return res.status(200).json({
             message: "Success",
-            departement: departement
+            departement: departement,
+            limit: limit,
+            total: await Departement.countDocuments().exec(),
         });
     } catch (err) {
         return next({ status: 500, message: `Could not get the departement: ${err}` });
