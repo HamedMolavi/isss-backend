@@ -34,12 +34,12 @@ describe('users', function () {
             var user = new User({
                 username: 'john',
                 password: "123452",
-                phone_number: '0987654321',
+                phone_number: '0123456789',
                 role: 'user'
             });
             user.save().then(() => {
                 (0, chai_1.expect)(user.username).to.equal('john');
-                (0, chai_1.expect)(user.phone_number).to.equal('0987654321');
+                (0, chai_1.expect)(user.phone_number).to.equal('0123456789');
                 (0, chai_1.expect)(user.role).to.equal('user');
                 done();
             }).catch((err) => {

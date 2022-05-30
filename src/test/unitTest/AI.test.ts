@@ -14,7 +14,7 @@ describe('AI', function () {
         mongoose.connect(dbUri);
         // listen for connection events
         //await mongoose.connection
-         mongoose.connection.db.dropDatabase();
+        mongoose.connection.db.dropDatabase();
         require('../../models/AI').registerModels;
         // This is the right model because registerModels set it up for us.
         AI = mongoose.model('AI');

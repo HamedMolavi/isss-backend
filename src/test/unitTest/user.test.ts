@@ -33,13 +33,13 @@ describe('users', function () {
             var user = new User({
                 username: 'john',
                 password: "123452",
-                phone_number: '0987654321',
+                phone_number: '0123456789',
                 role : 'user'
             });
             user.save().then(() => {
 
                 expect(user.username).to.equal('john');
-                expect(user.phone_number).to.equal('0987654321');
+                expect(user.phone_number).to.equal('0123456789');
                 expect(user.role).to.equal('user');
 
                 done();

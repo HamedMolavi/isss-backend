@@ -32,7 +32,7 @@ describe('server run and server runnig and register user', function () {
             .send({
             username: 'test',
             password: '12345',
-            phone_number: '0987654321'
+            phone_number: '0123456789'
         })
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
@@ -43,7 +43,7 @@ describe('server run and server runnig and register user', function () {
                 let user = res.body.user;
                 (0, chai_1.expect)(res.body.message).to.equal('User created');
                 (0, chai_1.expect)(user.username).to.equal('test');
-                (0, chai_1.expect)(user.phone_number).to.equal('0987654321');
+                (0, chai_1.expect)(user.phone_number).to.equal('0123456789');
                 (0, chai_1.expect)(user.role).to.equal('user');
             }
             else {
