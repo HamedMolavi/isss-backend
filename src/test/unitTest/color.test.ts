@@ -1,0 +1,47 @@
+import { expect } from 'chai';
+import { Disconnect } from '../../db/connect';
+import mongoose from 'mongoose';
+import { dbUri } from '../../server';
+
+//test color models
+describe('color', function () {
+
+    let Color: any;
+    //connect to DB before test
+    beforeEach(function (done) {
+        //connect to DB
+        mongoose.connect(dbUri);
+        //listen for connection events
+        mongoose.connection.once('connected', () => {
+            mongoose.connection.db.dropDatabase();
+
+            require('../../models/color').registerModels;
+            // This is the right model because register Models set it up for us.
+            Color = mongoose.model('Color');
+            done();
+        });
+    });
+    //disconnect from DB after test
+    afterEach(function (done) {
+        Disconnect();
+        done();
+    });
+    //test color model
+    describe('register color', function () {
+        //create color model
+        it('should save color in db', function (done) {
+            var color = new Color({
+                name: 'red',
+            });
+            //test this color model
+            color.save().then(() => {
+                expect(color.name).to.equal('red');
+                done();
+            }
+            ).catch((err: Error) => {
+                done(err);
+            });
+        });
+
+    });
+});

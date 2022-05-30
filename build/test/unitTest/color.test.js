@@ -1,0 +1,47 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const chai_1 = require("chai");
+const connect_1 = require("../../db/connect");
+const mongoose_1 = __importDefault(require("mongoose"));
+const server_1 = require("../../server");
+//test color models
+describe('color', function () {
+    let Color;
+    //connect to DB before test
+    beforeEach(function (done) {
+        //connect to DB
+        mongoose_1.default.connect(server_1.dbUri);
+        //listen for connection events
+        mongoose_1.default.connection.once('connected', () => {
+            mongoose_1.default.connection.db.dropDatabase();
+            require('../../models/color').registerModels;
+            // This is the right model because register Models set it up for us.
+            Color = mongoose_1.default.model('Color');
+            done();
+        });
+    });
+    //disconnect from DB after test
+    afterEach(function (done) {
+        (0, connect_1.Disconnect)();
+        done();
+    });
+    //test color model
+    describe('register color', function () {
+        //create color model
+        it('should save color in db', function (done) {
+            var color = new Color({
+                name: 'red',
+            });
+            //test this color model
+            color.save().then(() => {
+                (0, chai_1.expect)(color.name).to.equal('red');
+                done();
+            }).catch((err) => {
+                done(err);
+            });
+        });
+    });
+});
