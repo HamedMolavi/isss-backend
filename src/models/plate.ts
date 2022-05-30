@@ -1,15 +1,13 @@
-import { NextFunction } from "express";
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
 //define plate type
-export interface IPlate {
+export interface IPlate extends Document {
     _id: mongoose.Types.ObjectId;
     number: string,
     carBrand: string;
     color: string;
     owner: string;
-    create_date : Date;
-    save: (next : NextFunction) => Promise<void>;
+    create_date: Date;
 }
 
 

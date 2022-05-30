@@ -1,7 +1,7 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
 //define schedule type
-export interface ISchedule {
+export interface ISchedule extends Document {
     _id: mongoose.Types.ObjectId;
     model_camera_id: mongoose.Types.ObjectId;
     start_cron: string;

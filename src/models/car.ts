@@ -1,7 +1,7 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema , Document } from "mongoose";
 
 //define car type
-export interface ICar extends mongoose.Document {
+export interface ICar extends Document {
     _id: mongoose.Types.ObjectId;
     name: string;
 }

@@ -1,12 +1,10 @@
-import { NextFunction } from "express";
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema , Document } from "mongoose";
 
 //define jobTitle type
-export interface IJobTitle {
+export interface IJobTitle extends Document {
     _id: mongoose.Types.ObjectId;
     name: string;
     create_date: Date;
-    save: (next: NextFunction) => Promise<void>;
 }
 
 

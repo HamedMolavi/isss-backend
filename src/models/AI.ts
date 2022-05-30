@@ -1,8 +1,8 @@
 import { NextFunction } from "express";
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
 //define AI type
-export interface IAI {
+export interface IAI extends Document {
     _id: mongoose.Types.ObjectId;
     start: string;
     end: string;
@@ -12,8 +12,7 @@ export interface IAI {
     type: string;
     minPeople: number;
     maxPeople: number;
-    create_date : Date;
-    save: (next : NextFunction) => Promise<void>;
+    create_date: Date;
 }
 
 //create AI model with schema for save in DB
