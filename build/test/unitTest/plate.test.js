@@ -13,10 +13,10 @@ describe('plate', function () {
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
-        mongoose_1.default.connect(server_1.dbUri);
+        mongoose_1.default.connect(server_1.dbUri, { authSource: 'admin' });
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
-            mongoose_1.default.connection.db.dropDatabase();
+            //  mongoose.connection.db.dropDatabase();
             require('../../models/plate').registerModels;
             // This is the right model because registerModels set it up for us.
             Plate = mongoose_1.default.model('Plate');

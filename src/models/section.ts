@@ -6,6 +6,7 @@ export interface ISection {
     _id: mongoose.Types.ObjectId;
     name: string;
     departement_id: mongoose.Types.ObjectId;
+    create_date : Date;
     save: (next: NextFunction) => Promise<void>;
 }
 
@@ -14,7 +15,8 @@ export interface ISection {
 const SectionSchema: Schema<ISection> = new Schema({
     name: { type: String, required: true },
     //add realational ducoment to departement
-    departement_id: { type: Schema.Types.ObjectId, ref: "Departement" }
+    departement_id: { type: Schema.Types.ObjectId, ref: "Departement" },
+    create_date: { type: Date, default: Date.now }
 });
 
 // Compile model from schema

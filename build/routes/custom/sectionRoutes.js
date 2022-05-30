@@ -69,10 +69,59 @@ router.post("/register", function (req, res, next) {
         }
     });
 });
+//route for get section with search from DB 
+router.get("/find", function (req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get param from url
+            let search = req.query.search;
+            let strLimit = req.query.limit;
+            let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
+            if (!search) {
+                req.flash("error", "Please enter search");
+                return next({ status: 400, message: "Bad request" });
+            }
+            //get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
+                return next({ status: 401, message: "Token expired" });
+            }
+            //query for search section by id from DB
+            let section = yield section_1.default.find({
+                name: { $regex: search, $options: "i" }
+            }).limit(limit).exec();
+            //return response not found to client if not found sedction
+            if (!section) {
+                req.flash("error", "Section not found");
+                return next(new Error("Not Found"));
+            }
+            //return response to client with section
+            return res.status(200).json({
+                message: "Success",
+                section: section,
+                limit: limit,
+                total: yield section_1.default.countDocuments().exec(),
+            });
+        }
+        catch (err) {
+            return next({ status: 500, message: `Could not get the section: ${err}` });
+        }
+    });
+});
 //route for get sections list  
 router.get("/list", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get page from url
+            let strPage = req.query.page;
+            let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+            //get perPage from url
+            let strPerPage = req.query.perPage;
+            let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -83,7 +132,7 @@ router.get("/list", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get sections from DB
-            let sections = yield section_1.default.find({}).exec();
+            let sections = yield section_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
             //return not found if sections not exist
             if (!sections) {
                 req.flash("error", "Section not found");
@@ -92,7 +141,11 @@ router.get("/list", function (req, res, next) {
             //send response
             return res.status(200).json({
                 message: "Success",
-                sections: sections
+                sections: sections,
+                page: page,
+                perPage: perPage,
+                total: yield section_1.default.countDocuments().exec(),
+                pages: Math.ceil((yield section_1.default.countDocuments().exec()) / perPage)
             });
         }
         catch (err) {

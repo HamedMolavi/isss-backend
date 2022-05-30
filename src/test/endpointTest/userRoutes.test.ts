@@ -103,13 +103,12 @@ describe('server run and server runnig and register user', function () {
 
         //test route for get all user in DB
         request(app)
-            .get('/user/list/1')
+            .get('/user/list?page=1&perPage=2')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
                 let userResponse = res.body.users;
-
                 expect(userResponse[0]).have.to.property('username');
                 expect(userResponse[0]).have.to.property('phone_number');
                 expect(userResponse[0]).have.to.property('role');

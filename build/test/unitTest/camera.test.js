@@ -13,10 +13,10 @@ describe('camera', function () {
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
-        mongoose_1.default.connect(server_1.dbUri);
+        mongoose_1.default.connect(server_1.dbUri, { authSource: 'admin' });
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
-            mongoose_1.default.connection.db.dropDatabase();
+            //  mongoose.connection.db.dropDatabase();
             require('../../models/camera').registerModels;
             // This is the right model because ^registerModels set it up for us.
             Camera = mongoose_1.default.model('Camera');
@@ -31,7 +31,7 @@ describe('camera', function () {
     //test camera model
     describe('register camera', function () {
         //create camera model
-        it('should save user in db', function (done) {
+        it('should save camera in db', function (done) {
             var camera = new Camera({
                 network: '172.10.10.1',
                 name: 'office',

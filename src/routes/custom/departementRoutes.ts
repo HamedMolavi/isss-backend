@@ -69,7 +69,7 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
         let strLimit = req.query.limit as string;
         let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
         if (!search) {
-            req.flash("error", "Departement id is required");
+            req.flash("error", "Search is required");
             return next({ status: 400, message: "Bad request" });
         }
 
