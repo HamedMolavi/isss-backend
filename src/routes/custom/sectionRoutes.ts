@@ -159,7 +159,6 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 
         //get token from header request
         let token = getToken(req, next) as string;
-
         //verify token
         let critential = authorize(token) as ICritential;
         //check time expire token and role
