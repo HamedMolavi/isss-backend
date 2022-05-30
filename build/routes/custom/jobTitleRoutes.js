@@ -32,6 +32,7 @@ router.post("/register", function (req, res, next) {
             const { name } = req.body;
             //verify body request
             if (!name) {
+                req.flash("error", "Please enter a name");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -40,31 +41,25 @@ router.post("/register", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token has been expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            let newjobTitle = new jobTitle_1.default();
             //query for save new jobTitle in DB
-            jobTitle_1.default.findOne({ name: name }, function (err, jobTitle) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (jobTitle) {
-                        req.flash("error", "jobTitle already exists");
-                        return res.status(201).json({ message: "jobTitle already exists" });
-                    }
-                    //fill new jobTitle
-                    newjobTitle = new jobTitle_1.default({
-                        name: name
-                    });
-                    //save new jobTitle in DB
-                    yield newjobTitle.save(next);
-                    //send response to client with new jobTitle 
-                    return res.status(201).json({
-                        message: 'jobTitle created',
-                        jobTitle: newjobTitle
-                    });
-                });
+            let jobTitle = yield jobTitle_1.default.findOne({ name: name }).exec();
+            //check if jobTitle is exist
+            if (jobTitle) {
+                req.flash("error", "JobTitle is exist");
+                return next({ status: 200, message: "jobTitle already exists" });
+            }
+            //set value for new jobTitle
+            let newjobTitle = new jobTitle_1.default();
+            newjobTitle.name = name;
+            //save new jobTitle in DB
+            yield newjobTitle.save();
+            //send response
+            return res.status(201).json({
+                message: "jobTitle has been created",
+                jobTitle: newjobTitle
             });
         }
         catch (err) {
@@ -72,31 +67,83 @@ router.post("/register", function (req, res, next) {
         }
     });
 });
-//route for get jobTitle list  
-router.get("/list", function (req, res, next) {
+//route for get jobTitle with search from DB 
+router.get("/find", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get param from url
+            let search = req.query.search;
+            let strLimit = req.query.limit;
+            let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
+            if (!search) {
+                req.flash("error", "JobTitle id is required");
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
+                return next({ status: 401, message: "Token expired" });
+            }
+            //query for search JobTitle by id from DB
+            let jobTitle = yield jobTitle_1.default.find({
+                name: { $regex: search, $options: "i" }
+            }).limit(limit).exec();
+            //return response not found to client if not found JobTitle
+            if (!jobTitle) {
+                req.flash("error", "JobTitle not found");
+                return next(new Error("Not Found"));
+            }
+            //return response to client with jobTitle
+            return res.status(200).json({
+                message: "Success",
+                jobTitle: jobTitle,
+                limit: limit,
+                total: yield jobTitle_1.default.countDocuments().exec(),
+            });
+        }
+        catch (err) {
+            return next({ status: 500, message: `Could not get the JobTitle: ${err}` });
+        }
+    });
+});
+//route for get jobTitle list  
+router.get("/list", function (req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get page from url
+            let strPage = req.query.page;
+            let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+            //get perPage from url
+            let strPerPage = req.query.PerPage;
+            let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+            //get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token has been expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get jobTitle from DB
-            jobTitle_1.default.find({}, function (err, jobTitles) {
-                if (err) {
-                    return next(err);
-                }
-                if (!jobTitles) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with jobTitle    
-                return res.status(200).json({
-                    message: 'Success',
-                    jobTitles: jobTitles
-                });
+            let jobTitles = yield jobTitle_1.default.find().limit(perPage).skip(perPage * (page - 1)).exec();
+            //return response not found to client if not found jobTitles
+            if (!jobTitles) {
+                req.flash("error", "Not found jobTitles");
+                return next({ status: 404, message: "Not found jobTitles" });
+            }
+            //send response
+            return res.status(200).json({
+                message: "Success",
+                jobTitles: jobTitles,
+                page: page,
+                perPage: perPage,
+                total: yield jobTitle_1.default.countDocuments().exec(),
+                pages: Math.ceil((yield jobTitle_1.default.countDocuments().exec()) / perPage)
             });
         }
         catch (err) {
@@ -108,9 +155,10 @@ router.get("/list", function (req, res, next) {
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
+                req.flash("error", "JobTitle id is required");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -119,21 +167,20 @@ router.get("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token has been expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get jobTitle by id from DB
-            jobTitle_1.default.findById(req.params.id, function (err, jobTitle) {
-                if (err) {
-                    return next(err);
-                }
-                if (!jobTitle) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with jobTitle    
-                return res.status(200).json({
-                    message: 'Success',
-                    jobTitle: jobTitle
-                });
+            let jobTitle = yield jobTitle_1.default.findById(id).exec();
+            //return response not found to client if not found jobTitle
+            if (!jobTitle) {
+                req.flash("error", "JobTitle not found");
+                return next(new Error("Not Found"));
+            }
+            //send response
+            return res.status(200).json({
+                message: "Success",
+                jobTitle: jobTitle
             });
         }
         catch (err) {
@@ -147,10 +194,11 @@ router.put("/:id", function (req, res, next) {
         try {
             //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
+                req.flash("error", "JobTitle id is required");
                 return next({ status: 400, message: "Bad request" });
             }
+            //get body from request
             const jobTitleBody = req.body;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
@@ -161,25 +209,16 @@ router.put("/:id", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get jobTitle by id from DB
-            jobTitle_1.default.findByIdAndUpdate(id, { $set: jobTitleBody }, function (err, jobTitle) {
-                if (err) {
-                    return next(err);
-                }
-                if (!jobTitle) {
-                    return next(new Error("Not Found"));
-                }
-                jobTitle_1.default.findById(id, function (err, updateJobTitle) {
-                    return __awaiter(this, void 0, void 0, function* () {
-                        if (err) {
-                            return next(err);
-                        }
-                        //send response to client with jobTitle
-                        return res.status(201).json({
-                            message: 'Success',
-                            jobTitle: updateJobTitle
-                        });
-                    });
-                });
+            let jobTitle = yield jobTitle_1.default.findByIdAndUpdate(id, jobTitleBody, { new: true }).exec();
+            //return response not found to client if not found jobTitle
+            if (!jobTitle) {
+                req.flash("error", "JobTitle not found");
+                return next(new Error("Not Found"));
+            }
+            //send response
+            return res.status(201).json({
+                message: "Success",
+                jobTitle: jobTitle
             });
         }
         catch (err) {
@@ -191,8 +230,8 @@ router.put("/:id", function (req, res, next) {
 router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
                 return next({ status: 400, message: "Bad request" });
             }
@@ -202,21 +241,20 @@ router.delete("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token has been expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get jobTitle by id from DB
-            jobTitle_1.default.findByIdAndDelete(id, function (err, jobTitle) {
-                if (err) {
-                    return next(err);
-                }
-                if (!jobTitle) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with jobTitle
-                return res.status(201).json({
-                    message: 'Success',
-                    jobTitle: jobTitle
-                });
+            let jobTitle = yield jobTitle_1.default.findByIdAndDelete(id).exec();
+            //return response not found to client if not found jobTitle
+            if (!jobTitle) {
+                req.flash("error", "JobTitle not found");
+                return next(new Error("Not Found"));
+            }
+            //send response
+            return res.status(201).json({
+                message: "Success",
+                jobTitle: jobTitle
             });
         }
         catch (err) {

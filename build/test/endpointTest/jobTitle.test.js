@@ -28,6 +28,9 @@ describe('server run and crud jobTitle', function () {
             if (res.body.message !== 'jobTitle already exists') {
                 let response = res.body;
                 (0, chai_1.expect)(response.jobTitle.name).to.equal('developer');
+                (0, chai_1.expect)(response.jobTitle).to.have.property('_id');
+                (0, chai_1.expect)(response.jobTitle).to.have.property('name');
+                (0, chai_1.expect)(response.jobTitle).to.have.property('create_date');
             }
             else {
                 let response = null;

@@ -103,7 +103,9 @@ router.get("/find", function (req, res, next) {
             //return response to client with departement
             return res.status(200).json({
                 message: "Success",
-                departement: departement
+                departement: departement,
+                limit: limit,
+                total: yield departement_1.default.countDocuments().exec(),
             });
         }
         catch (err) {
