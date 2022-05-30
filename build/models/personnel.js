@@ -30,6 +30,7 @@ const PersonnelSchema = new mongoose_1.Schema({
     family: { type: String, required: true },
     phone: { type: String, required: true },
     jobTitle: { type: mongoose_1.Schema.Types.ObjectId, ref: 'JobTitle' },
+    create_date: { type: Date, default: Date.now }
 });
 // Compile model from schema
 const Personnel = mongoose_1.default.model("Personnel", PersonnelSchema);

@@ -35,6 +35,7 @@ const CameraSchema = new mongoose_1.Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
     is_enabled: { type: Boolean, required: true },
+    create_date: { type: Date, default: Date.now }
 });
 // Compile model from schema
 const Camera = mongoose_1.default.model("Camera", CameraSchema);
