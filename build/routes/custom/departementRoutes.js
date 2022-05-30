@@ -79,7 +79,7 @@ router.get("/find", function (req, res, next) {
             let strLimit = req.query.limit;
             let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
             if (!search) {
-                req.flash("error", "Departement id is required");
+                req.flash("error", "Search is required");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request

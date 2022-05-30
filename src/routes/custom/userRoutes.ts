@@ -73,15 +73,62 @@ router.post("/register", async function (req: Request, res: Response, next: Next
     } catch (err) {
         return next({ status: 500, message: `Could not create the user: ${err}` });
     }
-
-
 });
 
-//route for get users list  
-router.get("/list/:page", async function (req: Request, res: Response, next: NextFunction) {
+//route for get user with search from DB 
+router.get("/find", async function (req: Request, res: Response, next: NextFunction) {
     try {
-        //get page number from url
-        let page: number = parseInt(req.params.page as string) > 0 ? parseInt(req.params.page as string) : 1;
+        //get param from url
+        let search = req.query.search as string;
+        let strLimit = req.query.limit as string;
+        let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
+        if (!search) {
+            req.flash("error", "Please enter search");
+            return next({ status: 400, message: "Bad request" });
+        }
+
+        //get token from header request
+        let token = getToken(req, next) as string;
+        //verify token
+        let critential = authorize(token) as ICritential;
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
+            return next({ status: 401, message: "Token expired" })
+        }
+
+        //query for search user by id from DB
+        let user = await User.find({
+            name: { $regex: search, $options: "i" }
+        }).limit(limit).exec();
+
+        //return response not found to client if not found user
+        if (!user) {
+            req.flash("error", "Section not found");
+            return next(new Error("Not Found"));
+        }
+        //return response to client with user
+        return res.status(200).json({
+            message: "Success",
+            user: user,
+            limit: limit,
+            total: await User.countDocuments().exec()
+        });
+    } catch (err) {
+        return next({ status: 500, message: `Could not get the user: ${err}` });
+    }
+});
+
+
+//route for get users list  
+router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        //get page from url
+        let strPage = req.query.page as string;
+        let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+        //get perPage from url
+        let strPerPage = req.query.perPage as string;
+        let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
         //get token from header request
         let token = getToken(req, next) as string;
 
@@ -95,9 +142,8 @@ router.get("/list/:page", async function (req: Request, res: Response, next: Nex
             req.flash("error", "You are not admin");
             return next({ status: 401, message: "Unauthorized" });
         }
-        const perPage: number = 5;
         //query for get user by username from DB
-        let users = await User.find({}).skip((page - 1) * perPage).limit(perPage).exec();
+        let users = await User.find().limit(perPage).skip(perPage * (page - 1)).exec();
 
         //send not found if user not found
         if (!users) {
@@ -264,13 +310,13 @@ router.post("/login", async function (req: Request, res: Response, next: Functio
         if (!username || !password) {
             return next({ status: 400, message: "Bad request" });
         }
-      //  get user from DB
+        //  get user from DB
         User.findOne({ username: username }, function (err: Error, user: any) {
             if (err) { return next(err) };
             if (!user) {
                 return next(new Error("No user has that username!"));
             }
-           // verify password
+            // verify password
             user.checkPassword(password, function (err: Error, isMatch: Function) {
                 if (err) { return next(err); }
                 if (isMatch) {

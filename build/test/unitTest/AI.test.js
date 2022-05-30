@@ -13,7 +13,7 @@ describe('AI', function () {
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
-        mongoose_1.default.connect(server_1.dbUri);
+        mongoose_1.default.connect(server_1.dbUri, { authSource: 'admin' });
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
             mongoose_1.default.connection.db.dropDatabase();

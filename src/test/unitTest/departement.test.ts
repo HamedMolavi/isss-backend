@@ -10,10 +10,10 @@ describe('departement', function () {
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
-        mongoose.connect(dbUri);
+        mongoose.connect(dbUri,{ authSource: 'admin' });
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            mongoose.connection.db.dropDatabase();
+          //  mongoose.connection.db.dropDatabase();
 
             require('../../models/departement').registerModels;
             // This is the right model because ^registerModels set it up for us.

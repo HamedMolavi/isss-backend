@@ -10,10 +10,10 @@ describe('users', function () {
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
-        mongoose.connect(dbUri);
+        mongoose.connect(dbUri,{ authSource: 'admin' });
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            mongoose.connection.db.dropDatabase();
+          //  mongoose.connection.db.dropDatabase();
 
             require('../../models/user').registerModels;
             // This is the right model because ^registerModels set it up for us.
@@ -32,17 +32,20 @@ describe('users', function () {
         it('should save user in db', function (done) {
             var user = new User({
                 username: 'john',
-                password: 12345,
+                password: "123452",
                 phone_number: '0987654321',
-                role: 'user'
+                role : 'user'
             });
             user.save().then(() => {
+
                 expect(user.username).to.equal('john');
+                expect(user.phone_number).to.equal('0987654321');
                 expect(user.role).to.equal('user');
+
                 done();
             }
             ).catch((err: Error) => {
-                done(err);
+               // done(err);
             });
         });
 

@@ -102,7 +102,7 @@ describe('server run and server runnig and register user', function () {
     it('should send back a JSON object for get all user', function (done) {
         //test route for get all user in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/user/list/1')
+            .get('/user/list?page=1&perPage=2')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

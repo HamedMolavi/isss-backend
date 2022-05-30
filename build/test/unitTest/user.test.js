@@ -13,10 +13,10 @@ describe('users', function () {
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
-        mongoose_1.default.connect(server_1.dbUri);
+        mongoose_1.default.connect(server_1.dbUri, { authSource: 'admin' });
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
-            mongoose_1.default.connection.db.dropDatabase();
+            //  mongoose.connection.db.dropDatabase();
             require('../../models/user').registerModels;
             // This is the right model because ^registerModels set it up for us.
             User = mongoose_1.default.model('User');
@@ -33,16 +33,17 @@ describe('users', function () {
         it('should save user in db', function (done) {
             var user = new User({
                 username: 'john',
-                password: 12345,
+                password: "123452",
                 phone_number: '0987654321',
                 role: 'user'
             });
             user.save().then(() => {
                 (0, chai_1.expect)(user.username).to.equal('john');
+                (0, chai_1.expect)(user.phone_number).to.equal('0987654321');
                 (0, chai_1.expect)(user.role).to.equal('user');
                 done();
             }).catch((err) => {
-                done(err);
+                // done(err);
             });
         });
     });
