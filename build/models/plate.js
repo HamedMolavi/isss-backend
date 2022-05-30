@@ -29,7 +29,8 @@ const PlateSchema = new mongoose_1.Schema({
     number: { type: String, required: true },
     carBrand: { type: String, required: true },
     color: { type: String, required: true },
-    owner: { type: String, required: true }
+    owner: { type: String, required: true },
+    create_date: { type: Date, default: Date.now }
 });
 // Compile model from schema
 const Plate = mongoose_1.default.model("Plate", PlateSchema);

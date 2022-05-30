@@ -14,7 +14,7 @@ describe('AI', function () {
         mongoose.connect(dbUri,{ authSource: 'admin' });
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            mongoose.connection.db.dropDatabase();
+          //  mongoose.connection.db.dropDatabase();
 
             require('../../models/AI').registerModels;
             // This is the right model because registerModels set it up for us.

@@ -1,0 +1,47 @@
+import { expect } from 'chai';
+import { Disconnect } from '../../db/connect';
+import mongoose from 'mongoose';
+import { dbUri } from '../../server';
+
+//test car models
+describe('car', function () {
+
+    let Car: any;
+    //connect to DB before test
+    beforeEach(function (done) {
+        //connect to DB
+        mongoose.connect(dbUri,{ authSource: 'admin' });
+        //listen for connection events
+        mongoose.connection.once('connected', () => {
+            //  mongoose.connection.db.dropDatabase();
+
+            require('../../models/car').registerModels;
+            // This is the right model because register Models set it up for us.
+            Car = mongoose.model('Car');
+            done();
+        });
+    });
+    //disconnect from DB after test
+    afterEach(function (done) {
+        Disconnect();
+        done();
+    });
+    //test car model
+    describe('register car', function () {
+        //create car model
+        it('should save car in db', function (done) {
+            var car = new Car({
+                name: 'pride',
+            });
+            //test this car model
+            car.save().then(() => {
+                expect(car.name).to.equal('pride');
+                done();
+            }
+            ).catch((err: Error) => {
+                done(err);
+            });
+        });
+
+    });
+});
