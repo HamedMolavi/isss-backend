@@ -10,10 +10,10 @@ describe('car', function () {
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
-        mongoose.connect(dbUri,{ authSource: 'admin' });
+        mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            //  mongoose.connection.db.dropDatabase();
+            mongoose.connection.db.dropDatabase();
 
             require('../../models/car').registerModels;
             // This is the right model because register Models set it up for us.

@@ -10,11 +10,10 @@ describe('camera', function () {
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
-        mongoose.connect(dbUri,{ authSource: 'admin' });
+        mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            //  mongoose.connection.db.dropDatabase();
-
+            mongoose.connection.db.dropDatabase();
             require('../../models/camera').registerModels;
             // This is the right model because ^registerModels set it up for us.
             Camera = mongoose.model('Camera');

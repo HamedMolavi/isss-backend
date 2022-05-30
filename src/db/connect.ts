@@ -6,7 +6,7 @@ async function connect() {
     const dbUri = process.env["MONGODB_URL"] as string;
 
     //connect to the database
-    mongoose.connect(dbUri, { authSource: 'admin' });
+    mongoose.connect(dbUri);
     //listen for connection events
     await mongoose.connection.on("connected", () => {
         console.log("Mongoose default connection open to " + dbUri);

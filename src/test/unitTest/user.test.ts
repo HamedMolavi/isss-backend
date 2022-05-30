@@ -10,14 +10,14 @@ describe('users', function () {
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
-        mongoose.connect(dbUri,{ authSource: 'admin' });
+        mongoose.connect(dbUri);
         //listen for connection events
-        mongoose.connection.once('connected', () => {
-          //  mongoose.connection.db.dropDatabase();
+        mongoose.connection.once('connected',() => {
+            mongoose.connection.db.dropDatabase();
 
             require('../../models/user').registerModels;
             // This is the right model because ^registerModels set it up for us.
-            User = mongoose.model('User');
+            User =mongoose.model('User');
             done();
         });
     });

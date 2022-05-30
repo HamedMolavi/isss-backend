@@ -2,7 +2,6 @@ import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
 import User, { IUser } from './../../models/user';
-import mongoose from 'mongoose';
 
 
 const token = process.env.sample_token;
@@ -42,7 +41,7 @@ describe('server run and server runnig and register user', function () {
                     expect(user.username).to.equal('test');
                     expect(user.phone_number).to.equal('0987654321');
                     expect(user.role).to.equal('user');
-                } else {
+                } else  {
                     let response = null;
                 }
                 // Done
