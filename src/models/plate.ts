@@ -8,6 +8,7 @@ export interface IPlate {
     carBrand: string;
     color: string;
     owner: string;
+    create_date : Date;
     save: (next : NextFunction) => Promise<void>;
 }
 
@@ -17,7 +18,8 @@ const PlateSchema: Schema<IPlate> = new Schema({
     number: { type: String, required: true },
     carBrand: { type: String, required: true },
     color: { type: String, required: true },
-    owner: { type: String, required: true }
+    owner: { type: String, required: true },
+    create_date: { type: Date, default: Date.now }
 });
 
 // Compile model from schema

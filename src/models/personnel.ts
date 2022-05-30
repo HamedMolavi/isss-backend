@@ -8,6 +8,7 @@ export interface IPersonnel {
     family: string;
     phone: string;
     jobTitle: string;
+    create_date : Date;
     save: (next : NextFunction) => Promise<void>;
 }
 
@@ -17,6 +18,7 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema({
     family: { type: String, required: true },
     phone: { type: String, required: true },
     jobTitle: { type: Schema.Types.ObjectId, ref: 'JobTitle' },
+    create_date: { type: Date, default: Date.now }
 });
 
 // Compile model from schema

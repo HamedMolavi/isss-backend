@@ -12,6 +12,7 @@ export interface IAI {
     type: string;
     minPeople: number;
     maxPeople: number;
+    create_date : Date;
     save: (next : NextFunction) => Promise<void>;
 }
 
@@ -25,6 +26,7 @@ const AISchema: Schema<IAI> = new Schema({
     type: { type: String, required: true },
     minPeople: { type: Number, required: false },
     maxPeople: { type: Number, required: false },
+    create_date: { type: Date, default: Date.now }
 });
 
 // Compile model from schema

@@ -13,6 +13,7 @@ export interface ICamera {
     username: string;
     password: string;
     is_enabled: boolean;
+    create_date : Date;
     save: (next: NextFunction) => Promise<void>;
 }
 
@@ -28,6 +29,7 @@ const CameraSchema: Schema<ICamera> = new Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
     is_enabled: { type: Boolean, required: true },
+    create_date: { type: Date, default: Date.now }
 });
 
 // Compile model from schema
