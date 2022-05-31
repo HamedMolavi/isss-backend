@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Plate, { IPlate } from "../../models/plate";
+import Plate, { IPlate } from "../../models/car";
 import { authorize, getToken, ICritential } from "./../../tools/authentication";
 
 

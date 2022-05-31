@@ -1,7 +1,7 @@
 import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
-import Plate, { IPlate } from '../../models/plate';
+import Plate, { IPlate } from '../../models/car';
 
 
 const token = process.env.sample_token;
