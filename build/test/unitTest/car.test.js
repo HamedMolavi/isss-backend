@@ -18,7 +18,7 @@ describe('car', function () {
         mongoose_1.default.connection.once('connected', () => {
             mongoose_1.default.connection.db.dropDatabase();
             require('../../models/car').registerModels;
-            // This is the right model because register Models set it up for us.
+            // This is the right model because registerModels set it up for us.
             Car = mongoose_1.default.model('Car');
             done();
         });
@@ -33,11 +33,21 @@ describe('car', function () {
         //create car model
         it('should save car in db', function (done) {
             var car = new Car({
-                name: 'pride',
+                owner: "test",
+                number_plate: "123456",
+                brand_id: "629592546558a38fbecb6d40",
+                color_id: "629592546558a38fbecb6d40",
+                camera_whitelist: [
+                    "629592546558a38fbecb6d40"
+                ]
             });
             //test this car model
             car.save().then(() => {
-                (0, chai_1.expect)(car.name).to.equal('pride');
+                (0, chai_1.expect)(car.owner).to.equal('test');
+                (0, chai_1.expect)(car.number_plate).to.equal('123456');
+                (0, chai_1.expect)(car.brand_id.toString()).to.equal('629592546558a38fbecb6d40');
+                (0, chai_1.expect)(car.color_id.toString()).to.equal('629592546558a38fbecb6d40');
+                (0, chai_1.expect)(car.camera_whitelist).to.deep.equal(['629592546558a38fbecb6d40']);
                 done();
             }).catch((err) => {
                 done(err);

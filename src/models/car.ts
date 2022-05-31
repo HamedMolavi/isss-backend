@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 //define car type
-export interface IPlate extends Document {
+export interface ICar extends Document {
     _id: mongoose.Types.ObjectId;
     owner: string,
     number_plate: string;
@@ -13,12 +13,12 @@ export interface IPlate extends Document {
 
 
 //create car model with schema for save in DB
-const CarSchema: Schema<IPlate> = new Schema({
-    owner: { ype: String, required: true },
+const CarSchema: Schema<ICar> = new Schema({
+    owner: { type: String, required: true },
     number_plate: { type: String, required: true },
     brand_id: { type: Schema.Types.ObjectId, ref: "Car_Brand" },
     color_id: { type: Schema.Types.ObjectId, ref: "Car_Color" },
-    camera_whitelist: [{ type: String }],
+    camera_whitelist: { type: [String] },
     create_date: { type: Date, default: Date.now }
 });
 

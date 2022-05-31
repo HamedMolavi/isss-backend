@@ -13,8 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const carColor_1 = __importDefault(require("../../models/carColor"));
-const authentication_1 = require("./../../tools/authentication");
+const carBrand_1 = __importDefault(require("../../models/carBrand"));
+const authentication_1 = require("../../tools/authentication");
 //create router for add to server file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -24,7 +24,7 @@ router.use(function (req, res, next) {
     res.locals.infos = req.flash("info");
     next();
 });
-//add route for register new car_color
+//add route for register new car_brand
 router.post("/register", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -32,7 +32,7 @@ router.post("/register", function (req, res, next) {
             const { name } = req.body;
             //verify body request
             if (!name) {
-                req.flash("error", "Car Color name is required");
+                req.flash("error", "Car brand is required");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -44,31 +44,31 @@ router.post("/register", function (req, res, next) {
                 req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for save new car_color in DB
-            let carColor = yield carColor_1.default.findOne({ name: name }).exec();
-            //retrun error if car_color already exists
-            if (carColor) {
-                req.flash("error", "Car Color already exists");
-                return res.status(201).json({ message: "Car Color already exists" });
+            //query for save new car_brand in DB
+            let carBrand = yield carBrand_1.default.findOne({ name: name }).exec();
+            //retrun error if car_brand already exists
+            if (carBrand) {
+                req.flash("error", "Car Brand already exists");
+                return res.status(201).json({ message: "car already exists" });
             }
-            //fill new car_color
-            let newCarColor = new carColor_1.default({
+            //fill new car_brand
+            let newCarBrand = new carBrand_1.default({
                 name: name
             });
-            //query for save new car_color in DB
-            yield newCarColor.save();
-            req.flash("info", "Car Color added");
+            //query for save new car_brand in DB
+            yield newCarBrand.save();
+            req.flash("info", "Car Brand added");
             return res.status(201).json({
-                message: "color created",
-                carColor: newCarColor
+                message: "car created",
+                carBrand: newCarBrand
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not create the car color: ${err}` });
+            return next({ status: 500, message: `Could not create the car brand: ${err}` });
         }
     });
 });
-//route for get car_color with search from DB 
+//route for get car_brand with search from DB 
 router.get("/find", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -89,29 +89,29 @@ router.get("/find", function (req, res, next) {
                 req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for search car_color by id from DB
-            let carColor = yield carColor_1.default.find({
+            //query for search car_brand by id from DB
+            let carBrand = yield carBrand_1.default.find({
                 name: { $regex: search, $options: "i" }
             }).limit(limit).exec();
-            //return response not found to client if not found car_color
-            if (!carColor) {
-                req.flash("error", "Car Color not found");
+            //return response not found to client if not found car_band
+            if (!carBrand) {
+                req.flash("error", "Car Brand not found");
                 return next(new Error("Not Found"));
             }
-            //return response to client with car_color
+            //return response to client with car_brand
             return res.status(200).json({
                 message: "Success",
-                carColor: carColor,
+                carBrand: carBrand,
                 limit: limit,
-                total: yield carColor_1.default.countDocuments().exec(),
+                total: yield carBrand_1.default.countDocuments().exec(),
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the Car Color: ${err}` });
+            return next({ status: 500, message: `Could not get the car brand: ${err}` });
         }
     });
 });
-//route for get car_color list  
+//route for get car list  
 router.get("/list", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -130,36 +130,36 @@ router.get("/list", function (req, res, next) {
                 req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get car_color list
-            let carColors = yield carColor_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
-            //return response not found to client if not found car_colors
-            if (!carColors) {
-                req.flash("error", "Car Color not found");
+            //query for get car_barnd list
+            let carBrands = yield carBrand_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+            //return response not found to client if not found car_brand
+            if (!carBrands) {
+                req.flash("error", "Car Brands not found");
                 return next(new Error("Not Found"));
             }
-            //return response to client with car_color list
+            //return response to client with car_brand list
             return res.status(200).json({
                 message: "Success",
-                carColors: carColors,
+                carBrands: carBrands,
                 page: page,
                 perPage: perPage,
-                total: yield carColor_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield carColor_1.default.countDocuments().exec()) / perPage)
+                total: yield carBrand_1.default.countDocuments().exec(),
+                pages: Math.ceil((yield carBrand_1.default.countDocuments().exec()) / perPage)
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the car color: ${err}` });
+            return next({ status: 500, message: `Could not get the car brands: ${err}` });
         }
     });
 });
-//route for get car_color by id from DB 
+//route for get car_brand by id from DB 
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get id from url
             let id = req.params.id;
             if (!id) {
-                req.flash("error", "Car Color id is required");
+                req.flash("error", "Car Brand id is required");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -171,32 +171,32 @@ router.get("/:id", function (req, res, next) {
                 req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get car_color by id from DB
-            let carColor = yield carColor_1.default.findById(id).exec();
-            //return response not found to client if not found car_color
-            if (!carColor) {
-                req.flash("error", "Car Color not found");
+            //query for get car_brand by id from DB
+            let carBrand = yield carBrand_1.default.findById(id).exec();
+            //return response not found to client if not found car_brand
+            if (!carBrand) {
+                req.flash("error", "Car Brand not found");
                 return next(new Error("Not Found"));
             }
-            //return response to client with car_color
+            //return response to client with car
             return res.status(200).json({
                 message: "Success",
-                carColor: carColor
+                carBrand: carBrand
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the car color: ${err}` });
+            return next({ status: 500, message: `Could not get the car brand: ${err}` });
         }
     });
 });
-//add route for delete car_color by id from DB
+//add route for delete car_brand by id from DB
 router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get id from url
             let id = req.params.id;
             if (!id) {
-                req.flash("error", "Car Color id is required");
+                req.flash("error", "Car Brand id is required");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -208,21 +208,21 @@ router.delete("/:id", function (req, res, next) {
                 req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get car_color by id from DB
-            let carColor = yield carColor_1.default.findByIdAndDelete(id).exec();
-            //return response not found to client if not found car_color
-            if (!carColor) {
-                req.flash("error", "Car Color not found");
+            //query for get car_brand by id from DB
+            let carBrand = yield carBrand_1.default.findByIdAndDelete(id).exec();
+            //return response not found to client if not found car_brand
+            if (!carBrand) {
+                req.flash("error", "Car Brand not found");
                 return next(new Error("Not Found"));
             }
-            //return response to client with car_color
+            //return response to client with car_brand
             return res.status(201).json({
                 message: "Success",
-                carColor: carColor
+                carBrand: carBrand
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not delete the car color: ${err}` });
+            return next({ status: 500, message: `Could not delete the car brand: ${err}` });
         }
     });
 });

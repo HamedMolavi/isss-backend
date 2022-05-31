@@ -270,7 +270,6 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     } catch (err) {
         return next({ status: 500, message: `Could not delete the departement: ${err}` });
     }
-
 });
 
 export default router;

@@ -1,9 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Car, { ICar } from "../../models/car";
+import CarBrand, { ICarBrand } from "../../models/carBrand";
 import { authorize, getToken, ICritential } from "../../tools/authentication";
 
-
-//create router for add to routes file 
+//create router for add to server file 
 const router: Router = Router();
 
 //add error handler middleware
@@ -15,13 +14,14 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 
-//add route for register new car
+//add route for register new car_brand
 router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { owner, number_plate, brand_id, color_id, camera_whitelist } = req.body;
-        if (!owner || !number_plate || !brand_id || !color_id || !camera_whitelist ) {
-            req.flash("error", "Car is required");
+        const { name } = req.body;
+        //verify body request
+        if (!name) {
+            req.flash("error", "Car brand is required");
             return next({ status: 400, message: "Bad request" });
         }
         //get token from header request
@@ -34,44 +34,30 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             return next({ status: 401, message: "Token expired" });
         }
 
-        //query for save new car in DB
-        let car = await Car.findOne({
-            $or: [
-                { number_plate: number_plate },
-                { owner: owner }
-            ]
-        }).exec();
-
-        //retrun error if car already exists
-        if (car) {
-            req.flash("error", "Car already exists");
-            return res.status(200).json({ message: "car already exists" });
+        //query for save new car_brand in DB
+        let carBrand = await CarBrand.findOne({ name: name }).exec();
+        //retrun error if car_brand already exists
+        if (carBrand) {
+            req.flash("error", "Car Brand already exists");
+            return res.status(201).json({ message: "car already exists" });
         }
-
-        //fill new car
-        let newCar = new Car({
-            owner: owner,
-            number_plate: number_plate,
-            brand_id: brand_id,
-            color_id: color_id,
-            camera_whitelist: camera_whitelist
+        //fill new car_brand
+        let newCarBrand = new CarBrand({
+            name: name
         });
-
-        //query for save new car in DB
-        await newCar.save();
-        req.flash("info", "Car added");
-        //send response to client
+        //query for save new car_brand in DB
+        await newCarBrand.save();
+        req.flash("info", "Car Brand added");
         return res.status(201).json({
-            message: "Success",
-            car: newCar
+            message: "car created",
+            carBrand: newCarBrand
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not create the car: ${err}` });
+        return next({ status: 500, message: `Could not create the car brand: ${err}` });
     }
 });
 
-
-//route for get car with search from DB 
+//route for get car_brand with search from DB 
 router.get("/find", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get param from url
@@ -93,27 +79,29 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for search car by id from DB
-        let car = await Car.find({
+        //query for search car_brand by id from DB
+        let carBrand = await CarBrand.find({
             name: { $regex: search, $options: "i" }
         }).limit(limit).exec();
 
-        //return response not found to client if not found car
-        if (!car) {
-            req.flash("error", "Car not found");
+        //return response not found to client if not found car_band
+        if (!carBrand) {
+            req.flash("error", "Car Brand not found");
             return next(new Error("Not Found"));
         }
-        //return response to client with car
+        //return response to client with car_brand
         return res.status(200).json({
             message: "Success",
-            car: car,
+            carBrand: carBrand,
             limit: limit,
-            total: await Car.countDocuments().exec(),
+            total: await CarBrand.countDocuments().exec(),
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the car: ${err}` });
+        return next({ status: 500, message: `Could not get the car brand: ${err}` });
     }
 });
+
+
 
 //route for get car list  
 router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
@@ -134,36 +122,36 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
             req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         }
-        //query for get car list
-        let cars = await Car.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+        //query for get car_barnd list
+        let carBrands = await CarBrand.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
 
-        //return response not found to client if not found cars
-        if (!cars) {
-            req.flash("error", "car not found");
+        //return response not found to client if not found car_brand
+        if (!carBrands) {
+            req.flash("error", "Car Brands not found");
             return next(new Error("Not Found"));
         }
 
-        //return response to client with cars list
+        //return response to client with car_brand list
         return res.status(200).json({
             message: "Success",
-            cars: cars,
+            carBrands: carBrands,
             page: page,
             perPage: perPage,
-            total: await Car.countDocuments().exec(),
-            pages: Math.ceil(await Car.countDocuments().exec() / perPage)
+            total: await CarBrand.countDocuments().exec(),
+            pages: Math.ceil(await CarBrand.countDocuments().exec() / perPage)
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the cars: ${err}` });
+        return next({ status: 500, message: `Could not get the car brands: ${err}` });
     }
 });
 
-//route for get car by id from DB 
+//route for get car_brand by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
         let id: string = req.params.id;
         if (!id) {
-            req.flash("error", "Car id is required");
+            req.flash("error", "Car Brand id is required");
             return next({ status: 400, message: "Bad request" });
         }
 
@@ -177,72 +165,32 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get car by id from DB
-        let car = await Car.findById(id).exec();
+        //query for get car_brand by id from DB
+        let carBrand = await CarBrand.findById(id).exec();
 
-        //return response not found to client if not found car
-        if (!car) {
-            req.flash("error", "Car not found");
+        //return response not found to client if not found car_brand
+        if (!carBrand) {
+            req.flash("error", "Car Brand not found");
             return next(new Error("Not Found"));
         }
-        //return response to client with departement
+        //return response to client with car
         return res.status(200).json({
             message: "Success",
-            car: car
+            carBrand: carBrand
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the car: ${err}` });
+        return next({ status: 500, message: `Could not get the car brand: ${err}` });
     }
 });
 
 
-//add route for edit car
-router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
+//add route for delete car_brand by id from DB
+router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
         //get id from url
         let id: string = req.params.id;
-
-        //verify body request
         if (!id) {
-            req.flash("error", "Car id is required");
-            return next({ status: 400, message: "Bad request" });
-        }
-        //get body request
-        const carBody = req.body;
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
-        //query for get car by id from DB and update
-        let car = await Car.findByIdAndUpdate(id, carBody, { new: true }).exec();
-        //return response not found to client if not found car
-        if (!car) {
-            req.flash("error", "Car not found");
-            return next(new Error("Not Found"));
-        }
-        //return response to client with car
-        return res.status(201).json({
-            message: "Success",
-            car: car
-        });
-    } catch (err) {
-        return next({ status: 500, message: `Could not edit the car: ${err}` });
-    }
-});
-
-
-//add route for delete car
-router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
-    try {
-        let id: string = req.params.id;
-        //verify body request
-        if (!id) {
-            req.flash("error", "Car id is required");
+            req.flash("error", "Car Brand id is required");
             return next({ status: 400, message: "Bad request" });
         }
 
@@ -256,21 +204,22 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get car by id from DB
-        let car = await Car.findByIdAndDelete(id).exec();
-        //return response not found to client if not found car
-        if (!car) {
-            req.flash("error", "Car not found");
+        //query for get car_brand by id from DB
+        let carBrand = await CarBrand.findByIdAndDelete(id).exec();
+        //return response not found to client if not found car_brand
+        if (!carBrand) {
+            req.flash("error", "Car Brand not found");
             return next(new Error("Not Found"));
         }
-        //return response to client with car
+        //return response to client with car_brand
         return res.status(201).json({
             message: "Success",
-            car: car
+            carBrand: carBrand
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not delete the car: ${err}` });
+        return next({ status: 500, message: `Could not delete the car brand: ${err}` });
     }
+
 });
 
 export default router;

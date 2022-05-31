@@ -11,12 +11,12 @@ const departementRoutes_1 = __importDefault(require("./custom/departementRoutes"
 const sectionRoutes_1 = __importDefault(require("./custom/sectionRoutes"));
 const jobTitleRoutes_1 = __importDefault(require("./custom/jobTitleRoutes"));
 const personnelRoutes_1 = __importDefault(require("./custom/personnelRoutes"));
-const plateRoutes_1 = __importDefault(require("./custom/plateRoutes"));
+const carRoutes_1 = __importDefault(require("./custom/carRoutes"));
 const AIRoutes_1 = __importDefault(require("./custom/AIRoutes"));
 const scheduleRoutes_1 = __importDefault(require("./custom/scheduleRoutes"));
 const modelRoutes_1 = __importDefault(require("./custom/modelRoutes"));
-const colorRoutes_1 = __importDefault(require("./custom/colorRoutes"));
-const carRoutes_1 = __importDefault(require("./custom/carRoutes"));
+const carColorRoutes_1 = __importDefault(require("./custom/carColorRoutes"));
+const carBrandRoutes_1 = __importDefault(require("./custom/carBrandRoutes"));
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add rotes app
@@ -27,10 +27,10 @@ router.use('/departement', departementRoutes_1.default);
 router.use('/section', sectionRoutes_1.default);
 router.use('/jobtitle', jobTitleRoutes_1.default);
 router.use('/personnel', personnelRoutes_1.default);
-router.use('/plate', plateRoutes_1.default);
+router.use('/car', carRoutes_1.default);
 router.use('/AI', AIRoutes_1.default);
 router.use('/schedule', scheduleRoutes_1.default);
 router.use('/model', modelRoutes_1.default);
-router.use('/carcolor', colorRoutes_1.default);
-router.use('/carbrand', carRoutes_1.default);
+router.use('/carcolor', carColorRoutes_1.default);
+router.use('/carbrand', carBrandRoutes_1.default);
 exports.default = router;

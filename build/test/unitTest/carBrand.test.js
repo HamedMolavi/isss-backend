@@ -7,9 +7,9 @@ const chai_1 = require("chai");
 const connect_1 = require("../../db/connect");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("../../server");
-//test color models
-describe('color', function () {
-    let Color;
+//test car models
+describe('car Brand', function () {
+    let Car;
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
@@ -17,9 +17,9 @@ describe('color', function () {
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
             mongoose_1.default.connection.db.dropDatabase();
-            require('../../models/color').registerModels;
+            require('../../models/carBrand').registerModels;
             // This is the right model because register Models set it up for us.
-            Color = mongoose_1.default.model('Color');
+            Car = mongoose_1.default.model('Car_Brand');
             done();
         });
     });
@@ -28,16 +28,16 @@ describe('color', function () {
         (0, connect_1.Disconnect)();
         done();
     });
-    //test color model
-    describe('register color', function () {
-        //create color model
-        it('should save color in db', function (done) {
-            var color = new Color({
-                name: 'red',
+    //test car model
+    describe('register car', function () {
+        //create car model
+        it('should save car in db', function (done) {
+            var car = new Car({
+                name: 'pride',
             });
-            //test this color model
-            color.save().then(() => {
-                (0, chai_1.expect)(color.name).to.equal('red');
+            //test this car model
+            car.save().then(() => {
+                (0, chai_1.expect)(car.name).to.equal('pride');
                 done();
             }).catch((err) => {
                 done(err);
