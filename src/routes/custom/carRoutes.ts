@@ -50,7 +50,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         req.flash("info", "Car added");
         return res.status(201).json({
             message: "car created",
-            car: car
+            car: newCar
         });
     } catch (err) {
         return next({ status: 500, message: `Could not create the car: ${err}` });

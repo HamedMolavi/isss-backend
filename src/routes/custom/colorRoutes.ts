@@ -50,7 +50,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         req.flash("info", "Color added");
         return res.status(201).json({
             message: "color created",
-            color: color
+            color: newColor
         });
     } catch (err) {
         return next({ status: 500, message: `Could not create the color: ${err}` });

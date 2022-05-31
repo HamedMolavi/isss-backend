@@ -10,6 +10,8 @@ import plateRoutes from './custom/plateRoutes';
 import AIRoutes from './custom/AIRoutes';
 import scheduleRoutes from './custom/scheduleRoutes';
 import modelRoutes from './custom/modelRoutes';
+import colorRoutes from './custom/colorRoutes';
+import carRoutes from './custom/carRoutes';
 
 //create router for add to server 
 const router: Router = Router();
@@ -26,5 +28,7 @@ router.use('/plate', plateRoutes);
 router.use('/AI', AIRoutes);
 router.use('/schedule', scheduleRoutes);
 router.use('/model', modelRoutes);
+router.use('/color', colorRoutes);
+router.use('/car', carRoutes);
 
 export default router;
