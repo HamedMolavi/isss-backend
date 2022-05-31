@@ -6,16 +6,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const server_1 = __importDefault(require("../../server"));
 const chai_1 = require("chai");
 const supertest_1 = __importDefault(require("supertest"));
-const car_1 = __importDefault(require("../../models/car"));
+const carBrand_1 = __importDefault(require("../../models/carBrand"));
 const token = process.env.sample_token;
-let _car;
-let _updateCar;
-//create testing for register new car and edit , delete ,get car
-describe('server run and crud car', function () {
-    //test route for register new car in DB
-    it('should send back a JSON object with car for create new car', function (done) {
+let _carBrand;
+//create testing for register new car_brand and edit , delete ,get car
+describe('server run and crud car brand', function () {
+    //test route for register new car brand in DB
+    it('should send back a JSON object with car for create new car brand', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/car/register')
+            .post('/carbrand/register')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
@@ -26,9 +25,9 @@ describe('server run and crud car', function () {
             if (err) {
                 return done(err);
             }
-            if (res.body.message !== 'car already exists') {
+            if (res.body.message !== 'Car Brand already exists') {
                 let response = res.body;
-                (0, chai_1.expect)(response.car.name).to.equal('pride');
+                (0, chai_1.expect)(response.carBrand.name).to.equal('pride');
             }
             else {
                 let response = null;
@@ -37,56 +36,56 @@ describe('server run and crud car', function () {
             done();
         });
     });
-    //get car test from DB
+    //get car_brand test from DB
     beforeEach(function (done) {
-        car_1.default.findOne({
+        carBrand_1.default.findOne({
             name: 'pride'
-        }, function (err, car) {
+        }, function (err, carBrand) {
             if (err) {
                 console.log(err);
             }
-            _car = car;
+            _carBrand = carBrand;
             done();
         });
     });
-    //test route for get all cars from DB
-    it('should send back a JSON object for get all cars', function (done) {
-        //test route for get car in DB
+    //test route for get all car_brands from DB
+    it('should send back a JSON object for get all car brands', function (done) {
+        //test route for get car_brands in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/car/list?page=1&perPage=1')
+            .get('/carbrand/list?page=1&perPage=1')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.cars;
+            let userResponse = res.body.carBrands;
             (0, chai_1.expect)(userResponse[0]).to.have.property('name');
             // Done
             done();
         });
     });
-    //test route for get car by id from DB
-    it('should send back a JSON object for get car with id', function (done) {
-        //test route for get car in DB
+    //test route for get car_brand by id from DB
+    it('should send back a JSON object for get car brand with id', function (done) {
+        //test route for get car_brand in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/car/' + _car._id)
+            .get('/carbrand/' + _carBrand._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.car;
-            (0, chai_1.expect)(userResponse.name).to.equal(_car.name);
+            let userResponse = res.body.carBrand;
+            (0, chai_1.expect)(userResponse.name).to.equal(_carBrand.name);
             // Done
             done();
         });
     });
-    //test route for delete car in DB 
-    it('should send back a JSON object for delete car', function (done) {
+    //test route for delete car_brand in DB 
+    it('should send back a JSON object for delete car brand', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .delete('/car/' + _car._id)
+            .delete('/carbrand/' + _carBrand._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

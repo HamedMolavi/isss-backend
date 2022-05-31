@@ -28,7 +28,7 @@ router.use('/plate', plateRoutes);
 router.use('/AI', AIRoutes);
 router.use('/schedule', scheduleRoutes);
 router.use('/model', modelRoutes);
-router.use('/color', colorRoutes);
-router.use('/car', carRoutes);
+router.use('/carcolor', colorRoutes);
+router.use('/carbrand', carRoutes);
 
 export default router;

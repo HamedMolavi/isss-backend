@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Color, { IColor } from "./../../models/color";
+import CarColor, { ICarColor } from "../../models/carColor";
 import { authorize, getToken, ICritential } from "./../../tools/authentication";
 
 //create router for add to server file 
@@ -14,14 +14,14 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 
-//add route for register new color
+//add route for register new car_color
 router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { name } = req.body;
         //verify body request
         if (!name) {
-            req.flash("error", "Color name is required");
+            req.flash("error", "Car Color name is required");
             return next({ status: 400, message: "Bad request" });
         }
         //get token from header request
@@ -34,30 +34,30 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             return next({ status: 401, message: "Token expired" });
         }
 
-        //query for save new color in DB
-        let color = await Color.findOne({ name: name }).exec();
-        //retrun error if color already exists
-        if (color) {
-            req.flash("error", "Color already exists");
-            return res.status(201).json({ message: "Color already exists" });
+        //query for save new car_color in DB
+        let carColor = await CarColor.findOne({ name: name }).exec();
+        //retrun error if car_color already exists
+        if (carColor) {
+            req.flash("error", "Car Color already exists");
+            return res.status(201).json({ message: "Car Color already exists" });
         }
-        //fill new color
-        let newColor = new Color({
+        //fill new car_color
+        let newCarColor = new CarColor({
             name: name
         });
-        //query for save new color in DB
-        await newColor.save();
-        req.flash("info", "Color added");
+        //query for save new car_color in DB
+        await newCarColor.save();
+        req.flash("info", "Car Color added");
         return res.status(201).json({
             message: "color created",
-            color: newColor
+            carColor: newCarColor
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not create the color: ${err}` });
+        return next({ status: 500, message: `Could not create the car color: ${err}` });
     }
 });
 
-//route for get color with search from DB 
+//route for get car_color with search from DB 
 router.get("/find", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get param from url
@@ -79,31 +79,31 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for search color by id from DB
-        let color = await Color.find({
+        //query for search car_color by id from DB
+        let carColor = await CarColor.find({
             name: { $regex: search, $options: "i" }
         }).limit(limit).exec();
 
-        //return response not found to client if not found color
-        if (!color) {
-            req.flash("error", "Color not found");
+        //return response not found to client if not found car_color
+        if (!carColor) {
+            req.flash("error", "Car Color not found");
             return next(new Error("Not Found"));
         }
-        //return response to client with color
+        //return response to client with car_color
         return res.status(200).json({
             message: "Success",
-            color: color,
+            carColor: carColor,
             limit: limit,
-            total: await Color.countDocuments().exec(),
+            total: await CarColor.countDocuments().exec(),
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the color: ${err}` });
+        return next({ status: 500, message: `Could not get the Car Color: ${err}` });
     }
 });
 
 
 
-//route for get color list  
+//route for get car_color list  
 router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get page from url
@@ -122,36 +122,36 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
             req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         }
-        //query for get color list
-        let colors = await Color.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+        //query for get car_color list
+        let carColors = await CarColor.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
 
-        //return response not found to client if not found colors
-        if (!colors) {
-            req.flash("error", "Color not found");
+        //return response not found to client if not found car_colors
+        if (!carColors) {
+            req.flash("error", "Car Color not found");
             return next(new Error("Not Found"));
         }
 
-        //return response to client with color list
+        //return response to client with car_color list
         return res.status(200).json({
             message: "Success",
-            colors: colors,
+            carColors: carColors,
             page: page,
             perPage: perPage,
-            total: await Color.countDocuments().exec(),
-            pages: Math.ceil(await Color.countDocuments().exec() / perPage)
+            total: await CarColor.countDocuments().exec(),
+            pages: Math.ceil(await CarColor.countDocuments().exec() / perPage)
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the color: ${err}` });
+        return next({ status: 500, message: `Could not get the car color: ${err}` });
     }
 });
 
-//route for get color by id from DB 
+//route for get car_color by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
         let id: string = req.params.id;
         if (!id) {
-            req.flash("error", "Color id is required");
+            req.flash("error", "Car Color id is required");
             return next({ status: 400, message: "Bad request" });
         }
 
@@ -165,32 +165,32 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get color by id from DB
-        let color = await Color.findById(id).exec();
+        //query for get car_color by id from DB
+        let carColor = await CarColor.findById(id).exec();
 
-        //return response not found to client if not found color
-        if (!color) {
-            req.flash("error", "Color not found");
+        //return response not found to client if not found car_color
+        if (!carColor) {
+            req.flash("error", "Car Color not found");
             return next(new Error("Not Found"));
         }
-        //return response to client with color
+        //return response to client with car_color
         return res.status(200).json({
             message: "Success",
-            color: color
+            carColor: carColor
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the color: ${err}` });
+        return next({ status: 500, message: `Could not get the car color: ${err}` });
     }
 });
 
 
-//add route for delete color by id from DB
+//add route for delete car_color by id from DB
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
         //get id from url
         let id: string = req.params.id;
         if (!id) {
-            req.flash("error", "Color id is required");
+            req.flash("error", "Car Color id is required");
             return next({ status: 400, message: "Bad request" });
         }
 
@@ -204,20 +204,20 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
             return next({ status: 401, message: "Token expired" })
         }
 
-        //query for get color by id from DB
-        let color = await Color.findByIdAndDelete(id).exec();
-        //return response not found to client if not found color
-        if (!color) {
-            req.flash("error", "Color not found");
+        //query for get car_color by id from DB
+        let carColor = await CarColor.findByIdAndDelete(id).exec();
+        //return response not found to client if not found car_color
+        if (!carColor) {
+            req.flash("error", "Car Color not found");
             return next(new Error("Not Found"));
         }
-        //return response to client with color
+        //return response to client with car_color
         return res.status(201).json({
             message: "Success",
-            color: color
+            carColor: carColor
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not delete the color: ${err}` });
+        return next({ status: 500, message: `Could not delete the car color: ${err}` });
     }
 
 });
