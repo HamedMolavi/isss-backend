@@ -31,16 +31,33 @@ describe('personnel', function () {
         //create personnel model
         it('should save personnel in db', function (done) {
             var personnel = new Personnel({
-                name: 'jack',
-                family: 'jackson',
-                phone: '123456789',
-                jobTitle: new mongoose.Types.ObjectId('6283724be1996b883080a495')
+                first_name: "sasan",
+                last_name: "pilehvar",
+                national_code: "123456789",
+                email: "test@test.gmail.com",
+                phone_number: "0123456789",
+                job_id: "6283724be1996b883080a495",
+                personnel_code: "6283724be1996b883080a495",
+                section_id: "6283724be1996b883080a495",
+                camera_whitelist: ["6283724be1996b883080a495", "6283724be1996b883080a495"],
+                is_active: true,
+                is_employee: true,
+                is_dismissed: true
             });
             //test this personnel model
-            personnel.save().then(() => {
-                expect(personnel.name).to.equal('jack');
-                expect(personnel.family).to.equal('jackson');
-                expect(personnel.phone).to.equal('123456789');
+            personnel.save().then(() => {   
+                expect(personnel.first_name).to.equal("sasan");
+                expect(personnel.last_name).to.equal("pilehvar");
+                expect(personnel.national_code).to.equal("123456789");
+                expect(personnel.email).to.equal("test@test.gmail.com");
+                expect(personnel.phone_number).to.equal("0123456789");
+                expect(personnel.job_id).to.equal("6283724be1996b883080a495");
+                expect(personnel.personnel_code).to.equal("6283724be1996b883080a495");
+                expect(personnel.section_id).to.equal("6283724be1996b883080a495");
+                expect(personnel.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
+                expect(personnel.is_active).to.equal(true);
+                expect(personnel.is_employee).to.equal(true);
+                expect(personnel.is_dismissed).to.equal(true);
 
                 done();
             }).catch((err: Error) => {
