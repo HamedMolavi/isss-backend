@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { dbUri } from '../../server';
 
 //test car models
-describe('car', function () {
+describe('car Brand', function () {
 
     let Car: any;
     //connect to DB before test
@@ -15,9 +15,9 @@ describe('car', function () {
         mongoose.connection.once('connected', () => {
             mongoose.connection.db.dropDatabase();
 
-            require('../../models/car').registerModels;
-            // This is the right model because registerModels set it up for us.
-            Car = mongoose.model('Car');
+            require('../../models/carBrand').registerModels;
+            // This is the right model because register Models set it up for us.
+            Car = mongoose.model('Car_Brand');
             done();
         });
     });
@@ -31,24 +31,14 @@ describe('car', function () {
         //create car model
         it('should save car in db', function (done) {
             var car = new Car({
-                owner: "test",
-                number_plate: "123456",
-                brand_id: "629592546558a38fbecb6d40",
-                color_id: "629592546558a38fbecb6d40",
-                camera_whitelist: [
-                    "629592546558a38fbecb6d40"
-                ]
+                name: 'pride',
             });
             //test this car model
             car.save().then(() => {
-                expect(car.owner).to.equal('test');
-                expect(car.number_plate).to.equal('123456');
-                expect(car.brand_id.toString()).to.equal('629592546558a38fbecb6d40');
-                expect(car.color_id.toString()).to.equal('629592546558a38fbecb6d40');
-                expect(car.camera_whitelist).to.deep.equal(['629592546558a38fbecb6d40']);
-
+                expect(car.name).to.equal('pride');
                 done();
-            }).catch((err: Error) => {
+            }
+            ).catch((err: Error) => {
                 done(err);
             });
         });

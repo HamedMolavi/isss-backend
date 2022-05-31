@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import CarColor, { ICarColor } from "../../models/carColor";
-import { authorize, getToken, ICritential } from "./../../tools/authentication";
+import { authorize, getToken, ICritential } from "../../tools/authentication";
 
 //create router for add to server file 
 const router: Router = Router();
