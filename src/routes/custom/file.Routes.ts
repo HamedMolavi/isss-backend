@@ -1,7 +1,7 @@
-import uploadFile, { fileName, location } from './../../tools/fileUpload';
+import uploadFile, { fileName, location } from '../../tools/fileUpload';
 import { NextFunction, Router, Request, Response } from 'express';
 import fs from 'fs';
-import { authorize, getToken, ICritential } from './../../tools/authentication';
+import { authorize, getToken, ICritential } from '../../tools/authentication';
 
 //create router for add to server 
 const router: Router = Router();

@@ -13,8 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const section_1 = __importDefault(require("./../../models/section"));
-const authentication_1 = require("./../../tools/authentication");
+const section_1 = __importDefault(require("../../models/section"));
+const authentication_1 = require("../../tools/authentication");
 //create router for add to routes file 
 const router = (0, express_1.Router)();
 //add error handler middleware

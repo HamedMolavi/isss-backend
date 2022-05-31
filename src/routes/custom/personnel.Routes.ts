@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Personnel, { IPersonnel } from "./../../models/personnel";
-import { authorize, getToken, ICritential } from "./../../tools/authentication";
+import Personnel, { IPersonnel } from "../../models/personnel";
+import { authorize, getToken, ICritential } from "../../tools/authentication";
 
 
 //create router for add to routes file 

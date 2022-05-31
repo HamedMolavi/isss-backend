@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import JobTitle, { IJobTitle } from "./../../models/jobTitle";
-import { authorize, getToken, ICritential } from "./../../tools/authentication";
+import JobTitle, { IJobTitle } from "../../models/jobTitle";
+import { authorize, getToken, ICritential } from "../../tools/authentication";
 
 //create router for add to server file 
 const router: Router = Router();

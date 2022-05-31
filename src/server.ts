@@ -14,7 +14,7 @@ import flash from 'connect-flash';
 import setUpPassport from "./tools/setuppassport";
 import passport from 'passport';
 import errorHandler from './error/errorHandler';
-import routes from './routes/index';
+import routes from './routes/index.Routes';
 import { createStream } from 'rotating-file-stream';
 
 //initial file .env

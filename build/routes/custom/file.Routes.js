@@ -35,10 +35,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const fileUpload_1 = __importStar(require("./../../tools/fileUpload"));
+const fileUpload_1 = __importStar(require("../../tools/fileUpload"));
 const express_1 = require("express");
 const fs_1 = __importDefault(require("fs"));
-const authentication_1 = require("./../../tools/authentication");
+const authentication_1 = require("../../tools/authentication");
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add error handler middleware

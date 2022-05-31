@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
-import Schedule, { ISchedule } from "./../../models/schedule";
-import { authorize, getToken, ICritential } from "./../../tools/authentication";
-import { compareTime, convertToCron, convertToCronDay } from "./../../tools/convertTime";
+import Schedule, { ISchedule } from "../../models/schedule";
+import { authorize, getToken, ICritential } from "../../tools/authentication";
+import { compareTime, convertToCron, convertToCronDay } from "../../tools/convertTime";
 
 //define type of schedule for request body
 interface IGetParams {

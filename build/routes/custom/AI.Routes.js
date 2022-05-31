@@ -13,9 +13,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const personnel_1 = __importDefault(require("./../../models/personnel"));
-const authentication_1 = require("./../../tools/authentication");
-//create router for add to routes file 
+const AI_1 = __importDefault(require("../../models/AI"));
+const authentication_1 = require("../../tools/authentication");
+//create router for add to server file 
 const router = (0, express_1.Router)();
 //add error handler middleware
 router.use(function (req, res, next) {
@@ -24,14 +24,23 @@ router.use(function (req, res, next) {
     res.locals.infos = req.flash("info");
     next();
 });
-//add route for register new personnel
+//add route for register new AI
 router.post("/register", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { name, family, phone, jobTitle } = req.body;
+            const { start, end, thresholdid, minTime, zone, type, minPeople, maxPeople } = req.body;
             //verify body request
-            if (!name || !family || !phone || !jobTitle) {
+            if (!start || !end || !zone || !type) {
+                return next({ status: 400, message: "Bad request" });
+            }
+            if (type === 'FireDetection' && !thresholdid) {
+                return next({ status: 400, message: "Bad request" });
+            }
+            else if (type === 'FaceRecognition' && !minTime && !thresholdid) {
+                return next({ status: 400, message: "Bad request" });
+            }
+            else if (type === 'PeopleCounting' && !minPeople && !maxPeople) {
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -42,40 +51,44 @@ router.post("/register", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            let newPersonnel = new personnel_1.default();
-            //query for save new personnel in DB
-            personnel_1.default.findOne({ name: name }, function (err, personnel) {
+            let newAi = new AI_1.default();
+            //query for save new AI in DB
+            AI_1.default.findOne({ start: start, end: end, type: type }, function (err, Ai) {
                 return __awaiter(this, void 0, void 0, function* () {
                     if (err) {
                         return next(err);
                     }
-                    if (personnel) {
-                        req.flash("error", "personnel already exists");
-                        return res.status(201).json({ message: "personnel already exists" });
+                    if (Ai) {
+                        req.flash("error", "AI already exists");
+                        return res.status(201).json({ message: "AI already exists" });
                     }
-                    //fill new personnel
-                    newPersonnel = new personnel_1.default({
-                        name: name,
-                        family: family,
-                        phone: phone,
-                        jobTitle: jobTitle !== null && jobTitle !== void 0 ? jobTitle : null
+                    //fill new AI
+                    newAi = new AI_1.default({
+                        start: start,
+                        end: end,
+                        thresholdid: thresholdid !== null && thresholdid !== void 0 ? thresholdid : 0,
+                        minTime: minTime !== null && minTime !== void 0 ? minTime : null,
+                        zone: zone !== null && zone !== void 0 ? zone : null,
+                        type: type,
+                        minPeople: minPeople !== null && minPeople !== void 0 ? minPeople : 0,
+                        maxPeople: maxPeople !== null && maxPeople !== void 0 ? maxPeople : 0
                     });
-                    //save new personnel in DB
-                    yield newPersonnel.save(next);
-                    //send response to client with new personnel 
+                    //save new AI in DB
+                    yield newAi.save(next);
+                    //send response to client with new AI 
                     return res.status(201).json({
-                        message: 'personnel created',
-                        personnel: newPersonnel
+                        message: 'AI model created',
+                        AI: newAi
                     });
                 });
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not create the personnel: ${err}` });
+            return next({ status: 500, message: `Could not create the AI: ${err}` });
         }
     });
 });
-//route for get personnels list  
+//route for get AIs list  
 router.get("/list", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -87,27 +100,27 @@ router.get("/list", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get personnels from DB
-            personnel_1.default.find({}, function (err, personnels) {
+            //query for get AI from DB
+            AI_1.default.find({}, function (err, AIs) {
                 if (err) {
                     return next(err);
                 }
-                if (!personnels) {
+                if (!AIs) {
                     return next(new Error("Not Found"));
                 }
-                //send response to client with personnels    
+                //send response to client with AI    
                 return res.status(200).json({
                     message: 'Success',
-                    personnels: personnels
+                    AIs: AIs
                 });
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the personnels: ${err}` });
+            return next({ status: 500, message: `Could not get the AIs: ${err}` });
         }
     });
 });
-//route for get personnel by id from DB 
+//route for get AI by id from DB 
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -124,27 +137,27 @@ router.get("/:id", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get personnel by id from DB
-            personnel_1.default.findById(id, function (err, personnel) {
+            //query for get AI from DB by id
+            AI_1.default.findById(id, function (err, Ai) {
                 if (err) {
                     return next(err);
                 }
-                if (!personnel) {
+                if (!Ai) {
                     return next(new Error("Not Found"));
                 }
-                //send response to client with personnel    
+                //send response to client with AI    
                 return res.status(200).json({
                     message: 'Success',
-                    personnel: personnel
+                    AI: Ai
                 });
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the personnel: ${err}` });
+            return next({ status: 500, message: `Could not get the AI: ${err}` });
         }
     });
 });
-//add route for edit personnel
+//add route for edit AI
 router.put("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -154,7 +167,7 @@ router.put("/:id", function (req, res, next) {
             if (!id) {
                 return next({ status: 400, message: "Bad request" });
             }
-            const personnelBody = req.body;
+            const AIBody = req.body;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -163,34 +176,34 @@ router.put("/:id", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get personnel by id from DB
-            personnel_1.default.findByIdAndUpdate(id, { $set: personnelBody }, function (err, personnel) {
+            //query for get camera by id from DB
+            AI_1.default.findByIdAndUpdate(id, { $set: AIBody }, function (err, Ai) {
                 if (err) {
                     return next(err);
                 }
-                if (!personnel) {
+                if (!Ai) {
                     return next(new Error("Not Found"));
                 }
-                personnel_1.default.findById(id, function (err, updatePersonnel) {
+                AI_1.default.findById(id, function (err, updateAi) {
                     return __awaiter(this, void 0, void 0, function* () {
                         if (err) {
                             return next(err);
                         }
-                        //send response to client with personnel
+                        //send response to client with AI
                         return res.status(201).json({
-                            message: 'Success',
-                            personnel: updatePersonnel
+                            message: 'AI model updated',
+                            AI: updateAi
                         });
                     });
                 });
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not edit the personnel: ${err}` });
+            return next({ status: 500, message: `Could not edit the AI: ${err}` });
         }
     });
 });
-//add route for delete personnel
+//add route for delete AI
 router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -207,23 +220,24 @@ router.delete("/:id", function (req, res, next) {
             if (critential.exp < Date.now() / 1000) {
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get personnel by id from DB
-            personnel_1.default.findByIdAndDelete(id, function (err, personnel) {
+            //query for get AI by id from DB
+            AI_1.default.findByIdAndDelete(id, function (err, ai) {
                 if (err) {
                     return next(err);
                 }
-                if (!personnel) {
-                    return next(new Error("Not Found"));
+                if (!ai) {
+                    return next({ status: 401, message: "Not Found" });
                 }
-                //send response to client with personnel
+                ;
+                //send response to client with AI
                 return res.status(201).json({
                     message: 'Success',
-                    personnel: personnel
+                    AI: {}
                 });
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not delete the personnel: ${err}` });
+            return next({ status: 500, message: `Could not delete the AI: ${err}` });
         }
     });
 });

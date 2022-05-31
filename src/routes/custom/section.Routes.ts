@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Section, { ISection } from "./../../models/section";
-import { authorize, getToken, ICritential } from "./../../tools/authentication";
+import Section, { ISection } from "../../models/section";
+import { authorize, getToken, ICritential } from "../../tools/authentication";
 
 
 //create router for add to routes file 

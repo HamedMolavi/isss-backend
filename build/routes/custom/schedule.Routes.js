@@ -13,9 +13,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const schedule_1 = __importDefault(require("./../../models/schedule"));
-const authentication_1 = require("./../../tools/authentication");
-const convertTime_1 = require("./../../tools/convertTime");
+const schedule_1 = __importDefault(require("../../models/schedule"));
+const authentication_1 = require("../../tools/authentication");
+const convertTime_1 = require("../../tools/convertTime");
 //create router for add to server file 
 const router = (0, express_1.Router)();
 //add error handler middleware

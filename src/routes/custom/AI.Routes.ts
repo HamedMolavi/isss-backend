@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import AI, { IAI } from "./../../models/AI";
-import { authorize, getToken, ICritential } from "./../../tools/authentication";
+import AI, { IAI } from "../../models/AI";
+import { authorize, getToken, ICritential } from "../../tools/authentication";
 
 //create router for add to server file 
 const router: Router = Router();

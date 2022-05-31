@@ -92,7 +92,7 @@ describe('server run and server runnig and crud camera', function () {
     it('should send back a JSON object for get all cameras', function (done) {
         //test route for get camera in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/camera/list/1')
+            .get('/camera/list?page=1&perPage=2')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

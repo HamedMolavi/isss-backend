@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import Model, { IModel } from "./../../models/model";
-import { authorize, getToken, ICritential } from "./../../tools/authentication";
+import Model, { IModel } from "../../models/model";
+import { authorize, getToken, ICritential } from "../../tools/authentication";
 
 
 //create router for add to server file 

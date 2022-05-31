@@ -43,7 +43,7 @@ const connect_flash_1 = __importDefault(require("connect-flash"));
 const setuppassport_1 = __importDefault(require("./tools/setuppassport"));
 const passport_1 = __importDefault(require("passport"));
 const errorHandler_1 = __importDefault(require("./error/errorHandler"));
-const index_1 = __importDefault(require("./routes/index"));
+const index_Routes_1 = __importDefault(require("./routes/index.Routes"));
 const rotating_file_stream_1 = require("rotating-file-stream");
 //initial file .env
 dotenv_1.default.config();
@@ -96,7 +96,7 @@ app.get('/', (req, res, next) => {
     });
 });
 //add routes app
-app.use(index_1.default);
+app.use(index_Routes_1.default);
 //add error handler
 app.use(errorHandler_1.default);
 //for get unhandeled error in express
