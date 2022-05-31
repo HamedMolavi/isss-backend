@@ -2,7 +2,6 @@ import app from '../../server';
 import { expect } from 'chai';
 import request from 'supertest';
 import User, { IUser } from './../../models/user';
-import mongoose from 'mongoose';
 
 
 const token = process.env.sample_token;
@@ -31,7 +30,7 @@ describe('server run and server runnig and register user', function () {
             .send({
                 username: 'test',
                 password: '12345',
-                phone_number: '0987654321'
+                phone_number: '0123456789'
             })
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
@@ -40,9 +39,9 @@ describe('server run and server runnig and register user', function () {
                     let user = res.body.user;
                     expect(res.body.message).to.equal('User created');
                     expect(user.username).to.equal('test');
-                    expect(user.phone_number).to.equal('0987654321');
+                    expect(user.phone_number).to.equal('0123456789');
                     expect(user.role).to.equal('user');
-                } else {
+                } else  {
                     let response = null;
                 }
                 // Done

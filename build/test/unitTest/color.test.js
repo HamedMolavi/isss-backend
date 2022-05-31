@@ -7,9 +7,9 @@ const chai_1 = require("chai");
 const connect_1 = require("../../db/connect");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("../../server");
-//test section models
-describe('section', function () {
-    let Section;
+//test color models
+describe('color', function () {
+    let Color;
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
@@ -17,9 +17,9 @@ describe('section', function () {
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
             mongoose_1.default.connection.db.dropDatabase();
-            require('../../models/section').registerModels;
-            // This is the right model because registerModels set it up for us.
-            Section = mongoose_1.default.model('Section');
+            require('../../models/color').registerModels;
+            // This is the right model because register Models set it up for us.
+            Color = mongoose_1.default.model('Color');
             done();
         });
     });
@@ -28,18 +28,16 @@ describe('section', function () {
         (0, connect_1.Disconnect)();
         done();
     });
-    //test section model
-    describe('register section', function () {
-        //create section model
-        it('should save section in db', function (done) {
-            var section = new Section({
-                name: 'offece',
-                departement_id: new mongoose_1.default.Types.ObjectId('6283724be1996b883080a495')
+    //test color model
+    describe('register color', function () {
+        //create color model
+        it('should save color in db', function (done) {
+            var color = new Color({
+                name: 'red',
             });
-            //test this section model
-            section.save().then(() => {
-                (0, chai_1.expect)(section.name).to.equal('offece');
-                (0, chai_1.expect)(section.departement_id.toString()).to.equal('6283724be1996b883080a495');
+            //test this color model
+            color.save().then(() => {
+                (0, chai_1.expect)(color.name).to.equal('red');
                 done();
             }).catch((err) => {
                 done(err);

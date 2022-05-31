@@ -1,15 +1,14 @@
 import { NextFunction } from "express";
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
 //define personnel type
-export interface IPersonnel {
+export interface IPersonnel extends Document {
     _id: mongoose.Types.ObjectId;
     name: string;
     family: string;
     phone: string;
     jobTitle: string;
-    create_date : Date;
-    save: (next : NextFunction) => Promise<void>;
+    create_date: Date;
 }
 
 //create personnel model with schema for save in DB

@@ -1,8 +1,8 @@
 import { NextFunction } from "express";
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
 //define camera type
-export interface ICamera {
+export interface ICamera extends Document {
     _id: mongoose.Types.ObjectId;
     network: string;
     departement_id: mongoose.Types.ObjectId,
@@ -14,7 +14,6 @@ export interface ICamera {
     password: string;
     is_enabled: boolean;
     create_date : Date;
-    save: (next: NextFunction) => Promise<void>;
 }
 
 

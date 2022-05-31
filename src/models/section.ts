@@ -1,13 +1,11 @@
-import { NextFunction } from "express";
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document} from "mongoose";
 
 //define section type
-export interface ISection {
+export interface ISection extends Document {
     _id: mongoose.Types.ObjectId;
     name: string;
     departement_id: mongoose.Types.ObjectId;
     create_date : Date;
-    save: (next: NextFunction) => Promise<void>;
 }
 
 

@@ -15,6 +15,8 @@ const plateRoutes_1 = __importDefault(require("./custom/plateRoutes"));
 const AIRoutes_1 = __importDefault(require("./custom/AIRoutes"));
 const scheduleRoutes_1 = __importDefault(require("./custom/scheduleRoutes"));
 const modelRoutes_1 = __importDefault(require("./custom/modelRoutes"));
+const colorRoutes_1 = __importDefault(require("./custom/colorRoutes"));
+const carRoutes_1 = __importDefault(require("./custom/carRoutes"));
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add rotes app
@@ -29,4 +31,6 @@ router.use('/plate', plateRoutes_1.default);
 router.use('/AI', AIRoutes_1.default);
 router.use('/schedule', scheduleRoutes_1.default);
 router.use('/model', modelRoutes_1.default);
+router.use('/color', colorRoutes_1.default);
+router.use('/car', carRoutes_1.default);
 exports.default = router;

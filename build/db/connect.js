@@ -20,7 +20,7 @@ function connect() {
         //find the url to connect to the database
         const dbUri = process.env["MONGODB_URL"];
         //connect to the database
-        mongoose_1.default.connect(dbUri, { authSource: 'admin' });
+        mongoose_1.default.connect(dbUri);
         //listen for connection events
         yield mongoose_1.default.connection.on("connected", () => {
             console.log("Mongoose default connection open to " + dbUri);

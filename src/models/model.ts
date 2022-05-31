@@ -1,7 +1,7 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
 //define Model type
-export interface IModel {
+export interface IModel extends Document {
     name: string;
     category: string;
     uri: string;

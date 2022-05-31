@@ -1,12 +1,10 @@
-import { NextFunction } from "express";
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
 //define departement type
-export interface IDepartement {
+export interface IDepartement extends Document {
     _id: mongoose.Types.ObjectId;
     name: string;
     created_date: Date;
-    save: (next: NextFunction) => Promise<void>;
 }
 
 

@@ -3,10 +3,10 @@ import { Disconnect } from '../../db/connect';
 import mongoose from 'mongoose';
 import { dbUri } from '../../server';
 
-//test car models
-describe('car', function () {
+//test color models
+describe('color', function () {
 
-    let Car: any;
+    let Color: any;
     //connect to DB before test
     beforeEach(function (done) {
         //connect to DB
@@ -15,9 +15,9 @@ describe('car', function () {
         mongoose.connection.once('connected', () => {
             mongoose.connection.db.dropDatabase();
 
-            require('../../models/car').registerModels;
+            require('../../models/color').registerModels;
             // This is the right model because register Models set it up for us.
-            Car = mongoose.model('Car');
+            Color = mongoose.model('Color');
             done();
         });
     });
@@ -26,16 +26,16 @@ describe('car', function () {
         Disconnect();
         done();
     });
-    //test car model
-    describe('register car', function () {
-        //create car model
-        it('should save car in db', function (done) {
-            var car = new Car({
-                name: 'pride',
+    //test color model
+    describe('register color', function () {
+        //create color model
+        it('should save color in db', function (done) {
+            var color = new Color({
+                name: 'red',
             });
-            //test this car model
-            car.save().then(() => {
-                expect(car.name).to.equal('pride');
+            //test this color model
+            color.save().then(() => {
+                expect(color.name).to.equal('red');
                 done();
             }
             ).catch((err: Error) => {

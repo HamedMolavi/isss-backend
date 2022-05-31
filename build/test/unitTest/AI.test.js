@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -10,20 +19,21 @@ const server_1 = require("../../server");
 //test AI models
 describe('AI', function () {
     let AI;
-    //connect to DB before test
+    // connect to DB before test
     beforeEach(function (done) {
-        //connect to DB
-        mongoose_1.default.connect(server_1.dbUri, { authSource: 'admin' });
-        //listen for connection events
-        mongoose_1.default.connection.once('connected', () => {
-            //  mongoose.connection.db.dropDatabase();
+        return __awaiter(this, void 0, void 0, function* () {
+            //connect to DB
+            mongoose_1.default.connect(server_1.dbUri);
+            // listen for connection events
+            //await mongoose.connection
+            mongoose_1.default.connection.db.dropDatabase();
             require('../../models/AI').registerModels;
             // This is the right model because registerModels set it up for us.
             AI = mongoose_1.default.model('AI');
             done();
         });
     });
-    //disconnect from DB after test
+    // disconnect from DB after test
     afterEach(function (done) {
         (0, connect_1.Disconnect)();
         done();
@@ -43,7 +53,8 @@ describe('AI', function () {
                 maxPeople: 2
             });
             //test this AI model
-            ai.save().then(() => {
+            ai.save()
+                .then(() => {
                 (0, chai_1.expect)(ai.start).to.equal("2019-01-01T00:00:00.000Z");
                 (0, chai_1.expect)(ai.end).to.equal("2019-01-01T00:00:00.000Z");
                 (0, chai_1.expect)(ai.thresholdid).to.equal(85);
