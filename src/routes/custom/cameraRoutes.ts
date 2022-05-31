@@ -74,19 +74,24 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             camera: camera
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not create the camera: ${err}` });
+        return next({ status: 500, message: `Could not the camera: ${err}` });
     }
 });
 
-
-//route for get cameras list  
-router.get("/list/:page", async function (req: Request, res: Response, next: NextFunction) {
+//route for get camera with search from DB 
+router.get("/find", async function (req: Request, res: Response, next: NextFunction) {
     try {
-        //get page from params in url
-        const page: number = parseInt(req.params.page) > 0 ? parseInt(req.params.page) : 1;
+        //get param from url
+        let search = req.query.search as string;
+        let strLimit = req.query.limit as string;
+        let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
+        if (!search) {
+            req.flash("error", "Search is required");
+            return next({ status: 400, message: "Bad request" });
+        }
+
         //get token from header request
         let token = getToken(req, next) as string;
-
         //verify token
         let critential = authorize(token) as ICritential;
         //check time expire token and role
@@ -95,26 +100,69 @@ router.get("/list/:page", async function (req: Request, res: Response, next: Nex
             return next({ status: 401, message: "Token expired" })
         }
 
-        const perPage: number = 5;
-        //query for get cameras from DB
-        let cameras = await Camera.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
-        //return response to client for not found cameras
-        if (!cameras) {
-            req.flash("error", "cameras not found");
+        //query for search camera by id from DB
+        let camera = await Camera.find({
+            name: { $regex: search, $options: "i" }
+        }).limit(limit).exec();
+
+        //return response not found to client if not found camera
+        if (!camera) {
+            req.flash("error", "Camera not found");
             return next(new Error("Not Found"));
         }
-        //send response to client with camera
+        //return response to client with camera
         return res.status(200).json({
-            message: 'Success',
-            cameras: cameras,
+            message: "Success",
+            camera: camera,
+            limit: limit,
+            total: await Camera.countDocuments().exec(),
+        });
+    } catch (err) {
+        return next({ status: 500, message: `Could not get the camera: ${err}` });
+    }
+});
+
+
+
+//route for get cameras list  
+router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        //get page from url
+        let strPage = req.query.page as string;
+        let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+        //get perPage from url
+        let strPerPage = req.query.perPage as string;
+        let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+
+        //get token from header request
+        let token = getToken(req, next) as string;
+        //verify token
+        let critential = authorize(token) as ICritential;
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
+            return next({ status: 401, message: "Token expired" })
+        }
+        //query for get cameras list
+        let cameras = await Camera.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+
+        //return response not found to client if not found cameras
+        if (!cameras) {
+            req.flash("error", "Cameras not found");
+            return next(new Error("Not Found"));
+        }
+
+        //return response to client with departements list
+        return res.status(200).json({
+            message: "Success",
+            Cameras: cameras,
             page: page,
             perPage: perPage,
             total: await Camera.countDocuments().exec(),
             pages: Math.ceil(await Camera.countDocuments().exec() / perPage)
         });
-
     } catch (err) {
-        return next({ status: 500, message: `Could not get the camera: ${err}` });
+        return next({ status: 500, message: `Could not get the departements: ${err}` });
     }
 });
 
