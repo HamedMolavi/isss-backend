@@ -19,55 +19,121 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { name, family, phone, jobTitle } = req.body;
+        const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code,
+            section_id, camera_whitelist, is_active, is_employee, is_dismissed } = req.body;
         //verify body request
-        if (!name || !family || !phone || !jobTitle) {
+        if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code ||
+            !section_id || !camera_whitelist || !is_active || !is_employee || !is_dismissed) {
+            req.flash("error", "Please fill all fields");
             return next({ status: 400, message: "Bad request" });
         }
 
         //get token from header request
         let token: string = getToken(req, next) as string;
-
         //verify token
         let critential: ICritential = authorize(token) as ICritential;
-
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token has expired");
             return next({ status: 401, message: "Token expired" });
         }
-
-        let newPersonnel = new Personnel();
         //query for save new personnel in DB
-        Personnel.findOne({ name: name }, async function (err: Error, personnel: IPersonnel | null) {
-            if (err) { return next(err); }
-            if (personnel) {
-                req.flash("error", "personnel already exists");
-                return res.status(201).json({ message: "personnel already exists" });
-            }
-            //fill new personnel
-            newPersonnel = new Personnel({
-                name: name,
-                family: family,
-                phone: phone,
-                jobTitle: jobTitle ?? null
-            });
+        let personnel = await Personnel.findOne({
+            $or: [
+                { national_code: personnel_code },
+                { personnel_code: personnel_code }
+            ]
+        }).exec();
 
-            //save new personnel in DB
-            await newPersonnel.save(next);
-            //send response to client with new personnel 
-            return res.status(201).json({
-                message: 'personnel created',
-                personnel: newPersonnel
-            });
+        //check personnel in DB
+        if (personnel) {
+            req.flash("error", "Personnel already exists");
+            return next({ status: 200, message: "Personnel already exists" });
+        }
+
+        //create new personnel
+        personnel = new Personnel({
+            first_name,
+            last_name,
+            national_code,
+            email,
+            phone_number,
+            job_id,
+            personnel_code,
+            section_id,
+            camera_whitelist,
+            is_active,
+            is_employee,
+            is_dismissed
+        });
+
+        //save personnel in DB
+        personnel = await personnel.save();
+        req.flash("info", "Personnel has been registered");
+        //send response
+        res.status(201).json({
+            message: "Success",
+            personnel: personnel
         });
     } catch (err) {
         return next({ status: 500, message: `Could not create the personnel: ${err}` });
     }
 });
 
+//route for get personnel with search from DB 
+router.get("/find", async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        //get param from url
+        let search = req.query.search as string;
+        let strLimit = req.query.limit as string;
+        let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
+        if (!search) {
+            req.flash("error", "Please enter search");
+            return next({ status: 400, message: "Bad request" });
+        }
+
+        //get token from header request
+        let token = getToken(req, next) as string;
+        //verify token
+        let critential = authorize(token) as ICritential;
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
+            return next({ status: 401, message: "Token expired" })
+        }
+
+        //query for search personnel by id from DB
+        let personnel = await Personnel.find({
+            name: { $regex: search, $options: "i" }
+        }).limit(limit).exec();
+
+        //return response not found to client if not found personnel
+        if (!personnel) {
+            req.flash("error", "Personnel not found");
+            return next(new Error("Not Found"));
+        }
+        //return response to client with perssonel
+        return res.status(200).json({
+            message: "Success",
+            personnel: personnel,
+            limit: limit,
+            total: await Personnel.countDocuments().exec()
+        });
+    } catch (err) {
+        return next({ status: 500, message: `Could not get the personnel: ${err}` });
+    }
+});
+
+
 //route for get personnels list  
 router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get page from url
+        let strPage = req.query.page as string;
+        let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+        //get perPage from url
+        let strPerPage = req.query.perPage as string;
+        let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
         //get token from header request
         let token = getToken(req, next) as string;
 
@@ -75,22 +141,33 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
+        } else if (critential.role !== "admin") {
+            req.flash("error", "You are not admin");
+            return next({ status: 401, message: "Unauthorized" });
         }
+        //query for get user by personnels from DB
+        let personnels = await Personnel.find().limit(perPage).skip(perPage * (page - 1)).exec();
 
-        //query for get personnels from DB
-        Personnel.find({}, function (err: Error, personnels: IPersonnel[] | null) {
-            if (err) { return next(err); }
-            if (!personnels) { return next(new Error("Not Found")); }
-            //send response to client with personnels    
-            return res.status(200).json({
-                message: 'Success',
-                personnels: personnels
-            });
+        //send not found if personnels not found
+        if (!personnels) {
+            req.flash("error", "Personnels not found");
+            return next({ status: 200, message: "Not Found" });
+        }
+        //send response
+        return res.status(200).json({
+            message: 'Success',
+            personnels: personnels,
+            page: page,
+            perPage: perPage,
+            total: await Personnel.countDocuments().exec(),
+            pages: Math.ceil(await Personnel.countDocuments().exec() / perPage)
         });
     } catch (err) {
-        return next({ status: 500, message: `Could not get the personnels: ${err}` });
+        return next({ status: 500, message: `Could not get the personnel: ${err}` });
     }
+
 });
 
 //route for get personnel by id from DB 
@@ -99,28 +176,33 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let id: string = req.params.id;
         //verify body request
         if (!id) {
+            req.flash("error", "Please enter id");
             return next({ status: 400, message: "Bad request" });
         }
 
         //get token from header request
         let token = getToken(req, next) as string;
-
         //verify token
         let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         }
 
         //query for get personnel by id from DB
-        Personnel.findById(id, function (err: Error, personnel: IPersonnel | null) {
-            if (err) { return next(err); }
-            if (!personnel) { return next(new Error("Not Found")); }
-            //send response to client with personnel    
-            return res.status(200).json({
-                message: 'Success',
-                personnel: personnel
-            });
+        let personnel = await Personnel.findById(id).exec();
+
+        //send not found if personnel not found
+        if (!personnel) {
+            req.flash("error", "Personnel not found");
+            return next({ status: 200, message: "Not Found" });
+        }
+
+        //send response
+        return res.status(200).json({
+            message: 'Success',
+            personnel: personnel
         });
     } catch (err) {
         return next({ status: 500, message: `Could not get the personnel: ${err}` });
@@ -132,36 +214,35 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
-        let id = req.params.id as Object;
-
-        //verify body request
+        let id: string = req.params.id;
         if (!id) {
+            req.flash("error", "Please enter id");
             return next({ status: 400, message: "Bad request" });
         }
 
         const personnelBody = req.body;
         //get token from header request
         let token = getToken(req, next) as string;
-
         //verify token
         let critential = authorize(token) as ICritential;
-
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         }
         //query for get personnel by id from DB
-        Personnel.findByIdAndUpdate(id, { $set: personnelBody }, function (err: Error, personnel: IPersonnel | null) {
-            if (err) { return next(err); }
-            if (!personnel) { return next(new Error("Not Found")); }
-            Personnel.findById(id, async function (err: Error, updatePersonnel: IPersonnel | null) {
-                if (err) { return next(err); }
-                //send response to client with personnel
-                return res.status(201).json({
-                    message: 'Success',
-                    personnel: updatePersonnel
-                });
-            });
+        let personnel = await Personnel.findByIdAndUpdate(id, personnelBody, { new: true }).exec();
+
+        //send not found if personnel not found
+        if (!personnel) {
+            req.flash("error", "Personnel not found");
+            return next({ status: 200, message: "Not Found" });
+        }
+
+        //send response
+        return res.status(201).json({
+            message: 'Success',
+            personnel: personnel
         });
     } catch (err) {
         return next({ status: 500, message: `Could not edit the personnel: ${err}` });
@@ -172,32 +253,36 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for delete personnel
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get id from url
         let id = req.params.id;
-        //verify body request
         if (!id) {
+            req.flash("error", "Please enter id");
             return next({ status: 400, message: "Bad request" });
         }
 
         //get token from header request
-        let token = getToken(req, next) as string;
-
+        let token: string = getToken(req, next) as string;
         //verify token
-        let critential = authorize(token) as ICritential;
-
+        let critential: ICritential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         }
 
         //query for get personnel by id from DB
-        Personnel.findByIdAndDelete(id, function (err: Error, personnel: IPersonnel | null) {
-            if (err) { return next(err); }
-            if (!personnel) { return next(new Error("Not Found")); }
-            //send response to client with personnel
-            return res.status(201).json({
-                message: 'Success',
-                personnel: personnel
-            });
+        let personnel = await Personnel.findByIdAndDelete(id).exec();
+
+        //send not found if personnel not found
+        if (!personnel) {
+            req.flash("error", "Personnel not found");
+            return next({ status: 200, message: "Not Found" });
+        }
+
+        //send response
+        return res.status(201).json({
+            message: 'Success',
+            personnel: personnel
         });
     } catch (err) {
         return next({ status: 500, message: `Could not delete the personnel: ${err}` });
