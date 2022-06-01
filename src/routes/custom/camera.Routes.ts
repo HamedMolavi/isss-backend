@@ -33,6 +33,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" });
         }
 
