@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 //define Model type
 export interface IModel extends Document {
+    _id: mongoose.Types.ObjectId;
     name: string;
     category: string;
     uri: string;
