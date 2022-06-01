@@ -4,7 +4,7 @@ import fs from 'fs';
 import http from 'http';
 import https from 'https';
 import logger from 'morgan';
-import connect from "./db/connect";
+import connect from "./db/connectMongo";
 import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";

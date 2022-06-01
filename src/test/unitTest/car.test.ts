@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Disconnect } from '../../db/connect';
+import { Disconnect } from '../../db/connectMongo';
 import mongoose from 'mongoose';
 import { dbUri } from '../../server';
 
