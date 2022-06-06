@@ -1,17 +1,15 @@
 import util from 'util';
 import multer from 'multer';
-import fs from 'fs';
 import Guid from '../tools/createGuid'
-import mongoose from 'mongoose';
 import redisClient from './../db/redis';
 
 
-interface IFileInRedis {
+export interface IFileInRedis {
     id: string;
-    fullFrame: string;
-    cropedFrame: string;
-    featureVector: number[];
-    personnel_id: string;
+    full_frame: string;
+    face: string;
+    embedding: number[];
+    has_face: number;
     timestamp: Date;
 }
 
@@ -45,23 +43,68 @@ let uploadFileMiddleware = util.promisify(uploadFile);
 //set file in redis 
 export async function setFileInRedis(fileBase64: string, Personnel_id: string) {
     try {
-        //  const upload = await uploadFileInMemory(Personnel_id);
+        //connet to redis if not connected
+        if (!redisClient.isOpen) {
+            await redisClient.connect();
+        }
         //define object for save in redis
         let fileInRedis: IFileInRedis = {
             id: Personnel_id,
-            fullFrame: fileBase64,
-            cropedFrame: "",
-            featureVector: [],
-            personnel_id: Personnel_id,
+            full_frame: fileBase64,
+            face: "",
+            embedding: [],
+            has_face: 1,
             timestamp: new Date()
         }
 
         //insert to redis
         await redisClient.set(fileInRedis.id, JSON.stringify(fileInRedis));
         //close redis connection
-        redisClient.quit();
+        redisClient.disconnect();
         //return file id
         return fileInRedis.id.toString();
+    } catch (error: any) {
+        console.log(error);
+        throw new Error(error);
+    }
+}
+
+//get image verified from redis
+export async function getImageFromRedis(Personnel_id: string) {
+    try {
+        //connet to redis if not connected
+        if (!redisClient.isOpen) {
+            redisClient.connect();
+        }
+        let fileInRedis: IFileInRedis;
+        //get file from redis
+        let getFromRedis = await redisClient.get(Personnel_id);
+        //convert to object
+        fileInRedis = JSON.parse(getFromRedis!);
+        //close redis connection
+        redisClient.disconnect();
+        //return file
+        return fileInRedis;
+    } catch (error: any) {
+        console.log(error);
+        throw new Error(error);
+    }
+}
+
+
+//delete jason image in redis
+export async function deleteImageInRedis(Personnel_id: string) {
+    try {
+        //connet to redis if not connected
+        if (!redisClient.isOpen) {
+            await redisClient.connect();
+        }
+        //delete file from redis
+        let result = await redisClient.del(Personnel_id);
+        //close redis connection
+        redisClient.disconnect();
+        //return file
+        return result;
     } catch (error: any) {
         console.log(error);
         throw new Error(error);
