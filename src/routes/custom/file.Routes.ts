@@ -1,9 +1,12 @@
-import uploadFile, { fileName, location, setFileInRedis } from '../../tools/fileUpload';
+import uploadFile, { fileName, location, setFileInRedis, IFileInRedis, getImageFromRedis, deleteImageInRedis } from '../../tools/fileUpload';
 import { NextFunction, Router, Request, Response } from 'express';
 import fs from 'fs';
 import { authorize, getToken, ICritential } from '../../tools/authentication';
 import Busboy from 'busboy';
 import axios from 'axios';
+import Guid from '../../tools/createGuid';
+import path from 'path';
+import PersonImage, { IPersonImage } from './../../models/personImage';
 
 //create router for add to server 
 const router: Router = Router();
@@ -125,7 +128,7 @@ router.post('/redis', async function (req: Request, res: Response, next: NextFun
             req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         }
-        //get url api AI for send id_personnel
+        // get url api AI for send id_personnel
         const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
         //get file name from request body
         const bb = Busboy({ headers: req.headers });
@@ -136,18 +139,17 @@ router.post('/redis', async function (req: Request, res: Response, next: NextFun
                 let fileBase64 = data.toString('base64');
                 //add to redis
                 let personnel_id = await setFileInRedis(fileBase64, '123456789');
-
                 //send error if file is not upload
                 if (!personnel_id) {
                     req.flash("error", "File not upload");
                     return next({ status: 400, message: "Please upload a file!" });
                 }
                 //send request to AI api for send id_personnel
-                await axios.post('http://127.0.0.1:8000/key', {
-                    image: personnel_id,
+                await axios.post(dbUri, {
+                    image: personnel_id
                 }).then(function (response) {
                     console.log("Response From API AI :" + response.status);
-                    req.flash("info", "Uploaded the file successfully: ");
+                    req.flash("info", "Uploaded the file successfully");
                     //send response to client
                     res.status(201).send({
                         message: "Uploaded the file successfully"
@@ -159,6 +161,62 @@ router.post('/redis', async function (req: Request, res: Response, next: NextFun
             });
         });
         req.pipe(bb);
+    } catch (err) {
+        return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
+    }
+});
+
+//route for verified image in redis
+router.post('/verify', async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        //get body from request
+        const { personnel_id } = req.body;
+        if (!personnel_id) {
+            req.flash("error", "personnel_id is required!");
+            return next({ status: 400, message: "persoonel id is required" });
+        }
+        //get jason information from redis
+        let redisData: IFileInRedis = await getImageFromRedis(personnel_id.toString());
+        //Condition for face recognition
+        if (redisData.has_face === 1) {
+            let guid: string = personnel_id + "-" + Guid.newGuid();
+            //create name for image
+            let fileName: string = guid + ".jpg";
+            //define path for save image
+            let pathSave = path.join(__dirname, './../../../assets/uploads/');
+            //write image in path 
+            await fs.writeFile(pathSave + fileName, redisData.full_frame, (err) => {
+                if (err) {
+                    return next({ status: 500, message: `Could not save the file: ${fileName}. ${err}` });
+                }
+            });
+
+            let personImage = await PersonImage.findOne({ guid: fileName }).exec();
+
+            //create new personimage  
+            personImage = new PersonImage({
+                person_id: '6283724be1996b883080a495',
+                //  person_id: personnel_id,
+                guid: guid,
+                vector: redisData.face
+            });
+            personImage.vector = [123456789];
+            //save personimage in database
+
+            await personImage.save();
+            //delete jason image in redis
+            let result = await deleteImageInRedis(personnel_id.toString());
+            //send response to client
+            res.status(200).send({
+                message: "Verified the file successfully"
+            });
+        } else if (Number(redisData.has_face) === 0) {
+            req.flash("error", "No face found");
+            //send response to client for not face recognition
+            res.status(406).send({
+                message: "No face found"
+            });
+        }
     } catch (err) {
         return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
     }
