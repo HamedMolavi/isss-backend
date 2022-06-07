@@ -1,4 +1,4 @@
-import uploadFile, { fileName, location, setFileInRedis, IFileInRedis, getImageFromRedis, deleteImageInRedis } from '../../tools/fileUpload';
+import uploadFile, { fileName, location, setFileInRedis, IFileInRedis, getImageFromRedis, deleteImageInRedis, hashJson } from '../../tools/fileUpload';
 import { NextFunction, Router, Request, Response } from 'express';
 import fs from 'fs';
 import { authorize, getToken, ICritential } from '../../tools/authentication';
@@ -119,6 +119,8 @@ router.get('/list', async function (req: Request, res: Response, next: NextFunct
 //create api for upload image to redis
 router.post('/redis', async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get personnel_id from body request
+        // const { personnel_id } = req.body;
         //get token from header request
         let token = getToken(req, next) as string;
         //verify token
@@ -131,22 +133,26 @@ router.post('/redis', async function (req: Request, res: Response, next: NextFun
         // get url api AI for send id_personnel
         const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
         //get file name from request body
-        const bb = Busboy({ headers: req.headers });
+
+        const bb = await Busboy({ headers: req.headers });
+        console.log(11);
         //save file in redis
         bb.on('file', async (name, file, info) => {
             file.on('data', async (data) => {
                 //canvert data to base64
                 let fileBase64 = data.toString('base64');
+                //hash jason for create key id for store image in redis
+                let id = hashJson(fileBase64, '123456789');
                 //add to redis
-                let personnel_id = await setFileInRedis(fileBase64, '123456789');
+              //  let personnel_id = await setFileInRedis(fileBase64, '123456789');
                 //send error if file is not upload
-                if (!personnel_id) {
+                if (!id) {
                     req.flash("error", "File not upload");
                     return next({ status: 400, message: "Please upload a file!" });
                 }
                 //send request to AI api for send id_personnel
                 await axios.post(dbUri, {
-                    image: personnel_id
+                    id: id
                 }).then(function (response) {
                     console.log("Response From API AI :" + response.status);
                     req.flash("info", "Uploaded the file successfully");
@@ -218,7 +224,7 @@ router.post('/verify', async function (req: Request, res: Response, next: NextFu
             });
         }
     } catch (err) {
-        return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
+        return next({ status: 500, message: `Could not upload the file: ${req.file?.originalname}. ${err}` });
     }
 });
 
