@@ -29,9 +29,11 @@ router.post("/register", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { name, family, phone, jobTitle } = req.body;
+            const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed } = req.body;
             //verify body request
-            if (!name || !family || !phone || !jobTitle) {
+            if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code ||
+                !section_id || !camera_whitelist || !is_active || !is_employee || !is_dismissed) {
+                req.flash("error", "Please fill all fields");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -40,34 +42,43 @@ router.post("/register", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token has expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            let newPersonnel = new personnel_1.default();
             //query for save new personnel in DB
-            personnel_1.default.findOne({ name: name }, function (err, personnel) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (personnel) {
-                        req.flash("error", "personnel already exists");
-                        return res.status(201).json({ message: "personnel already exists" });
-                    }
-                    //fill new personnel
-                    newPersonnel = new personnel_1.default({
-                        name: name,
-                        family: family,
-                        phone: phone,
-                        jobTitle: jobTitle !== null && jobTitle !== void 0 ? jobTitle : null
-                    });
-                    //save new personnel in DB
-                    yield newPersonnel.save(next);
-                    //send response to client with new personnel 
-                    return res.status(201).json({
-                        message: 'personnel created',
-                        personnel: newPersonnel
-                    });
-                });
+            let personnel = yield personnel_1.default.findOne({
+                $or: [
+                    { national_code: personnel_code },
+                    { personnel_code: personnel_code }
+                ]
+            }).exec();
+            //check personnel in DB
+            if (personnel) {
+                req.flash("error", "Personnel already exists");
+                return next({ status: 200, message: "Personnel already exists" });
+            }
+            //create new personnel
+            personnel = new personnel_1.default({
+                first_name,
+                last_name,
+                national_code,
+                email,
+                phone_number,
+                job_id,
+                personnel_code,
+                section_id,
+                camera_whitelist,
+                is_active,
+                is_employee,
+                is_dismissed
+            });
+            //save personnel in DB
+            personnel = yield personnel.save();
+            req.flash("info", "Personnel has been registered");
+            //send response
+            res.status(201).json({
+                message: "Success",
+                personnel: personnel
             });
         }
         catch (err) {
@@ -75,35 +86,91 @@ router.post("/register", function (req, res, next) {
         }
     });
 });
-//route for get personnels list  
-router.get("/list", function (req, res, next) {
+//route for get personnel with search from DB 
+router.get("/find", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get param from url
+            let search = req.query.search;
+            let strLimit = req.query.limit;
+            let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
+            if (!search) {
+                req.flash("error", "Please enter search");
+                return next({ status: 400, message: "Bad request" });
+            }
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get personnels from DB
-            personnel_1.default.find({}, function (err, personnels) {
-                if (err) {
-                    return next(err);
-                }
-                if (!personnels) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with personnels    
-                return res.status(200).json({
-                    message: 'Success',
-                    personnels: personnels
-                });
+            //query for search personnel by id from DB
+            let personnel = yield personnel_1.default.find({
+                name: { $regex: search, $options: "i" }
+            }).limit(limit).exec();
+            //return response not found to client if not found personnel
+            if (!personnel) {
+                req.flash("error", "Personnel not found");
+                return next(new Error("Not Found"));
+            }
+            //return response to client with perssonel
+            return res.status(200).json({
+                message: "Success",
+                personnel: personnel,
+                limit: limit,
+                total: yield personnel_1.default.countDocuments().exec()
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the personnels: ${err}` });
+            return next({ status: 500, message: `Could not get the personnel: ${err}` });
+        }
+    });
+});
+//route for get personnels list  
+router.get("/list", function (req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get page from url
+            let strPage = req.query.page;
+            let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+            //get perPage from url
+            let strPerPage = req.query.perPage;
+            let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+            //get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
+                return next({ status: 401, message: "Token expired" });
+            }
+            else if (critential.role !== "admin") {
+                req.flash("error", "You are not admin");
+                return next({ status: 401, message: "Unauthorized" });
+            }
+            //query for get user by personnels from DB
+            let personnels = yield personnel_1.default.find().limit(perPage).skip(perPage * (page - 1)).exec();
+            //send not found if personnels not found
+            if (!personnels) {
+                req.flash("error", "Personnels not found");
+                return next({ status: 200, message: "Not Found" });
+            }
+            //send response
+            return res.status(200).json({
+                message: 'Success',
+                personnels: personnels,
+                page: page,
+                perPage: perPage,
+                total: yield personnel_1.default.countDocuments().exec(),
+                pages: Math.ceil((yield personnel_1.default.countDocuments().exec()) / perPage)
+            });
+        }
+        catch (err) {
+            return next({ status: 500, message: `Could not get the personnel: ${err}` });
         }
     });
 });
@@ -114,6 +181,7 @@ router.get("/:id", function (req, res, next) {
             let id = req.params.id;
             //verify body request
             if (!id) {
+                req.flash("error", "Please enter id");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -122,21 +190,20 @@ router.get("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get personnel by id from DB
-            personnel_1.default.findById(id, function (err, personnel) {
-                if (err) {
-                    return next(err);
-                }
-                if (!personnel) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with personnel    
-                return res.status(200).json({
-                    message: 'Success',
-                    personnel: personnel
-                });
+            let personnel = yield personnel_1.default.findById(id).exec();
+            //send not found if personnel not found
+            if (!personnel) {
+                req.flash("error", "Personnel not found");
+                return next({ status: 200, message: "Not Found" });
+            }
+            //send response
+            return res.status(200).json({
+                message: 'Success',
+                personnel: personnel
             });
         }
         catch (err) {
@@ -150,8 +217,8 @@ router.put("/:id", function (req, res, next) {
         try {
             //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
+                req.flash("error", "Please enter id");
                 return next({ status: 400, message: "Bad request" });
             }
             const personnelBody = req.body;
@@ -161,28 +228,20 @@ router.put("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get personnel by id from DB
-            personnel_1.default.findByIdAndUpdate(id, { $set: personnelBody }, function (err, personnel) {
-                if (err) {
-                    return next(err);
-                }
-                if (!personnel) {
-                    return next(new Error("Not Found"));
-                }
-                personnel_1.default.findById(id, function (err, updatePersonnel) {
-                    return __awaiter(this, void 0, void 0, function* () {
-                        if (err) {
-                            return next(err);
-                        }
-                        //send response to client with personnel
-                        return res.status(201).json({
-                            message: 'Success',
-                            personnel: updatePersonnel
-                        });
-                    });
-                });
+            let personnel = yield personnel_1.default.findByIdAndUpdate(id, personnelBody, { new: true }).exec();
+            //send not found if personnel not found
+            if (!personnel) {
+                req.flash("error", "Personnel not found");
+                return next({ status: 200, message: "Not Found" });
+            }
+            //send response
+            return res.status(201).json({
+                message: 'Success',
+                personnel: personnel
             });
         }
         catch (err) {
@@ -194,9 +253,10 @@ router.put("/:id", function (req, res, next) {
 router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get id from url
             let id = req.params.id;
-            //verify body request
             if (!id) {
+                req.flash("error", "Please enter id");
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request
@@ -205,21 +265,20 @@ router.delete("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get personnel by id from DB
-            personnel_1.default.findByIdAndDelete(id, function (err, personnel) {
-                if (err) {
-                    return next(err);
-                }
-                if (!personnel) {
-                    return next(new Error("Not Found"));
-                }
-                //send response to client with personnel
-                return res.status(201).json({
-                    message: 'Success',
-                    personnel: personnel
-                });
+            let personnel = yield personnel_1.default.findByIdAndDelete(id).exec();
+            //send not found if personnel not found
+            if (!personnel) {
+                req.flash("error", "Personnel not found");
+                return next({ status: 200, message: "Not Found" });
+            }
+            //send response
+            return res.status(201).json({
+                message: 'Success',
+                personnel: personnel
             });
         }
         catch (err) {

@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const chai_1 = require("chai");
-const connect_1 = require("../../db/connect");
+const connectMongo_1 = require("../../db/connectMongo");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("../../server");
 //test car models
@@ -25,7 +25,7 @@ describe('car Brand', function () {
     });
     //disconnect from DB after test
     afterEach(function (done) {
-        (0, connect_1.Disconnect)();
+        (0, connectMongo_1.Disconnect)();
         done();
     });
     //test car model

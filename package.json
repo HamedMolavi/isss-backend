@@ -13,8 +13,8 @@
     "test:api": "mocha ./build/test/endpointTest --timeout 10000"
   },
   "dependencies": {
+    "@techstark/opencv-js": "^4.6.0-release.1",
     "@types/bcrypt": "^5.0.0",
-    "@types/busboy": "^1.5.0",
     "@types/chai": "^4.3.1",
     "@types/cheerio": "^0.22.31",
     "@types/connect-flash": "^0.0.37",
@@ -33,7 +33,6 @@
     "@types/supertest": "^2.0.12",
     "axios": "^0.27.2",
     "bcrypt": "^5.0.1",
-    "busboy": "^1.6.0",
     "chai": "^4.3.6",
     "cheerio": "^1.0.0-rc.10",
     "connect-flash": "^0.1.1",

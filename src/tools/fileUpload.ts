@@ -2,14 +2,12 @@ import util from 'util';
 import multer from 'multer';
 import Guid from '../tools/createGuid'
 import redisClient from './../db/redis';
-import md5 from 'md5';
-
 
 export interface IFileInRedis {
     id: string;
     full_frame: string;
     face: string;
-    embedding: number[];
+    embedding: string | number[] | null;
     has_face: number;
     timestamp: Date;
 }
@@ -53,8 +51,8 @@ export async function setFileInRedis(fileBase64: string, Personnel_id: string) {
             id: Personnel_id,
             full_frame: fileBase64,
             face: "",
-            embedding: [],
-            has_face: 1,
+            embedding: "",
+            has_face: 0,
             timestamp: new Date()
         }
 
@@ -71,18 +69,15 @@ export async function setFileInRedis(fileBase64: string, Personnel_id: string) {
 }
 
 //get image verified from redis
-export async function getImageFromRedis(Personnel_id: string) {
+export async function getImageFromRedis(id: string) {
     try {
         //connet to redis if not connected
         if (!redisClient.isOpen) {
-            redisClient.connect();
+            await redisClient.connect();
         }
-        let fileInRedis: IFileInRedis;
-        //get file from redis
-        let getFromRedis = await redisClient.get(Personnel_id);
-        //convert to object
-        fileInRedis = JSON.parse(getFromRedis!);
-        //close redis connection
+        const result = await redisClient.get(id) as any;
+        const replaced = result?.replaceAll("'", '"');
+        let fileInRedis = JSON.parse(replaced);
         redisClient.disconnect();
         //return file
         return fileInRedis;
@@ -112,21 +107,7 @@ export async function deleteImageInRedis(Personnel_id: string) {
     }
 }
 
-//function for hash json for create id save picture in redis
-export function hashJson(data: string, personnel_id: string) {
-    //define object for save in redis
-    let fileInRedis: IFileInRedis = {
-        id: personnel_id,
-        full_frame: data,
-        face: "",
-        embedding: [],
-        has_face: 1,
-        timestamp: new Date()
-    }
-    const secretKey = process.env["KEY_HASH_OBJECT"] as string;
-    //return hash object for id in redis
-    return md5(JSON.stringify(fileInRedis) + secretKey);
-}
+
 export default uploadFileMiddleware;
 
 

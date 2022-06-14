@@ -41,6 +41,7 @@ router.post("/register", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for save new Camera in DB

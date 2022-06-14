@@ -33,7 +33,7 @@ const fs_1 = __importDefault(require("fs"));
 const http_1 = __importDefault(require("http"));
 const https_1 = __importDefault(require("https"));
 const morgan_1 = __importDefault(require("morgan"));
-const connect_1 = __importDefault(require("./db/connect"));
+const connectMongo_1 = __importDefault(require("./db/connectMongo"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const cors_1 = __importDefault(require("cors"));
 const body_parser_1 = __importDefault(require("body-parser"));
@@ -62,7 +62,7 @@ const HOST = process.env["HOST"];
 //create express app
 const app = (0, express_1.default)();
 //connect to database
-(0, connect_1.default)();
+(0, connectMongo_1.default)();
 (0, setuppassport_1.default)();
 //config server
 app.use((0, cors_1.default)());

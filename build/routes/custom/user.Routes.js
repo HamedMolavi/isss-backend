@@ -107,7 +107,7 @@ router.get("/find", function (req, res, next) {
             }).limit(limit).exec();
             //return response not found to client if not found user
             if (!user) {
-                req.flash("error", "Section not found");
+                req.flash("error", "User not found");
                 return next(new Error("Not Found"));
             }
             //return response to client with user

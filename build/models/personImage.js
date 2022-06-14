@@ -24,22 +24,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-//create personnel model with schema for save in DB
-const PersonnelSchema = new mongoose_1.Schema({
-    first_name: { type: String, required: true },
-    last_name: { type: String, required: true },
-    national_code: { type: String, required: true },
-    email: { type: String, required: true },
-    phone_number: { type: String, required: true },
-    job_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "JobTitle", required: true },
-    personnel_code: { type: String, required: true },
-    section_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Section", required: true },
-    camera_whitelist: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Camera" }],
-    is_active: { type: Boolean, default: false },
-    is_employee: { type: Boolean, default: false },
-    is_dismissed: { type: Boolean, default: false },
-    create_date: { type: Date, default: Date.now }
+//create Model person_image with schema for save in DB
+const PersonImageSchema = new mongoose_1.Schema({
+    person_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Personnel" },
+    guid: { type: String, required: true },
+    vector: { type: [Number], required: true }
 });
-// Compile model from schema
-const Personnel = mongoose_1.default.model("Personnel", PersonnelSchema);
-exports.default = Personnel;
+// Compile Model from schema
+const Model = mongoose_1.default.model("Person_Image", PersonImageSchema);
+exports.default = Model;

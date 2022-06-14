@@ -39,6 +39,12 @@ const fileUpload_1 = __importStar(require("../../tools/fileUpload"));
 const express_1 = require("express");
 const fs_1 = __importDefault(require("fs"));
 const authentication_1 = require("../../tools/authentication");
+const axios_1 = __importDefault(require("axios"));
+const createGuid_1 = __importDefault(require("../../tools/createGuid"));
+const path_1 = __importDefault(require("path"));
+const personImage_1 = __importDefault(require("./../../models/personImage"));
+const multer_1 = __importDefault(require("multer"));
+const hash_1 = require("../../tools/hash");
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -58,6 +64,7 @@ router.post('/upload', function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token is expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //get file from request body and save 
@@ -86,6 +93,7 @@ router.get('/download/:fileName', function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //get file name from request params
@@ -95,6 +103,7 @@ router.get('/download/:fileName', function (req, res, next) {
             //send image to client
             yield res.download(directoryPath + fileName, fileName, (err) => {
                 if (err) {
+                    req.flash("error", "File not found");
                     return next({ status: 500, message: `Could not download the file: ${fileName}. ${err}` });
                 }
             });
@@ -114,6 +123,7 @@ router.get('/list', function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //get directory path
@@ -138,6 +148,123 @@ router.get('/list', function (req, res, next) {
         }
         catch (err) {
             return next({ status: 500, message: `Could not get list files: ${err}` });
+        }
+    });
+});
+//add package multer for upload file
+var storage = multer_1.default.memoryStorage();
+//create multer for upload file and save in memory
+var upload = (0, multer_1.default)({ storage: storage });
+//create api for upload image to redis
+router.post('/redis', upload.single('file'), function (req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            // get personnel_id from body request
+            const { personnel_id } = req.body;
+            // get token from header request
+            let token = (0, authentication_1.getToken)(req, next);
+            //verify token
+            let critential = (0, authentication_1.authorize)(token);
+            //check time expire token and role
+            if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
+                return next({ status: 401, message: "Token expired" });
+            }
+            //get file from request body and save
+            let fileBase64;
+            let file = req.file.buffer;
+            //convert file to base64
+            fileBase64 = file.toString('base64');
+            //create hash for redis id
+            let idHashed = (0, hash_1.hashJson)(fileBase64, personnel_id);
+            console.log(idHashed);
+            //set file in redis
+            let id = yield (0, fileUpload_1.setFileInRedis)(fileBase64, idHashed);
+            if (!id) {
+                req.flash("error", "File not upload");
+                return next({ status: 400, message: "Please upload a file!" });
+            }
+            //get url AI for send request
+            const dbUri = process.env["API_AI_REDIS_NAME"];
+            //send request to AI api for send id_personnel
+            yield axios_1.default.post(dbUri, {
+                id: idHashed
+            }).then(function (response) {
+                console.log("Response From API AI :" + response.status);
+                req.flash("info", "Uploaded the file successfully");
+                //  send response to client
+            }).catch(function (error) {
+                console.log(error.response.data);
+                return next({ status: 400, message: "There is a problem, please try again" });
+            });
+            res.status(201).send({
+                message: "Uploaded the file successfully"
+            });
+            //send error if file is not upload
+        }
+        catch (err) {
+            return next({ status: 500, message: `Could not upload the file. ${err}` });
+        }
+    });
+});
+//route for verified image in redis
+router.post('/verify', function (req, res, next) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get body from request
+            const { id } = req.body;
+            if (!id) {
+                req.flash("error", "id is required!");
+                return next({ status: 400, message: "id is required" });
+            }
+            //get jason information from redis
+            let redisData = yield (0, fileUpload_1.getImageFromRedis)(id);
+            //convert base64 to file
+            let image = Buffer.from(redisData.face, 'base64');
+            //covert base64 to array buffer
+            let embeddingArray = Buffer.from(redisData.embedding, 'base64').toJSON().data;
+            //Face recognition condition
+            if (redisData.has_face === 1) {
+                let guid = id + "-" + createGuid_1.default.newGuid();
+                //create name for image
+                let fileName = guid + ".jpg";
+                //todo : convert BGR to RGB
+                //define path for save image
+                let pathSave = path_1.default.join(__dirname, './../../../assets/uploads/');
+                //write image in path 
+                yield fs_1.default.writeFile(pathSave + fileName, image, (err) => {
+                    if (err) {
+                        return next({ status: 500, message: `Could not save the file: ${fileName}. ${err}` });
+                    }
+                });
+                //query to database for search personnel
+                let personImage = yield personImage_1.default.findOne({ guid: fileName }).exec();
+                //create new personimage  
+                personImage = new personImage_1.default({
+                    person_id: '6283724be1996b883080a495',
+                    guid: guid,
+                    vector: embeddingArray,
+                });
+                //  save personimage in database
+                yield personImage.save();
+                //  delete jason image in redis
+                let result = yield (0, fileUpload_1.deleteImageInRedis)(id.toString());
+                //   send response to client
+                res.status(200).send({
+                    message: "Verified the file successfully"
+                });
+            }
+            else if (Number(redisData.has_face) === 0) {
+                req.flash("error", "No face found");
+                //send response to client for not face recognition
+                res.status(406).send({
+                    message: "No face found"
+                });
+            }
+        }
+        catch (err) {
+            return next({ status: 500, message: `Could not upload the file: ${(_a = req.file) === null || _a === void 0 ? void 0 : _a.originalname}. ${err}` });
         }
     });
 });
