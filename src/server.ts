@@ -78,7 +78,7 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
 });
 
 //add routes app
-app.use(routes);
+app.use("/api/v1",routes);
 
 //add error handler
 app.use(errorHandler);
