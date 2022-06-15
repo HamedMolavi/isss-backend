@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const chai_1 = require("chai");
-const connect_1 = require("../../db/connect");
+const connectMongo_1 = require("../../db/connectMongo");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("../../server");
 //test personnel models
@@ -25,7 +25,7 @@ describe('personnel', function () {
     });
     //disconnect from DB after test
     afterEach(function (done) {
-        (0, connect_1.Disconnect)();
+        (0, connectMongo_1.Disconnect)();
         done();
     });
     //test personnel model
@@ -33,16 +33,33 @@ describe('personnel', function () {
         //create personnel model
         it('should save personnel in db', function (done) {
             var personnel = new Personnel({
-                name: 'jack',
-                family: 'jackson',
-                phone: '123456789',
-                jobTitle: new mongoose_1.default.Types.ObjectId('6283724be1996b883080a495')
+                first_name: "sasan",
+                last_name: "pilehvar",
+                national_code: "123456789",
+                email: "test@test.gmail.com",
+                phone_number: "0123456789",
+                job_id: "6283724be1996b883080a495",
+                personnel_code: "6283724be1996b883080a495",
+                section_id: "6283724be1996b883080a495",
+                camera_whitelist: ["6283724be1996b883080a495", "6283724be1996b883080a495"],
+                is_active: true,
+                is_employee: true,
+                is_dismissed: true
             });
             //test this personnel model
             personnel.save().then(() => {
-                (0, chai_1.expect)(personnel.name).to.equal('jack');
-                (0, chai_1.expect)(personnel.family).to.equal('jackson');
-                (0, chai_1.expect)(personnel.phone).to.equal('123456789');
+                (0, chai_1.expect)(personnel.first_name).to.equal("sasan");
+                (0, chai_1.expect)(personnel.last_name).to.equal("pilehvar");
+                (0, chai_1.expect)(personnel.national_code).to.equal("123456789");
+                (0, chai_1.expect)(personnel.email).to.equal("test@test.gmail.com");
+                (0, chai_1.expect)(personnel.phone_number).to.equal("0123456789");
+                (0, chai_1.expect)(personnel.job_id).to.equal("6283724be1996b883080a495");
+                (0, chai_1.expect)(personnel.personnel_code).to.equal("6283724be1996b883080a495");
+                (0, chai_1.expect)(personnel.section_id).to.equal("6283724be1996b883080a495");
+                (0, chai_1.expect)(personnel.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
+                (0, chai_1.expect)(personnel.is_active).to.equal(true);
+                (0, chai_1.expect)(personnel.is_employee).to.equal(true);
+                (0, chai_1.expect)(personnel.is_dismissed).to.equal(true);
                 done();
             }).catch((err) => {
                 done(err);

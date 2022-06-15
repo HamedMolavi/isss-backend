@@ -1,12 +1,13 @@
-import uploadFile, { fileName, location, setFileInRedis, IFileInRedis, getImageFromRedis, deleteImageInRedis } from '../../tools/fileUpload';
+import uploadFile, { fileName, location, setFileInRedis, getImageFromRedis, deleteImageInRedis } from '../../tools/fileUpload';
 import { NextFunction, Router, Request, Response } from 'express';
 import fs from 'fs';
 import { authorize, getToken, ICritential } from '../../tools/authentication';
-import Busboy from 'busboy';
 import axios from 'axios';
 import Guid from '../../tools/createGuid';
 import path from 'path';
 import PersonImage, { IPersonImage } from './../../models/personImage';
+import multer from 'multer';
+import { hashJson } from '../../tools/hash';
 
 //create router for add to server 
 const router: Router = Router();
@@ -116,53 +117,61 @@ router.get('/list', async function (req: Request, res: Response, next: NextFunct
 
 });
 
+
+//add package multer for upload file
+var storage = multer.memoryStorage();
+//create multer for upload file and save in memory
+var upload = multer({ storage: storage });
 //create api for upload image to redis
-router.post('/redis', async function (req: Request, res: Response, next: NextFunction) {
+router.post('/redis', upload.single('file'), async function (req: Request, res: Response, next: NextFunction) {
     try {
-        //get token from header request
-        let token = getToken(req, next) as string;
+        // get personnel_id from body request
+        const { personnel_id } = req.body;
+        // get token from header request
+        let token: string = getToken(req, next) as string;
         //verify token
-        let critential = authorize(token) as ICritential;
+        let critential: ICritential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
             req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         }
-        // get url api AI for send id_personnel
+        //get file from request body and save
+        let fileBase64: string;
+        let file = req.file!.buffer;
+        //convert file to base64
+        fileBase64 = file.toString('base64');
+        //create hash for redis id
+        let idHashed = hashJson(fileBase64, personnel_id);
+        console.log(idHashed);
+        //set file in redis
+        let id = await setFileInRedis(fileBase64, idHashed);
+        if (!id) {
+            req.flash("error", "File not upload");
+            return next({ status: 400, message: "Please upload a file!" });
+        }
+
+        //get url AI for send request
         const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
-        //get file name from request body
-        const bb = Busboy({ headers: req.headers });
-        //save file in redis
-        bb.on('file', async (name, file, info) => {
-            file.on('data', async (data) => {
-                //canvert data to base64
-                let fileBase64 = data.toString('base64');
-                //add to redis
-                let personnel_id = await setFileInRedis(fileBase64, '123456789');
-                //send error if file is not upload
-                if (!personnel_id) {
-                    req.flash("error", "File not upload");
-                    return next({ status: 400, message: "Please upload a file!" });
-                }
-                //send request to AI api for send id_personnel
-                await axios.post(dbUri, {
-                    image: personnel_id
-                }).then(function (response) {
-                    console.log("Response From API AI :" + response.status);
-                    req.flash("info", "Uploaded the file successfully");
-                    //send response to client
-                    res.status(201).send({
-                        message: "Uploaded the file successfully"
-                    });
-                }).catch(function (error) {
-                    console.log(error.response.data);
-                    return next({ status: 400, message: "There is a problem, please try again" });
-                });
-            });
+        //send request to AI api for send id_personnel
+        await axios.post(dbUri, {
+            id: idHashed
+        }).then(function (response) {
+            console.log("Response From API AI :" + response.status);
+            req.flash("info", "Uploaded the file successfully");
+            //  send response to client
+
+        }).catch(function (error) {
+            console.log(error.response.data);
+            return next({ status: 400, message: "There is a problem, please try again" });
         });
-        req.pipe(bb);
+        res.status(201).send({
+            message: "Uploaded the file successfully"
+        });
+        //send error if file is not upload
+
     } catch (err) {
-        return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
+        return next({ status: 500, message: `Could not upload the file. ${err}` });
     }
 });
 
@@ -170,43 +179,48 @@ router.post('/redis', async function (req: Request, res: Response, next: NextFun
 router.post('/verify', async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get body from request
-        const { personnel_id } = req.body;
-        if (!personnel_id) {
-            req.flash("error", "personnel_id is required!");
-            return next({ status: 400, message: "persoonel id is required" });
+        const { id } = req.body;
+        if (!id) {
+            req.flash("error", "id is required!");
+            return next({ status: 400, message: "id is required" });
         }
         //get jason information from redis
-        let redisData: IFileInRedis = await getImageFromRedis(personnel_id.toString());
-        //Condition for face recognition
+        let redisData: any = await getImageFromRedis(id);
+        //convert base64 to file
+        let image = Buffer.from(redisData.face, 'base64');
+        //covert base64 to array buffer
+        let embeddingArray: Number[] = Buffer.from(redisData.embedding, 'base64').toJSON().data;
+        //Face recognition condition
         if (redisData.has_face === 1) {
-            let guid: string = personnel_id + "-" + Guid.newGuid();
+            let guid: string = id + "-" + Guid.newGuid();
             //create name for image
             let fileName: string = guid + ".jpg";
+
+            //todo : convert BGR to RGB
+
             //define path for save image
             let pathSave = path.join(__dirname, './../../../assets/uploads/');
             //write image in path 
-            await fs.writeFile(pathSave + fileName, redisData.full_frame, (err) => {
+            await fs.writeFile(pathSave + fileName, image, (err) => {
                 if (err) {
                     return next({ status: 500, message: `Could not save the file: ${fileName}. ${err}` });
                 }
             });
-
+            //query to database for search personnel
             let personImage = await PersonImage.findOne({ guid: fileName }).exec();
 
             //create new personimage  
             personImage = new PersonImage({
                 person_id: '6283724be1996b883080a495',
-                //  person_id: personnel_id,
                 guid: guid,
-                vector: redisData.face
+                vector: embeddingArray,
             });
-            personImage.vector = [123456789];
-            //save personimage in database
 
+            //  save personimage in database
             await personImage.save();
-            //delete jason image in redis
-            let result = await deleteImageInRedis(personnel_id.toString());
-            //send response to client
+            //  delete jason image in redis
+            let result = await deleteImageInRedis(id.toString());
+            //   send response to client
             res.status(200).send({
                 message: "Verified the file successfully"
             });
@@ -218,7 +232,7 @@ router.post('/verify', async function (req: Request, res: Response, next: NextFu
             });
         }
     } catch (err) {
-        return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
+        return next({ status: 500, message: `Could not upload the file: ${req.file?.originalname}. ${err}` });
     }
 });
 

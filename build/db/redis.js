@@ -1,10 +1,10 @@
-import { createClient, RedisClientType } from 'redis';
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const redis_1 = require("redis");
 //get string connection from enviroment variable
-const dbUri: string = process.env["REDIS_URL"] as string;
+const dbUri = process.env["REDIS_URL"];
 //create redis client
-const client: RedisClientType = createClient({ url: dbUri });
-
+const client = (0, redis_1.createClient)({ url: dbUri });
 client.connect().then(() => {
     console.log('Connected to Redis');
 }).catch(err => {
@@ -18,5 +18,4 @@ client.connect().then(() => {
 // client.on('error', (err: any) => {
 //     console.log(err);
 // });
-
-export default client;
+exports.default = client;
