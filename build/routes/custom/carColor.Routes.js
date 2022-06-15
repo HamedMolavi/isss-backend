@@ -25,7 +25,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new car_color
-router.post("/register", function (req, res, next) {
+router.post("/", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -68,51 +68,8 @@ router.post("/register", function (req, res, next) {
         }
     });
 });
-//route for get car_color with search from DB 
-router.get("/find", function (req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            //get param from url
-            let search = req.query.search;
-            let strLimit = req.query.limit;
-            let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
-            if (!search) {
-                req.flash("error", "Search is required");
-                return next({ status: 400, message: "Bad request" });
-            }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
-            //query for search car_color by id from DB
-            let carColor = yield carColor_1.default.find({
-                name: { $regex: search, $options: "i" }
-            }).limit(limit).exec();
-            //return response not found to client if not found car_color
-            if (!carColor) {
-                req.flash("error", "Car Color not found");
-                return next({ status: 404, message: "Car Color not found" });
-            }
-            //return response to client with car_color
-            return res.status(200).json({
-                message: "Success",
-                carColor: carColor,
-                limit: limit,
-                total: yield carColor_1.default.countDocuments().exec(),
-            });
-        }
-        catch (err) {
-            return next({ status: 500, message: `Could not get the Car Color: ${err}` });
-        }
-    });
-});
 //route for get car_color list  
-router.get("/list", function (req, res, next) {
+router.get("/", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
@@ -121,6 +78,7 @@ router.get("/list", function (req, res, next) {
             //get perPage from url
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+            let search = req.query.search;
             //get token from header request
             let token = (0, authentication_1.getToken)(req, next);
             //verify token
@@ -131,7 +89,15 @@ router.get("/list", function (req, res, next) {
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get car_color list
-            let carColors = yield carColor_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+            let carColors = [];
+            if (!(search && search.length > 0)) {
+                carColors = yield carColor_1.default.find({
+                    name: { $regex: search, $options: "i" }
+                }).limit(perPage).skip(perPage * (page - 1)).exec();
+            }
+            else {
+                carColors = yield carColor_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+            }
             //return response not found to client if not found car_colors
             if (!carColors) {
                 req.flash("error", "Car Color not found");

@@ -133,44 +133,6 @@ router.get("/list", function (req, res, next) {
         }
     });
 });
-//route for get schedule list  
-router.get("/list", function (req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            //get page from url
-            let strPage = req.query.page;
-            let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-            //get perPage from url
-            let strPerPage = req.query.PerPage;
-            let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
-            //query for get schedule from DB
-            let schedules = yield schedule_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
-            //return success
-            req.flash("info", "schedule list");
-            //send response to client with schedules
-            return res.status(200).json({
-                message: 'Success',
-                schedules: schedules,
-                page: page,
-                perPage: perPage,
-                total: yield schedule_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield schedule_1.default.countDocuments().exec()) / perPage)
-            });
-        }
-        catch (err) {
-            return next({ status: 500, message: `Could not get the AIs: ${err}` });
-        }
-    });
-});
 //route for get schedule by id from DB 
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -209,7 +171,7 @@ router.get("/:id", function (req, res, next) {
     });
 });
 //add route for edit schedule
-router.put("/:id", function (req, res, next) {
+router.patch("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get id from url

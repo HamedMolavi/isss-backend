@@ -63,52 +63,8 @@ router.post("/register", async function (req: Request, res: Response, next: Next
     }
 });
 
-//route for get section with search from DB 
-router.get("/find", async function (req: Request, res: Response, next: NextFunction) {
-    try {
-        //get param from url
-        let search = req.query.search as string;
-        let strLimit = req.query.limit as string;
-        let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
-        if (!search) {
-            req.flash("error", "Please enter search");
-            return next({ status: 400, message: "Bad request" });
-        }
-
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
-
-        //query for search section by id from DB
-        let section = await Section.find({
-            name: { $regex: search, $options: "i" }
-        }).limit(limit).exec();
-
-        //return response not found to client if not found sedction
-        if (!section) {
-            req.flash("error", "Section not found");
-            return next({ status: 404, message: "Section not found" });
-        }
-        //return response to client with section
-        return res.status(200).json({
-            message: "Success",
-            section: section,
-            limit: limit,
-            total: await Section.countDocuments().exec(),
-        });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the section: ${err}` });
-    }
-});
-
 //route for get sections list  
-router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
+router.get("/", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get page from url
         let strPage = req.query.page as string;
@@ -116,6 +72,7 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         //get perPage from url
         let strPerPage = req.query.perPage as string;
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+        let search = req.query.search as string;
         //get token from header request
         let token: string = getToken(req, next) as string;
 
@@ -127,7 +84,15 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
             return next({ status: 401, message: "Token expired" })
         }
         //query for get sections from DB
-        let sections = await Section.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+        let sections: ISection[] = [];
+        if (!(search && search.length > 0)) {
+            sections = await Section.find({
+                name: { $regex: search, $options: "i" }
+            }).limit(perPage).skip(perPage * (page - 1)).exec();
+        } else {
+            sections = await Section.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+        }
+
         //return not found if sections not exist
         if (!sections) {
             req.flash("error", "Section not found");

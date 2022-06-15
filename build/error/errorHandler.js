@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // Error Handeling Middleware for Express 
-const errorHandler = (error, req, res, next) => {
+const errorHandler = (error, req, res) => {
     //     // if (error.type == 'redirect')
     //     //     res.redirect('/error')
     //     //  else if (error.type == 'time-out') // arbitrary condition check

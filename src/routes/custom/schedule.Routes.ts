@@ -147,47 +147,6 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
     }
 });
 
-
-//route for get schedule list  
-router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
-    try {
-        //get page from url
-        let strPage = req.query.page as string;
-        let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-        //get perPage from url
-        let strPerPage = req.query.PerPage as string;
-        let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-
-        //get token from header request
-        let token = getToken(req, next) as string;
-
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
-
-        //query for get schedule from DB
-        let schedules: ISchedule[] | null = await Schedule.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
-
-        //return success
-        req.flash("info", "schedule list");
-        //send response to client with schedules
-        return res.status(200).json({
-            message: 'Success',
-            schedules: schedules,
-            page: page,
-            perPage: perPage,
-            total: await Schedule.countDocuments().exec(),
-            pages: Math.ceil(await Schedule.countDocuments().exec() / perPage)
-        });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the AIs: ${err}` });
-    }
-});
-
 //route for get schedule by id from DB 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {

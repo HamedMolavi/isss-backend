@@ -25,7 +25,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new car
-router.post("/register", function (req, res, next) {
+router.post("/", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -77,56 +77,14 @@ router.post("/register", function (req, res, next) {
         }
     });
 });
-//route for get car with search from DB 
-router.get("/find", function (req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            //get param from url
-            let search = req.query.search;
-            let strLimit = req.query.limit;
-            let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
-            if (!search) {
-                req.flash("error", "Search is required");
-                return next({ status: 400, message: "Bad request" });
-            }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
-            //query for search car by id from DB
-            let car = yield car_1.default.find({
-                name: { $regex: search, $options: "i" }
-            }).limit(limit).exec();
-            //return response not found to client if not found car
-            if (!car) {
-                req.flash("error", "Car not found");
-                return next({ status: 404, message: "Car not found" });
-            }
-            //return response to client with car
-            return res.status(200).json({
-                message: "Success",
-                car: car,
-                limit: limit,
-                total: yield car_1.default.countDocuments().exec(),
-            });
-        }
-        catch (err) {
-            return next({ status: 500, message: `Could not get the car: ${err}` });
-        }
-    });
-});
 //route for get car list  
-router.get("/list", function (req, res, next) {
+router.get("/", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
             let strPage = req.query.page;
             let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+            let search = req.query.search;
             //get perPage from url
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
@@ -139,8 +97,16 @@ router.get("/list", function (req, res, next) {
                 req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
-            //query for get car list
-            let cars = yield car_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+            //query for get car list from DB
+            let cars = [];
+            if (!(search && search.length > 0)) {
+                cars = yield car_1.default.find({
+                    name: { $regex: search, $options: "i" }
+                }).limit(perPage).skip(perPage * (page - 1)).exec();
+            }
+            else {
+                cars = yield car_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+            }
             //return response not found to client if not found cars
             if (!cars) {
                 req.flash("error", "car not found");
@@ -199,7 +165,7 @@ router.get("/:id", function (req, res, next) {
     });
 });
 //add route for edit car
-router.put("/:id", function (req, res, next) {
+router.patch("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get id from url
