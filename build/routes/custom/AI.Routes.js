@@ -60,7 +60,7 @@ router.post("/register", function (req, res, next) {
                     }
                     if (Ai) {
                         req.flash("error", "AI already exists");
-                        return res.status(201).json({ message: "AI already exists" });
+                        return res.status(400).json({ message: "AI already exists" });
                     }
                     //fill new AI
                     newAi = new AI_1.default({
@@ -98,6 +98,7 @@ router.get("/list", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get AI from DB
@@ -174,6 +175,7 @@ router.put("/:id", function (req, res, next) {
             let critential = (0, authentication_1.authorize)(token);
             //check time expire token and role
             if (critential.exp < Date.now() / 1000) {
+                req.flash("error", "Token expired");
                 return next({ status: 401, message: "Token expired" });
             }
             //query for get camera by id from DB

@@ -58,7 +58,7 @@ router.post("/register", function (req, res, next) {
             //check user in DB
             if (user) {
                 req.flash("error", "User already exists");
-                return next({ status: 200, message: "User already exists" });
+                return next({ status: 400, message: "User already exists" });
             }
             //set data for new user
             let newUser = new user_1.default();
@@ -108,7 +108,7 @@ router.get("/find", function (req, res, next) {
             //return response not found to client if not found user
             if (!user) {
                 req.flash("error", "User not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "User not found" });
             }
             //return response to client with user
             return res.status(200).json({
@@ -151,7 +151,7 @@ router.get("/list", function (req, res, next) {
             //send not found if user not found
             if (!users) {
                 req.flash("error", "User not found");
-                return next({ status: 200, message: "Not Found" });
+                return next({ status: 404, message: "Not Found" });
             }
             //send response
             return res.status(200).json({
@@ -196,7 +196,7 @@ router.get("/:id", function (req, res, next) {
             //send not found if user not found
             if (!user) {
                 req.flash("error", "User not found");
-                return next({ status: 200, message: "Not Found" });
+                return next({ status: 404, message: "Not Found" });
             }
             //send response
             return res.status(200).json({
@@ -239,7 +239,7 @@ router.put("/:id", function (req, res, next) {
             //send not found if user not found
             if (!user) {
                 req.flash("error", "User not found");
-                return next({ status: 200, message: "Not Found" });
+                return next({ status: 404, message: "Not Found" });
             }
             //send response 
             return res.status(201).json({
@@ -280,7 +280,7 @@ router.delete("/:id", function (req, res, next) {
             //send not found if user not found
             if (!user) {
                 req.flash("error", "User not found");
-                return next({ status: 200, message: "Not Found" });
+                return next({ status: 404, message: "Not Found" });
             }
             //send response
             return res.status(201).json({
@@ -310,7 +310,7 @@ router.post("/login", function (req, res, next) {
                 }
                 ;
                 if (!user) {
-                    return next(new Error("No user has that username!"));
+                    return next({ status: 404, message: "User not found" });
                 }
                 // verify password
                 user.checkPassword(password, function (err, isMatch) {

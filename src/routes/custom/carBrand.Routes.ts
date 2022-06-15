@@ -39,7 +39,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //retrun error if car_brand already exists
         if (carBrand) {
             req.flash("error", "Car Brand already exists");
-            return res.status(201).json({ message: "car already exists" });
+            return next({ status: 400, message: "Car Brand already exists" });
         }
         //fill new car_brand
         let newCarBrand = new CarBrand({
@@ -87,7 +87,7 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
         //return response not found to client if not found car_band
         if (!carBrand) {
             req.flash("error", "Car Brand not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Car Brand not found" });
         }
         //return response to client with car_brand
         return res.status(200).json({
@@ -128,7 +128,7 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         //return response not found to client if not found car_brand
         if (!carBrands) {
             req.flash("error", "Car Brands not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Car Brands not found" });
         }
 
         //return response to client with car_brand list
@@ -171,7 +171,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found car_brand
         if (!carBrand) {
             req.flash("error", "Car Brand not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Car Brand not found" });
         }
         //return response to client with car
         return res.status(200).json({
@@ -209,7 +209,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         //return response not found to client if not found car_brand
         if (!carBrand) {
             req.flash("error", "Car Brand not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Car Brand not found" });
         }
         //return response to client with car_brand
         return res.status(201).json({

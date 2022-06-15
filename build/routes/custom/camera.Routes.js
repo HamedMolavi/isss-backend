@@ -55,7 +55,7 @@ router.post("/register", function (req, res, next) {
             //return error if camera already exist
             if (camera) {
                 req.flash("error", "camera already exist");
-                return next({ status: 200, message: "camera already exist" });
+                return next({ status: 400, message: "Camera already exist" });
             }
             //fil new camera
             camera = new camera_1.default({
@@ -111,7 +111,7 @@ router.get("/find", function (req, res, next) {
             //return response not found to client if not found camera
             if (!camera) {
                 req.flash("error", "Camera not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Camera not found" });
             }
             //return response to client with camera
             return res.status(200).json({
@@ -150,7 +150,7 @@ router.get("/list", function (req, res, next) {
             //return response not found to client if not found cameras
             if (!cameras) {
                 req.flash("error", "Cameras not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Cameras not found" });
             }
             //return response to client with departements list
             return res.status(200).json({
@@ -191,7 +191,7 @@ router.get("/:id", function (req, res, next) {
             //return error if camera not found
             if (!camera) {
                 req.flash("error", "camera not found");
-                return next({ status: 200, message: "Not Found" });
+                return next({ status: 404, message: "Camera not found" });
             }
             //send response to client with camera
             return res.status(200).json({
@@ -230,7 +230,7 @@ router.put("/:id", function (req, res, next) {
             //return error if user not found
             if (!camera) {
                 req.flash("error", "camera not found");
-                return next({ status: 200, message: "Not Found" });
+                return next({ status: 404, message: "Camera not found" });
             }
             //send response to client with user
             return res.status(201).json({
@@ -266,7 +266,7 @@ router.delete("/:id", function (req, res, next) {
             //return error if camera not found
             if (!camera) {
                 req.flash("error", "camera not found");
-                return next({ status: 200, message: "Not Found" });
+                return next({ status: 404, message: "Camera not found" });
             }
             //send response to client with camera
             return res.status(201).json({
@@ -275,7 +275,7 @@ router.delete("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not delete the user: ${err}` });
+            return next({ status: 500, message: `Could not delete the camera: ${err}` });
         }
     });
 });

@@ -45,7 +45,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //retrun error if car already exists
         if (car) {
             req.flash("error", "Car already exists");
-            return res.status(200).json({ message: "car already exists" });
+            return res.status(400).json({ message: "Car already exists" });
         }
 
         //fill new car
@@ -101,7 +101,7 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
         //return response not found to client if not found car
         if (!car) {
             req.flash("error", "Car not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Car not found" });
         }
         //return response to client with car
         return res.status(200).json({
@@ -140,7 +140,7 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         //return response not found to client if not found cars
         if (!cars) {
             req.flash("error", "car not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Car not found" });
         }
 
         //return response to client with cars list
@@ -183,7 +183,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found car
         if (!car) {
             req.flash("error", "Car not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Car not found" });
         }
         //return response to client with departement
         return res.status(200).json({
@@ -223,7 +223,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found car
         if (!car) {
             req.flash("error", "Car not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Car not found" });
         }
         //return response to client with car
         return res.status(201).json({
@@ -261,7 +261,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         //return response not found to client if not found car
         if (!car) {
             req.flash("error", "Car not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Car not found" });
         }
         //return response to client with car
         return res.status(201).json({

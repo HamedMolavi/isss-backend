@@ -40,7 +40,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //check if jobTitle is exist
         if (jobTitle) {
             req.flash("error", "JobTitle is exist");
-            return next({ status: 200, message: "jobTitle already exists" });
+            return next({ status: 400, message: "jobTitle already exists" });
         }
 
         //set value for new jobTitle
@@ -90,7 +90,7 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
         //return response not found to client if not found JobTitle
         if (!jobTitle) {
             req.flash("error", "JobTitle not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "JobTitle not found" });
         }
         //return response to client with jobTitle
         return res.status(200).json({
@@ -172,7 +172,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found jobTitle
         if (!jobTitle) {
             req.flash("error", "JobTitle not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "JobTitle not found" });
         }
 
         //send response
@@ -211,7 +211,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found jobTitle
         if (!jobTitle) {
             req.flash("error", "JobTitle not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "JobTitle not found" });
         }
         
         //send response
@@ -250,7 +250,7 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         //return response not found to client if not found jobTitle
         if (!jobTitle) {
             req.flash("error", "JobTitle not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "JobTitle not found" });
         }
 
         //send response

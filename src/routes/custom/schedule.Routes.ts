@@ -75,7 +75,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //return error if schedule already exist
         if (schedule) {
             req.flash("error", "schedule already exist");
-            return next({ status: 200, message: "schedule already exist" });
+            return next({ status: 400, message: "schedule already exist" });
         }
 
         //fil new schedule
@@ -213,7 +213,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found schedule
         if (!schedule) {
             req.flash("error", "schedule not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "schedule not found" });
         }
 
         //return response to client with schedule
@@ -283,7 +283,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found schedule
         if (!schedule) {
             req.flash("error", "schedule not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "schedule not found" });
         }
 
         //return response to client with schedule
@@ -321,7 +321,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         //return response not found to client if not found schedule
         if (!schedule) {
             req.flash("error", "schedule not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "schedule not found" });
         }
         //return response to client with schedule
         return res.status(201).json({

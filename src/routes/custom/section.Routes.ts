@@ -42,7 +42,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //check if section exist
         if (section) {
             req.flash("error", "Section already exist");
-            return next({ status: 200, message: "Section already exist" });
+            return next({ status: 400, message: "Section already exist" });
         }
 
         //set section data
@@ -93,7 +93,7 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
         //return response not found to client if not found sedction
         if (!section) {
             req.flash("error", "Section not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Section not found" });
         }
         //return response to client with section
         return res.status(200).json({
@@ -131,7 +131,7 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         //return not found if sections not exist
         if (!sections) {
             req.flash("error", "Section not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Section not found" });
         }
         //send response
         return res.status(200).json({
@@ -172,7 +172,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return not found if section not exist
         if (!section) {
             req.flash("error", "Section not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Section not found" });
         }
         //send response
         return res.status(200).json({
@@ -212,7 +212,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return not found if section not exist
         if (!section) {
             req.flash("error", "Section not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Section not found" });
         }
         //send response
         return res.status(201).json({
@@ -252,7 +252,7 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         //return not found if section not exist
         if (!section) {
             req.flash("error", "Section not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Section not found" });
         }
         //send response
         return res.status(201).json({

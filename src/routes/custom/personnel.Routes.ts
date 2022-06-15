@@ -48,7 +48,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //check personnel in DB
         if (personnel) {
             req.flash("error", "Personnel already exists");
-            return next({ status: 200, message: "Personnel already exists" });
+            return next({ status: 400, message: "Personnel already exists" });
         }
 
         //create new personnel
@@ -110,7 +110,7 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
         //return response not found to client if not found personnel
         if (!personnel) {
             req.flash("error", "Personnel not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Personnel not found" });
         }
         //return response to client with perssonel
         return res.status(200).json({
@@ -153,7 +153,7 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         //send not found if personnels not found
         if (!personnels) {
             req.flash("error", "Personnels not found");
-            return next({ status: 200, message: "Not Found" });
+            return next({ status: 404, message: "Not Found" });
         }
         //send response
         return res.status(200).json({

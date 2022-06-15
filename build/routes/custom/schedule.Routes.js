@@ -66,7 +66,7 @@ router.post("/register", function (req, res, next) {
             //return error if schedule already exist
             if (schedule) {
                 req.flash("error", "schedule already exist");
-                return next({ status: 200, message: "schedule already exist" });
+                return next({ status: 400, message: "schedule already exist" });
             }
             //fil new schedule
             schedule = new schedule_1.default({
@@ -195,7 +195,7 @@ router.get("/:id", function (req, res, next) {
             //return response not found to client if not found schedule
             if (!schedule) {
                 req.flash("error", "schedule not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "schedule not found" });
             }
             //return response to client with schedule
             return res.status(200).json({
@@ -258,7 +258,7 @@ router.put("/:id", function (req, res, next) {
             //return response not found to client if not found schedule
             if (!schedule) {
                 req.flash("error", "schedule not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "schedule not found" });
             }
             //return response to client with schedule
             return res.status(201).json({
@@ -295,7 +295,7 @@ router.delete("/:id", function (req, res, next) {
             //return response not found to client if not found schedule
             if (!schedule) {
                 req.flash("error", "schedule not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "schedule not found" });
             }
             //return response to client with schedule
             return res.status(201).json({

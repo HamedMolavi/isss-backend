@@ -197,6 +197,7 @@ router.post('/verify', async function (req: Request, res: Response, next: NextFu
             let fileName: string = guid + ".jpg";
 
             //todo : convert BGR to RGB
+            
 
             //define path for save image
             let pathSave = path.join(__dirname, './../../../assets/uploads/');

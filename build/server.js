@@ -96,7 +96,7 @@ app.get('/', (req, res, next) => {
     });
 });
 //add routes app
-app.use(index_Routes_1.default);
+app.use("/api/v1", index_Routes_1.default);
 //add error handler
 app.use(errorHandler_1.default);
 //for get unhandeled error in express

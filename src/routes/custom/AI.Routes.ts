@@ -48,7 +48,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             if (err) { return next(err); }
             if (Ai) {
                 req.flash("error", "AI already exists");
-                return res.status(201).json({ message: "AI already exists" });
+                return res.status(400).json({ message: "AI already exists" });
             }
             //fill new AI
             newAi = new AI({
@@ -85,6 +85,7 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         let critential = authorize(token) as ICritential;
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         }
 
@@ -157,6 +158,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
 
         //check time expire token and role
         if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
             return next({ status: 401, message: "Token expired" })
         }
 

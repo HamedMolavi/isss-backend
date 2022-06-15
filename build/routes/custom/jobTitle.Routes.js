@@ -49,7 +49,7 @@ router.post("/register", function (req, res, next) {
             //check if jobTitle is exist
             if (jobTitle) {
                 req.flash("error", "JobTitle is exist");
-                return next({ status: 200, message: "jobTitle already exists" });
+                return next({ status: 400, message: "jobTitle already exists" });
             }
             //set value for new jobTitle
             let newjobTitle = new jobTitle_1.default();
@@ -95,7 +95,7 @@ router.get("/find", function (req, res, next) {
             //return response not found to client if not found JobTitle
             if (!jobTitle) {
                 req.flash("error", "JobTitle not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "JobTitle not found" });
             }
             //return response to client with jobTitle
             return res.status(200).json({
@@ -175,7 +175,7 @@ router.get("/:id", function (req, res, next) {
             //return response not found to client if not found jobTitle
             if (!jobTitle) {
                 req.flash("error", "JobTitle not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "JobTitle not found" });
             }
             //send response
             return res.status(200).json({
@@ -213,7 +213,7 @@ router.put("/:id", function (req, res, next) {
             //return response not found to client if not found jobTitle
             if (!jobTitle) {
                 req.flash("error", "JobTitle not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "JobTitle not found" });
             }
             //send response
             return res.status(201).json({
@@ -249,7 +249,7 @@ router.delete("/:id", function (req, res, next) {
             //return response not found to client if not found jobTitle
             if (!jobTitle) {
                 req.flash("error", "JobTitle not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "JobTitle not found" });
             }
             //send response
             return res.status(201).json({

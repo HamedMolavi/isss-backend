@@ -42,7 +42,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //retrun error if departement already exists
         if (departement) {
             req.flash("error", "Departement already exists");
-            return res.status(201).json({ message: "departement already exists" });
+            return next({ status: 400, message: "Departement already exists" });
         }
         //fill new departement
         newDepartement = new Departement({
@@ -92,7 +92,7 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
         //return response not found to client if not found departement
         if (!departement) {
             req.flash("error", "Departement not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Departement not found" });
         }
         //return response to client with departement
         return res.status(200).json({
@@ -134,7 +134,7 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         //return response not found to client if not found departements
         if (!departements) {
             req.flash("error", "Departement not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Departement not found" });
         }
 
         //return response to client with departements list
@@ -178,7 +178,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found departement
         if (!departement) {
             req.flash("error", "Departement not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Departement not found" });
         }
         //return response to client with departement
         return res.status(200).json({
@@ -220,7 +220,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found departement
         if (!departement) {
             req.flash("error", "Departement not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Departement not found" });
         }
         //return response to client with departement
         return res.status(201).json({
@@ -260,7 +260,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         //return response not found to client if not found departement
         if (!departement) {
             req.flash("error", "Departement not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "Departement not found" });
         }
         //return response to client with departement
         return res.status(201).json({

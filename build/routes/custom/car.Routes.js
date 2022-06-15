@@ -53,7 +53,7 @@ router.post("/register", function (req, res, next) {
             //retrun error if car already exists
             if (car) {
                 req.flash("error", "Car already exists");
-                return res.status(200).json({ message: "car already exists" });
+                return res.status(400).json({ message: "Car already exists" });
             }
             //fill new car
             let newCar = new car_1.default({
@@ -105,7 +105,7 @@ router.get("/find", function (req, res, next) {
             //return response not found to client if not found car
             if (!car) {
                 req.flash("error", "Car not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Car not found" });
             }
             //return response to client with car
             return res.status(200).json({
@@ -144,7 +144,7 @@ router.get("/list", function (req, res, next) {
             //return response not found to client if not found cars
             if (!cars) {
                 req.flash("error", "car not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Car not found" });
             }
             //return response to client with cars list
             return res.status(200).json({
@@ -185,7 +185,7 @@ router.get("/:id", function (req, res, next) {
             //return response not found to client if not found car
             if (!car) {
                 req.flash("error", "Car not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Car not found" });
             }
             //return response to client with departement
             return res.status(200).json({
@@ -225,7 +225,7 @@ router.put("/:id", function (req, res, next) {
             //return response not found to client if not found car
             if (!car) {
                 req.flash("error", "Car not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Car not found" });
             }
             //return response to client with car
             return res.status(201).json({
@@ -262,7 +262,7 @@ router.delete("/:id", function (req, res, next) {
             //return response not found to client if not found car
             if (!car) {
                 req.flash("error", "Car not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Car not found" });
             }
             //return response to client with car
             return res.status(201).json({

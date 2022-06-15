@@ -52,7 +52,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //check user in DB
         if (user) {
             req.flash("error", "User already exists");
-            return next({ status: 200, message: "User already exists" });
+            return next({ status: 400, message: "User already exists" });
         }
 
         //set data for new user
@@ -105,7 +105,7 @@ router.get("/find", async function (req: Request, res: Response, next: NextFunct
         //return response not found to client if not found user
         if (!user) {
             req.flash("error", "User not found");
-            return next(new Error("Not Found"));
+            return next({ status: 404, message: "User not found" });
         }
         //return response to client with user
         return res.status(200).json({
@@ -148,7 +148,7 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         //send not found if user not found
         if (!users) {
             req.flash("error", "User not found");
-            return next({ status: 200, message: "Not Found" });
+            return next({ status: 404, message: "Not Found" });
         }
         //send response
         return res.status(200).json({
@@ -196,7 +196,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //send not found if user not found
         if (!user) {
             req.flash("error", "User not found");
-            return next({ status: 200, message: "Not Found" });
+            return next({ status: 404, message: "Not Found" });
         }
 
         //send response
@@ -241,7 +241,7 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //send not found if user not found
         if (!user) {
             req.flash("error", "User not found");
-            return next({ status: 200, message: "Not Found" });
+            return next({ status: 404, message: "Not Found" });
         }
 
         //send response 
@@ -287,7 +287,7 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         //send not found if user not found
         if (!user) {
             req.flash("error", "User not found");
-            return next({ status: 200, message: "Not Found" });
+            return next({ status: 404, message: "Not Found" });
         }
 
         //send response
@@ -314,7 +314,7 @@ router.post("/login", async function (req: Request, res: Response, next: Functio
         User.findOne({ username: username }, function (err: Error, user: any) {
             if (err) { return next(err) };
             if (!user) {
-                return next(new Error("No user has that username!"));
+                return next({ status: 404, message: "User not found" });
             }
             // verify password
             user.checkPassword(password, function (err: Error, isMatch: Function) {

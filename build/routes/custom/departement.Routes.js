@@ -50,7 +50,7 @@ router.post("/register", function (req, res, next) {
             //retrun error if departement already exists
             if (departement) {
                 req.flash("error", "Departement already exists");
-                return res.status(201).json({ message: "departement already exists" });
+                return next({ status: 400, message: "Departement already exists" });
             }
             //fill new departement
             newDepartement = new departement_1.default({
@@ -98,7 +98,7 @@ router.get("/find", function (req, res, next) {
             //return response not found to client if not found departement
             if (!departement) {
                 req.flash("error", "Departement not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Departement not found" });
             }
             //return response to client with departement
             return res.status(200).json({
@@ -137,7 +137,7 @@ router.get("/list", function (req, res, next) {
             //return response not found to client if not found departements
             if (!departements) {
                 req.flash("error", "Departement not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Departement not found" });
             }
             //return response to client with departements list
             return res.status(200).json({
@@ -178,7 +178,7 @@ router.get("/:id", function (req, res, next) {
             //return response not found to client if not found departement
             if (!departement) {
                 req.flash("error", "Departement not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Departement not found" });
             }
             //return response to client with departement
             return res.status(200).json({
@@ -217,7 +217,7 @@ router.put("/:id", function (req, res, next) {
             //return response not found to client if not found departement
             if (!departement) {
                 req.flash("error", "Departement not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Departement not found" });
             }
             //return response to client with departement
             return res.status(201).json({
@@ -254,7 +254,7 @@ router.delete("/:id", function (req, res, next) {
             //return response not found to client if not found departement
             if (!departement) {
                 req.flash("error", "Departement not found");
-                return next(new Error("Not Found"));
+                return next({ status: 404, message: "Departement not found" });
             }
             //return response to client with departement
             return res.status(201).json({
