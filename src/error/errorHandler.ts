@@ -7,7 +7,7 @@ interface IError {
 }
 
 // Error Handeling Middleware for Express 
-const errorHandler: ErrorRequestHandler = (error: IError, req: Request, res: Response, next: NextFunction) => {
+const errorHandler: ErrorRequestHandler = (error: IError, req: Request, res: Response) => {
     //     // if (error.type == 'redirect')
     //     //     res.redirect('/error')
 

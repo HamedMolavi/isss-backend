@@ -205,7 +205,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 });
 
 //add route for edit camera
-router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
+router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
         let id: string = req.params.id;
