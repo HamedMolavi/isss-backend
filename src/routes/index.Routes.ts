@@ -17,18 +17,18 @@ import carRoutes from './custom/carBrand.Routes';
 const router: Router = Router();
 
 //add rotes app
-router.use('/user', userRoutes);
-router.use('/camera', cameraRoutes);
-router.use('/file', fileRoutes);
-router.use('/departement', departementRoutes);
-router.use('/section', sectionRoutes);
-router.use('/jobtitle', jobTitleRoutes);
-router.use('/personnel', personnelRoutes);
-router.use('/car', plateRoutes);
-router.use('/AI', AIRoutes);
-router.use('/schedule', scheduleRoutes);
-router.use('/model', modelRoutes);
-router.use('/carcolor', colorRoutes);
-router.use('/carbrand', carRoutes);
+router.use('/users', userRoutes);
+router.use('/cameras', cameraRoutes);
+router.use('/files', fileRoutes);
+router.use('/departements', departementRoutes);
+router.use('/sections', sectionRoutes);
+router.use('/jobtitles', jobTitleRoutes);
+router.use('/personnels', personnelRoutes);
+router.use('/cars', plateRoutes);
+router.use('/AIs', AIRoutes);
+router.use('/schedules', scheduleRoutes);
+router.use('/models', modelRoutes);
+router.use('/carcolors', colorRoutes);
+router.use('/carbrands', carRoutes);
 
 export default router;
