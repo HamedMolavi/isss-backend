@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const HttpException_1 = __importDefault(require("../../error/HttpException"));
 const personnel_1 = __importDefault(require("../../models/personnel"));
 const authentication_1 = require("../../tools/authentication");
 //create router for add to routes file 
@@ -25,7 +26,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new personnel
-router.post("/", function (req, res, next) {
+router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -34,17 +35,10 @@ router.post("/", function (req, res, next) {
             if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code ||
                 !section_id || !camera_whitelist || !is_active || !is_employee || !is_dismissed) {
                 req.flash("error", "Please fill all fields");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Please fill all fields", "Personnel"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token has expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for save new personnel in DB
             let personnel = yield personnel_1.default.findOne({
                 $or: [
@@ -55,7 +49,7 @@ router.post("/", function (req, res, next) {
             //check personnel in DB
             if (personnel) {
                 req.flash("error", "Personnel already exists");
-                return next({ status: 400, message: "Personnel already exists" });
+                return next(new HttpException_1.default(400, "Personnel already exists", "Personnel"));
             }
             //create new personnel
             personnel = new personnel_1.default({
@@ -73,7 +67,7 @@ router.post("/", function (req, res, next) {
                 is_dismissed
             });
             //save personnel in DB
-            personnel = yield personnel.save();
+            yield personnel.save();
             req.flash("info", "Personnel has been registered");
             //send response
             res.status(201).json({
@@ -82,12 +76,12 @@ router.post("/", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not create the personnel: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Personnel"));
         }
     });
 });
 //route for get personnels list  
-router.get("/", function (req, res, next) {
+router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
@@ -96,20 +90,9 @@ router.get("/", function (req, res, next) {
             //get perPage from url
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-            let search = req.query.search;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
-            else if (critential.role !== "admin") {
-                req.flash("error", "You are not admin");
-                return next({ status: 401, message: "Unauthorized" });
-            }
+            let search = req.query.search || "";
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get user by personnels from DB
             let personnels = [];
             if (!(search && search.length > 0)) {
@@ -123,7 +106,7 @@ router.get("/", function (req, res, next) {
             //send not found if personnels not found
             if (!personnels) {
                 req.flash("error", "Personnels not found");
-                return next({ status: 404, message: "Not Found" });
+                return next(new HttpException_1.default(404, "Personnels not found", "Personnel"));
             }
             //send response
             return res.status(200).json({
@@ -136,7 +119,7 @@ router.get("/", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the personnel: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Personnel"));
         }
     });
 });
@@ -148,23 +131,16 @@ router.get("/:id", function (req, res, next) {
             //verify body request
             if (!id) {
                 req.flash("error", "Please enter id");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Please enter id", "Personnel"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get personnel by id from DB
             let personnel = yield personnel_1.default.findById(id).exec();
             //send not found if personnel not found
             if (!personnel) {
                 req.flash("error", "Personnel not found");
-                return next({ status: 200, message: "Not Found" });
+                return next(new HttpException_1.default(404, "Personnel not found", "Personnel"));
             }
             //send response
             return res.status(200).json({
@@ -173,7 +149,7 @@ router.get("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the personnel: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Personnel"));
         }
     });
 });
@@ -185,24 +161,17 @@ router.patch("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Please enter id");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Please enter id", "Personnel"));
             }
             const personnelBody = req.body;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get personnel by id from DB
             let personnel = yield personnel_1.default.findByIdAndUpdate(id, personnelBody, { new: true }).exec();
             //send not found if personnel not found
             if (!personnel) {
                 req.flash("error", "Personnel not found");
-                return next({ status: 200, message: "Not Found" });
+                return next(new HttpException_1.default(404, "Personnel not found", "Personnel"));
             }
             //send response
             return res.status(201).json({
@@ -211,7 +180,7 @@ router.patch("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not edit the personnel: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Personnel"));
         }
     });
 });
@@ -223,23 +192,16 @@ router.delete("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Please enter id");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Please enter id", "Personnel"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get personnel by id from DB
             let personnel = yield personnel_1.default.findByIdAndDelete(id).exec();
             //send not found if personnel not found
             if (!personnel) {
                 req.flash("error", "Personnel not found");
-                return next({ status: 200, message: "Not Found" });
+                return next(new HttpException_1.default(404, "Personnel not found", "Personnel"));
             }
             //send response
             return res.status(201).json({
@@ -248,7 +210,7 @@ router.delete("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not delete the personnel: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Personnel"));
         }
     });
 });

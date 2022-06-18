@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const HttpException_1 = __importDefault(require("../../error/HttpException"));
 const camera_1 = __importDefault(require("../../models/camera"));
 const authentication_1 = require("../../tools/authentication");
 //create router for add to server 
@@ -25,7 +26,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new camera
-router.post("/", function (req, res, next) {
+router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -33,17 +34,10 @@ router.post("/", function (req, res, next) {
             //verify body request
             if (!network || !departement_id || !section_id || !url || !ip || !name || !username || !password || !is_enabled) {
                 req.flash("error", "Veuillez remplir tous les champs");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Veuillez remplir tous les champs", "camera"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for save new Camera in DB
             let camera = yield camera_1.default.findOne({
                 $or: [
@@ -55,7 +49,7 @@ router.post("/", function (req, res, next) {
             //return error if camera already exist
             if (camera) {
                 req.flash("error", "camera already exist");
-                return next({ status: 400, message: "Camera already exist" });
+                return next(new HttpException_1.default(400, "camera already exist", "camera"));
             }
             //fil new camera
             camera = new camera_1.default({
@@ -79,30 +73,23 @@ router.post("/", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not the camera: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "camera"));
         }
     });
 });
 //route for get cameras list  
-router.get("/", function (req, res, next) {
+router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
             let strPage = req.query.page;
             let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-            let search = req.query.search;
+            let search = req.query.search || "";
             //get perPage from url
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             let cameras = [];
             //query for get cameras list
             if (search !== "") {
@@ -116,7 +103,7 @@ router.get("/", function (req, res, next) {
             //return response not found to client if not found cameras
             if (!cameras) {
                 req.flash("error", "Cameras not found");
-                return next({ status: 404, message: "Cameras not found" });
+                return next(new HttpException_1.default(404, "Cameras not found", "camera"));
             }
             //return response to client with departements list
             return res.status(200).json({
@@ -129,7 +116,7 @@ router.get("/", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the cameras: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "camera"));
         }
     });
 });
@@ -143,21 +130,14 @@ router.get("/:id", function (req, res, next) {
                 req.flash("error", "id not found");
                 return next({ status: 400, message: "Bad request" });
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get camera by id from DB
             let camera = yield camera_1.default.findById(id).exec();
             //return error if camera not found
             if (!camera) {
                 req.flash("error", "camera not found");
-                return next({ status: 404, message: "Camera not found" });
+                return next(new HttpException_1.default(404, "camera not found", "camera"));
             }
             //send response to client with camera
             return res.status(200).json({
@@ -166,7 +146,7 @@ router.get("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the camera: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "camera"));
         }
     });
 });
@@ -178,25 +158,18 @@ router.patch("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "id not found");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Bad request", "camera"));
             }
             //get jason from body request
             const cameraBody = req.body;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get user by id from DB
             let camera = yield camera_1.default.findByIdAndUpdate(id, cameraBody, { new: true }).exec();
             //return error if user not found
             if (!camera) {
                 req.flash("error", "camera not found");
-                return next({ status: 404, message: "Camera not found" });
+                return next(new HttpException_1.default(404, "camera not found", "camera"));
             }
             //send response to client with user
             return res.status(201).json({
@@ -205,7 +178,7 @@ router.patch("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not edit the camera: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "camera"));
         }
     });
 });
@@ -216,23 +189,16 @@ router.delete("/:id", function (req, res, next) {
             //get id from url
             let id = req.params.id;
             if (!id) {
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Bad request", "camera"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get camera by username from DB
             let camera = yield camera_1.default.findByIdAndDelete(id).exec();
             //return error if camera not found
             if (!camera) {
                 req.flash("error", "camera not found");
-                return next({ status: 404, message: "Camera not found" });
+                return next(new HttpException_1.default(404, "camera not found", "camera"));
             }
             //send response to client with camera
             return res.status(201).json({
@@ -241,7 +207,7 @@ router.delete("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not delete the camera: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "camera"));
         }
     });
 });

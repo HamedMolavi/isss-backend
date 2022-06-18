@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const HttpException_1 = __importDefault(require("../../error/HttpException"));
 const section_1 = __importDefault(require("../../models/section"));
 const authentication_1 = require("../../tools/authentication");
 //create router for add to routes file 
@@ -25,7 +26,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new section
-router.post("/register", function (req, res, next) {
+router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -33,23 +34,16 @@ router.post("/register", function (req, res, next) {
             //verify body request
             if (!name || !departement_id) {
                 req.flash("error", "Please enter all fields");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Please enter all fields", "section"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Your token has expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for save new section in DB
             let section = yield section_1.default.findOne({ name: name }).exec();
             //check if section exist
             if (section) {
                 req.flash("error", "Section already exist");
-                return next({ status: 400, message: "Section already exist" });
+                return next(new HttpException_1.default(400, "Section already exist", "section"));
             }
             //set section data
             let newSection = new section_1.default();
@@ -65,12 +59,12 @@ router.post("/register", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not create the section: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "section"));
         }
     });
 });
 //route for get sections list  
-router.get("/", function (req, res, next) {
+router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
@@ -79,16 +73,9 @@ router.get("/", function (req, res, next) {
             //get perPage from url
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-            let search = req.query.search;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Your token has expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            let search = req.query.search || "";
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get sections from DB
             let sections = [];
             if (!(search && search.length > 0)) {
@@ -102,7 +89,7 @@ router.get("/", function (req, res, next) {
             //return not found if sections not exist
             if (!sections) {
                 req.flash("error", "Section not found");
-                return next({ status: 404, message: "Section not found" });
+                return next(new HttpException_1.default(404, "Section not found", "section"));
             }
             //send response
             return res.status(200).json({
@@ -115,7 +102,7 @@ router.get("/", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the sections: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "section"));
         }
     });
 });
@@ -127,23 +114,16 @@ router.get("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Please enter all fields");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Please enter all fields", "section"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Your token has expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get section by id from DB
             let section = yield section_1.default.findById(id).exec();
             //return not found if section not exist
             if (!section) {
                 req.flash("error", "Section not found");
-                return next({ status: 404, message: "Section not found" });
+                return next(new HttpException_1.default(404, "Section not found", "section"));
             }
             //send response
             return res.status(200).json({
@@ -152,7 +132,7 @@ router.get("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the section: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "section"));
         }
     });
 });
@@ -164,25 +144,18 @@ router.patch("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Please enter all fields");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Please enter all fields", "section"));
             }
             //get jason from body request
             const sectionBody = req.body;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Your token has expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get section by id from DB
             let section = yield section_1.default.findByIdAndUpdate(id, sectionBody, { new: true }).exec();
             //return not found if section not exist
             if (!section) {
                 req.flash("error", "Section not found");
-                return next({ status: 404, message: "Section not found" });
+                return next(new HttpException_1.default(404, "Section not found", "section"));
             }
             //send response
             return res.status(201).json({
@@ -191,7 +164,7 @@ router.patch("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not edit the section: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "section"));
         }
     });
 });
@@ -203,23 +176,16 @@ router.delete("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Please enter id");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Please enter id", "section"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Your token has expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get section by id from DB
             let section = yield section_1.default.findByIdAndDelete(id).exec();
             //return not found if section not exist
             if (!section) {
                 req.flash("error", "Section not found");
-                return next({ status: 404, message: "Section not found" });
+                return next(new HttpException_1.default(404, "Section not found", "section"));
             }
             //send response
             return res.status(201).json({
@@ -228,7 +194,7 @@ router.delete("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not delete the section: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "section"));
         }
     });
 });

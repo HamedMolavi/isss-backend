@@ -1,5 +1,4 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
-import * as util from 'util';
 import fs from 'fs';
 import http from 'http';
 import https from 'https';
@@ -13,9 +12,9 @@ import session from "express-session";
 import flash from 'connect-flash';
 import setUpPassport from "./tools/setuppassport";
 import passport from 'passport';
-import errorHandler from './error/errorHandler';
 import routes from './routes/index.Routes';
 import { createStream } from 'rotating-file-stream';
+import errorMiddleware from './error/error.middleware';
 
 //initial file .env
 dotenv.config();
@@ -81,15 +80,15 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
 app.use("/api/v1",routes);
 
 //add error handler
-app.use(errorHandler);
+app.use(errorMiddleware);
 //for get unhandeled error in express
-process.on('uncaughtException', function (err) {
-    console.error(`I've crashed!!! - ${(err.stack || err)}`);
-});
-//for get unhandeled rejection in express
-process.on('unhandledRejection', (reason, p) => {
-    console.error(`Unhandled Rejection at: ${util.inspect(p)} reason: ${reason}`);
-});
+// process.on('uncaughtException', function (err) {
+//     console.error(`I've crashed!!! - ${(err.stack || err)}`);
+// });
+// //for get unhandeled rejection in express
+// process.on('unhandledRejection', (reason, p) => {
+//     console.error(`Unhandled Rejection at: ${util.inspect(p)} reason: ${reason}`);
+// });
 
 //run https server on port 4000
 https.createServer(options, app).listen(PORT_HTTPS, () => {

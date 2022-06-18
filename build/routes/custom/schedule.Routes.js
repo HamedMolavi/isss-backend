@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const HttpException_1 = __importDefault(require("../../error/HttpException"));
 const schedule_1 = __importDefault(require("../../models/schedule"));
 const authentication_1 = require("../../tools/authentication");
 const convertTime_1 = require("../../tools/convertTime");
@@ -26,7 +27,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new schedule
-router.post("/register", function (req, res, next) {
+router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -34,21 +35,14 @@ router.post("/register", function (req, res, next) {
             //verify body request
             if (!start || !stop || !dayOfWeek || !model_camera_id || !montionDetection || !threshold) {
                 req.flash("error", "Please fill all fields");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Please fill all fields", "schedule"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //check for valid time
             if (!(0, convertTime_1.compareTime)(start, stop)) {
                 req.flash("error", "Invalid time");
-                return next({ status: 400, message: "Invalid time" });
+                return next(new HttpException_1.default(400, "Invalid time", "schedule"));
             }
             //convert input time to cron format
             let start_cron = (0, convertTime_1.convertToCron)(start);
@@ -66,7 +60,7 @@ router.post("/register", function (req, res, next) {
             //return error if schedule already exist
             if (schedule) {
                 req.flash("error", "schedule already exist");
-                return next({ status: 400, message: "schedule already exist" });
+                return next(new HttpException_1.default(400, "schedule already exist", "schedule"));
             }
             //fil new schedule
             schedule = new schedule_1.default({
@@ -91,12 +85,12 @@ router.post("/register", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not create the schedule: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "schedule"));
         }
     });
 });
 //route for get schedule list  
-router.get("/list", function (req, res, next) {
+router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
@@ -105,15 +99,8 @@ router.get("/list", function (req, res, next) {
             //get perPage from url
             let strPerPage = req.query.PerPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get schedule from DB
             let schedules = yield schedule_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
             //return success
@@ -129,7 +116,7 @@ router.get("/list", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the AIs: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "schedule"));
         }
     });
 });
@@ -141,23 +128,16 @@ router.get("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Schedule id is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Schedule id is required", "schedule"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get schedule by id from DB
             let schedule = yield schedule_1.default.findById(id).exec();
             //return response not found to client if not found schedule
             if (!schedule) {
                 req.flash("error", "schedule not found");
-                return next({ status: 404, message: "schedule not found" });
+                return next(new HttpException_1.default(404, "schedule not found", "schedule"));
             }
             //return response to client with schedule
             return res.status(200).json({
@@ -166,7 +146,7 @@ router.get("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the schedule: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "schedule"));
         }
     });
 });
@@ -178,36 +158,29 @@ router.patch("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "schedule id is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "schedule id is required", "schedule"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get body from request
             const scheduleBody = req.body;
             if (!scheduleBody.start && !scheduleBody.stop && scheduleBody.dayOfWeek) {
                 req.flash("error", "start and stop is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "start and stop is required", "schedule"));
             }
             if (scheduleBody.start && !scheduleBody.stop && !scheduleBody.dayOfWeek) {
                 req.flash("error", "start and stop is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "start and stop is required", "schedule"));
             }
             if (!scheduleBody.start && scheduleBody.stop && !scheduleBody.dayOfWeek) {
                 req.flash("error", "start and stop is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "start and stop is required", "schedule"));
             }
             if (scheduleBody.start && scheduleBody.stop) {
                 //check for valid time
                 if (!(0, convertTime_1.compareTime)(scheduleBody.start, scheduleBody.stop)) {
                     req.flash("error", "Invalid time");
-                    return next({ status: 400, message: "Invalid time" });
+                    return next(new HttpException_1.default(400, "Invalid time", "schedule"));
                 }
                 //convert input time to cron format
                 let start_cron = (0, convertTime_1.convertToCron)(scheduleBody.start);
@@ -220,7 +193,7 @@ router.patch("/:id", function (req, res, next) {
             //return response not found to client if not found schedule
             if (!schedule) {
                 req.flash("error", "schedule not found");
-                return next({ status: 404, message: "schedule not found" });
+                return next(new HttpException_1.default(404, "schedule not found", "schedule"));
             }
             //return response to client with schedule
             return res.status(201).json({
@@ -229,7 +202,7 @@ router.patch("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not edit the departement: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "schedule"));
         }
     });
 });
@@ -241,23 +214,16 @@ router.delete("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "schedule id is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "schedule id is required", "schedule"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get schedule by id from DB
             let schedule = yield schedule_1.default.findByIdAndDelete(id).exec();
             //return response not found to client if not found schedule
             if (!schedule) {
                 req.flash("error", "schedule not found");
-                return next({ status: 404, message: "schedule not found" });
+                return next(new HttpException_1.default(404, "schedule not found", "schedule"));
             }
             //return response to client with schedule
             return res.status(201).json({
@@ -266,7 +232,7 @@ router.delete("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not delete the schedule: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "schedule"));
         }
     });
 });

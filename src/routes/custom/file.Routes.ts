@@ -1,13 +1,14 @@
 import uploadFile, { fileName, location, setFileInRedis, getImageFromRedis, deleteImageInRedis } from '../../tools/fileUpload';
 import { NextFunction, Router, Request, Response } from 'express';
 import fs from 'fs';
-import { authorize, getToken, ICritential } from '../../tools/authentication';
+import { getTokenAndVerify } from '../../tools/authentication';
 import axios from 'axios';
 import Guid from '../../tools/createGuid';
 import path from 'path';
-import PersonImage, { IPersonImage } from './../../models/personImage';
+import PersonImage from './../../models/personImage';
 import multer from 'multer';
 import { hashJson } from '../../tools/hash';
+import HttpException from '../../error/HttpException';
 
 //create router for add to server 
 const router: Router = Router();
@@ -25,27 +26,20 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 //create api for upload image 
 router.post('/upload', async function (req: Request, res: Response, next: NextFunction) {
     try {
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token is expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
         //get file from request body and save 
         await uploadFile(req, res);
         if (req.file == undefined) {
-            return next({ status: 400, message: "Please upload a file!" });
+            return next(new HttpException(400, "File is required", "file"));
         }
         res.status(200).send({
             name: fileName,
             location: location,
             message: "Uploaded the file successfully: " + fileName,
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not upload the file: ${req.file!.originalname}. ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "file"));
     }
 });
 
@@ -53,15 +47,8 @@ router.post('/upload', async function (req: Request, res: Response, next: NextFu
 //create api for download image
 router.get('/download/:fileName', async function (req: Request, res: Response, next: NextFunction) {
     try {
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
         //get file name from request params
         const fileName = req.params.fileName;
         //get directory path
@@ -70,11 +57,11 @@ router.get('/download/:fileName', async function (req: Request, res: Response, n
         await res.download(directoryPath + fileName, fileName, (err) => {
             if (err) {
                 req.flash("error", "File not found");
-                return next({ status: 500, message: `Could not download the file: ${fileName}. ${err}` });
+                return next(new HttpException(404, "File not found", "file"));
             }
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not download the file: ${fileName}. ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "file"));
     }
 });
 
@@ -82,15 +69,8 @@ router.get('/download/:fileName', async function (req: Request, res: Response, n
 //create api for get list file upload
 router.get('/list', async function (req: Request, res: Response, next: NextFunction) {
     try {
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
         //get directory path
         const directoryPath = __dirname + "/../../../assets/uploads/";
         //get url 
@@ -99,7 +79,7 @@ router.get('/list', async function (req: Request, res: Response, next: NextFunct
         //read directory for get list file
         await fs.readdir(directoryPath, function (err, files) {
             if (err) {
-                return next({ status: 500, message: `Could not get list file. ${err}` });
+                return next(new HttpException(500, err.message, "file"));
             }
             let fileInfos: object[] = [];
             //get file info
@@ -111,8 +91,8 @@ router.get('/list', async function (req: Request, res: Response, next: NextFunct
             });
             res.status(200).send(fileInfos);
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get list files: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "file"));
     }
 
 });
@@ -127,15 +107,8 @@ router.post('/redis', upload.single('file'), async function (req: Request, res: 
     try {
         // get personnel_id from body request
         const { personnel_id } = req.body;
-        // get token from header request
-        let token: string = getToken(req, next) as string;
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
         //get file from request body and save
         let fileBase64: string;
         let file = req.file!.buffer;
@@ -148,7 +121,7 @@ router.post('/redis', upload.single('file'), async function (req: Request, res: 
         let id = await setFileInRedis(fileBase64, idHashed);
         if (!id) {
             req.flash("error", "File not upload");
-            return next({ status: 400, message: "Please upload a file!" });
+            return next(new HttpException(400, "File not upload", "file"));
         }
 
         //get url AI for send request
@@ -163,15 +136,15 @@ router.post('/redis', upload.single('file'), async function (req: Request, res: 
 
         }).catch(function (error) {
             console.log(error.response.data);
-            return next({ status: 400, message: "There is a problem, please try again" });
+            return next(new HttpException(500, error.message, "file"));
         });
         res.status(201).send({
             message: "Uploaded the file successfully"
         });
         //send error if file is not upload
 
-    } catch (err) {
-        return next({ status: 500, message: `Could not upload the file. ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "file"));
     }
 });
 
@@ -197,14 +170,14 @@ router.post('/verify', async function (req: Request, res: Response, next: NextFu
             let fileName: string = guid + ".jpg";
 
             //todo : convert BGR to RGB
-            
+
 
             //define path for save image
             let pathSave = path.join(__dirname, './../../../assets/uploads/');
             //write image in path 
             await fs.writeFile(pathSave + fileName, image, (err) => {
                 if (err) {
-                    return next({ status: 500, message: `Could not save the file: ${fileName}. ${err}` });
+                    return next(new HttpException(500, err.message, "file"));
                 }
             });
             //query to database for search personnel
@@ -232,8 +205,8 @@ router.post('/verify', async function (req: Request, res: Response, next: NextFu
                 message: "No face found"
             });
         }
-    } catch (err) {
-        return next({ status: 500, message: `Could not upload the file: ${req.file?.originalname}. ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "file"));
     }
 });
 

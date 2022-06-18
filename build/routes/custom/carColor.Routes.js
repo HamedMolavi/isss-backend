@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const HttpException_1 = __importDefault(require("../../error/HttpException"));
 const carColor_1 = __importDefault(require("../../models/carColor"));
 const authentication_1 = require("../../tools/authentication");
 //create router for add to server file 
@@ -25,7 +26,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new car_color
-router.post("/", function (req, res, next) {
+router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -33,23 +34,16 @@ router.post("/", function (req, res, next) {
             //verify body request
             if (!name) {
                 req.flash("error", "Car Color name is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Bad request", "Car_Color"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for save new car_color in DB
             let carColor = yield carColor_1.default.findOne({ name: name }).exec();
             //retrun error if car_color already exists
             if (carColor) {
                 req.flash("error", "Car Color already exists");
-                return next({ status: 400, message: "Car Color already exists" });
+                return next(new HttpException_1.default(400, "Car Color already exists", "Car_Color"));
             }
             //fill new car_color
             let newCarColor = new carColor_1.default({
@@ -59,17 +53,17 @@ router.post("/", function (req, res, next) {
             yield newCarColor.save();
             req.flash("info", "Car Color added");
             return res.status(201).json({
-                message: "color created",
+                message: "Car Color created",
                 carColor: newCarColor
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not create the car color: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Car_Color"));
         }
     });
 });
 //route for get car_color list  
-router.get("/", function (req, res, next) {
+router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
@@ -78,16 +72,9 @@ router.get("/", function (req, res, next) {
             //get perPage from url
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-            let search = req.query.search;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            let search = req.query.search || "";
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get car_color list
             let carColors = [];
             if (!(search && search.length > 0)) {
@@ -96,12 +83,12 @@ router.get("/", function (req, res, next) {
                 }).limit(perPage).skip(perPage * (page - 1)).exec();
             }
             else {
-                carColors = yield carColor_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+                carColors = yield carColor_1.default.find().limit(perPage).skip(perPage * (page - 1)).exec();
             }
             //return response not found to client if not found car_colors
             if (!carColors) {
                 req.flash("error", "Car Color not found");
-                return next({ status: 404, message: "Car Color not found" });
+                return next(new HttpException_1.default(404, "Car Color not found", "Car_Color"));
             }
             //return response to client with car_color list
             return res.status(200).json({
@@ -114,7 +101,7 @@ router.get("/", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the car color: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Car_Color"));
         }
     });
 });
@@ -126,23 +113,16 @@ router.get("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Car Color id is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Bad request", "Car_Color"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get car_color by id from DB
             let carColor = yield carColor_1.default.findById(id).exec();
             //return response not found to client if not found car_color
             if (!carColor) {
                 req.flash("error", "Car Color not found");
-                return next({ status: 404, message: "Car Color not found" });
+                return next(new HttpException_1.default(404, "Car Color not found", "Car_Color"));
             }
             //return response to client with car_color
             return res.status(200).json({
@@ -151,7 +131,7 @@ router.get("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the car color: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Car_Color"));
         }
     });
 });
@@ -163,23 +143,16 @@ router.delete("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Car Color id is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Bad request", "Car_Color"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get car_color by id from DB
             let carColor = yield carColor_1.default.findByIdAndDelete(id).exec();
             //return response not found to client if not found car_color
             if (!carColor) {
                 req.flash("error", "Car Color not found");
-                return next({ status: 404, message: "Car Color not found" });
+                return next(new HttpException_1.default(404, "Car Color not found", "Car_Color"));
             }
             //return response to client with car_color
             return res.status(201).json({
@@ -188,7 +161,7 @@ router.delete("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not delete the car color: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Car_Color"));
         }
     });
 });

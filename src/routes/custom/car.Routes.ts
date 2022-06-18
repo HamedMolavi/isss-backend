@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
+import HttpException from "../../error/HttpException";
 import Car, { ICar } from "../../models/car";
-import { authorize, getToken, ICritential } from "../../tools/authentication";
+import { getTokenAndVerify } from "../../tools/authentication";
 
 
 //create router for add to routes file 
@@ -16,23 +17,16 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 
 //add route for register new car
-router.post("/", async function (req: Request, res: Response, next: NextFunction) {
+router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { owner, number_plate, brand_id, color_id, camera_whitelist } = req.body;
         if (!owner || !number_plate || !brand_id || !color_id || !camera_whitelist) {
             req.flash("error", "Car is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Car is required", "car"));
         }
-        //get token from header request
-        let token: string = getToken(req, next) as string;
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" });
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for save new car in DB
         let car = await Car.findOne({
@@ -45,7 +39,7 @@ router.post("/", async function (req: Request, res: Response, next: NextFunction
         //retrun error if car already exists
         if (car) {
             req.flash("error", "Car already exists");
-            return res.status(400).json({ message: "Car already exists" });
+            return next(new HttpException(400, "Car already exists", "car"));
         }
 
         //fill new car
@@ -65,37 +59,30 @@ router.post("/", async function (req: Request, res: Response, next: NextFunction
             message: "Success",
             car: newCar
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not create the car: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "car"));
     }
 });
 
 //route for get car list  
-router.get("/", async function (req: Request, res: Response, next: NextFunction) {
+router.get("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get page from url
         let strPage = req.query.page as string;
         let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-        let search = req.query.search as string;
+        let search = req.query.search as string || "";
         //get perPage from url
         let strPerPage = req.query.perPage as string;
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get car list from DB
         let cars: ICar[] = [];
         if (!(search && search.length > 0)) {
             cars = await Car.find({
-                name: { $regex: search, $options: "i" }
+                number_plate: { $regex: search, $options: "i" }
             }).limit(perPage).skip(perPage * (page - 1)).exec();
         } else {
             cars = await Car.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
@@ -104,7 +91,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
         //return response not found to client if not found cars
         if (!cars) {
             req.flash("error", "car not found");
-            return next({ status: 404, message: "Car not found" });
+            return next(new HttpException(404, "car not found", "car"));
         }
 
         //return response to client with cars list
@@ -116,8 +103,8 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             total: await Car.countDocuments().exec(),
             pages: Math.ceil(await Car.countDocuments().exec() / perPage)
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the cars: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "car"));
     }
 });
 
@@ -128,18 +115,11 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "Car id is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Car id is required", "car"));
         }
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get car by id from DB
         let car = await Car.findById(id).exec();
@@ -147,15 +127,15 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found car
         if (!car) {
             req.flash("error", "Car not found");
-            return next({ status: 404, message: "Car not found" });
+            return next(new HttpException(404, "Car not found", "car"));
         }
         //return response to client with departement
         return res.status(200).json({
             message: "Success",
             car: car
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the car: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "car"));
     }
 });
 
@@ -169,33 +149,26 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
         //verify body request
         if (!id) {
             req.flash("error", "Car id is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Car id is required", "car"));
         }
         //get body request
         const carBody = req.body;
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
         //query for get car by id from DB and update
         let car = await Car.findByIdAndUpdate(id, carBody, { new: true }).exec();
         //return response not found to client if not found car
         if (!car) {
             req.flash("error", "Car not found");
-            return next({ status: 404, message: "Car not found" });
+            return next(new HttpException(404, "Car not found", "car"));
         }
         //return response to client with car
         return res.status(201).json({
             message: "Success",
             car: car
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not edit the car: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "car"));
     }
 });
 
@@ -207,33 +180,26 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         //verify body request
         if (!id) {
             req.flash("error", "Car id is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Car id is required", "car"));
         }
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get car by id from DB
         let car = await Car.findByIdAndDelete(id).exec();
         //return response not found to client if not found car
         if (!car) {
             req.flash("error", "Car not found");
-            return next({ status: 404, message: "Car not found" });
+            return next(new HttpException(404, "Car not found", "car"));
         }
         //return response to client with car
         return res.status(201).json({
             message: "Success",
             car: car
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not delete the car: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "car"));
     }
 });
 

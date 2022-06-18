@@ -15,7 +15,7 @@ describe('test upload , dowloand , get list Image', function () {
     //test route for upload image
     it('should send back a JSON object with file name and location and message', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/file/upload')
+            .post('api/v1/file/upload')
             .set('Content-Type', 'multipart/form-data')
             .set('Authorization', `Bearer ${token}`)
             .attach('file', './assets/sample/test.jpg')
@@ -31,7 +31,7 @@ describe('test upload , dowloand , get list Image', function () {
     //test route for download image
     it('should send back a image picture', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .get('/file/download/test.jpg')
+            .get('/api/v1/file/download/test.jpg')
             .set('Content-Type', 'multipart/form-data')
             .set('Authorization', `Bearer ${token}`)
             .then(function (res) {
@@ -42,7 +42,7 @@ describe('test upload , dowloand , get list Image', function () {
     //test route for get list image
     it('should send back a jason with url and name image', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .get('/file/list')
+            .get('/api/v1/file/list')
             .set('Content-Type', 'multipart/form-data')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

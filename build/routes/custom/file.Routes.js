@@ -45,6 +45,7 @@ const path_1 = __importDefault(require("path"));
 const personImage_1 = __importDefault(require("./../../models/personImage"));
 const multer_1 = __importDefault(require("multer"));
 const hash_1 = require("../../tools/hash");
+const HttpException_1 = __importDefault(require("../../error/HttpException"));
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -58,19 +59,12 @@ router.use(function (req, res, next) {
 router.post('/upload', function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token is expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get file from request body and save 
             yield (0, fileUpload_1.default)(req, res);
             if (req.file == undefined) {
-                return next({ status: 400, message: "Please upload a file!" });
+                return next(new HttpException_1.default(400, "File is required", "file"));
             }
             res.status(200).send({
                 name: fileUpload_1.fileName,
@@ -79,7 +73,7 @@ router.post('/upload', function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not upload the file: ${req.file.originalname}. ${err}` });
+            return next(new HttpException_1.default(500, err.message, "file"));
         }
     });
 });
@@ -87,15 +81,8 @@ router.post('/upload', function (req, res, next) {
 router.get('/download/:fileName', function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get file name from request params
             const fileName = req.params.fileName;
             //get directory path
@@ -104,12 +91,12 @@ router.get('/download/:fileName', function (req, res, next) {
             yield res.download(directoryPath + fileName, fileName, (err) => {
                 if (err) {
                     req.flash("error", "File not found");
-                    return next({ status: 500, message: `Could not download the file: ${fileName}. ${err}` });
+                    return next(new HttpException_1.default(404, "File not found", "file"));
                 }
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not download the file: ${fileUpload_1.fileName}. ${err}` });
+            return next(new HttpException_1.default(500, err.message, "file"));
         }
     });
 });
@@ -117,15 +104,8 @@ router.get('/download/:fileName', function (req, res, next) {
 router.get('/list', function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get directory path
             const directoryPath = __dirname + "/../../../assets/uploads/";
             //get url 
@@ -133,7 +113,7 @@ router.get('/list', function (req, res, next) {
             //read directory for get list file
             yield fs_1.default.readdir(directoryPath, function (err, files) {
                 if (err) {
-                    return next({ status: 500, message: `Could not get list file. ${err}` });
+                    return next(new HttpException_1.default(500, err.message, "file"));
                 }
                 let fileInfos = [];
                 //get file info
@@ -147,7 +127,7 @@ router.get('/list', function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get list files: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "file"));
         }
     });
 });
@@ -161,15 +141,8 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
         try {
             // get personnel_id from body request
             const { personnel_id } = req.body;
-            // get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get file from request body and save
             let fileBase64;
             let file = req.file.buffer;
@@ -182,7 +155,7 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
             let id = yield (0, fileUpload_1.setFileInRedis)(fileBase64, idHashed);
             if (!id) {
                 req.flash("error", "File not upload");
-                return next({ status: 400, message: "Please upload a file!" });
+                return next(new HttpException_1.default(400, "File not upload", "file"));
             }
             //get url AI for send request
             const dbUri = process.env["API_AI_REDIS_NAME"];
@@ -195,7 +168,7 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
                 //  send response to client
             }).catch(function (error) {
                 console.log(error.response.data);
-                return next({ status: 400, message: "There is a problem, please try again" });
+                return next(new HttpException_1.default(500, error.message, "file"));
             });
             res.status(201).send({
                 message: "Uploaded the file successfully"
@@ -203,13 +176,12 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
             //send error if file is not upload
         }
         catch (err) {
-            return next({ status: 500, message: `Could not upload the file. ${err}` });
+            return next(new HttpException_1.default(500, err.message, "file"));
         }
     });
 });
 //route for verified image in redis
 router.post('/verify', function (req, res, next) {
-    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get body from request
@@ -235,7 +207,7 @@ router.post('/verify', function (req, res, next) {
                 //write image in path 
                 yield fs_1.default.writeFile(pathSave + fileName, image, (err) => {
                     if (err) {
-                        return next({ status: 500, message: `Could not save the file: ${fileName}. ${err}` });
+                        return next(new HttpException_1.default(500, err.message, "file"));
                     }
                 });
                 //query to database for search personnel
@@ -264,7 +236,7 @@ router.post('/verify', function (req, res, next) {
             }
         }
         catch (err) {
-            return next({ status: 500, message: `Could not upload the file: ${(_a = req.file) === null || _a === void 0 ? void 0 : _a.originalname}. ${err}` });
+            return next(new HttpException_1.default(500, err.message, "file"));
         }
     });
 });

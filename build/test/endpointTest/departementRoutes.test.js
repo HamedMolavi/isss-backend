@@ -15,7 +15,7 @@ describe('server run and crud departement', function () {
     //test route for register new departement in DB
     it('should send back a JSON object with departement for create new departement', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/departement/register')
+            .post('/api/v1/departements/')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
@@ -53,7 +53,24 @@ describe('server run and crud departement', function () {
     it('should send back a JSON object for get all departements', function (done) {
         //test route for get camera in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/departement/list?page=1&perPage=1')
+            .get('/api/v1/departements/list?page=1&perPage=1')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.departements;
+            (0, chai_1.expect)(userResponse[0]).to.have.property('name');
+            // Done
+            done();
+        });
+    });
+    //test route for search departements from DB
+    it('should send back a JSON object for search departements', function (done) {
+        //test route for get camera in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/api/v1/departements/list?page=1&perPage=1&search=off')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -70,7 +87,7 @@ describe('server run and crud departement', function () {
     it('should send back a JSON object for get departement with id', function (done) {
         //test route for get camera in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/departement/' + _departement._id)
+            .get('/api/v1/departements/' + _departement._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -89,7 +106,7 @@ describe('server run and crud departement', function () {
             name: 'bank'
         };
         (0, supertest_1.default)(server_1.default)
-            .put('/departement/' + _departement._id)
+            .put('/api/v1/departements/' + _departement._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(departementEditJson)
@@ -108,7 +125,7 @@ describe('server run and crud departement', function () {
     //test route for delete departement in DB 
     it('should send back a JSON object for delete departement', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .delete('/departement/' + _departement._id)
+            .delete('/api/v1/departements/' + _departement._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

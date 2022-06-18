@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
+import HttpException from "../../error/HttpException";
 import CarBrand, { ICarBrand } from "../../models/carBrand";
-import { authorize, getToken, ICritential } from "../../tools/authentication";
+import { authorize, getToken, getTokenAndVerify, ICritential } from "../../tools/authentication";
 
 //create router for add to server file 
 const router: Router = Router();
@@ -15,31 +16,24 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 
 //add route for register new car_brand
-router.post("/", async function (req: Request, res: Response, next: NextFunction) {
+router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { name } = req.body;
         //verify body request
         if (!name) {
             req.flash("error", "Car brand is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Bad request", "Car_Brand"));
         }
-        //get token from header request
-        let token: string = getToken(req, next) as string;
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" });
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for save new car_brand in DB
         let carBrand = await CarBrand.findOne({ name: name }).exec();
         //retrun error if car_brand already exists
         if (carBrand) {
             req.flash("error", "Car Brand already exists");
-            return next({ status: 400, message: "Car Brand already exists" });
+            return next(new HttpException(400, "Car Brand already exists", "Car_Brand"));
         }
         //fill new car_brand
         let newCarBrand = new CarBrand({
@@ -52,13 +46,13 @@ router.post("/", async function (req: Request, res: Response, next: NextFunction
             message: "car created",
             carBrand: newCarBrand
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not create the car brand: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "Car_Brand"));
     }
 });
 
 //route for get car list  
-router.get("/", async function (req: Request, res: Response, next: NextFunction) {
+router.get("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get page from url
         let strPage = req.query.page as string;
@@ -66,17 +60,10 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
         //get perPage from url
         let strPerPage = req.query.perPage as string;
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-        let search = req.query.search as string;
+        let search = req.query.search as string || "";
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
         //query for get car_barnd list
         let carBrands: ICarBrand[] = [];
         if (!(search && search.length > 0)) {
@@ -90,7 +77,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
         //return response not found to client if not found car_brand
         if (!carBrands) {
             req.flash("error", "Car Brands not found");
-            return next({ status: 404, message: "Car Brands not found" });
+            return next(new HttpException(404, "Car Brands not found", "Car_Brand"));
         }
 
         //return response to client with car_brand list
@@ -102,8 +89,8 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             total: await CarBrand.countDocuments().exec(),
             pages: Math.ceil(await CarBrand.countDocuments().exec() / perPage)
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the car brands: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "Car_Brand"));
     }
 });
 
@@ -114,18 +101,11 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "Car Brand id is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Bad request", "Car_Brand"));
         }
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get car_brand by id from DB
         let carBrand = await CarBrand.findById(id).exec();
@@ -133,15 +113,15 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found car_brand
         if (!carBrand) {
             req.flash("error", "Car Brand not found");
-            return next({ status: 404, message: "Car Brand not found" });
+            return next(new HttpException(404, "Car Brand not found", "Car_Brand"));
         }
         //return response to client with car
         return res.status(200).json({
             message: "Success",
             carBrand: carBrand
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the car brand: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "Car_Brand"));
     }
 });
 
@@ -153,33 +133,26 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "Car Brand id is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Bad request", "Car_Brand"));
         }
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get car_brand by id from DB
         let carBrand = await CarBrand.findByIdAndDelete(id).exec();
         //return response not found to client if not found car_brand
         if (!carBrand) {
             req.flash("error", "Car Brand not found");
-            return next({ status: 404, message: "Car Brand not found" });
+            return next(new HttpException(404, "Car Brand not found", "Car_Brand"));
         }
         //return response to client with car_brand
         return res.status(201).json({
             message: "Success",
             carBrand: carBrand
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not delete the car brand: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "Car_Brand"));
     }
 
 });

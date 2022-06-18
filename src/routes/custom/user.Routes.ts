@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import HttpException from '../../error/HttpException';
 import User, { IUser } from '../../models/user';
-import { authorize, getToken, ICritential } from "../../tools/authentication";
-
+import { getTokenAndVerify } from "../../tools/authentication";
 
 //create router for add to server 
 const router: Router = Router();
@@ -15,7 +15,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 //add route for register new user
-router.post("/", async function (req: Request, res: Response, next: NextFunction) {
+router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { username, password, phone_number }: IUser = req.body;
@@ -23,23 +23,10 @@ router.post("/", async function (req: Request, res: Response, next: NextFunction
         //verify body request
         if (!username || !password || !phone_number) {
             req.flash("error", "Please enter all fields");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Please enter all fields", "User"));
         }
-
-        //get token from header request
-        let token: string = getToken(req, next) as string;
-
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" });
-        } else if (critential.role !== "admin") {
-            req.flash("error", "You are not admin");
-            return next({ status: 401, message: "Unauthorized" });
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "admin", next);
 
         //query for save new user in DB
         let user = await User.findOne({
@@ -52,7 +39,7 @@ router.post("/", async function (req: Request, res: Response, next: NextFunction
         //check user in DB
         if (user) {
             req.flash("error", "User already exists");
-            return next({ status: 400, message: "User already exists" });
+            return next(new HttpException(400, "User already exists", "User"));
         }
 
         //set data for new user
@@ -60,23 +47,23 @@ router.post("/", async function (req: Request, res: Response, next: NextFunction
         newUser.username = username;
         newUser.password = password;
         newUser.phone_number = phone_number;
-        newUser.role = "user";
+        newUser.role = "admin";
 
         //save new user in DB
         await newUser.save();
         req.flash("info", "User created");
         //send response
         return res.status(201).json({
-            message: 'User created',
+            message: 'Success',
             user: newUser
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not create the user: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "User"));
     }
 });
 
 //route for get users list  
-router.get("/", async function (req: Request, res: Response, next: NextFunction) {
+router.get("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get page from url
         let strPage = req.query.page as string;
@@ -85,19 +72,8 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
         let strPerPage = req.query.perPage as string;
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
         let search = req.query.search as string;
-        //get token from header request
-        let token = getToken(req, next) as string;
-
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        } else if (critential.role !== "admin") {
-            req.flash("error", "You are not admin");
-            return next({ status: 401, message: "Unauthorized" });
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "admin", next);
         //query for get user by username from DB
         let users: IUser[] = [];
         if (!(search && search.length > 0)) {
@@ -111,7 +87,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
         //send not found if user not found
         if (!users) {
             req.flash("error", "User not found");
-            return next({ status: 404, message: "Not Found" });
+            return next(new HttpException(404, "User not found", "User"));
         }
         //send response
         return res.status(200).json({
@@ -122,8 +98,8 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             total: await User.countDocuments().exec(),
             pages: Math.ceil(await User.countDocuments().exec() / perPage)
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the user: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "User"));
     }
 
 });
@@ -136,22 +112,11 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "Please enter id");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Please enter id", "User"));
         }
 
-        //get token from header request
-        let token: string = getToken(req, next) as string;
-
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        } else if (critential.role !== "admin") {
-            req.flash("error", "You are not admin");
-            return next({ status: 401, message: "Unauthorized" });
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "admin", next);
 
         //query for get user by id from DB
         let user = await User.findById(id).exec();
@@ -159,7 +124,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //send not found if user not found
         if (!user) {
             req.flash("error", "User not found");
-            return next({ status: 404, message: "Not Found" });
+            return next(new HttpException(404, "User not found", "User"));
         }
 
         //send response
@@ -167,8 +132,8 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
             message: 'Success',
             user: user
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the user: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "User"));
     }
 
 });
@@ -180,31 +145,19 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
         let id: string = req.params.id as string;
         if (!id) {
             req.flash("error", "Please enter id");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Please enter id", "User"));
         }
         //get jason from body request
         const userBody = req.body;
-        //get token from header request
-        let token: string = getToken(req, next) as string;
-
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        } else if (critential.role !== "admin") {
-            req.flash("error", "You are not admin");
-            return next({ status: 401, message: "Unauthorized" });
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "admin", next);
         //query for get user by username from DB
         let user = await User.findByIdAndUpdate(id, userBody, { new: true }).exec();
 
         //send not found if user not found
         if (!user) {
             req.flash("error", "User not found");
-            return next({ status: 404, message: "Not Found" });
+            return next(new HttpException(404, "User not found", "User"));
         }
 
         //send response 
@@ -212,8 +165,8 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
             message: 'Success',
             user: user
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not edit the user: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "User"));
     }
 
 });
@@ -226,23 +179,11 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         let id = req.params.id;
         if (!id) {
             req.flash("error", "Please enter id");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Please enter id", "User"));
         }
 
-        //get token from header request
-        let token: string = getToken(req, next) as string;
-
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        } else if (critential.role !== "admin") {
-            req.flash("error", "You are not admin");
-            return next({ status: 401, message: "Unauthorized" });
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "admin", next);
 
         //query for get user by id from DB
         let user = await User.findByIdAndDelete(id).exec();
@@ -250,7 +191,7 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         //send not found if user not found
         if (!user) {
             req.flash("error", "User not found");
-            return next({ status: 404, message: "Not Found" });
+            return next(new HttpException(404, "User not found", "User"));
         }
 
         //send response
@@ -258,8 +199,8 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
             message: 'Success',
             user: user
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not delete the user: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "User"));
     }
 
 });
@@ -271,13 +212,18 @@ router.post("/login", async function (req: Request, res: Response, next: Functio
         const { username, password } = req.body;
         //verify body request
         if (!username || !password) {
-            return next({ status: 400, message: "Bad request" });
+            return next({
+                status: 400,
+                message: "Bad request",
+                name: "user"
+            });
         }
+        console.log(username, password);
         //  get user from DB
         User.findOne({ username: username }, function (err: Error, user: any) {
             if (err) { return next(err) };
             if (!user) {
-                return next({ status: 404, message: "User not found" });
+                return next(new HttpException(404, "User not found", "User"));
             }
             // verify password
             user.checkPassword(password, function (err: Error, isMatch: Function) {
@@ -292,8 +238,8 @@ router.post("/login", async function (req: Request, res: Response, next: Functio
                 }
             });
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not login: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "User"));
     }
 
 });

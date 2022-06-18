@@ -11,9 +11,9 @@ let _carColor: ICarColor;
 describe('server run and crud car color', function () {
 
     //test route for register new car color in DB
-    it('should send back a JSON object with carr color for create new car color', function (done) {
+    it('should send back a JSON object with car color for create new car color', function (done) {
         request(app)
-            .post('/carcolor/register')
+            .post('/api/v1/carcolors/')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
@@ -52,7 +52,24 @@ describe('server run and crud car color', function () {
 
         //test route for get car_colors in DB
         request(app)
-            .get('/carcolor/list?page=1&perPage=2')
+            .get('/api/v1/carcolors/list?page=1&perPage=2')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+                if (err) { return done(err); }
+                let userResponse = res.body.carColors;
+                expect(userResponse[0]).to.have.property('name');
+                // Done
+                done();
+            });
+    });
+
+     //test route for search car_colors from DB
+     it('should send back a JSON object for search car colors', function (done) {
+
+        //test route for get car_colors in DB
+        request(app)
+            .get('/api/v1/carcolors/list?page=1&perPage=2$search=r')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -70,7 +87,7 @@ describe('server run and crud car color', function () {
 
         //test route for get car_color in DB
         request(app)
-            .get('/carcolor/' + _carColor._id)
+            .get('/api/v1/carcolors/' + _carColor._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -86,7 +103,7 @@ describe('server run and crud car color', function () {
     it('should send back a JSON object for delete car color', function (done) {
 
         request(app)
-            .delete('/carcolor/' + _carColor._id)
+            .delete('/api/v1/carcolors/' + _carColor._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
+import HttpException from "../../error/HttpException";
 import JobTitle, { IJobTitle } from "../../models/jobTitle";
-import { authorize, getToken, ICritential } from "../../tools/authentication";
+import { getTokenAndVerify } from "../../tools/authentication";
 
 //create router for add to server file 
 const router: Router = Router();
@@ -15,24 +16,17 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 
 //add route for register new jobTitle
-router.post("/", async function (req: Request, res: Response, next: NextFunction) {
+router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { name } = req.body;
         //verify body request
         if (!name) {
             req.flash("error", "Please enter a name");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Please enter a name", "jobTitle"));
         }
-        //get token from header request
-        let token: string = getToken(req, next) as string;
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token has been expired");
-            return next({ status: 401, message: "Token expired" });
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for save new jobTitle in DB
         let jobTitle = await JobTitle.findOne({ name: name }).exec();
@@ -40,7 +34,7 @@ router.post("/", async function (req: Request, res: Response, next: NextFunction
         //check if jobTitle is exist
         if (jobTitle) {
             req.flash("error", "JobTitle is exist");
-            return next({ status: 400, message: "jobTitle already exists" });
+            return next(new HttpException(400, "JobTitle is exist", "jobTitle"));
         }
 
         //set value for new jobTitle
@@ -55,13 +49,13 @@ router.post("/", async function (req: Request, res: Response, next: NextFunction
             message: "jobTitle has been created",
             jobTitle: newjobTitle
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not create the jobTitle: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "jobTitle"));
     }
 });
 
 //route for get jobTitle list  
-router.get("/", async function (req: Request, res: Response, next: NextFunction) {
+router.get("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get page from url
         let strPage = req.query.page as string;
@@ -69,16 +63,9 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
         //get perPage from url
         let strPerPage = req.query.PerPage as string;
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-        let search = req.query.search as string;
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token has been expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        let search = req.query.search as string ?? "";
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get jobTitle from DB
         let jobTitles: IJobTitle[] = [];
@@ -93,7 +80,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
         //return response not found to client if not found jobTitles
         if (!jobTitles) {
             req.flash("error", "Not found jobTitles");
-            return next({ status: 404, message: "Not found jobTitles" });
+            return next(new HttpException(404, "Not found jobTitles", "jobTitle"));
         }
 
         //send response
@@ -105,8 +92,8 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             total: await JobTitle.countDocuments().exec(),
             pages: Math.ceil(await JobTitle.countDocuments().exec() / perPage)
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the jobTitle: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "jobTitle"));
     }
 });
 
@@ -117,18 +104,11 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "JobTitle id is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "JobTitle id is required", "jobTitle"));
         }
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token has been expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get jobTitle by id from DB
         let jobTitle = await JobTitle.findById(id).exec();
@@ -136,7 +116,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found jobTitle
         if (!jobTitle) {
             req.flash("error", "JobTitle not found");
-            return next({ status: 404, message: "JobTitle not found" });
+            return next(new HttpException(404, "JobTitle not found", "jobTitle"));
         }
 
         //send response
@@ -144,8 +124,8 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
             message: "Success",
             jobTitle: jobTitle
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the jobTitle: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "jobTitle"));
     }
 });
 
@@ -157,25 +137,19 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "JobTitle id is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "JobTitle id is required", "jobTitle"));
         }
         //get body from request
         const jobTitleBody = req.body;
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
         //query for get jobTitle by id from DB
         let jobTitle = await JobTitle.findByIdAndUpdate(id, jobTitleBody, { new: true }).exec();
 
         //return response not found to client if not found jobTitle
         if (!jobTitle) {
             req.flash("error", "JobTitle not found");
-            return next({ status: 404, message: "JobTitle not found" });
+            return next(new HttpException(404, "JobTitle not found", "jobTitle"));
         }
 
         //send response
@@ -183,8 +157,8 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
             message: "Success",
             jobTitle: jobTitle
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not edit the jobTitle: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "jobTitle"));
     }
 });
 
@@ -198,15 +172,8 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
             return next({ status: 400, message: "Bad request" });
         }
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as any;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token has been expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get jobTitle by id from DB
         let jobTitle = await JobTitle.findByIdAndDelete(id).exec();
@@ -214,7 +181,7 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         //return response not found to client if not found jobTitle
         if (!jobTitle) {
             req.flash("error", "JobTitle not found");
-            return next({ status: 404, message: "JobTitle not found" });
+            return next(new HttpException(404, "JobTitle not found", "jobTitle"));
         }
 
         //send response
@@ -222,8 +189,8 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
             message: "Success",
             jobTitle: jobTitle
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not delete the jobTitle: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "jobTitle"));
     }
 
 });

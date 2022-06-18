@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const HttpException_1 = __importDefault(require("../../error/HttpException"));
 const jobTitle_1 = __importDefault(require("../../models/jobTitle"));
 const authentication_1 = require("../../tools/authentication");
 //create router for add to server file 
@@ -25,7 +26,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new jobTitle
-router.post("/", function (req, res, next) {
+router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -33,23 +34,16 @@ router.post("/", function (req, res, next) {
             //verify body request
             if (!name) {
                 req.flash("error", "Please enter a name");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Please enter a name", "jobTitle"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token has been expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for save new jobTitle in DB
             let jobTitle = yield jobTitle_1.default.findOne({ name: name }).exec();
             //check if jobTitle is exist
             if (jobTitle) {
                 req.flash("error", "JobTitle is exist");
-                return next({ status: 400, message: "jobTitle already exists" });
+                return next(new HttpException_1.default(400, "JobTitle is exist", "jobTitle"));
             }
             //set value for new jobTitle
             let newjobTitle = new jobTitle_1.default();
@@ -63,12 +57,13 @@ router.post("/", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not create the jobTitle: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "jobTitle"));
         }
     });
 });
 //route for get jobTitle list  
-router.get("/", function (req, res, next) {
+router.get("", function (req, res, next) {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
@@ -77,16 +72,9 @@ router.get("/", function (req, res, next) {
             //get perPage from url
             let strPerPage = req.query.PerPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-            let search = req.query.search;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token has been expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            let search = (_a = req.query.search) !== null && _a !== void 0 ? _a : "";
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get jobTitle from DB
             let jobTitles = [];
             if ((search && search.length > 0)) {
@@ -100,7 +88,7 @@ router.get("/", function (req, res, next) {
             //return response not found to client if not found jobTitles
             if (!jobTitles) {
                 req.flash("error", "Not found jobTitles");
-                return next({ status: 404, message: "Not found jobTitles" });
+                return next(new HttpException_1.default(404, "Not found jobTitles", "jobTitle"));
             }
             //send response
             return res.status(200).json({
@@ -113,7 +101,7 @@ router.get("/", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the jobTitle: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "jobTitle"));
         }
     });
 });
@@ -125,23 +113,16 @@ router.get("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "JobTitle id is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "JobTitle id is required", "jobTitle"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token has been expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get jobTitle by id from DB
             let jobTitle = yield jobTitle_1.default.findById(id).exec();
             //return response not found to client if not found jobTitle
             if (!jobTitle) {
                 req.flash("error", "JobTitle not found");
-                return next({ status: 404, message: "JobTitle not found" });
+                return next(new HttpException_1.default(404, "JobTitle not found", "jobTitle"));
             }
             //send response
             return res.status(200).json({
@@ -150,7 +131,7 @@ router.get("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the jobTitle: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "jobTitle"));
         }
     });
 });
@@ -162,24 +143,18 @@ router.patch("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "JobTitle id is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "JobTitle id is required", "jobTitle"));
             }
             //get body from request
             const jobTitleBody = req.body;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get jobTitle by id from DB
             let jobTitle = yield jobTitle_1.default.findByIdAndUpdate(id, jobTitleBody, { new: true }).exec();
             //return response not found to client if not found jobTitle
             if (!jobTitle) {
                 req.flash("error", "JobTitle not found");
-                return next({ status: 404, message: "JobTitle not found" });
+                return next(new HttpException_1.default(404, "JobTitle not found", "jobTitle"));
             }
             //send response
             return res.status(201).json({
@@ -188,7 +163,7 @@ router.patch("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not edit the jobTitle: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "jobTitle"));
         }
     });
 });
@@ -201,21 +176,14 @@ router.delete("/:id", function (req, res, next) {
             if (!id) {
                 return next({ status: 400, message: "Bad request" });
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token has been expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get jobTitle by id from DB
             let jobTitle = yield jobTitle_1.default.findByIdAndDelete(id).exec();
             //return response not found to client if not found jobTitle
             if (!jobTitle) {
                 req.flash("error", "JobTitle not found");
-                return next({ status: 404, message: "JobTitle not found" });
+                return next(new HttpException_1.default(404, "JobTitle not found", "jobTitle"));
             }
             //send response
             return res.status(201).json({
@@ -224,7 +192,7 @@ router.delete("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not delete the jobTitle: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "jobTitle"));
         }
     });
 });

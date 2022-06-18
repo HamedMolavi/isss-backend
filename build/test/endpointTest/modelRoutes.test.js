@@ -27,7 +27,7 @@ describe('server run and get model', function () {
     it('should send back a JSON object for get model with category', function (done) {
         //test route for get model in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/model/' + _model.category)
+            .get('/api/v1/model/' + _model.category)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

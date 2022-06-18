@@ -15,7 +15,7 @@ describe('server run and crud personnel', function () {
     //test route for register new personnel in DB
     it('should send back a JSON object with section for create new personnel', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/personnel/register')
+            .post('/api/v1/personnels/')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
@@ -60,7 +60,27 @@ describe('server run and crud personnel', function () {
     it('should send back a JSON object for get all personnels', function (done) {
         //test route for get personnel in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/personnel/list')
+            .get('/api/v1/personnels/?page=1&perPage=3')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.personnels;
+            (0, chai_1.expect)(userResponse[0]).have.to.property('name');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('family');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('phone');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('jobTitle');
+            // Done
+            done();
+        });
+    });
+    //test route for search personnels from DB
+    it('should send back a JSON object for search personnels', function (done) {
+        //test route for get personnel in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/api/v1/personnels/?page=1&perPage=3&search=j')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -80,7 +100,7 @@ describe('server run and crud personnel', function () {
     it('should send back a JSON object for get personnel with id', function (done) {
         //test route for get personnel in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/personnel/' + _personnel._id)
+            .get('/api/v1/personnels/' + _personnel._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -102,7 +122,7 @@ describe('server run and crud personnel', function () {
             family: 'johnson',
         };
         (0, supertest_1.default)(server_1.default)
-            .put('/personnel/' + _personnel._id)
+            .put('/api/v1/personnels/' + _personnel._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(personnelEditJson)
@@ -123,7 +143,7 @@ describe('server run and crud personnel', function () {
     //test route for delete personnel in DB 
     it('should send back a JSON object for delete personnel', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .delete('/personnel/' + _personnel._id)
+            .delete('/api/v1/personnels/' + _personnel._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

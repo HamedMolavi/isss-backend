@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Request } from "express";
+import HttpException from "../error/HttpException";
 
 
 //define token type after verify
@@ -35,5 +36,23 @@ export function getToken(req: Request, next: Function) {
     } else {
         next(new Error("Forbidden"));
         return null;
+    }
+}
+//get token from header request client and verify
+export function getTokenAndVerify(req: Request, role: string, next: Function) {
+    //get token from header request
+    let token: string = getToken(req, next) as string;
+    //verify token
+    let critential = authorize(token) as ICritential;
+    //check time expire token and role
+    if (critential.exp < Date.now() / 1000) {
+        req.flash("error", "Token expired");
+        return next(new HttpException(401, "Token expired", "User"));
+    } else if (critential.role !== "admin" && role === "admin") {
+        req.flash("error", "You are not admin");
+        return next(new HttpException(401, "You are not admin", "User"));
+    }
+    else {
+        return token;
     }
 }
