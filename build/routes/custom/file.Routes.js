@@ -139,8 +139,8 @@ var upload = (0, multer_1.default)({ storage: storage });
 router.post('/redis', upload.single('file'), function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // get personnel_id from body request
-            const { personnel_id } = req.body;
+            // get id from request url
+            let personnel_id = req.query.id;
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get file from request body and save
@@ -150,7 +150,6 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
             fileBase64 = file.toString('base64');
             //create hash for redis id
             let idHashed = (0, hash_1.hashJson)(fileBase64, personnel_id);
-            console.log(idHashed);
             //set file in redis
             let id = yield (0, fileUpload_1.setFileInRedis)(fileBase64, idHashed);
             if (!id) {
@@ -159,6 +158,7 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
             }
             //get url AI for send request
             const dbUri = process.env["API_AI_REDIS_NAME"];
+            console.log(idHashed);
             //send request to AI api for send id_personnel
             yield axios_1.default.post(dbUri, {
                 id: idHashed

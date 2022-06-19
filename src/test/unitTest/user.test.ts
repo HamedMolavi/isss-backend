@@ -15,7 +15,8 @@ describe('users', function () {
         mongoose.connection.once('connected',() => {
             mongoose.connection.db.dropDatabase();
 
-            require('../../models/user').registerModels;
+         //   require('../../models/user').registerModels;
+            require('../../models/user');
             // This is the right model because ^registerModels set it up for us.
             User =mongoose.model('User');
             done();

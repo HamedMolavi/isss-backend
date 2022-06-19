@@ -56,4 +56,38 @@ describe('test upload , dowloand , get list Image', function () {
             done();
         });
     });
+    //test route for upload image in redis
+    it('should send back a JSON object with message Uploaded the file successfully in redis', function (done) {
+        (0, supertest_1.default)(server_1.default)
+            .post('/api/v1/files/redis?id=123456789')
+            .set('Content-Type', 'multipart/form-data')
+            .set('Authorization', `Bearer ${token}`)
+            .attach('file', './assets/sample/test.jpg')
+            .then(function (res) {
+            let response = res.body.message;
+            (0, chai_1.expect)(res.status).to.equal(201);
+            (0, chai_1.expect)(response).to.equal("Uploaded the file successfully");
+            done();
+        });
+    });
+    // //test route for verify image in redis
+    it('should send back a JSON object with message Verified the file successfully in redis', function (done) {
+        (0, supertest_1.default)(server_1.default)
+            .post('/api/v1/files/verify')
+            .set('Content-Type', 'application/json')
+            .send({
+            id: "4f3b1d2b5b8c0855c0cbc41be51e4cd0"
+        })
+            .expect('Content-Type', /json/)
+            .expect(406, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let response = res.body;
+            (0, chai_1.expect)(res.status).to.equal(406);
+            (0, chai_1.expect)(response).to.have.property('message');
+            // Done
+            done();
+        });
+    });
 });

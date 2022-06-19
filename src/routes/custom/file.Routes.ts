@@ -105,8 +105,8 @@ var upload = multer({ storage: storage });
 //create api for upload image to redis
 router.post('/redis', upload.single('file'), async function (req: Request, res: Response, next: NextFunction) {
     try {
-        // get personnel_id from body request
-        const { personnel_id } = req.body;
+        // get id from request url
+        let personnel_id = req.query.id as string;
         //get token from header request and verify
         let token = getTokenAndVerify(req, "user", next);
         //get file from request body and save
@@ -116,16 +116,15 @@ router.post('/redis', upload.single('file'), async function (req: Request, res: 
         fileBase64 = file.toString('base64');
         //create hash for redis id
         let idHashed = hashJson(fileBase64, personnel_id);
-        console.log(idHashed);
         //set file in redis
         let id = await setFileInRedis(fileBase64, idHashed);
         if (!id) {
             req.flash("error", "File not upload");
             return next(new HttpException(400, "File not upload", "file"));
         }
-
         //get url AI for send request
         const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
+        console.log(idHashed);
         //send request to AI api for send id_personnel
         await axios.post(dbUri, {
             id: idHashed
