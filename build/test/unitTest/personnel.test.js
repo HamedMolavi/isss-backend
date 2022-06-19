@@ -53,10 +53,11 @@ describe('personnel', function () {
                 (0, chai_1.expect)(personnel.national_code).to.equal("123456789");
                 (0, chai_1.expect)(personnel.email).to.equal("test@test.gmail.com");
                 (0, chai_1.expect)(personnel.phone_number).to.equal("0123456789");
-                (0, chai_1.expect)(personnel.job_id).to.equal("6283724be1996b883080a495");
+                (0, chai_1.expect)(personnel.job_id.toString()).to.equal("6283724be1996b883080a495");
                 (0, chai_1.expect)(personnel.personnel_code).to.equal("6283724be1996b883080a495");
-                (0, chai_1.expect)(personnel.section_id).to.equal("6283724be1996b883080a495");
-                (0, chai_1.expect)(personnel.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
+                (0, chai_1.expect)(personnel.section_id.toString()).to.equal("6283724be1996b883080a495");
+                (0, chai_1.expect)(personnel.camera_whitelist).to.have.lengthOf(2);
+                // expect(personnel.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
                 (0, chai_1.expect)(personnel.is_active).to.equal(true);
                 (0, chai_1.expect)(personnel.is_employee).to.equal(true);
                 (0, chai_1.expect)(personnel.is_dismissed).to.equal(true);

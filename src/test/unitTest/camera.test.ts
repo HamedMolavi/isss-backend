@@ -13,7 +13,7 @@ describe('camera', function () {
         mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            mongoose.connection.db.dropDatabase();
+           // mongoose.connection.db.dropDatabase();
             require('../../models/camera').registerModels;
             // This is the right model because ^registerModels set it up for us.
             Camera = mongoose.model('Camera');
@@ -51,6 +51,7 @@ describe('camera', function () {
                 expect(camera.username).to.equal('test');
                 expect(camera.password).to.equal('12345');
                 expect(camera.is_enabled).to.equal(true);
+                
                 done();
             }
             ).catch((err: Error) => {

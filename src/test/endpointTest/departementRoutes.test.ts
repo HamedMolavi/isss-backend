@@ -53,7 +53,7 @@ describe('server run and crud departement', function () {
 
         //test route for get camera in DB
         request(app)
-            .get('/api/v1/departements/list?page=1&perPage=1')
+            .get('/api/v1/departements?page=1&perPage=1')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -71,7 +71,7 @@ describe('server run and crud departement', function () {
 
         //test route for get camera in DB
         request(app)
-            .get('/api/v1/departements/list?page=1&perPage=1&search=off')
+            .get('/api/v1/departements?page=1&perPage=1&search=off')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -108,7 +108,7 @@ describe('server run and crud departement', function () {
             name: 'bank'
         };
         request(app)
-            .put('/api/v1/departements/' + _departement._id)
+            .patch('/api/v1/departements/' + _departement._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(departementEditJson)

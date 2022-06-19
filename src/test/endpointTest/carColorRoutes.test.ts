@@ -52,7 +52,7 @@ describe('server run and crud car color', function () {
 
         //test route for get car_colors in DB
         request(app)
-            .get('/api/v1/carcolors/list?page=1&perPage=2')
+            .get('/api/v1/carcolors?page=1&perPage=2')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -69,7 +69,7 @@ describe('server run and crud car color', function () {
 
         //test route for get car_colors in DB
         request(app)
-            .get('/api/v1/carcolors/list?page=1&perPage=2$search=r')
+            .get('/api/v1/carcolors?page=1&perPage=2$search=r')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

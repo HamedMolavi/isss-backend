@@ -64,7 +64,7 @@ describe('server run and crud car', function () {
 
         //test route for get cars in DB
         request(app)
-            .get('/api/v1/cars/list?page=1&perPage=1')
+            .get('/api/v1/cars?page=1&perPage=1')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -89,7 +89,7 @@ describe('server run and crud car', function () {
 
         //test route for get cars in DB
         request(app)
-            .get('/api/v1/cars/list?page=1&perPage=1&search=12')
+            .get('/api/v1/cars?page=1&perPage=1&search=12')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -139,7 +139,7 @@ describe('server run and crud car', function () {
             number_plate: '7654321'
         };
         request(app)
-            .put('/api/v1/cars/' + _car._id)
+            .patch('/api/v1/cars/' + _car._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(plateEditJson)

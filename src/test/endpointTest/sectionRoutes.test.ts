@@ -28,7 +28,7 @@ describe('server run and crud section', function () {
     //test route for register new section in DB
     it('should send back a JSON object with section for create new section', function (done) {
         request(app)
-            .post('/api/v1/sections/')
+            .post('/api/v1/sections')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
@@ -57,7 +57,7 @@ describe('server run and crud section', function () {
 
         //test route for get section in DB
         request(app)
-            .get('/api/v1/sections/?page=1&perPage=3')
+            .get('/api/v1/sections?page=1&perPage=3')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -77,7 +77,7 @@ describe('server run and crud section', function () {
 
         //test route for get section in DB
         request(app)
-            .get('/api/v1/sections/?page=1&perPage=3&search=sec')
+            .get('/api/v1/sections?page=1&perPage=3&search=sec')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -116,7 +116,7 @@ describe('server run and crud section', function () {
             name: 'section2'
         };
         request(app)
-            .put('/api/v1/sections/' + _section._id)
+            .patch('/api/v1/sections/' + _section._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(sectionEditJson)
@@ -136,7 +136,7 @@ describe('server run and crud section', function () {
     it('should send back a JSON object for delete section', function (done) {
 
         request(app)
-            .delete('/section/' + _section._id)
+            .delete('/api/v1/sections/' + _section._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

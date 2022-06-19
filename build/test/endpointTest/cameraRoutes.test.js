@@ -92,7 +92,7 @@ describe('server run and server runnig and crud camera', function () {
     it('should send back a JSON object for get all cameras', function (done) {
         //test route for get camera in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/api/v1/cameras/list?page=1&perPage=2')
+            .get('/api/v1/cameras?page=1&perPage=2')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -118,7 +118,7 @@ describe('server run and server runnig and crud camera', function () {
     it('should send back a JSON object for search cameras', function (done) {
         //test route for search camera in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/api/v1/camera/list?page=1&perPage=2&search=o')
+            .get('/api/v1/cameras?page=1&perPage=2&search=o')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -147,7 +147,7 @@ describe('server run and server runnig and crud camera', function () {
             ip: '172.01.01.01',
         };
         (0, supertest_1.default)(server_1.default)
-            .put('/api/v1/cameras/' + _camera._id)
+            .patch('/api/v1/cameras/' + _camera._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(cameraEditJson)

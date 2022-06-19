@@ -69,7 +69,7 @@ describe('server run and crud schedule', function () {
     it('should send back a JSON object for get all schedule', function (done) {
         //test route for get schedule in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/api/v1/schedule/list?PerPage=2&page=1')
+            .get('/api/v1/schedules?PerPage=2&page=1')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -118,7 +118,7 @@ describe('server run and crud schedule', function () {
             stop_cron: '00 9 * * 1',
         };
         (0, supertest_1.default)(server_1.default)
-            .put('/api/v1/schedules/' + _schedule._id)
+            .patch('/api/v1/schedules/' + _schedule._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(scheduleEditJson)

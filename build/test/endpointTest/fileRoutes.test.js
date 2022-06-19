@@ -9,13 +9,13 @@ const supertest_1 = __importDefault(require("supertest"));
 const token = process.env.sample_token;
 let _file;
 describe('test upload , dowloand , get list Image', function () {
-    beforeEach(function (done) {
-        done();
-    });
+    // beforeEach(function (done) {
+    //     //done();
+    // });
     //test route for upload image
     it('should send back a JSON object with file name and location and message', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('api/v1/file/upload')
+            .post('/api/v1/files/upload')
             .set('Content-Type', 'multipart/form-data')
             .set('Authorization', `Bearer ${token}`)
             .attach('file', './assets/sample/test.jpg')
@@ -31,7 +31,7 @@ describe('test upload , dowloand , get list Image', function () {
     //test route for download image
     it('should send back a image picture', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .get('/api/v1/file/download/test.jpg')
+            .get('/api/v1/files/download/test.jpg')
             .set('Content-Type', 'multipart/form-data')
             .set('Authorization', `Bearer ${token}`)
             .then(function (res) {
@@ -42,7 +42,7 @@ describe('test upload , dowloand , get list Image', function () {
     //test route for get list image
     it('should send back a jason with url and name image', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .get('/api/v1/file/list')
+            .get('/api/v1/files/list')
             .set('Content-Type', 'multipart/form-data')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {

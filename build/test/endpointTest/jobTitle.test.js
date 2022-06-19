@@ -56,7 +56,7 @@ describe('server run and crud jobTitle', function () {
     it('should send back a JSON object for get all jobTitle', function (done) {
         //test route for get jobTitles in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/api/v1/jobTitles/?page=1&perPage=3')
+            .get('/api/v1/jobTitles?page=1&perPage=3')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -73,7 +73,7 @@ describe('server run and crud jobTitle', function () {
     it('should send back a JSON object for search jobTitle', function (done) {
         //test route for get jobTitles in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/api/v1/jobTitles/list?page=1&perPage=3&search=dev')
+            .get('/api/v1/jobTitles?page=1&perPage=3&search=dev')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -110,7 +110,7 @@ describe('server run and crud jobTitle', function () {
         };
         //test route for edit jobTitle in DB
         (0, supertest_1.default)(server_1.default)
-            .put('/api/v1/jobTitles/' + _jobTitle._id)
+            .patch('/api/v1/jobTitles/' + _jobTitle._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(jobTitleEditJson)

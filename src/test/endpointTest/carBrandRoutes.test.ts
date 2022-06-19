@@ -52,7 +52,7 @@ describe('server run and crud car brand', function () {
 
         //test route for get car_brands in DB
         request(app)
-            .get('/api/v1/carbrands/list?page=1&perPage=1')
+            .get('/api/v1/carbrands?page=1&perPage=1')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -68,7 +68,7 @@ describe('server run and crud car brand', function () {
     it('should send back a JSON object for search car brand', function (done) {
          //test route for get car_brands in DB
          request(app)
-         .get('/api/v1/carbrands/list?page=1&perPage=1$search=pr')
+         .get('/api/v1/carbrands?page=1&perPage=1$search=pr')
          .set('Content-Type', 'application/json')
          .set('Authorization', `Bearer ${token}`)
          .expect(200, function (err, res) {

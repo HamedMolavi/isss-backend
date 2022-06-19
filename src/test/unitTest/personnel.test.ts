@@ -45,16 +45,17 @@ describe('personnel', function () {
                 is_dismissed: true
             });
             //test this personnel model
-            personnel.save().then(() => {   
+            personnel.save().then(() => {
                 expect(personnel.first_name).to.equal("sasan");
                 expect(personnel.last_name).to.equal("pilehvar");
                 expect(personnel.national_code).to.equal("123456789");
                 expect(personnel.email).to.equal("test@test.gmail.com");
                 expect(personnel.phone_number).to.equal("0123456789");
-                expect(personnel.job_id).to.equal("6283724be1996b883080a495");
+                expect(personnel.job_id.toString()).to.equal("6283724be1996b883080a495");
                 expect(personnel.personnel_code).to.equal("6283724be1996b883080a495");
-                expect(personnel.section_id).to.equal("6283724be1996b883080a495");
-                expect(personnel.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
+                expect(personnel.section_id.toString()).to.equal("6283724be1996b883080a495");
+                expect(personnel.camera_whitelist).to.have.lengthOf(2);
+                // expect(personnel.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
                 expect(personnel.is_active).to.equal(true);
                 expect(personnel.is_employee).to.equal(true);
                 expect(personnel.is_dismissed).to.equal(true);
