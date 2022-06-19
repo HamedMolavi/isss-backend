@@ -26,13 +26,13 @@ describe('server run and server runnig and register user', function () {
     //test route for register new user in DB
     it('should send back a JSON object with user for create new user', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/user/register')
+            .post('/api/v1/users/')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
-            username: 'test',
+            username: 'sasan',
             password: '12345',
-            phone_number: '0123456789'
+            phone_number: '09330371133'
         })
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
@@ -41,10 +41,9 @@ describe('server run and server runnig and register user', function () {
             }
             if (res.body.message !== 'User already exists') {
                 let user = res.body.user;
-                (0, chai_1.expect)(res.body.message).to.equal('User created');
-                (0, chai_1.expect)(user.username).to.equal('test');
-                (0, chai_1.expect)(user.phone_number).to.equal('0123456789');
-                (0, chai_1.expect)(user.role).to.equal('user');
+                (0, chai_1.expect)(res.body.message).to.equal('Success');
+                (0, chai_1.expect)(user.username).to.equal('sasan');
+                (0, chai_1.expect)(user.phone_number).to.equal('09330371133');
             }
             else {
                 let response = null;
@@ -55,7 +54,7 @@ describe('server run and server runnig and register user', function () {
     });
     beforeEach(function (done) {
         user_1.default.findOne({
-            username: { $in: ['test', 'jack'] },
+            username: { $in: ['sasan', 'jack'] },
         }, (err, user) => {
             if (err) {
                 console.log(err);
@@ -77,10 +76,10 @@ describe('server run and server runnig and register user', function () {
         //     loginUser = user;
         // });
         (0, supertest_1.default)(server_1.default)
-            .post('/user/login')
+            .post('/api/v1/users/login')
             .set('Content-Type', 'application/json')
             .send({
-            username: "test",
+            username: "sasan",
             password: "12345"
         })
             .expect('Content-Type', /json/)
@@ -102,7 +101,27 @@ describe('server run and server runnig and register user', function () {
     it('should send back a JSON object for get all user', function (done) {
         //test route for get all user in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/user/list?page=1&perPage=2')
+            .get('/api/v1/users?page=1&perPage=2')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.users;
+            (0, chai_1.expect)(userResponse[0]).have.to.property('username');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('phone_number');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('role');
+            (0, chai_1.expect)(userResponse[0]).have.to.property('password');
+            // Done
+            done();
+        });
+    });
+    //test route for search user from DB
+    it('should send back a JSON object for search user', function (done) {
+        //test route for search user in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/api/v1/users?page=1&perPage=2&search=s')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -122,7 +141,7 @@ describe('server run and server runnig and register user', function () {
     it('should send back a JSON object for get user with id', function (done) {
         //test route for get user in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/user/' + _user._id)
+            .get('/api/v1/users/' + _user._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -145,7 +164,7 @@ describe('server run and server runnig and register user', function () {
         };
         console.log(_user);
         (0, supertest_1.default)(server_1.default)
-            .put('/user/' + _user._id)
+            .patch('/api/v1/users/' + _user._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(userEditJson)
@@ -166,7 +185,7 @@ describe('server run and server runnig and register user', function () {
     //test route for delete user 
     it('should send back a JSON object for delete user', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .delete('/user/' + _user._id)
+            .delete('/api/v1/users/' + _user._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

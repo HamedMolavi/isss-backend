@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const HttpException_1 = __importDefault(require("../../error/HttpException"));
 const model_1 = __importDefault(require("../../models/model"));
 const authentication_1 = require("../../tools/authentication");
 //create router for add to server file 
@@ -32,23 +33,16 @@ router.get("/:category", function (req, res, next) {
             let category = req.params.category;
             if (!category) {
                 req.flash("error", "category is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "category is required", "model"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "token is expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get model by id from DB
             let model = yield model_1.default.findOne({ category: category }).exec();
             //check model is exist
             if (!model) {
                 req.flash("error", "model is not exist");
-                return next({ status: 404, message: "Model is not exist" });
+                return next(new HttpException_1.default(400, "model is not exist", "model"));
             }
             //send model to client
             return res.status(200).json({
@@ -57,7 +51,7 @@ router.get("/:category", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the jobTitle: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "model"));
         }
     });
 });

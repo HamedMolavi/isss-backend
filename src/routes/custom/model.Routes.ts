@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
+import HttpException from "../../error/HttpException";
 import Model, { IModel } from "../../models/model";
-import { authorize, getToken, ICritential } from "../../tools/authentication";
+import { getTokenAndVerify } from "../../tools/authentication";
 
 
 //create router for add to server file 
@@ -21,18 +22,11 @@ router.get("/:category", async function (req: Request, res: Response, next: Next
         let category: string = req.params.category;
         if (!category) {
             req.flash("error", "category is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "category is required", "model"));
         }
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "token is expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get model by id from DB
         let model = await Model.findOne({ category: category }).exec();
@@ -40,7 +34,7 @@ router.get("/:category", async function (req: Request, res: Response, next: Next
         //check model is exist
         if (!model) {
             req.flash("error", "model is not exist");
-            return next({ status: 404, message: "Model is not exist" });
+            return next(new HttpException(400, "model is not exist", "model"));
         }
 
         //send model to client
@@ -48,8 +42,8 @@ router.get("/:category", async function (req: Request, res: Response, next: Next
             message: 'Success',
             model: model
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the jobTitle: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "model"));
     }
 });
 

@@ -58,6 +58,6 @@ describe('camera', function () {
             }).catch((err) => {
                 done(err);
             });
-        });
+        }).timeout(20000);
     });
 });

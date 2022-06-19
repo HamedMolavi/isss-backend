@@ -7,13 +7,13 @@ let _file: any;
 
 
 describe('test upload , dowloand , get list Image', function () {
-    beforeEach(function (done) {
-        done();
-    });
+    // beforeEach(function (done) {
+    //     //done();
+    // });
     //test route for upload image
     it('should send back a JSON object with file name and location and message', function (done) {
         request(app)
-            .post('/file/upload')
+            .post('/api/v1/files/upload')
             .set('Content-Type', 'multipart/form-data')
             .set('Authorization', `Bearer ${token}`)
             .attach('file', './assets/sample/test.jpg')
@@ -30,7 +30,7 @@ describe('test upload , dowloand , get list Image', function () {
     //test route for download image
     it('should send back a image picture', function (done) {
         request(app)
-            .get('/file/download/test.jpg')
+            .get('/api/v1/files/download/test.jpg')
             .set('Content-Type', 'multipart/form-data')
             .set('Authorization', `Bearer ${token}`)
             .then(function (res) {
@@ -42,7 +42,7 @@ describe('test upload , dowloand , get list Image', function () {
     //test route for get list image
     it('should send back a jason with url and name image', function (done) {
         request(app)
-            .get('/file/list')
+            .get('/api/v1/files/list')
             .set('Content-Type', 'multipart/form-data')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -50,6 +50,42 @@ describe('test upload , dowloand , get list Image', function () {
                 let userResponse = res.body[0];
                 expect(userResponse).to.have.property('name');
                 expect(userResponse).to.have.property('url');
+                // Done
+                done();
+            });
+    });
+
+
+    //test route for upload image in redis
+    it('should send back a JSON object with message Uploaded the file successfully in redis', function (done) {
+        request(app)
+            .post('/api/v1/files/redis?id=123456789')
+            .set('Content-Type', 'multipart/form-data')
+            .set('Authorization', `Bearer ${token}`)
+            .attach('file', './assets/sample/test.jpg')
+            .then(function (res) {
+                let response = res.body.message;
+                expect(res.status).to.equal(201);
+                expect(response).to.equal("Uploaded the file successfully");
+                done();
+            });
+    });
+
+
+    // //test route for verify image in redis
+    it('should send back a JSON object with message Verified the file successfully in redis', function (done) {
+        request(app)
+            .post('/api/v1/files/verify')
+            .set('Content-Type', 'application/json')
+            .send({
+                id: "4f3b1d2b5b8c0855c0cbc41be51e4cd0"
+            })
+            .expect('Content-Type', /json/)
+            .expect(406, function (err, res) {
+                if (err) { return done(err); }
+                let response = res.body;
+                expect(res.status).to.equal(406);
+                expect(response).to.have.property('message');
                 // Done
                 done();
             });

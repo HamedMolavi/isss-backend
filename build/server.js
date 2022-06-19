@@ -1,34 +1,10 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dbUri = void 0;
 const express_1 = __importDefault(require("express"));
-const util = __importStar(require("util"));
 const fs_1 = __importDefault(require("fs"));
 const http_1 = __importDefault(require("http"));
 const https_1 = __importDefault(require("https"));
@@ -42,9 +18,9 @@ const express_session_1 = __importDefault(require("express-session"));
 const connect_flash_1 = __importDefault(require("connect-flash"));
 const setuppassport_1 = __importDefault(require("./tools/setuppassport"));
 const passport_1 = __importDefault(require("passport"));
-const errorHandler_1 = __importDefault(require("./error/errorHandler"));
 const index_Routes_1 = __importDefault(require("./routes/index.Routes"));
 const rotating_file_stream_1 = require("rotating-file-stream");
+const error_middleware_1 = __importDefault(require("./error/error.middleware"));
 //initial file .env
 dotenv_1.default.config();
 exports.dbUri = process.env["MONGODB_URL"];
@@ -96,17 +72,17 @@ app.get('/', (req, res, next) => {
     });
 });
 //add routes app
-app.use(index_Routes_1.default);
+app.use("/api/v1", index_Routes_1.default);
 //add error handler
-app.use(errorHandler_1.default);
+app.use(error_middleware_1.default);
 //for get unhandeled error in express
-process.on('uncaughtException', function (err) {
-    console.error(`I've crashed!!! - ${(err.stack || err)}`);
-});
-//for get unhandeled rejection in express
-process.on('unhandledRejection', (reason, p) => {
-    console.error(`Unhandled Rejection at: ${util.inspect(p)} reason: ${reason}`);
-});
+// process.on('uncaughtException', function (err) {
+//     console.error(`I've crashed!!! - ${(err.stack || err)}`);
+// });
+// //for get unhandeled rejection in express
+// process.on('unhandledRejection', (reason, p) => {
+//     console.error(`Unhandled Rejection at: ${util.inspect(p)} reason: ${reason}`);
+// });
 //run https server on port 4000
 https_1.default.createServer(options, app).listen(PORT_HTTPS, () => {
     console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);

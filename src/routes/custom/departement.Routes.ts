@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
+import HttpException from "../../error/HttpException";
 import Departement, { IDepartement } from "../../models/departement";
-import { authorize, getToken, ICritential } from "../../tools/authentication";
+import { getTokenAndVerify } from "../../tools/authentication";
 
 //create router for add to server file 
 const router: Router = Router();
@@ -15,26 +16,17 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 
 //add route for register new departement
-router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
+router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { name, created_date } = req.body;
         //verify body request
         if (!name) {
             req.flash("error", "Departement name is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Departement name is required", "departement"));
         }
-        //get token from header request
-        let token: string = getToken(req, next) as string;
-
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" });
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         let newDepartement = new Departement();
         //query for save new departement in DB
@@ -42,7 +34,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //retrun error if departement already exists
         if (departement) {
             req.flash("error", "Departement already exists");
-            return res.status(201).json({ message: "departement already exists" });
+            return next(new HttpException(400, "Departement already exists", "departement"));
         }
         //fill new departement
         newDepartement = new Departement({
@@ -56,60 +48,14 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             message: "departement created",
             departement: newDepartement
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not create the departement: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "departement"));
     }
 });
-
-//route for get departement with search from DB 
-router.get("/find", async function (req: Request, res: Response, next: NextFunction) {
-    try {
-        //get param from url
-        let search = req.query.search as string;
-        let strLimit = req.query.limit as string;
-        let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
-        if (!search) {
-            req.flash("error", "Search is required");
-            return next({ status: 400, message: "Bad request" });
-        }
-
-        //get token from header request
-        let token = getToken(req, next) as string;
-
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
-
-        //query for search departement by id from DB
-        let departement = await Departement.find({
-            name: { $regex: search, $options: "i" }
-        }).limit(limit).exec();
-
-        //return response not found to client if not found departement
-        if (!departement) {
-            req.flash("error", "Departement not found");
-            return next(new Error("Not Found"));
-        }
-        //return response to client with departement
-        return res.status(200).json({
-            message: "Success",
-            departement: departement,
-            limit: limit,
-            total: await Departement.countDocuments().exec(),
-        });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the departement: ${err}` });
-    }
-});
-
 
 
 //route for get departements list  
-router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
+router.get("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get page from url
         let strPage = req.query.page as string;
@@ -117,24 +63,24 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
         //get perPage from url
         let strPerPage = req.query.perPage as string;
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+        let search = req.query.search as string || "";
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
         //query for get departements list
-        let departements = await Departement.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+        let departements: IDepartement[] = [];
+        if (!(search && search.length > 0)) {
+            departements = await Departement.find({
+                name: { $regex: search, $options: "i" }
+            }).limit(perPage).skip(perPage * (page - 1)).exec();
+        } else {
+            departements = await Departement.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+        }
 
         //return response not found to client if not found departements
         if (!departements) {
             req.flash("error", "Departement not found");
-            return next(new Error("Not Found"));
+            return next(new HttpException(404, "Departement not found", "departement"));
         }
 
         //return response to client with departements list
@@ -146,8 +92,8 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
             total: await Departement.countDocuments().exec(),
             pages: Math.ceil(await Departement.countDocuments().exec() / perPage)
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the departements: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "departement"));
     }
 });
 
@@ -158,19 +104,11 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //verify body request
         if (!id) {
             req.flash("error", "Departement id is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Departement id is required", "departement"));
         }
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get departement by id from DB
         let departement = await Departement.findById(id).exec();
@@ -178,21 +116,21 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found departement
         if (!departement) {
             req.flash("error", "Departement not found");
-            return next(new Error("Not Found"));
+            return next(new HttpException(404, "Departement not found", "departement"));
         }
         //return response to client with departement
         return res.status(200).json({
             message: "Success",
             departement: departement
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the departement: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "departement"));
     }
 });
 
 
 //add route for edit departement
-router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
+router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
         let id: string = req.params.id;
@@ -200,35 +138,26 @@ router.put("/:id", async function (req: Request, res: Response, next: NextFuncti
         //verify body request
         if (!id) {
             req.flash("error", "Departement id is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Departement id is required", "departement"));
         }
 
         const departementBody = req.body;
-        //get token from header request
-        let token = getToken(req, next) as string;
-
-        //verify token
-        let critential = authorize(token) as ICritential;
-
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
         //query for get camera by id from DB and update
         let departement = await Departement.findByIdAndUpdate(id, departementBody, { new: true }).exec();
         //return response not found to client if not found departement
         if (!departement) {
             req.flash("error", "Departement not found");
-            return next(new Error("Not Found"));
+            return next(new HttpException(404, "Departement not found", "departement"));
         }
         //return response to client with departement
         return res.status(201).json({
             message: "Success",
             departement: departement
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not edit the departement: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "departement"));
     }
 });
 
@@ -240,35 +169,26 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         //verify body request
         if (!id) {
             req.flash("error", "Departement id is required");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Departement id is required", "departement"));
         }
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-
-        //verify token
-        let critential = authorize(token) as ICritential;
-
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get departement by id from DB
         let departement = await Departement.findByIdAndDelete(id).exec();
         //return response not found to client if not found departement
         if (!departement) {
             req.flash("error", "Departement not found");
-            return next(new Error("Not Found"));
+            return next(new HttpException(404, "Departement not found", "departement"));
         }
         //return response to client with departement
         return res.status(201).json({
             message: "Success",
             departement: departement
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not delete the departement: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "departement"));
     }
 });
 

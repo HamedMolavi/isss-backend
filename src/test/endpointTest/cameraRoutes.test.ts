@@ -12,9 +12,9 @@ let _camera: ICamera;
 describe('server run and server runnig and crud camera', function () {
 
     //test route for register new camera in DB
-    it('should send back a JSON object with user for create new camera', function (done) {
+    it('should send back a JSON object with camera for create new camera', function (done) {
         request(app)
-            .post('/camera/register')
+            .post('/api/v1/cameras/')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
@@ -69,7 +69,7 @@ describe('server run and server runnig and crud camera', function () {
     it('should send back a JSON object for get camera with id', function (done) {
         //test route for get camera in DB
         request(app)
-            .get('/camera/' + _camera._id)
+            .get('/api/v1/cameras/' + _camera._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -98,7 +98,36 @@ describe('server run and server runnig and crud camera', function () {
 
         //test route for get camera in DB
         request(app)
-            .get('/camera/list?page=1&perPage=2')
+            .get('/api/v1/cameras?page=1&perPage=2')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+                if (err) { return done(err); }
+                let userResponse = res.body.cameras;
+
+                expect(userResponse[0]).to.have.property('_id');
+                expect(userResponse[0]).to.have.property('network');
+                expect(userResponse[0]).to.have.property('name');
+                expect(userResponse[0]).to.have.property('section_id');
+                expect(userResponse[0]).to.have.property('departement_id');
+                expect(userResponse[0]).to.have.property('url');
+                expect(userResponse[0]).to.have.property('ip');
+                expect(userResponse[0]).to.have.property('username');
+                expect(userResponse[0]).to.have.property('password');
+                expect(userResponse[0]).to.have.property('is_enabled');
+                // Done
+                done();
+            });
+    });
+
+
+     //test route for get search cameras from DB
+     it('should send back a JSON object for search cameras', function (done) {
+
+
+        //test route for search camera in DB
+        request(app)
+            .get('/api/v1/cameras?page=1&perPage=2&search=o')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -128,7 +157,7 @@ describe('server run and server runnig and crud camera', function () {
             ip: '172.01.01.01',
         };
         request(app)
-            .put('/camera/' + _camera._id)
+            .patch('/api/v1/cameras/' + _camera._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(cameraEditJson)
@@ -155,7 +184,7 @@ describe('server run and server runnig and crud camera', function () {
     //test route for delete camera in DB 
     it('should send back a JSON object for delete camera', function (done) {
         request(app)
-            .delete('/camera/' + _camera._id)
+            .delete('/api/v1/cameras/' + _camera._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

@@ -28,7 +28,7 @@ describe('server run and crud car', function () {
     //test route for register new car in DB
     it('should send back a JSON object with car for create new car', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/car/register')
+            .post('/api/v1/cars/')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
@@ -58,11 +58,32 @@ describe('server run and crud car', function () {
             done();
         });
     });
-    //test route for get cars by id from DB
+    //test route for get all cars by id from DB
     it('should send back a JSON object for get all cars', function (done) {
         //test route for get cars in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/car/list?page=1&perPage=1')
+            .get('/api/v1/cars?page=1&perPage=1')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.cars;
+            (0, chai_1.expect)(userResponse[0].owner).to.equal('test');
+            (0, chai_1.expect)(userResponse[0].number_plate).to.equal('1234567');
+            (0, chai_1.expect)(userResponse[0].brand_id).to.equal('629592546558a38fbecb6d40');
+            (0, chai_1.expect)(userResponse[0].color_id).to.equal('629592546558a38fbecb6d40');
+            (0, chai_1.expect)(userResponse[0].camera_whitelist).to.deep.equal(['test']);
+            // Done
+            done();
+        });
+    });
+    //test route for search cars by id from DB
+    it('should send back a JSON object for search cars', function (done) {
+        //test route for get cars in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/api/v1/cars?page=1&perPage=1&search=12')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -83,7 +104,7 @@ describe('server run and crud car', function () {
     it('should send back a JSON object for get car with id', function (done) {
         //test route for get car in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/car/' + _car._id)
+            .get('/api/v1/cars/' + _car._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -107,7 +128,7 @@ describe('server run and crud car', function () {
             number_plate: '7654321'
         };
         (0, supertest_1.default)(server_1.default)
-            .put('/car/' + _car._id)
+            .patch('/api/v1/cars/' + _car._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(plateEditJson)
@@ -129,7 +150,7 @@ describe('server run and crud car', function () {
     //test route for delete car in DB 
     it('should send back a JSON object for delete car', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .delete('/car/' + _car._id)
+            .delete('/api/v1/cars/' + _car._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

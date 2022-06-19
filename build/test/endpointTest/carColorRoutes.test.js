@@ -12,9 +12,9 @@ let _carColor;
 //create testing for register new car_color and edit , delete ,get car_color
 describe('server run and crud car color', function () {
     //test route for register new car color in DB
-    it('should send back a JSON object with carr color for create new car color', function (done) {
+    it('should send back a JSON object with car color for create new car color', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/carcolor/register')
+            .post('/api/v1/carcolors/')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
@@ -52,7 +52,24 @@ describe('server run and crud car color', function () {
     it('should send back a JSON object for get all car colors', function (done) {
         //test route for get car_colors in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/carcolor/list?page=1&perPage=2')
+            .get('/api/v1/carcolors?page=1&perPage=2')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.carColors;
+            (0, chai_1.expect)(userResponse[0]).to.have.property('name');
+            // Done
+            done();
+        });
+    });
+    //test route for search car_colors from DB
+    it('should send back a JSON object for search car colors', function (done) {
+        //test route for get car_colors in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/api/v1/carcolors?page=1&perPage=2$search=r')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -69,7 +86,7 @@ describe('server run and crud car color', function () {
     it('should send back a JSON object for get car color with id', function (done) {
         //test route for get car_color in DB
         (0, supertest_1.default)(server_1.default)
-            .get('/carcolor/' + _carColor._id)
+            .get('/api/v1/carcolors/' + _carColor._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -85,7 +102,7 @@ describe('server run and crud car color', function () {
     //test route for delete car_color in DB 
     it('should send back a JSON object for delete car color', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .delete('/carcolor/' + _carColor._id)
+            .delete('/api/v1/carcolors/' + _carColor._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

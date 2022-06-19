@@ -14,7 +14,7 @@ describe('server run and crud schedule', function () {
     //test route for register new schedule in DB
     it('should send back a JSON object with schedule for create new schedule', function (done) {
         request(app)
-            .post('/schedule/register')
+            .post('/api/v1/schedules/')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
@@ -70,7 +70,7 @@ describe('server run and crud schedule', function () {
 
         //test route for get schedule in DB
         request(app)
-            .get('/schedule/list?PerPage=2&page=1')
+            .get('/api/v1/schedules?PerPage=2&page=1')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -94,7 +94,7 @@ describe('server run and crud schedule', function () {
 
         //test route for get schedule in DB
         request(app)
-            .get('/schedule/' + _schedule._id)
+            .get('/api/v1/schedules/' + _schedule._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -120,7 +120,7 @@ describe('server run and crud schedule', function () {
             stop_cron: '00 9 * * 1',
         };
         request(app)
-            .put('/schedule/' + _schedule._id)
+            .patch('/api/v1/schedules/' + _schedule._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(scheduleEditJson)
@@ -145,7 +145,7 @@ describe('server run and crud schedule', function () {
     it('should send back a JSON object for delete schedule', function (done) {
 
         request(app)
-            .delete('/schedule/' + _schedule._id)
+            .delete('/api/v1/schedules/' + _schedule._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

@@ -13,7 +13,7 @@ describe('server run and crud jobTitle', function () {
     //test route for register new jobTitle in DB
     it('should send back a JSON object with jobTitle for create new jobTitle', function (done) {
         request(app)
-            .post('/jobTitle/register')
+            .post('/api/v1/jobTitles/')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
@@ -56,9 +56,28 @@ describe('server run and crud jobTitle', function () {
     it('should send back a JSON object for get all jobTitle', function (done) {
 
 
-        //test route for get camera in DB
+        //test route for get jobTitles in DB
         request(app)
-            .get('/jobTitle/list')
+            .get('/api/v1/jobTitles?page=1&perPage=3')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+                if (err) { return done(err); }
+                let userResponse = res.body.jobTitles;
+                expect(userResponse[0]).have.to.property('name');
+
+                // Done
+                done();
+            });
+    });
+
+     //test route for search jobTitles from DB
+     it('should send back a JSON object for search jobTitle', function (done) {
+
+
+        //test route for get jobTitles in DB
+        request(app)
+            .get('/api/v1/jobTitles?page=1&perPage=3&search=dev')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -76,9 +95,9 @@ describe('server run and crud jobTitle', function () {
     it('should send back a JSON object for get jobTitle with id', function (done) {
 
 
-        //test route for get camera in DB
+        //test route for get jobTitle in DB
         request(app)
-            .get('/jobTitle/' + _jobTitle._id)
+            .get('/api/v1/jobTitles/' + _jobTitle._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -96,8 +115,9 @@ describe('server run and crud jobTitle', function () {
         let jobTitleEditJson = {
             name: 'police'
         };
+        //test route for edit jobTitle in DB
         request(app)
-            .put('/jobTitle/' + _jobTitle._id)
+            .patch('/api/v1/jobTitles/' + _jobTitle._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send(jobTitleEditJson)
@@ -116,7 +136,7 @@ describe('server run and crud jobTitle', function () {
     it('should send back a JSON object for delete jobTitle', function (done) {
 
         request(app)
-            .delete('/jobTitle/' + _jobTitle._id)
+            .delete('/api/v1/jobTitles/' + _jobTitle._id)
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .expect('Content-Type', /json/)

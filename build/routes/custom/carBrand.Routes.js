@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const HttpException_1 = __importDefault(require("../../error/HttpException"));
 const carBrand_1 = __importDefault(require("../../models/carBrand"));
 const authentication_1 = require("../../tools/authentication");
 //create router for add to server file 
@@ -25,7 +26,7 @@ router.use(function (req, res, next) {
     next();
 });
 //add route for register new car_brand
-router.post("/register", function (req, res, next) {
+router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
@@ -33,23 +34,16 @@ router.post("/register", function (req, res, next) {
             //verify body request
             if (!name) {
                 req.flash("error", "Car brand is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Bad request", "Car_Brand"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for save new car_brand in DB
             let carBrand = yield carBrand_1.default.findOne({ name: name }).exec();
             //retrun error if car_brand already exists
             if (carBrand) {
                 req.flash("error", "Car Brand already exists");
-                return res.status(201).json({ message: "car already exists" });
+                return next(new HttpException_1.default(400, "Car Brand already exists", "Car_Brand"));
             }
             //fill new car_brand
             let newCarBrand = new carBrand_1.default({
@@ -64,55 +58,12 @@ router.post("/register", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not create the car brand: ${err}` });
-        }
-    });
-});
-//route for get car_brand with search from DB 
-router.get("/find", function (req, res, next) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            //get param from url
-            let search = req.query.search;
-            let strLimit = req.query.limit;
-            let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
-            if (!search) {
-                req.flash("error", "Search is required");
-                return next({ status: 400, message: "Bad request" });
-            }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
-            //query for search car_brand by id from DB
-            let carBrand = yield carBrand_1.default.find({
-                name: { $regex: search, $options: "i" }
-            }).limit(limit).exec();
-            //return response not found to client if not found car_band
-            if (!carBrand) {
-                req.flash("error", "Car Brand not found");
-                return next(new Error("Not Found"));
-            }
-            //return response to client with car_brand
-            return res.status(200).json({
-                message: "Success",
-                carBrand: carBrand,
-                limit: limit,
-                total: yield carBrand_1.default.countDocuments().exec(),
-            });
-        }
-        catch (err) {
-            return next({ status: 500, message: `Could not get the car brand: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Car_Brand"));
         }
     });
 });
 //route for get car list  
-router.get("/list", function (req, res, next) {
+router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
@@ -121,21 +72,23 @@ router.get("/list", function (req, res, next) {
             //get perPage from url
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            let search = req.query.search || "";
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get car_barnd list
-            let carBrands = yield carBrand_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+            let carBrands = [];
+            if (!(search && search.length > 0)) {
+                carBrands = yield carBrand_1.default.find({
+                    name: { $regex: search, $options: "i" }
+                }).limit(perPage).skip(perPage * (page - 1)).exec();
+            }
+            else {
+                carBrands = yield carBrand_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+            }
             //return response not found to client if not found car_brand
             if (!carBrands) {
                 req.flash("error", "Car Brands not found");
-                return next(new Error("Not Found"));
+                return next(new HttpException_1.default(404, "Car Brands not found", "Car_Brand"));
             }
             //return response to client with car_brand list
             return res.status(200).json({
@@ -148,7 +101,7 @@ router.get("/list", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the car brands: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Car_Brand"));
         }
     });
 });
@@ -160,23 +113,16 @@ router.get("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Car Brand id is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Bad request", "Car_Brand"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get car_brand by id from DB
             let carBrand = yield carBrand_1.default.findById(id).exec();
             //return response not found to client if not found car_brand
             if (!carBrand) {
                 req.flash("error", "Car Brand not found");
-                return next(new Error("Not Found"));
+                return next(new HttpException_1.default(404, "Car Brand not found", "Car_Brand"));
             }
             //return response to client with car
             return res.status(200).json({
@@ -185,7 +131,7 @@ router.get("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not get the car brand: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Car_Brand"));
         }
     });
 });
@@ -197,23 +143,16 @@ router.delete("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Car Brand id is required");
-                return next({ status: 400, message: "Bad request" });
+                return next(new HttpException_1.default(400, "Bad request", "Car_Brand"));
             }
-            //get token from header request
-            let token = (0, authentication_1.getToken)(req, next);
-            //verify token
-            let critential = (0, authentication_1.authorize)(token);
-            //check time expire token and role
-            if (critential.exp < Date.now() / 1000) {
-                req.flash("error", "Token expired");
-                return next({ status: 401, message: "Token expired" });
-            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get car_brand by id from DB
             let carBrand = yield carBrand_1.default.findByIdAndDelete(id).exec();
             //return response not found to client if not found car_brand
             if (!carBrand) {
                 req.flash("error", "Car Brand not found");
-                return next(new Error("Not Found"));
+                return next(new HttpException_1.default(404, "Car Brand not found", "Car_Brand"));
             }
             //return response to client with car_brand
             return res.status(201).json({
@@ -222,7 +161,7 @@ router.delete("/:id", function (req, res, next) {
             });
         }
         catch (err) {
-            return next({ status: 500, message: `Could not delete the car brand: ${err}` });
+            return next(new HttpException_1.default(500, err.message, "Car_Brand"));
         }
     });
 });

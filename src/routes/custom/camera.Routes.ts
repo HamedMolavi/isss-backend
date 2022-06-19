@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
+import HttpException from "../../error/HttpException";
 import Camera, { ICamera } from "../../models/camera";
-import { authorize, getToken, ICritential } from "../../tools/authentication";
+import { getTokenAndVerify } from "../../tools/authentication";
 
 //create router for add to server 
 const router: Router = Router();
@@ -15,27 +16,18 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 
 //add route for register new camera
-router.post("/register", async function (req: Request, res: Response, next: NextFunction) {
+router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
         const { network, departement_id, section_id, url, ip, name, username, password, is_enabled }: ICamera = req.body;
         //verify body request
         if (!network || !departement_id || !section_id || !url || !ip || !name || !username || !password || !is_enabled) {
             req.flash("error", "Veuillez remplir tous les champs");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Veuillez remplir tous les champs", "camera"));
         }
 
-        //get token from header request
-        let token: string = getToken(req, next) as string;
-
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" });
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for save new Camera in DB
         let camera = await Camera.findOne({
@@ -49,7 +41,7 @@ router.post("/register", async function (req: Request, res: Response, next: Next
         //return error if camera already exist
         if (camera) {
             req.flash("error", "camera already exist");
-            return next({ status: 200, message: "camera already exist" });
+            return next(new HttpException(400, "camera already exist", "camera"));
         }
 
         //fil new camera
@@ -74,83 +66,39 @@ router.post("/register", async function (req: Request, res: Response, next: Next
             message: 'Success',
             camera: camera
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not the camera: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "camera"));
     }
 });
-
-//route for get camera with search from DB 
-router.get("/find", async function (req: Request, res: Response, next: NextFunction) {
-    try {
-        //get param from url
-        let search = req.query.search as string;
-        let strLimit = req.query.limit as string;
-        let limit = parseInt(strLimit) > 0 ? parseInt(strLimit) : 1;
-        if (!search) {
-            req.flash("error", "Search is required");
-            return next({ status: 400, message: "Bad request" });
-        }
-
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
-
-        //query for search camera by id from DB
-        let camera = await Camera.find({
-            name: { $regex: search, $options: "i" }
-        }).limit(limit).exec();
-
-        //return response not found to client if not found camera
-        if (!camera) {
-            req.flash("error", "Camera not found");
-            return next(new Error("Not Found"));
-        }
-        //return response to client with camera
-        return res.status(200).json({
-            message: "Success",
-            camera: camera,
-            limit: limit,
-            total: await Camera.countDocuments().exec(),
-        });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the camera: ${err}` });
-    }
-});
-
 
 
 //route for get cameras list  
-router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
+router.get("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get page from url
         let strPage = req.query.page as string;
         let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+        let search = req.query.search as string || "";
         //get perPage from url
         let strPerPage = req.query.perPage as string;
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
+        let cameras: ICamera[] = [];
         //query for get cameras list
-        let cameras = await Camera.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+        if (search !== "") {
+            cameras = await Camera.find({
+                name: { $regex: search, $options: "i" }
+            }).skip((page - 1) * perPage).limit(perPage).exec();
+        } else {
+            cameras = await Camera.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+        }
 
         //return response not found to client if not found cameras
         if (!cameras) {
             req.flash("error", "Cameras not found");
-            return next(new Error("Not Found"));
+            return next(new HttpException(404, "Cameras not found", "camera"));
         }
 
         //return response to client with departements list
@@ -162,8 +110,8 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
             total: await Camera.countDocuments().exec(),
             pages: Math.ceil(await Camera.countDocuments().exec() / perPage)
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the departements: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "camera"));
     }
 });
 
@@ -176,16 +124,8 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
             req.flash("error", "id not found");
             return next({ status: 400, message: "Bad request" });
         }
-        //get token from header request
-        let token = getToken(req, next) as string;
-
-        //verify token
-        let critential = authorize(token) as ICritential;
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get camera by id from DB
         let camera = await Camera.findById(id).exec();
@@ -193,7 +133,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return error if camera not found
         if (!camera) {
             req.flash("error", "camera not found");
-            return next({ status: 200, message: "Not Found" });
+            return next(new HttpException(404, "camera not found", "camera"));
         }
 
         //send response to client with camera
@@ -201,47 +141,38 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
             message: 'Success',
             camera: camera
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not get the camera: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "camera"));
     }
 });
 
 //add route for edit camera
-router.put("/:id", async function (req: Request, res: Response, next: NextFunction) {
+router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get id from url
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "id not found");
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Bad request", "camera"));
         }
         //get jason from body request
         const cameraBody = req.body;
-        //get token from header request
-        let token: string = getToken(req, next) as string;
-
-        //verify token
-        let critential: ICritential = authorize(token) as ICritential;
-
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
         //query for get user by id from DB
         let camera = await Camera.findByIdAndUpdate(id, cameraBody, { new: true }).exec();
         //return error if user not found
         if (!camera) {
             req.flash("error", "camera not found");
-            return next({ status: 200, message: "Not Found" });
+            return next(new HttpException(404, "camera not found", "camera"));
         }
         //send response to client with user
         return res.status(201).json({
             message: 'Success',
             camera: camera
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not edit the camera: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "camera"));
     }
 });
 
@@ -252,35 +183,26 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         //get id from url
         let id = req.params.id;
         if (!id) {
-            return next({ status: 400, message: "Bad request" });
+            return next(new HttpException(400, "Bad request", "camera"));
         }
 
-        //get token from header request
-        let token = getToken(req, next) as string;
-
-        //verify token
-        let critential = authorize(token) as ICritential;
-
-        //check time expire token and role
-        if (critential.exp < Date.now() / 1000) {
-            req.flash("error", "Token expired");
-            return next({ status: 401, message: "Token expired" })
-        }
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
 
         //query for get camera by username from DB
         let camera = await Camera.findByIdAndDelete(id).exec();
         //return error if camera not found
         if (!camera) {
             req.flash("error", "camera not found");
-            return next({ status: 200, message: "Not Found" });
+            return next(new HttpException(404, "camera not found", "camera"));
         }
         //send response to client with camera
         return res.status(201).json({
             message: 'Success',
             camera: camera
         });
-    } catch (err) {
-        return next({ status: 500, message: `Could not delete the user: ${err}` });
+    } catch (err: any) {
+        return next(new HttpException(500, err.message, "camera"));
     }
 
 });
