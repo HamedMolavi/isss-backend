@@ -5,10 +5,11 @@ import { getTokenAndVerify } from '../../tools/authentication';
 import axios from 'axios';
 import Guid from '../../tools/createGuid';
 import path from 'path';
-import PersonImage from './../../models/personImage';
+import PersonImage, { IPersonImage } from './../../models/personImage';
 import multer from 'multer';
 import { hashJson } from '../../tools/hash';
 import HttpException from '../../error/HttpException';
+
 
 //create router for add to server 
 const router: Router = Router();
@@ -180,17 +181,24 @@ router.post('/verify', async function (req: Request, res: Response, next: NextFu
                 }
             });
             //query to database for search personnel
-            let personImage = await PersonImage.findOne({ guid: fileName }).exec();
+            let personImage  = await PersonImage.findOne({ guid: fileName }).exec();
 
-            //create new personimage  
-            personImage = new PersonImage({
-                person_id: '6283724be1996b883080a495',
-                guid: guid,
-                vector: embeddingArray,
-            });
+            //create new personimage
+            if (!personImage) {
+                personImage = new PersonImage();
+                personImage.guid = fileName;
+                personImage.vector = embeddingArray;
+                //  save personimage in database
+                await personImage.save();
+            }
+            // personImage = {
+            //     person_id: '6283724be1996b883080a495',
+            //     guid: guid,
+            //     vector: embeddingArray,
+            // }
 
             //  save personimage in database
-            await personImage.save();
+            //await personImage!.save();
             //  delete jason image in redis
             let result = await deleteImageInRedis(id.toString());
             //   send response to client
