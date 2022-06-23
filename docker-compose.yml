@@ -17,7 +17,7 @@ services:
     ports:
       - 6379:6379
   app:
-    container_name: app
+    container_name: isss-backend
     restart: always
     build:
       context: .
@@ -28,6 +28,10 @@ services:
       - MONGO_URL=${MONGODB_URL}
     ports:
       - 3000:3000
+    volumes:
+      - ./logs:/isss-backend/logs
+      - ./assets:/isss-backend/assets
+      - ./security:/isss-backend/security
     external_links:
       - mongo
       - redis
