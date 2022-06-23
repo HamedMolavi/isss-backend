@@ -1,4 +1,4 @@
-import express, { Express, NextFunction, Request, Response } from 'express';
+import express, { Application, NextFunction, Request, Response } from 'express';
 import fs from 'fs';
 import http from 'http';
 import https from 'https';
@@ -15,6 +15,7 @@ import passport from 'passport';
 import routes from './routes/index.Routes';
 import { createStream } from 'rotating-file-stream';
 import errorMiddleware from './error/error.middleware';
+import { util } from 'chai';
 
 //initial file .env
 dotenv.config();
@@ -36,7 +37,7 @@ const PORT_HTTPS = process.env["PORT_https"] as number | undefined;
 const HOST = process.env["HOST"] as string | undefined;
 
 //create express app
-const app: Express = express();
+const app: Application = express();
 
 //connect to database
 connect();
@@ -77,18 +78,18 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
 });
 
 //add routes app
-app.use("/api/v1",routes);
+app.use("/api/v1", routes);
 
 //add error handler
 app.use(errorMiddleware);
 //for get unhandeled error in express
-// process.on('uncaughtException', function (err) {
-//     console.error(`I've crashed!!! - ${(err.stack || err)}`);
-// });
-// //for get unhandeled rejection in express
-// process.on('unhandledRejection', (reason, p) => {
-//     console.error(`Unhandled Rejection at: ${util.inspect(p)} reason: ${reason}`);
-// });
+process.on('uncaughtException', function (err) {
+    console.error(`I've crashed!!! - ${(err.stack || err)}`);
+});
+//for get unhandeled rejection in express
+process.on('unhandledRejection', (reason, p) => {
+    console.error(`Unhandled Rejection at: ${util.inspect(p)} reason: ${reason}`);
+});
 
 //run https server on port 4000
 https.createServer(options, app).listen(PORT_HTTPS, () => {

@@ -7,7 +7,6 @@ exports.dbUri = void 0;
 const express_1 = __importDefault(require("express"));
 const fs_1 = __importDefault(require("fs"));
 const http_1 = __importDefault(require("http"));
-const https_1 = __importDefault(require("https"));
 const morgan_1 = __importDefault(require("morgan"));
 const connectMongo_1 = __importDefault(require("./db/connectMongo"));
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -84,9 +83,9 @@ app.use(error_middleware_1.default);
 //     console.error(`Unhandled Rejection at: ${util.inspect(p)} reason: ${reason}`);
 // });
 //run https server on port 4000
-https_1.default.createServer(options, app).listen(PORT_HTTPS, () => {
-    console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);
-});
+// https.createServer(options, app).listen(PORT_HTTPS, () => {
+//     console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);
+// });
 //run http server on port 3000
 http_1.default.createServer(app).listen(PORT_HTTP, () => {
     console.log(`Server is running on http://${HOST}:${PORT_HTTP}`);
