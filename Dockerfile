@@ -2,16 +2,15 @@ FROM node:alpine
 
 WORKDIR /isss-backend
 
-COPY package.json ./
+# COPY logs ./logs
+# COPY security ./security
+# COPY assets ./assets
 COPY tsconfig.json ./
-COPY logs ./logs
-COPY security ./security
-COPY assets ./assets
+COPY package.json ./
 COPY src ./src
 
-RUN ls -a
 RUN npm install
-RUN npm run build
+# RUN npm run build
 RUN npm i -g typescript ts-node
 
 EXPOSE 3000
