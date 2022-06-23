@@ -5,7 +5,7 @@ services:
     image: ${REG}mongo
     restart: always
     volumes:
-      - ./data:/data/db
+      - mongo-data:/data
     ports:
       - 27017:27017
   redis:
