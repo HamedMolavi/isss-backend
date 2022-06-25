@@ -12,7 +12,7 @@ import scheduleRoutes from './custom/schedule.Routes';
 import modelRoutes from './custom/model.Routes';
 import carColorRoutes from './custom/carColor.Routes';
 import carBrandRoutes from './custom/carBrand.Routes';
-import test from './custom/test.routes';
+import modelReportsRoutes from './custom/modelReport.Routes';
 
 //create router for add to server 
 const router: Router = Router();
@@ -31,6 +31,6 @@ router.use('/schedules', scheduleRoutes);
 router.use('/models', modelRoutes);
 router.use('/carcolors', carColorRoutes);
 router.use('/carbrands', carBrandRoutes);
-router.use('/test', test);
+router.use('/reportmodels', modelReportsRoutes);
 
 export default router;

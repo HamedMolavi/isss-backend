@@ -77,6 +77,7 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
     });
 });
 
+
 //add routes app
 app.use("/api/v1", routes);
 

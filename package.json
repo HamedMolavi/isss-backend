@@ -15,8 +15,6 @@
     "docker:run": "docker run -e .env -p 3000:8000 -d isss-backend"
   },
   "dependencies": {
-    "@elastic/elasticsearch": "^8.2.1",
-    "@elastic/elasticsearch-mock": "^2.0.0",
     "@types/": "elastic/elasticsearch",
     "@types/bcrypt": "^5.0.0",
     "@types/chai": "^4.3.1",
@@ -39,6 +37,7 @@
     "bcrypt": "^5.0.1",
     "chai": "^4.3.6",
     "cheerio": "^1.0.0-rc.10",
+    "concurrently": "^7.2.2",
     "connect-flash": "^0.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
