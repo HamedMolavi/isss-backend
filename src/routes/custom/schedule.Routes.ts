@@ -1,9 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
-import mongoose from "mongoose";
+import mongoose, { Model } from "mongoose";
 import HttpException from "../../error/HttpException";
 import Schedule, { ISchedule } from "../../models/schedule";
 import { getTokenAndVerify } from "../../tools/authentication";
 import { compareTime, convertToCron, convertToCronDay } from "../../tools/convertTime";
+import ModelToCamera from "../../models/modelToCamera";
 
 //define type of schedule for request body
 interface IGetParams {
@@ -36,11 +37,11 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     try {
         //get jason from body request
         const {
-            start, stop, dayOfWeek, model_camera_id,
+            start, stop, dayOfWeek, camera_id, model_id,
             montionDetection, threshold, zones, min_people, max_people
         } = req.body;
         //verify body request
-        if (!start || !stop || !dayOfWeek || !model_camera_id || !montionDetection || !threshold) {
+        if (!start || !stop || !dayOfWeek || !camera_id || !model_id || !montionDetection || !threshold) {
             req.flash("error", "Please fill all fields");
             return next(new HttpException(400, "Please fill all fields", "schedule"));
         }
@@ -51,6 +52,24 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
             req.flash("error", "Invalid time");
             return next(new HttpException(400, "Invalid time", "schedule"));
         }
+        //search for model in DB
+        let model2Camera = ModelToCamera.findOne({
+            $or: [
+                { model_id: model_id },
+                { camera_id: camera_id }
+            ]
+        }).exec();
+        if (!model2Camera) {
+            req.flash("error", "Invalid model or camera");
+            return next(new HttpException(400, "Invalid model or camera , already registered", "schedule"));
+        }
+
+        //save model to camera
+        let model2CameraSave = new ModelToCamera({
+            model_id: model_id,
+            camera_id: camera_id
+        });
+        let model2camera = await model2CameraSave.save();
 
         //convert input time to cron format
         let start_cron: string = convertToCron(start);
@@ -62,7 +81,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
             $or: [
                 { start_cron: start_cron },
                 { stop_cron: stop_cron },
-                { model_camera_id: model_camera_id }
+                { model_camera_id: model2camera._id }
             ]
         }).exec();
 
@@ -76,7 +95,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         schedule = new Schedule({
             start_cron: start_cron,
             stop_cron: stop_cron,
-            model_camera_id: model_camera_id,
+            model_camera_id: model2camera._id,
             montionDetection: montionDetection,
             config: {
                 threshold: threshold ?? 0,

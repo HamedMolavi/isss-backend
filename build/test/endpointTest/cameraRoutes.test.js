@@ -8,6 +8,7 @@ const chai_1 = require("chai");
 const supertest_1 = __importDefault(require("supertest"));
 const camera_1 = __importDefault(require("../../models/camera"));
 const mongoose_1 = __importDefault(require("mongoose"));
+const mocha_1 = require("mocha");
 const token = process.env.sample_token;
 let _camera;
 describe('server run and server runnig and crud camera', function () {
@@ -52,7 +53,7 @@ describe('server run and server runnig and crud camera', function () {
             done();
         });
     });
-    beforeEach(function (done) {
+    (0, mocha_1.beforeEach)(function (done) {
         camera_1.default.findOne({
             name: { $in: ['office', 'bank'] },
         }, (err, camera) => {

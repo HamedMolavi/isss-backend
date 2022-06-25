@@ -17,6 +17,7 @@ const HttpException_1 = __importDefault(require("../../error/HttpException"));
 const schedule_1 = __importDefault(require("../../models/schedule"));
 const authentication_1 = require("../../tools/authentication");
 const convertTime_1 = require("../../tools/convertTime");
+const modelToCamera_1 = __importDefault(require("../../models/modelToCamera"));
 //create router for add to server file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -31,9 +32,9 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { start, stop, dayOfWeek, model_camera_id, montionDetection, threshold, zones, min_people, max_people } = req.body;
+            const { start, stop, dayOfWeek, camera_id, model_id, montionDetection, threshold, zones, min_people, max_people } = req.body;
             //verify body request
-            if (!start || !stop || !dayOfWeek || !model_camera_id || !montionDetection || !threshold) {
+            if (!start || !stop || !dayOfWeek || !camera_id || !model_id || !montionDetection || !threshold) {
                 req.flash("error", "Please fill all fields");
                 return next(new HttpException_1.default(400, "Please fill all fields", "schedule"));
             }
@@ -44,6 +45,23 @@ router.post("", function (req, res, next) {
                 req.flash("error", "Invalid time");
                 return next(new HttpException_1.default(400, "Invalid time", "schedule"));
             }
+            //search for model in DB
+            let model2Camera = modelToCamera_1.default.findOne({
+                $or: [
+                    { model_id: model_id },
+                    { camera_id: camera_id }
+                ]
+            }).exec();
+            if (!model2Camera) {
+                req.flash("error", "Invalid model or camera");
+                return next(new HttpException_1.default(400, "Invalid model or camera , already registered", "schedule"));
+            }
+            //save model to camera
+            let model2CameraSave = new modelToCamera_1.default({
+                model_id: model_id,
+                camera_id: camera_id
+            });
+            let model2camera = yield model2CameraSave.save();
             //convert input time to cron format
             let start_cron = (0, convertTime_1.convertToCron)(start);
             start_cron = (0, convertTime_1.convertToCronDay)(start_cron, dayOfWeek.toString());
@@ -54,7 +72,7 @@ router.post("", function (req, res, next) {
                 $or: [
                     { start_cron: start_cron },
                     { stop_cron: stop_cron },
-                    { model_camera_id: model_camera_id }
+                    { model_camera_id: model2camera._id }
                 ]
             }).exec();
             //return error if schedule already exist
@@ -66,7 +84,7 @@ router.post("", function (req, res, next) {
             schedule = new schedule_1.default({
                 start_cron: start_cron,
                 stop_cron: stop_cron,
-                model_camera_id: model_camera_id,
+                model_camera_id: model2camera._id,
                 montionDetection: montionDetection,
                 config: {
                     threshold: threshold !== null && threshold !== void 0 ? threshold : 0,

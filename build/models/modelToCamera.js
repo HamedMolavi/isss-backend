@@ -24,12 +24,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-//create Model person_image with schema for save in DB
-const PersonImageSchema = new mongoose_1.Schema({
-    person_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Personnel" },
-    guid: { type: String, required: true },
-    vector: { type: [Number], required: true },
+//create Model ModelToCamera with schema for save in DB
+const ModelToCameraSchema = new mongoose_1.Schema({
+    model_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Model" },
+    camera_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Camera" }
 });
 // Compile Model from schema
-const Model = mongoose_1.default.model("Person_Image", PersonImageSchema);
+const Model = mongoose_1.default.model("ModelToCamera", ModelToCameraSchema);
 exports.default = Model;

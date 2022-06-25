@@ -17,6 +17,7 @@ const schedule_Routes_1 = __importDefault(require("./custom/schedule.Routes"));
 const model_Routes_1 = __importDefault(require("./custom/model.Routes"));
 const carColor_Routes_1 = __importDefault(require("./custom/carColor.Routes"));
 const carBrand_Routes_1 = __importDefault(require("./custom/carBrand.Routes"));
+const modelReport_Routes_1 = __importDefault(require("./custom/modelReport.Routes"));
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add rotes app
@@ -33,4 +34,5 @@ router.use('/schedules', schedule_Routes_1.default);
 router.use('/models', model_Routes_1.default);
 router.use('/carcolors', carColor_Routes_1.default);
 router.use('/carbrands', carBrand_Routes_1.default);
+router.use('/reportmodels', modelReport_Routes_1.default);
 exports.default = router;

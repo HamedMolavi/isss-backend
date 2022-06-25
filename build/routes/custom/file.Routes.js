@@ -212,14 +212,21 @@ router.post('/verify', function (req, res, next) {
                 });
                 //query to database for search personnel
                 let personImage = yield personImage_1.default.findOne({ guid: fileName }).exec();
-                //create new personimage  
-                personImage = new personImage_1.default({
-                    person_id: '6283724be1996b883080a495',
-                    guid: guid,
-                    vector: embeddingArray,
-                });
+                //create new personimage
+                if (!personImage) {
+                    personImage = new personImage_1.default();
+                    personImage.guid = fileName;
+                    personImage.vector = embeddingArray;
+                    //  save personimage in database
+                    yield personImage.save();
+                }
+                // personImage = {
+                //     person_id: '6283724be1996b883080a495',
+                //     guid: guid,
+                //     vector: embeddingArray,
+                // }
                 //  save personimage in database
-                yield personImage.save();
+                //await personImage!.save();
                 //  delete jason image in redis
                 let result = yield (0, fileUpload_1.deleteImageInRedis)(id.toString());
                 //   send response to client
