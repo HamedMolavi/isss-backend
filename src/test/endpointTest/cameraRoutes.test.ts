@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import request from 'supertest';
 import Camera, { ICamera } from '../../models/camera';
 import mongoose from 'mongoose';
+import { beforeEach } from 'mocha';
 
 
 const token = process.env.sample_token;

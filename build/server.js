@@ -7,6 +7,7 @@ exports.dbUri = void 0;
 const express_1 = __importDefault(require("express"));
 const fs_1 = __importDefault(require("fs"));
 const http_1 = __importDefault(require("http"));
+const https_1 = __importDefault(require("https"));
 const morgan_1 = __importDefault(require("morgan"));
 const connectMongo_1 = __importDefault(require("./db/connectMongo"));
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -20,6 +21,7 @@ const passport_1 = __importDefault(require("passport"));
 const index_Routes_1 = __importDefault(require("./routes/index.Routes"));
 const rotating_file_stream_1 = require("rotating-file-stream");
 const error_middleware_1 = __importDefault(require("./error/error.middleware"));
+const chai_1 = require("chai");
 //initial file .env
 dotenv_1.default.config();
 exports.dbUri = process.env["MONGODB_URL"];
@@ -75,17 +77,17 @@ app.use("/api/v1", index_Routes_1.default);
 //add error handler
 app.use(error_middleware_1.default);
 //for get unhandeled error in express
-// process.on('uncaughtException', function (err) {
-//     console.error(`I've crashed!!! - ${(err.stack || err)}`);
-// });
-// //for get unhandeled rejection in express
-// process.on('unhandledRejection', (reason, p) => {
-//     console.error(`Unhandled Rejection at: ${util.inspect(p)} reason: ${reason}`);
-// });
+process.on('uncaughtException', function (err) {
+    console.error(`I've crashed!!! - ${(err.stack || err)}`);
+});
+//for get unhandeled rejection in express
+process.on('unhandledRejection', (reason, p) => {
+    console.error(`Unhandled Rejection at: ${chai_1.util.inspect(p)} reason: ${reason}`);
+});
 //run https server on port 4000
-// https.createServer(options, app).listen(PORT_HTTPS, () => {
-//     console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);
-// });
+https_1.default.createServer(options, app).listen(PORT_HTTPS, () => {
+    console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);
+});
 //run http server on port 3000
 http_1.default.createServer(app).listen(PORT_HTTP, () => {
     console.log(`Server is running on http://${HOST}:${PORT_HTTP}`);

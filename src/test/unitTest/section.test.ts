@@ -8,21 +8,23 @@ describe('section', function () {
 
     let Section: any;
     //connect to DB before test
-    beforeEach(function (done) {
+    before(function (done) {
         //connect to DB
         mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            mongoose.connection.db.dropDatabase();
-
-            require('../../models/section').registerModels;
-            // This is the right model because registerModels set it up for us.
-            Section = mongoose.model('Section');
-            done();
+            mongoose.connection.db.dropDatabase().then(() => {
+                require('../../models/section').registerModels;
+                // This is the right model because registerModels set it up for us.
+                Section = mongoose.model('Section');
+                done();
+            }).catch((err: Error) => {
+                done(err);
+            });
         });
     });
     //disconnect from DB after test
-    afterEach(function (done) {
+    after(function (done) {
         Disconnect();
         done();
     });

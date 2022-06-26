@@ -4,19 +4,12 @@ import { createClient, RedisClientType } from 'redis';
 const dbUri: string = process.env["REDIS_URL"] as string;
 //create redis client
 const client: RedisClientType = createClient({ url: dbUri });
-
+//connect to redis
 client.connect().then(() => {
     console.log('Connected to Redis');
 }).catch(err => {
     console.log('Redis Connection : ' + err);
 });
-// //connect to redis
-// client.on('connect', function () {
-//     console.log('Redis client connected');
-// });
-// //error connect to redis
-// client.on('error', (err: any) => {
-//     console.log(err);
-// });
+
 
 export default client;

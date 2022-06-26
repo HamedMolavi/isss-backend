@@ -22,7 +22,8 @@ describe('server run and crud schedule', function () {
             start: "10:00",
             stop: "12:00",
             dayOfWeek: "1",
-            model_camera_id: "6283724be1996b883080a495",
+            model_id: "628dcf08f014bc89f0280c60",
+            camera_id: "628dcf08f014bc89f0280c60",
             montionDetection: true,
             threshold: 85,
             zones: [[0, 0, 0, 0], [2, 3, 5, 2]],
@@ -38,7 +39,7 @@ describe('server run and crud schedule', function () {
                 let response = res.body.schedule;
                 (0, chai_1.expect)(response.start_cron).to.equal('00 10 * * 1');
                 (0, chai_1.expect)(response.stop_cron).to.equal('00 12 * * 1');
-                (0, chai_1.expect)(response.model_camera_id).to.equal('6283724be1996b883080a495');
+                (0, chai_1.expect)(response.model_camera_id).to.be.an('String');
                 (0, chai_1.expect)(response.config.threshold).to.equal(85);
                 (0, chai_1.expect)(response.config.zones).to.deep.equal([[0, 0, 0, 0], [2, 3, 5, 2]]);
                 (0, chai_1.expect)(response.config.min_people).to.equal(1);
@@ -79,7 +80,7 @@ describe('server run and crud schedule', function () {
             let userResponse = res.body.schedules;
             (0, chai_1.expect)(userResponse[0].start_cron).to.equal('00 10 * * 1');
             (0, chai_1.expect)(userResponse[0].stop_cron).to.equal('00 12 * * 1');
-            (0, chai_1.expect)(userResponse[0].model_camera_id).to.equal('6283724be1996b883080a495');
+            (0, chai_1.expect)(userResponse[0].model_camera_id).to.be.an('String');
             (0, chai_1.expect)(userResponse[0].config.threshold).to.equal(85);
             (0, chai_1.expect)(userResponse[0].config.zones).to.deep.equal([[0, 0, 0, 0], [2, 3, 5, 2]]);
             (0, chai_1.expect)(userResponse[0].config.min_people).to.equal(1);
@@ -102,7 +103,7 @@ describe('server run and crud schedule', function () {
             let userResponse = res.body.schedule;
             (0, chai_1.expect)(userResponse.start_cron).to.equal('00 10 * * 1');
             (0, chai_1.expect)(userResponse.stop_cron).to.equal('00 12 * * 1');
-            (0, chai_1.expect)(userResponse.model_camera_id).to.equal('6283724be1996b883080a495');
+            (0, chai_1.expect)(userResponse.model_camera_id).to.be.an('String');
             (0, chai_1.expect)(userResponse.config.threshold).to.equal(85);
             (0, chai_1.expect)(userResponse.config.zones).to.deep.equal([[0, 0, 0, 0], [2, 3, 5, 2]]);
             (0, chai_1.expect)(userResponse.config.min_people).to.equal(1);
@@ -130,7 +131,7 @@ describe('server run and crud schedule', function () {
             let schedule = res.body.schedule;
             (0, chai_1.expect)(schedule.start_cron).to.equal('00 8 * * 1');
             (0, chai_1.expect)(schedule.stop_cron).to.equal('00 9 * * 1');
-            (0, chai_1.expect)(schedule.model_camera_id).to.equal('6283724be1996b883080a495');
+            (0, chai_1.expect)(schedule.model_camera_id).to.be.an('String');
             (0, chai_1.expect)(schedule.config.threshold).to.equal(85);
             (0, chai_1.expect)(schedule.config.zones).to.deep.equal([[0, 0, 0, 0], [2, 3, 5, 2]]);
             (0, chai_1.expect)(schedule.config.min_people).to.equal(1);

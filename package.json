@@ -15,7 +15,6 @@
     "docker:run": "docker run -e .env -p 3000:8000 -d isss-backend"
   },
   "dependencies": {
-    "@techstark/opencv-js": "^4.6.0-release.1",
     "@types/bcrypt": "^5.0.0",
     "@types/chai": "^4.3.1",
     "@types/cheerio": "^0.22.31",
@@ -37,6 +36,7 @@
     "bcrypt": "^5.0.1",
     "chai": "^4.3.6",
     "cheerio": "^1.0.0-rc.10",
+    "concurrently": "^7.2.2",
     "connect-flash": "^0.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

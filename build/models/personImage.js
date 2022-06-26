@@ -28,7 +28,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 const PersonImageSchema = new mongoose_1.Schema({
     person_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Personnel" },
     guid: { type: String, required: true },
-    vector: { type: [Number], required: true }
+    vector: { type: [Number], required: true },
 });
 // Compile Model from schema
 const Model = mongoose_1.default.model("Person_Image", PersonImageSchema);

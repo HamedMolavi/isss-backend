@@ -5,17 +5,10 @@ const redis_1 = require("redis");
 const dbUri = process.env["REDIS_URL"];
 //create redis client
 const client = (0, redis_1.createClient)({ url: dbUri });
+//connect to redis
 client.connect().then(() => {
     console.log('Connected to Redis');
 }).catch(err => {
     console.log('Redis Connection : ' + err);
 });
-// //connect to redis
-// client.on('connect', function () {
-//     console.log('Redis client connected');
-// });
-// //error connect to redis
-// client.on('error', (err: any) => {
-//     console.log(err);
-// });
 exports.default = client;

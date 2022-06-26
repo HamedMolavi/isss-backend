@@ -8,20 +8,23 @@ describe('departement', function () {
 
     let Departement: any;
     //connect to DB before test
-    beforeEach(function (done) {
+    before(function (done) {
         //connect to DB
         mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected', () => {
-           mongoose.connection.db.dropDatabase();
-            require('../../models/departement').registerModels;
-            // This is the right model because ^registerModels set it up for us.
-            Departement = mongoose.model('Departement');
-            done();
+            mongoose.connection.db.dropDatabase().then(() => {
+                require('../../models/departement').registerModels;
+                // This is the right model because registerModels set it up for us.
+                Departement = mongoose.model('Departement');
+                done();
+            }).catch((err: Error) => {
+                done(err);
+            });
         });
     });
     //disconnect from DB after test
-    afterEach(function (done) {
+    after(function (done) {
         Disconnect();
         done();
     });

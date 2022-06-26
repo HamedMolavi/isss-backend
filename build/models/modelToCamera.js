@@ -24,18 +24,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-//create AI model with schema for save in DB
-const AISchema = new mongoose_1.Schema({
-    start: { type: String, required: true },
-    end: { type: String, required: true },
-    thresholdid: { type: Number, required: false },
-    minTime: { type: String, required: false },
-    zone: { type: [String], required: true },
-    type: { type: String, required: true },
-    minPeople: { type: Number, required: false },
-    maxPeople: { type: Number, required: false },
-    create_date: { type: Date, default: Date.now }
+//create Model ModelToCamera with schema for save in DB
+const ModelToCameraSchema = new mongoose_1.Schema({
+    model_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Model" },
+    camera_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Camera" }
 });
-// Compile model from schema
-const AI = mongoose_1.default.model("AI", AISchema);
-exports.default = AI;
+// Compile Model from schema
+const Model = mongoose_1.default.model("ModelToCamera", ModelToCameraSchema);
+exports.default = Model;
