@@ -6,30 +6,33 @@ import { dbUri } from '../../server';
 //test camera models
 describe('camera', function () {
 
+
     let Camera: any;
     //connect to DB before test
-    beforeEach(function (done) {
+    before(function (done) {
         //connect to DB
         mongoose.connect(dbUri);
         //listen for connection events
-        mongoose.connection.once('connected', () => {
-            mongoose.connection.db.dropDatabase();
-            require('../../models/camera').registerModels;
-
-            // This is the right model because ^registerModels set it up for us.
-            Camera = mongoose.model('Camera');
-            done();
+        mongoose.connection.once('connected', (next) => {
+            mongoose.connection.db.dropDatabase().then(() => {
+                require('../../models/camera').registerModels;
+                // This is the right model because ^registerModels set it up for us.
+                Camera = mongoose.model('Camera');
+                done();
+            }).catch((err: Error) => {
+                done(err);
+            });
         });
     });
     //disconnect from DB after test
-    afterEach(function (done) {
+    after(function (done) {
         Disconnect();
         done();
     });
     //test camera model
     describe('register camera', function () {
         //create camera model
-        it('should save camera in db',function (done) {
+        it('should save camera in db', function (done) {
             var camera = new Camera({
                 network: '172.10.10.1',
                 name: 'office',
@@ -52,12 +55,12 @@ describe('camera', function () {
                 expect(camera.username).to.equal('test');
                 expect(camera.password).to.equal('12345');
                 expect(camera.is_enabled).to.equal(true);
-                
+
                 done();
             }).catch((err: Error) => {
                 done(err);
             });
-        }).timeout(20000);
+        });
 
     });
 });

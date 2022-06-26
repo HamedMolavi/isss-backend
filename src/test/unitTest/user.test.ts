@@ -8,22 +8,23 @@ describe('users', function () {
 
     let User: any;
     //connect to DB before test
-    beforeEach(function (done) {
+    before(function (done) {
         //connect to DB
         mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected',() => {
-            mongoose.connection.db.dropDatabase();
-
-         //   require('../../models/user').registerModels;
-            require('../../models/user');
-            // This is the right model because ^registerModels set it up for us.
-            User =mongoose.model('User');
-            done();
+            mongoose.connection.db.dropDatabase().then(() => {
+                require('../../models/user').registerModels;
+                // This is the right model because registerModels set it up for us.
+                User = mongoose.model('User');
+                done();
+            }).catch((err: Error) => {
+                done(err);
+            });
         });
     });
     //disconnect from DB after test
-    afterEach(function (done) {
+    after(function (done) {
         Disconnect();
         done();
     });

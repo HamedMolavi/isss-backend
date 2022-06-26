@@ -19,6 +19,7 @@ const convertTimeEpokh_1 = __importDefault(require("../../tools/convertTimeEpokh
 const personnel_1 = __importDefault(require("../../models/personnel"));
 const car_1 = __importDefault(require("../../models/car"));
 const modelToCamera_1 = __importDefault(require("../../models/modelToCamera"));
+const authentication_1 = require("../../tools/authentication");
 //create router for add to routes file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -34,6 +35,8 @@ const dbUri = process.env["ELASTIC_SEARCH"];
 router.post("/sabotage", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get page from url
             let strPage = req.query.page;
             let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -93,6 +96,8 @@ router.post("/sabotage", function (req, res, next) {
 router.post("/fire", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get page from url
             let strPage = req.query.page;
             let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -159,6 +164,8 @@ router.post("/fire", function (req, res, next) {
 router.post("/face", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get page from url
             let strPage = req.query.page;
             let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -231,6 +238,8 @@ router.post("/face", function (req, res, next) {
 router.post("/human", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get page from url
             let strPage = req.query.page;
             let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -290,6 +299,8 @@ router.post("/human", function (req, res, next) {
 router.post("/plate", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get page from url
             let strPage = req.query.page;
             let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;

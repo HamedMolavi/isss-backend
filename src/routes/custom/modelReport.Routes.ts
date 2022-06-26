@@ -5,6 +5,7 @@ import date2Epokh from "../../tools/convertTimeEpokh";
 import Personnel from "../../models/personnel";
 import Car from "../../models/car";
 import modelToCamera from "../../models/modelToCamera";
+import { getTokenAndVerify } from "../../tools/authentication";
 
 
 //create router for add to routes file 
@@ -24,6 +25,10 @@ const dbUri = process.env["ELASTIC_SEARCH"] as string;
 //route for get sabotage list  
 router.post("/sabotage", async function (req: Request, res: Response, next: NextFunction) {
     try {
+
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
+
         //get page from url
         let strPage = req.query.page as string;
         let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -88,6 +93,10 @@ router.post("/sabotage", async function (req: Request, res: Response, next: Next
 //route for get fire Detection list  
 router.post("/fire", async function (req: Request, res: Response, next: NextFunction) {
     try {
+
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
+
         //get page from url
         let strPage = req.query.page as string;
         let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -157,6 +166,9 @@ router.post("/fire", async function (req: Request, res: Response, next: NextFunc
 //route for get face recognication list  
 router.post("/face", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
+
         //get page from url
         let strPage = req.query.page as string;
         let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -233,6 +245,10 @@ router.post("/face", async function (req: Request, res: Response, next: NextFunc
 //route for get people counting list  
 router.post("/human", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
+
+
         //get page from url
         let strPage = req.query.page as string;
         let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -296,6 +312,9 @@ router.post("/human", async function (req: Request, res: Response, next: NextFun
 //route for get plate list  
 router.post("/plate", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        //get token from header request and verify
+        let token = getTokenAndVerify(req, "user", next);
+
         //get page from url
         let strPage = req.query.page as string;
         let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;

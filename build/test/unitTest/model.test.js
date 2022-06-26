@@ -11,20 +11,23 @@ const server_1 = require("../../server");
 describe('model', function () {
     let Model;
     //connect to DB before test
-    beforeEach(function (done) {
+    before(function (done) {
         //connect to DB
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
-            mongoose_1.default.connection.db.dropDatabase();
-            require('../../models/model').registerModels;
-            // This is the right model because register Models set it up for us.
-            Model = mongoose_1.default.model('Model');
-            done();
+            mongoose_1.default.connection.db.dropDatabase().then(() => {
+                require('../../models/model').registerModels;
+                // This is the right model because register Models set it up for us.
+                Model = mongoose_1.default.model('Model');
+                done();
+            }).catch((err) => {
+                done(err);
+            });
         });
     });
     //disconnect from DB after test
-    afterEach(function (done) {
+    after(function (done) {
         (0, connectMongo_1.Disconnect)();
         done();
     });

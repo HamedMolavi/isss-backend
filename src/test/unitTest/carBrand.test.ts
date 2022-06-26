@@ -8,21 +8,23 @@ describe('car Brand', function () {
 
     let Car: any;
     //connect to DB before test
-    beforeEach(function (done) {
+    before(function (done) {
         //connect to DB
         mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            mongoose.connection.db.dropDatabase();
-
-            require('../../models/carBrand').registerModels;
-            // This is the right model because register Models set it up for us.
-            Car = mongoose.model('Car_Brand');
-            done();
+            mongoose.connection.db.dropDatabase().then(() => {
+                require('../../models/carBrand').registerModels;
+                // This is the right model because register Models set it up for us.
+                Car = mongoose.model('Car_Brand');
+                done();
+            }).catch((err: Error) => {
+                done(err);
+            });
         });
     });
     //disconnect from DB after test
-    afterEach(function (done) {
+    after(function (done) {
         Disconnect();
         done();
     });
