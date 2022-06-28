@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { Disconnect } from '../../db/connectMongo';
+import { Disconnect } from '../../../db/connectMongo';
 import mongoose from 'mongoose';
-import { dbUri } from '../../server';
+import { dbUri } from '../../../server';
 
 //test camera models
 describe('camera', function () {
@@ -13,9 +13,9 @@ describe('camera', function () {
         //connect to DB
         mongoose.connect(dbUri);
         //listen for connection events
-        mongoose.connection.once('connected', (next) => {
+        mongoose.connection.once('connected', () => {
             mongoose.connection.db.dropDatabase().then(() => {
-                require('../../models/camera').registerModels;
+                require('./../../../models/camera').registerModels;
                 // This is the right model because ^registerModels set it up for us.
                 Camera = mongoose.model('Camera');
                 done();

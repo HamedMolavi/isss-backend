@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { Disconnect } from '../../db/connectMongo';
+import { Disconnect } from './../../../db/connectMongo';
 import mongoose from 'mongoose';
-import { dbUri } from '../../server';
+import { dbUri } from './../../../server';
 
 //test section models
 describe('departement', function () {
@@ -14,7 +14,7 @@ describe('departement', function () {
         //listen for connection events
         mongoose.connection.once('connected', () => {
             mongoose.connection.db.dropDatabase().then(() => {
-                require('../../models/departement').registerModels;
+                require('./../../../models/departement').registerModels;
                 // This is the right model because registerModels set it up for us.
                 Departement = mongoose.model('Departement');
                 done();

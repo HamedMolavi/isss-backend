@@ -1,12 +1,12 @@
 import { expect } from 'chai';
-import { Disconnect } from '../../db/connectMongo';
+import { Disconnect } from './../../../db/connectMongo';
 import mongoose from 'mongoose';
-import { dbUri } from '../../server';
+import { dbUri } from './../../../server';
 
-//test jobTitle models
-describe('jobTitle model', function () {
+//test car models
+describe('car Brand', function () {
 
-    let JobTitle: any;
+    let Car: any;
     //connect to DB before test
     before(function (done) {
         //connect to DB
@@ -14,9 +14,9 @@ describe('jobTitle model', function () {
         //listen for connection events
         mongoose.connection.once('connected', () => {
             mongoose.connection.db.dropDatabase().then(() => {
-                require('../../models/jobTitle').registerModels;
+                require('./../../../models/carBrand').registerModels;
                 // This is the right model because register Models set it up for us.
-                JobTitle = mongoose.model('JobTitle');
+                Car = mongoose.model('Car_Brand');
                 done();
             }).catch((err: Error) => {
                 done(err);
@@ -28,16 +28,16 @@ describe('jobTitle model', function () {
         Disconnect();
         done();
     });
-    //test jobTitle model
-    describe('register jobTitle', function () {
-        //create jobTitle model
-        it('should save jobTitle in db', function (done) {
-            var jobTitle = new JobTitle({
-                name: 'developer',
+    //test car model
+    describe('register car', function () {
+        //create car model
+        it('should save car in db', function (done) {
+            var car = new Car({
+                name: 'pride',
             });
-            //test this jobTitle model
-            jobTitle.save().then(() => {
-                expect(jobTitle.name).to.equal('developer');
+            //test this car model
+            car.save().then(() => {
+                expect(car.name).to.equal('pride');
                 done();
             }
             ).catch((err: Error) => {
