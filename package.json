@@ -10,7 +10,7 @@
     "start:prod": "yarn build && node ./build/server.js",
     "dev": "nodemon ./src/server.ts",
     "test:unit": "mocha ./build/test/unitTest --timeout 10000",
-    "test:api": "mocha ./build/test/endpointTest --timeout 10000",
+    "test:api": "mocha ./build/test/endpointTest/tools && ./build/test/endpointTest/models --timeout 10000",
     "docker:build": "docker build -t isss-backend .",
     "docker:run": "docker run -e .env -p 3000:8000 -d isss-backend"
   },
