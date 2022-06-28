@@ -1,59 +1,56 @@
-import { expect } from 'chai';
-import { Disconnect } from './../../../db/connectMongo';
-import mongoose from 'mongoose';
-import { dbUri } from './../../../server';
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const chai_1 = require("chai");
+const connectMongo_1 = require("./../../../db/connectMongo");
+const mongoose_1 = __importDefault(require("mongoose"));
+const server_1 = require("./../../../server");
 //test user models
 describe('users', function () {
-
-    let User: any;
+    let User;
     //connect to DB before test
     before(function (done) {
         //connect to DB
-        mongoose.connect(dbUri);
+        mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
-        mongoose.connection.once('connected',() => {
-            mongoose.connection.db.dropDatabase().then(() => {
+        mongoose_1.default.connection.once('connected', () => {
+            mongoose_1.default.connection.db.dropDatabase().then(() => {
                 require('../../models/user').registerModels;
                 // This is the right model because registerModels set it up for us.
-                User = mongoose.model('User');
+                User = mongoose_1.default.model('User');
                 done();
-            }).catch((err: Error) => {
+            }).catch((err) => {
                 done(err);
             });
         });
     });
     //disconnect from DB after test
     after(function (done) {
-        Disconnect();
+        (0, connectMongo_1.Disconnect)();
         done();
     });
     //test user model
     describe('register user', function () {
-
         it('should save user in db', function (done) {
             var user = new User({
                 username: 'john',
                 password: "123452",
                 phone_number: '0123456789',
-                role : 'user'
+                role: 'user'
             });
             user.save().then(() => {
-
-                expect(user.username).to.equal('john');
-                expect(user.phone_number).to.equal('0123456789');
-                expect(user.role).to.equal('user');
-
+                (0, chai_1.expect)(user.username).to.equal('john');
+                (0, chai_1.expect)(user.phone_number).to.equal('0123456789');
+                (0, chai_1.expect)(user.role).to.equal('user');
                 done();
-            }
-            ).catch((err: Error) => {
-               // done(err);
+            }).catch((err) => {
+                // done(err);
             });
         });
-
     });
     // describe('Lifecycle', function () {
-
     //     it('should not save without password', function (done) {
     //         var user = new User({
     //             name: 'John',
@@ -66,11 +63,8 @@ describe('users', function () {
     //             expect(err).to.exist
     //                 .and.be.instanceof(Error)
     //                 .and.have.property('message', 'user validation failed');
-
     //             done();
     //         });
     //     });
-
     // });
-
 });
