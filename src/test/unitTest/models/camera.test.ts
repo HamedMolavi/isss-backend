@@ -13,7 +13,7 @@ describe('camera', function () {
         //connect to DB
         mongoose.connect(dbUri);
         //listen for connection events
-        mongoose.connection.once('connected', (next) => {
+        mongoose.connection.once('connected', () => {
             mongoose.connection.db.dropDatabase().then(() => {
                 require('../../models/camera').registerModels;
                 // This is the right model because ^registerModels set it up for us.
