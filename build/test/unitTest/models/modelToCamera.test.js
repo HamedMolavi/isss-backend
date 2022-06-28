@@ -26,7 +26,7 @@ describe('model2camera', function () {
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => __awaiter(this, void 0, void 0, function* () {
             yield mongoose_1.default.connection.db.dropDatabase().then(() => {
-                require('../../models/modelToCamera').registerModels;
+                require('./../../../models/modelToCamera').registerModels;
                 // This is the right model because register Models set it up for us.
                 Model2Camera = mongoose_1.default.model('ModelToCamera');
                 done();

@@ -17,7 +17,7 @@ describe('car', function () {
         //listen for connection events
         mongoose_1.default.connection.once('connected', (next) => {
             mongoose_1.default.connection.db.dropDatabase().then(() => {
-                require('../../models/car').registerModels;
+                require('./../../../models/car').registerModels;
                 // This is the right model because register Models set it up for us.
                 Car = mongoose_1.default.model('Car');
                 done();

@@ -17,7 +17,7 @@ describe('car color', function () {
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
             mongoose_1.default.connection.db.dropDatabase().then(() => {
-                require('../../models/carColor').registerModels;
+                require('./../../../models/carColor').registerModels;
                 // This is the right model because register Models set it up for us.
                 Color = mongoose_1.default.model('Car_Color');
                 done();

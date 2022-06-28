@@ -17,7 +17,7 @@ describe('jobTitle model', function () {
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
             mongoose_1.default.connection.db.dropDatabase().then(() => {
-                require('../../models/jobTitle').registerModels;
+                require('./../../../models/jobTitle').registerModels;
                 // This is the right model because register Models set it up for us.
                 JobTitle = mongoose_1.default.model('JobTitle');
                 done();
