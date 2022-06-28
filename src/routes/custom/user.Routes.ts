@@ -218,7 +218,6 @@ router.post("/login", async function (req: Request, res: Response, next: Functio
                 name: "user"
             });
         }
-        console.log(username, password);
         //  get user from DB
         User.findOne({ username: username }, function (err: Error, user: any) {
             if (err) { return next(err) };

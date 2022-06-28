@@ -219,7 +219,6 @@ router.post("/login", function (req, res, next) {
                     name: "user"
                 });
             }
-            console.log(username, password);
             //  get user from DB
             user_1.default.findOne({ username: username }, function (err, user) {
                 if (err) {
