@@ -35,17 +35,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const fileUpload_1 = __importStar(require("../../tools/fileUpload"));
+const fileUpload_1 = __importStar(require("./../../../tools/fileUpload"));
 const express_1 = require("express");
 const fs_1 = __importDefault(require("fs"));
-const authentication_1 = require("../../tools/authentication");
+const authentication_1 = require("./../../../tools/authentication");
 const axios_1 = __importDefault(require("axios"));
-const createGuid_1 = __importDefault(require("../../tools/createGuid"));
+const createGuid_1 = __importDefault(require("./../../../tools/createGuid"));
 const path_1 = __importDefault(require("path"));
-const personImage_1 = __importDefault(require("./../../models/personImage"));
+const personImage_1 = __importDefault(require("./../../../models/personImage"));
 const multer_1 = __importDefault(require("multer"));
-const hash_1 = require("../../tools/hash");
-const HttpException_1 = __importDefault(require("../../error/HttpException"));
+const hash_1 = require("./../../../tools/hash");
+const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -86,7 +86,7 @@ router.get('/download/:fileName', function (req, res, next) {
             //get file name from request params
             const fileName = req.params.fileName;
             //get directory path
-            const directoryPath = __dirname + "./../../../assets/uploads/";
+            const directoryPath = __dirname + "./../../../../assets/uploads/";
             //send image to client
             yield res.download(directoryPath + fileName, fileName, (err) => {
                 if (err) {
@@ -107,7 +107,7 @@ router.get('/list', function (req, res, next) {
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get directory path
-            const directoryPath = __dirname + "/../../../assets/uploads/";
+            const directoryPath = __dirname + "/../../../../assets/uploads/";
             //get url 
             const baseUrl = process.env["BaseUrl"];
             //read directory for get list file
@@ -203,7 +203,7 @@ router.post('/verify', function (req, res, next) {
                 let fileName = guid + ".jpg";
                 //todo : convert BGR to RGB
                 //define path for save image
-                let pathSave = path_1.default.join(__dirname, './../../../assets/uploads/');
+                let pathSave = path_1.default.join(__dirname, './../../../../assets/uploads/');
                 //write image in path 
                 yield fs_1.default.writeFile(pathSave + fileName, image, (err) => {
                     if (err) {

@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import HttpException from '../../error/HttpException';
-import User, { IUser } from '../../models/user';
-import { getTokenAndVerify } from "../../tools/authentication";
+import HttpException from './../../../error/HttpException';
+import User, { IUser } from '../../../models/user';
+import { getTokenAndVerify } from "../../../tools/authentication";
 
 //create router for add to server 
 const router: Router = Router();

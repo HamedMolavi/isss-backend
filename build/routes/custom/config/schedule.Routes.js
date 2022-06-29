@@ -13,11 +13,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("../../error/HttpException"));
-const schedule_1 = __importDefault(require("../../models/schedule"));
-const authentication_1 = require("../../tools/authentication");
-const convertTime_1 = require("../../tools/convertTime");
-const modelToCamera_1 = __importDefault(require("../../models/modelToCamera"));
+const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const schedule_1 = __importDefault(require("./../../../models/schedule"));
+const authentication_1 = require("./../../../tools/authentication");
+const convertTime_1 = require("./../../../tools/convertTime");
+const modelToCamera_1 = __importDefault(require("./../../../models/modelToCamera"));
 //create router for add to server file 
 const router = (0, express_1.Router)();
 //add error handler middleware

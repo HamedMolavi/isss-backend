@@ -1,14 +1,14 @@
-import uploadFile, { fileName, location, setFileInRedis, getImageFromRedis, deleteImageInRedis } from '../../tools/fileUpload';
+import uploadFile, { fileName, location, setFileInRedis, getImageFromRedis, deleteImageInRedis } from './../../../tools/fileUpload';
 import { NextFunction, Router, Request, Response } from 'express';
 import fs from 'fs';
-import { getTokenAndVerify } from '../../tools/authentication';
+import { getTokenAndVerify } from './../../../tools/authentication';
 import axios from 'axios';
-import Guid from '../../tools/createGuid';
+import Guid from './../../../tools/createGuid';
 import path from 'path';
-import PersonImage, { IPersonImage } from './../../models/personImage';
+import PersonImage, { IPersonImage } from './../../../models/personImage';
 import multer from 'multer';
-import { hashJson } from '../../tools/hash';
-import HttpException from '../../error/HttpException';
+import { hashJson } from './../../../tools/hash';
+import HttpException from './../../../error/HttpException';
 
 
 //create router for add to server 
@@ -53,7 +53,7 @@ router.get('/download/:fileName', async function (req: Request, res: Response, n
         //get file name from request params
         const fileName = req.params.fileName;
         //get directory path
-        const directoryPath = __dirname + "./../../../assets/uploads/";
+        const directoryPath = __dirname + "./../../../../assets/uploads/";
         //send image to client
         await res.download(directoryPath + fileName, fileName, (err) => {
             if (err) {
@@ -73,7 +73,7 @@ router.get('/list', async function (req: Request, res: Response, next: NextFunct
         //get token from header request and verify
         let token = getTokenAndVerify(req, "user", next);
         //get directory path
-        const directoryPath = __dirname + "/../../../assets/uploads/";
+        const directoryPath = __dirname + "/../../../../assets/uploads/";
         //get url 
         const baseUrl = process.env["BaseUrl"] as string;
 
@@ -173,7 +173,7 @@ router.post('/verify', async function (req: Request, res: Response, next: NextFu
 
 
             //define path for save image
-            let pathSave = path.join(__dirname, './../../../assets/uploads/');
+            let pathSave = path.join(__dirname, './../../../../assets/uploads/');
             //write image in path 
             await fs.writeFile(pathSave + fileName, image, (err) => {
                 if (err) {

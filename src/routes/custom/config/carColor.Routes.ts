@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import HttpException from "../../error/HttpException";
-import CarColor, { ICarColor } from "../../models/carColor";
-import { getTokenAndVerify } from "../../tools/authentication";
+import HttpException from "./../../../error/HttpException";
+import CarColor, { ICarColor } from "./../../../models/carColor";
+import { getTokenAndVerify } from "./../../../tools/authentication";
 
 //create router for add to server file 
 const router: Router = Router();
