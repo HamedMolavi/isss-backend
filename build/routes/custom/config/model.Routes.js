@@ -13,9 +13,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("../../error/HttpException"));
-const model_1 = __importDefault(require("../../models/model"));
-const authentication_1 = require("../../tools/authentication");
+const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const model_1 = __importDefault(require("./../../../models/model"));
+const authentication_1 = require("./../../../tools/authentication");
 //create router for add to server file 
 const router = (0, express_1.Router)();
 //add error handler middleware

@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import HttpException from "../../error/HttpException";
-import Section, { ISection } from "../../models/section";
-import { getTokenAndVerify } from "../../tools/authentication";
+import HttpException from "./../../../error/HttpException";
+import Section, { ISection } from "./../../../models/section";
+import { getTokenAndVerify } from "./../../../tools/authentication";
 
 
 //create router for add to routes file 

@@ -1,10 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
 import mongoose, { Model } from "mongoose";
-import HttpException from "../../error/HttpException";
-import Schedule, { ISchedule } from "../../models/schedule";
-import { getTokenAndVerify } from "../../tools/authentication";
-import { compareTime, convertToCron, convertToCronDay } from "../../tools/convertTime";
-import ModelToCamera from "../../models/modelToCamera";
+import HttpException from "./../../../error/HttpException";
+import Schedule, { ISchedule } from "./../../../models/schedule";
+import { getTokenAndVerify } from "./../../../tools/authentication";
+import { compareTime, convertToCron, convertToCronDay } from "./../../../tools/convertTime";
+import ModelToCamera from "./../../../models/modelToCamera";
 
 //define type of schedule for request body
 interface IGetParams {
