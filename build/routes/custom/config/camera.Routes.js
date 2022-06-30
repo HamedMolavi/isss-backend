@@ -69,7 +69,7 @@ router.post("", function (req, res, next) {
             req.flash("info", "camera added");
             return res.status(201).json({
                 message: 'Success',
-                camera: camera
+                data: camera
             });
         }
         catch (err) {
@@ -108,7 +108,7 @@ router.get("", function (req, res, next) {
             //return response to client with departements list
             return res.status(200).json({
                 message: "Success",
-                cameras: cameras,
+                data: cameras,
                 page: page,
                 perPage: perPage,
                 total: yield camera_1.default.countDocuments().exec(),
@@ -142,7 +142,7 @@ router.get("/:id", function (req, res, next) {
             //send response to client with camera
             return res.status(200).json({
                 message: 'Success',
-                camera: camera
+                data: camera
             });
         }
         catch (err) {
@@ -174,7 +174,7 @@ router.patch("/:id", function (req, res, next) {
             //send response to client with user
             return res.status(201).json({
                 message: 'Success',
-                camera: camera
+                data: camera
             });
         }
         catch (err) {
@@ -203,7 +203,7 @@ router.delete("/:id", function (req, res, next) {
             //send response to client with camera
             return res.status(201).json({
                 message: 'Success',
-                camera: camera
+                data: camera
             });
         }
         catch (err) {

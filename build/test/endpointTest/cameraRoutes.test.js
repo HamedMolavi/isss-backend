@@ -35,7 +35,7 @@ describe('server run and server runnig and crud camera', function () {
                 return done(err);
             }
             if (res.body.message !== 'Camera already exists') {
-                let response = res.body.camera;
+                let response = res.body.data;
                 (0, chai_1.expect)(response.network).to.equal('172.10.1.1');
                 (0, chai_1.expect)(response.name).to.equal('office');
                 (0, chai_1.expect)(response.section_id.toString()).to.equal('6283724be1996b883080a495');
@@ -75,7 +75,7 @@ describe('server run and server runnig and crud camera', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.camera;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse.network).to.equal(_camera.network);
             (0, chai_1.expect)(userResponse.name).to.equal(_camera.name);
             (0, chai_1.expect)(userResponse.section_id.toString()).to.equal(_camera.section_id.toString());
@@ -100,7 +100,7 @@ describe('server run and server runnig and crud camera', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.cameras;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).to.have.property('_id');
             (0, chai_1.expect)(userResponse[0]).to.have.property('network');
             (0, chai_1.expect)(userResponse[0]).to.have.property('name');
@@ -126,7 +126,7 @@ describe('server run and server runnig and crud camera', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.cameras;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).to.have.property('_id');
             (0, chai_1.expect)(userResponse[0]).to.have.property('network');
             (0, chai_1.expect)(userResponse[0]).to.have.property('name');
@@ -157,7 +157,7 @@ describe('server run and server runnig and crud camera', function () {
             if (err) {
                 return done(err);
             }
-            let camera = res.body.camera;
+            let camera = res.body.data;
             (0, chai_1.expect)(camera.network).to.equal(_camera.network);
             (0, chai_1.expect)(camera.name).to.equal(cameraEditJson.name);
             (0, chai_1.expect)(camera.ip).to.equal(cameraEditJson.ip);

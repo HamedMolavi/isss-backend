@@ -33,7 +33,7 @@ describe('server run and server runnig and crud camera', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 if (res.body.message !== 'Camera already exists') {
-                    let response = res.body.camera;
+                    let response = res.body.data;
 
                     expect(response.network).to.equal('172.10.1.1');
                     expect(response.name).to.equal('office');
@@ -75,7 +75,7 @@ describe('server run and server runnig and crud camera', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.camera;
+                let userResponse = res.body.data;
 
                 expect(userResponse.network).to.equal(_camera.network);
                 expect(userResponse.name).to.equal(_camera.name);
@@ -104,7 +104,7 @@ describe('server run and server runnig and crud camera', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.cameras;
+                let userResponse = res.body.data;
 
                 expect(userResponse[0]).to.have.property('_id');
                 expect(userResponse[0]).to.have.property('network');
@@ -133,7 +133,7 @@ describe('server run and server runnig and crud camera', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.cameras;
+                let userResponse = res.body.data;
 
                 expect(userResponse[0]).to.have.property('_id');
                 expect(userResponse[0]).to.have.property('network');
@@ -165,7 +165,7 @@ describe('server run and server runnig and crud camera', function () {
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
-                let camera = res.body.camera;
+                let camera = res.body.data;
 
                 expect(camera.network).to.equal(_camera.network);
                 expect(camera.name).to.equal(cameraEditJson.name);
