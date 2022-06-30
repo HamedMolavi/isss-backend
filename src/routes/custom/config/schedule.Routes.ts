@@ -53,15 +53,36 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
             return next(new HttpException(400, "Invalid time", "schedule"));
         }
         //search for model in DB
-        let model2Camera = ModelToCamera.findOne({
+        let model2Camera = await ModelToCamera.findOne({
             $or: [
                 { model_id: model_id },
                 { camera_id: camera_id }
             ]
         }).exec();
-        if (!model2Camera) {
-            req.flash("error", "Invalid model or camera");
-            return next(new HttpException(400, "Invalid model or camera , already registered", "schedule"));
+
+        //convert input time to cron format
+        let start_cron: string = convertToCron(start);
+        start_cron = convertToCronDay(start_cron, dayOfWeek.toString());
+        let stop_cron: string = convertToCron(stop);
+        stop_cron = convertToCronDay(stop_cron, dayOfWeek.toString());
+
+        //query for save new schedule in DB
+        if (model2Camera) {
+            let schedule = await Schedule.findOneAndDelete({
+                $or: [
+                    { start_cron: start_cron },
+                    { stop_cron: stop_cron },
+                    { model_camera_id: model2Camera._id }
+                ]
+            }).exec();
+            if (schedule) {
+                model2Camera = await ModelToCamera.findOneAndDelete({
+                    $or: [
+                        { model_id: model_id },
+                        { camera_id: camera_id }
+                    ]
+                }).exec();
+            }
         }
 
         //save model to camera
@@ -71,28 +92,8 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         });
         let model2camera = await model2CameraSave.save();
 
-        //convert input time to cron format
-        let start_cron: string = convertToCron(start);
-        start_cron = convertToCronDay(start_cron, dayOfWeek.toString());
-        let stop_cron: string = convertToCron(stop);
-        stop_cron = convertToCronDay(stop_cron, dayOfWeek.toString());
-        //query for save new schedule in DB
-        let schedule = await Schedule.findOne({
-            $or: [
-                { start_cron: start_cron },
-                { stop_cron: stop_cron },
-                { model_camera_id: model2camera._id }
-            ]
-        }).exec();
-
-        //return error if schedule already exist
-        if (schedule) {
-            req.flash("error", "schedule already exist");
-            return next(new HttpException(400, "schedule already exist", "schedule"));
-        }
-
         //fil new schedule
-        schedule = new Schedule({
+        let schedule = new Schedule({
             start_cron: start_cron,
             stop_cron: stop_cron,
             model_camera_id: model2camera._id,
