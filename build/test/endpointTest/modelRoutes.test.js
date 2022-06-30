@@ -42,4 +42,24 @@ describe('server run and get model', function () {
             done();
         });
     });
+    //test route for get all models from DB
+    it('should send back a JSON object for get all models', function (done) {
+        //test route for get personnel in DB
+        (0, supertest_1.default)(server_1.default)
+            .get('/api/v1/models?page=1&perPage=3')
+            .set('Content-Type', 'application/json')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200, function (err, res) {
+            if (err) {
+                return done(err);
+            }
+            let userResponse = res.body.models;
+            (0, chai_1.expect)(res.body.message).to.equal('Success');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('category');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('name');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('uri');
+            // Done
+            done();
+        });
+    });
 });
