@@ -105,6 +105,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
                 camera: await Camera.findById(model2camera?.camera_id).exec(),
                 time: new Date(item._source.properties.timestamp).getTime(),
+                probability: item._source.properties.confidence,
             }
         });
 
