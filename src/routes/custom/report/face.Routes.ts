@@ -1,10 +1,10 @@
 import { Router, Request, Response, NextFunction, query } from "express";
-import HttpException from "./../../../error/HttpException";
+import HttpException from "../../../error/HttpException";
 import axios from "axios";
-import date2Epokh from "./../../../tools/convertTimeEpokh";
-import { getTokenAndVerify } from "./../../../tools/authentication";
-import Camera from "../../../models/camera";
-import ModelToCamera from "./../../../models/modelToCamera";
+import date2Epokh from "../../../tools/convertTimeEpokh";
+import { getTokenAndVerify } from "../../../tools/authentication";
+import Personnel from "../../../models/personnel";
+
 
 //create router for add to routes file 
 const router: Router = Router();
@@ -20,8 +20,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 //get connection string from enviroment variable 
 const dbUri = process.env["ELASTIC_SEARCH"] as string;
 
-
-//route for get sabotage list  
+//route for get face list  
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get token from header request and verify
@@ -35,22 +34,26 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
         //get search from url
         let search = req.query.search as string || "";
+
         let response: any;
-        console.log(search);
+        let personnel: any;
         if (search !== "") {
 
             //get body from request
-            const { time, date_start, date_end } = req.body;
-            if (!time || !date_start || !date_end) {
+            const { time, date_start, date_end, personnel_id } = req.body;
+            if ( !time || !date_start || !date_end || !personnel_id) {
                 req.flash("error", "Please fill all fields");
-                return next(new HttpException(400, "Bad Request", "sabotage"));
+                return next(new HttpException(400, "Bad Request", "Face Recognication"));
             }
             //convert date_start to epokh
             let timeStartScientificSymbol = date2Epokh(date_start, time);
             let timeEndScientificSymbol = date2Epokh(date_end, time);
 
+            //get personnel with personnel_id from DB
+            personnel = await Personnel.findOne({ _id: personnel_id }).exec();
+
             //get data from elastic
-            response = await axios.get(dbUri + '/sabotage/_search', {
+            response = await axios.get(dbUri + '/face/_search', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -79,7 +82,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         } else {
-            response = await axios.get(dbUri + '/sabotage_log/_search?pretty=true&q=*:*', {
+            response = await axios.get(dbUri + '/face/_search?pretty=true&q=*:*', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -90,25 +93,25 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         }
-        //ceate json response
-        let data: [{}] = [{}];
-        data = response.data.hits.hits.map(async (item: any) => {
-            let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
+        //check if isAllowed is true or false and create return data to client
+        let facesRecognition = response.data.hits.hits.map((item: any) => {
             return {
-                
-                camera: await Camera.findById(model2camera?.camera_id).exec(),
-                time: new Date(item._source.properties.timestamp).getTime(),
+                id: item._id,
+                camera_id: item._source.properties.camera_id,
+                timestamp: item._source.properties.timestamp,
+                fullname: personnel?.first_name + " " + personnel?.last_name,
+                isAllowed: personnel?.camera_whitelist?.includes(item._source.properties.camera_id)
             }
         });
 
         //return data to client
         return res.status(200).json({
             message: "Success",
-            data: data
+            report: facesRecognition
         });
 
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "sabotage"));
+        return next(new HttpException(500, err.message, "Face Recognication"));
     }
 });
 

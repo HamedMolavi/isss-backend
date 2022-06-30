@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction, query } from "express";
-import HttpException from "./../../../error/HttpException";
+import HttpException from "../../../error/HttpException";
 import axios from "axios";
-import date2Epokh from "./../../../tools/convertTimeEpokh";
-import { getTokenAndVerify } from "./../../../tools/authentication";
+import date2Epokh from "../../../tools/convertTimeEpokh";
+import { getTokenAndVerify } from "../../../tools/authentication";
 
 
 //create router for add to routes file 

@@ -1,11 +1,10 @@
 import { Router, Request, Response, NextFunction, query } from "express";
-import HttpException from "./../../../error/HttpException";
+import HttpException from "../../../error/HttpException";
 import axios from "axios";
-import date2Epokh from "./../../../tools/convertTimeEpokh";
-import { getTokenAndVerify } from "./../../../tools/authentication";
-import Car from "../../../models/car";
-import modelToCamera from "../../../models/modelToCamera";
-
+import date2Epokh from "../../../tools/convertTimeEpokh";
+import { getTokenAndVerify } from "../../../tools/authentication";
+import Camera from "../../../models/camera";
+import ModelToCamera from "../../../models/modelToCamera";
 
 //create router for add to routes file 
 const router: Router = Router();
@@ -37,37 +36,21 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         //get search from url
         let search = req.query.search as string || "";
         let response: any;
-        let carDB: any;
-        let model2camera: any;
-        let _car: any;
-        let _color: any;
+        console.log(search);
         if (search !== "") {
 
             //get body from request
-            const { camera_id, time, date_start, date_end, owner, car, color } = req.body;
-            if (!camera_id || !time || !date_start || !date_end || !owner) {
+            const { time, date_start, date_end } = req.body;
+            if (!time || !date_start || !date_end) {
                 req.flash("error", "Please fill all fields");
-                return next(new HttpException(400, "Bad Request", "Plate License"));
+                return next(new HttpException(400, "Bad Request", "sabotage"));
             }
-            carDB = await Car.findOne({ owner: owner }).exec();
-            if (!carDB) {
-                req.flash("error", "Owner not found");
-                return next(new HttpException(400, "Car Not Found", "Plate License"));
-            }
-
-            model2camera = await modelToCamera.findOne({ camera_id: camera_id }).exec();
-            if (!model2camera) {
-                req.flash("error", "Camera not found");
-                return next(new HttpException(400, "Camera Not Found", "Plate License"));
-            }
-            _car = car;
-            _color = color;
             //convert date_start to epokh
             let timeStartScientificSymbol = date2Epokh(date_start, time);
             let timeEndScientificSymbol = date2Epokh(date_end, time);
 
             //get data from elastic
-            response = await axios.get(dbUri + '/plate/_search', {
+            response = await axios.get(dbUri + '/sabotage/_search', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -79,12 +62,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                             'filter': [
                                 {
                                     'term': {
-                                        'properties.plate_number': car.number_plate
-                                    }
-                                },
-                                {
-                                    'term': {
-                                        'properties.m2c_id': model2camera._id
+                                        'properties.camera_id': search
                                     }
                                 },
                                 {
@@ -101,7 +79,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         } else {
-            response = await axios.get(dbUri + '/plate/_search?pretty=true&q=*:*', {
+            response = await axios.get(dbUri + '/sabotage_log/_search?pretty=true&q=*:*', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -112,26 +90,25 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         }
-        //create return data to client
-        let plates = response.data.hits.hits.map((item: any) => {
+        //ceate json response
+        let data: [{}] = [{}];
+        data = response.data.hits.hits.map(async (item: any) => {
+            let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
             return {
-                id: item._id,
-                timestamp: item._source.properties.timestamp,
-                plate_number: item._source.properties.plate_number,
-                car: _car,
-                color: _color,
-                isAllowed: carDB?.camera_whitelist?.includes(item._source.properties.camera_id)
+                
+                camera: await Camera.findById(model2camera?.camera_id).exec(),
+                time: new Date(item._source.properties.timestamp).getTime(),
             }
         });
 
         //return data to client
         return res.status(200).json({
             message: "Success",
-            report: response.data
+            data: data
         });
 
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "Plate License"));
+        return next(new HttpException(500, err.message, "sabotage"));
     }
 });
 
