@@ -3,7 +3,8 @@ import HttpException from "../../../error/HttpException";
 import axios from "axios";
 import date2Epokh from "../../../tools/convertTimeEpokh";
 import { getTokenAndVerify } from "../../../tools/authentication";
-
+import ModelToCamera from "../../../models/modelToCamera";
+import Camera from "../../../models/camera";
 
 //create router for add to routes file 
 const router: Router = Router();
@@ -95,10 +96,22 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         }
+
+        //ceate json response
+        let data: [{}] = [{}];
+        data = response.data.hits.hits.map(async (item: any) => {
+            let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
+            return {
+
+                camera: await Camera.findById(model2camera?.camera_id).exec(),
+                time: new Date(item._source.properties.timestamp).getTime(),
+            }
+        });
+
         //return data to client
         return res.status(200).json({
             message: "Success",
-            report: response.data
+            report: data
         });
 
     } catch (err: any) {
