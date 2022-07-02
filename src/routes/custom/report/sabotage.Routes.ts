@@ -36,7 +36,6 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         //get search from url
         let search = req.query.search as string || "";
         let response: any;
-        console.log(search);
         if (search !== "") {
 
             //get body from request
@@ -48,26 +47,25 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
             //convert date_start to epokh
             let timeStartScientificSymbol = date2Epokh(date_start, time);
             let timeEndScientificSymbol = date2Epokh(date_end, time);
-
+            console.log(search);
             //get data from elastic
             response = await axios.get(dbUri + '/sabotage_log/_search', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                // data: '\n{\n  "query": {\n    "bool": {\n      "filter": [\n        {\n          "term": {\n            "camera_id": "628dc28ef014bc89f0280c4a"\n          }\n        },\n        {\n          "range": {\n            "timestamp": {\n              "gte": 10,\n              "lte": 20\n            }\n          }\n        }\n      ]\n    }\n  }\n}',
                 data: {
-                    'from': (page - 1) * perPage,
-                    'size': perPage,
                     'query': {
                         'bool': {
                             'filter': [
                                 {
                                     'term': {
-                                        'properties.camera_id': search
+                                        'camera_id': search
                                     }
                                 },
                                 {
                                     'range': {
-                                        'properties.timestamp': {
+                                        'timestamp': {
                                             'gte': timeStartScientificSymbol,
                                             'lte': timeEndScientificSymbol
                                         }
@@ -85,7 +83,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 },
                 // data: '\n{\n  \n}',
                 data: {
-                    'from': (page - 1) * perPage,
+                    'from': page,
                     'size': perPage
                 }
             });
@@ -112,7 +110,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         //return data to client
         return res.status(200).json({
             message: "Success",
-            data: data
+            data: response.data.hits.hits,
         });
 
     } catch (err: any) {

@@ -49,7 +49,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
             let timeEndScientificSymbol = date2Epokh(date_end, time);
 
             //get data from elastic
-            response = await axios.get(dbUri + '/human/_search', {
+            response = await axios.get(dbUri + '/human_log/_search', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -78,13 +78,13 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         } else {
-            response = await axios.get(dbUri + '/human/_search?pretty=true&q=*:*', {
+            response = await axios.get(dbUri + '/human_log/_search?pretty=true&q=*:*', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 // data: '\n{\n  \n}',
                 data: {
-                    'from': (page - 1) * perPage,
+                    'from': page,
                     'size': perPage
                 }
             });

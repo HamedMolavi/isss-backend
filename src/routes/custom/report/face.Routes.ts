@@ -41,7 +41,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
             //get body from request
             const { time, date_start, date_end, personnel_id } = req.body;
-            if ( !time || !date_start || !date_end || !personnel_id) {
+            if (!time || !date_start || !date_end || !personnel_id) {
                 req.flash("error", "Please fill all fields");
                 return next(new HttpException(400, "Bad Request", "Face Recognication"));
             }
@@ -53,7 +53,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
             personnel = await Personnel.findOne({ _id: personnel_id }).exec();
 
             //get data from elastic
-            response = await axios.get(dbUri + '/face/_search', {
+            response = await axios.get(dbUri + '/face_log/_search', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -82,13 +82,13 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         } else {
-            response = await axios.get(dbUri + '/face/_search?pretty=true&q=*:*', {
+            response = await axios.get(dbUri + '/face_log/_search?pretty=true&q=*:*', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 // data: '\n{\n  \n}',
                 data: {
-                    'from': (page - 1) * perPage,
+                    'from': page,
                     'size': perPage
                 }
             });

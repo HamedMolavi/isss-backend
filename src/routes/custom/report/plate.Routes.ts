@@ -67,12 +67,12 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
             let timeEndScientificSymbol = date2Epokh(date_end, time);
 
             //get data from elastic
-            response = await axios.get(dbUri + '/plate/_search', {
+            response = await axios.get(dbUri + '/plate_log/_search', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 data: {
-                    'from': (page - 1) * perPage,
+                    'from': page,
                     'size': perPage,
                     'query': {
                         'bool': {
@@ -101,13 +101,13 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         } else {
-            response = await axios.get(dbUri + '/plate/_search?pretty=true&q=*:*', {
+            response = await axios.get(dbUri + '/plate_log/_search?pretty=true&q=*:*', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 // data: '\n{\n  \n}',
                 data: {
-                    'from': (page - 1) * perPage,
+                    'from': page ,
                     'size': perPage
                 }
             });
@@ -127,7 +127,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         //return data to client
         return res.status(200).json({
             message: "Success",
-            report: plates
+            report: response.data
         });
 
     } catch (err: any) {
