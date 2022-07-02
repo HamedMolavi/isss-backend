@@ -3,7 +3,9 @@ import HttpException from "../../../error/HttpException";
 import axios from "axios";
 import date2Epokh from "../../../tools/convertTimeEpokh";
 import { getTokenAndVerify } from "../../../tools/authentication";
-
+import ModelToCamera from "../../../models/modelToCamera";
+import Camera from "../../../models/camera";
+import Schedule, { ISchedule } from "./../../../models/schedule";
 
 //create router for add to routes file 
 const router: Router = Router();
@@ -38,7 +40,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         if (search !== "") {
             //get body from request
             const { time, date_start, date_end } = req.body;
-            if (!time || !date_start || !date_end ) {
+            if (!time || !date_start || !date_end) {
                 req.flash("error", "Please fill all fields");
                 return next(new HttpException(400, "Bad Request", "sabotage"));
             }
@@ -87,6 +89,20 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         }
+
+        //ceate json response
+        let data: [{}] = [{}];
+        data = response.data.hits.hits.map(async (item: any) => {
+            let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
+            let schedule = await Schedule.findOne({ model_camera_id: model2camera?._id }).exec();
+            return {
+
+                camera: await Camera.findById(model2camera?.camera_id).exec(),
+                time: new Date(item._source.properties.timestamp).getTime(),
+                NumberOfPeople: schedule!.config.max_people >= item.number_of_people ? true : false
+            }
+        });
+
         //return data to client
         return res.status(200).json({
             message: "Success",

@@ -127,7 +127,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         //return data to client
         return res.status(200).json({
             message: "Success",
-            report: response.data
+            report: plates
         });
 
     } catch (err: any) {
