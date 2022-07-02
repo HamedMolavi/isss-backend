@@ -12,6 +12,8 @@ export interface IJobTitle extends Document {
 const JobTitleSchema: Schema<IJobTitle> = new Schema({
     name: { type: String, required: true },
     create_date: { type: Date, default: Date.now }
+},{
+    collection: "Job"
 });
 
 // Compile model from schema

@@ -13,6 +13,8 @@ const PersonImageSchema: Schema<IPersonImage> = new Schema({
     person_id: { type: Schema.Types.ObjectId, ref: "Personnel" },
     guid: { type: String, required: true },
     vector: { type: [Number], required: true },
+},{
+    collection: "Person_Image"
 });
 
 // Compile Model from schema

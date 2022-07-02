@@ -30,7 +30,7 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { username, password, phone_number } = req.body;
+            const { username, password, phone_number, event, camera, report, configuration } = req.body;
             //verify body request
             if (!username || !password || !phone_number) {
                 req.flash("error", "Please enter all fields");
@@ -56,6 +56,10 @@ router.post("", function (req, res, next) {
             newUser.password = password;
             newUser.phone_number = phone_number;
             newUser.role = "admin";
+            newUser.event = event;
+            newUser.camera = camera;
+            newUser.report = report;
+            newUser.configuration = configuration;
             //save new user in DB
             yield newUser.save();
             req.flash("info", "User created");

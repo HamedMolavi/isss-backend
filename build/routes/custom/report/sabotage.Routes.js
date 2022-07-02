@@ -13,10 +13,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const HttpException_1 = __importDefault(require("../../../error/HttpException"));
 const axios_1 = __importDefault(require("axios"));
-const convertTimeEpokh_1 = __importDefault(require("./../../../tools/convertTimeEpokh"));
-const authentication_1 = require("./../../../tools/authentication");
+const convertTimeEpokh_1 = __importDefault(require("../../../tools/convertTimeEpokh"));
+const authentication_1 = require("../../../tools/authentication");
+const camera_1 = __importDefault(require("../../../models/camera"));
+const modelToCamera_1 = __importDefault(require("../../../models/modelToCamera"));
 //create router for add to routes file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -28,8 +30,8 @@ router.use(function (req, res, next) {
 });
 //get connection string from enviroment variable 
 const dbUri = process.env["ELASTIC_SEARCH"];
-//route for get people counting list  
-router.post("", function (req, res, next) {
+//route for get sabotage list  
+router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request and verify
@@ -43,6 +45,7 @@ router.post("", function (req, res, next) {
             //get search from url
             let search = req.query.search || "";
             let response;
+            console.log(search);
             if (search !== "") {
                 //get body from request
                 const { time, date_start, date_end } = req.body;
@@ -54,7 +57,7 @@ router.post("", function (req, res, next) {
                 let timeStartScientificSymbol = (0, convertTimeEpokh_1.default)(date_start, time);
                 let timeEndScientificSymbol = (0, convertTimeEpokh_1.default)(date_end, time);
                 //get data from elastic
-                response = yield axios_1.default.get(dbUri + '/human/_search', {
+                response = yield axios_1.default.get(dbUri + '/sabotage_log/_search', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -84,7 +87,7 @@ router.post("", function (req, res, next) {
                 });
             }
             else {
-                response = yield axios_1.default.get(dbUri + '/human/_search?pretty=true&q=*:*', {
+                response = yield axios_1.default.get(dbUri + '/sabotage_log/_search?pretty=true&q=*:*', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -95,10 +98,28 @@ router.post("", function (req, res, next) {
                     }
                 });
             }
+            //ceate json response
+            let data;
+            data = response.data.hits.hits.map((item) => __awaiter(this, void 0, void 0, function* () {
+                let _time = new Date(item._source.properties.timestamp).getTime();
+                let model2camera = yield modelToCamera_1.default.findById('62bfe6ae54d90e82d9ba598b').exec();
+                let camera = yield camera_1.default.findById(model2camera === null || model2camera === void 0 ? void 0 : model2camera.camera_id).exec();
+                let result = {
+                    camera: camera === null || camera === void 0 ? void 0 : camera.name,
+                    time: _time,
+                };
+                // let camera = await Camera.findById('62c009a3fb115e110df9b460').exec();
+                // console.log(camera);
+                // let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
+                data.push(result);
+                console.log(result);
+                //return result;
+            }));
+            console.log(data);
             //return data to client
             return res.status(200).json({
                 message: "Success",
-                report: response.data
+                data: data
             });
         }
         catch (err) {

@@ -36,13 +36,21 @@ describe('users', function () {
                 username: 'john',
                 password: "123452",
                 phone_number: '0123456789',
-                role : 'user'
+                role : 'user',
+                event: true,
+                report: true,
+                camera: true,
+                configuration: true
             });
             user.save().then(() => {
 
                 expect(user.username).to.equal('john');
                 expect(user.phone_number).to.equal('0123456789');
                 expect(user.role).to.equal('user');
+                expect(user.event).to.equal(true);
+                expect(user.report).to.equal(true);
+                expect(user.camera).to.equal(true);
+                expect(user.configuration).to.equal(true);
 
                 done();
             }

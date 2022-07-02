@@ -18,7 +18,8 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { username, password, phone_number }: IUser = req.body;
+        const { username, password, phone_number , event,
+            camera, report, configuration }: IUser = req.body;
 
         //verify body request
         if (!username || !password || !phone_number) {
@@ -48,6 +49,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         newUser.password = password;
         newUser.phone_number = phone_number;
         newUser.role = "admin";
+        newUser.event = event;
+        newUser.camera = camera;
+        newUser.report = report;
+        newUser.configuration = configuration;
 
         //save new user in DB
         await newUser.save();

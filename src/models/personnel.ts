@@ -33,6 +33,8 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema({
     is_employee: {type: Boolean, default: false},
     is_dismissed: {type: Boolean, default: false},
     create_date: {type: Date, default: Date.now}
+},{
+    collection: "Personnel"
 });
 
 // Compile model from schema

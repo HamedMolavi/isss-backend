@@ -30,6 +30,8 @@ const SectionSchema = new mongoose_1.Schema({
     //add realational ducoment to departement
     departement_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Departement" },
     create_date: { type: Date, default: Date.now }
+}, {
+    collection: "Section"
 });
 // Compile model from schema
 const Section = mongoose_1.default.model("Section", SectionSchema);

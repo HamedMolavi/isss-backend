@@ -28,6 +28,8 @@ const mongoose_1 = __importStar(require("mongoose"));
 const ModelToCameraSchema = new mongoose_1.Schema({
     model_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Model" },
     camera_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Camera" }
+}, {
+    collection: "Model_Camera"
 });
 // Compile Model from schema
 const Model = mongoose_1.default.model("ModelToCamera", ModelToCameraSchema);

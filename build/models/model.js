@@ -29,6 +29,8 @@ const ModelSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     category: { type: String, required: true },
     uri: { type: String, required: true }
+}, {
+    collection: "Model"
 });
 // Compile Model from schema
 const Model = mongoose_1.default.model("Model", ModelSchema);

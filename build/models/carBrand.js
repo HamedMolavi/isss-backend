@@ -27,6 +27,8 @@ const mongoose_1 = __importStar(require("mongoose"));
 //create car_brand model with schema for save in DB
 const CarBrandSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
+}, {
+    collection: "Car_Brand"
 });
 // Compile model from schema
 const CarBrand = mongoose_1.default.model("Car_Brand", CarBrandSchema);

@@ -1,4 +1,3 @@
-import { NextFunction } from "express";
 import mongoose, { Schema, Document } from "mongoose";
 
 //define camera type
@@ -9,11 +8,11 @@ export interface ICamera extends Document {
     section_id: mongoose.Types.ObjectId,
     url: string,
     ip: string,
-    name : string;
+    name: string;
     username: string;
     password: string;
     is_enabled: boolean;
-    create_date : Date;
+    create_date: Date;
 }
 
 
@@ -29,6 +28,8 @@ const CameraSchema: Schema<ICamera> = new Schema({
     password: { type: String, required: true },
     is_enabled: { type: Boolean, required: true },
     create_date: { type: Date, default: Date.now }
+}, {
+    collection: "Camera"
 });
 
 // Compile model from schema

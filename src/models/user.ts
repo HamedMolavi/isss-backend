@@ -13,6 +13,11 @@ export interface IUser {
     password: string;
     phone_number: string;
     role: string;
+    event : boolean;
+    camera : boolean;
+    report : boolean;
+    configuration : boolean;
+    views : boolean;
     created_date: Date;
 }
 
@@ -36,8 +41,14 @@ const UserSchema: Schema<IUserDocument> = new Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
     phone_number: { type: String, required: true },
+    event: { type: Boolean, default: false },
+    camera: { type: Boolean, default: false },
+    report: { type: Boolean, default: false },
+    configuration: { type: Boolean, default: false },
     role: { type: String, required: true },
     created_date: { type: Date, default: Date.now },
+},{
+    collection: "User"
 });
 
 //for encrypt password
@@ -92,6 +103,10 @@ UserSchema.methods.toAuthJSON = function () {
         password: this.password,
         email: this.email,
         role: this.role,
+        event : this.event,
+        camera : this.camera,
+        report : this.report,
+        configuration : this.configuration,
         create_date: this.created_date,
         token: this.generateJWT(),
     };

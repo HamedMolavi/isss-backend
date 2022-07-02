@@ -13,10 +13,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const HttpException_1 = __importDefault(require("../../../error/HttpException"));
 const axios_1 = __importDefault(require("axios"));
-const convertTimeEpokh_1 = __importDefault(require("./../../../tools/convertTimeEpokh"));
-const authentication_1 = require("./../../../tools/authentication");
+const convertTimeEpokh_1 = __importDefault(require("../../../tools/convertTimeEpokh"));
+const authentication_1 = require("../../../tools/authentication");
+const personnel_1 = __importDefault(require("../../../models/personnel"));
 //create router for add to routes file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -28,8 +29,8 @@ router.use(function (req, res, next) {
 });
 //get connection string from enviroment variable 
 const dbUri = process.env["ELASTIC_SEARCH"];
-//route for get sabotage list  
-router.post("", function (req, res, next) {
+//route for get face list  
+router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request and verify
@@ -43,19 +44,21 @@ router.post("", function (req, res, next) {
             //get search from url
             let search = req.query.search || "";
             let response;
-            console.log(search);
+            let personnel;
             if (search !== "") {
                 //get body from request
-                const { time, date_start, date_end } = req.body;
-                if (!time || !date_start || !date_end) {
+                const { time, date_start, date_end, personnel_id } = req.body;
+                if (!time || !date_start || !date_end || !personnel_id) {
                     req.flash("error", "Please fill all fields");
-                    return next(new HttpException_1.default(400, "Bad Request", "sabotage"));
+                    return next(new HttpException_1.default(400, "Bad Request", "Face Recognication"));
                 }
                 //convert date_start to epokh
                 let timeStartScientificSymbol = (0, convertTimeEpokh_1.default)(date_start, time);
                 let timeEndScientificSymbol = (0, convertTimeEpokh_1.default)(date_end, time);
+                //get personnel with personnel_id from DB
+                personnel = yield personnel_1.default.findOne({ _id: personnel_id }).exec();
                 //get data from elastic
-                response = yield axios_1.default.get(dbUri + '/sabotage/_search', {
+                response = yield axios_1.default.get(dbUri + '/face/_search', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -85,7 +88,7 @@ router.post("", function (req, res, next) {
                 });
             }
             else {
-                response = yield axios_1.default.get(dbUri + '/sabotage/_search?pretty=true&q=*:*', {
+                response = yield axios_1.default.get(dbUri + '/face/_search?pretty=true&q=*:*', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -96,14 +99,25 @@ router.post("", function (req, res, next) {
                     }
                 });
             }
+            //check if isAllowed is true or false and create return data to client
+            let facesRecognition = response.data.hits.hits.map((item) => {
+                var _a;
+                return {
+                    id: item._id,
+                    camera_id: item._source.properties.camera_id,
+                    timestamp: item._source.properties.timestamp,
+                    fullname: (personnel === null || personnel === void 0 ? void 0 : personnel.first_name) + " " + (personnel === null || personnel === void 0 ? void 0 : personnel.last_name),
+                    isAllowed: (_a = personnel === null || personnel === void 0 ? void 0 : personnel.camera_whitelist) === null || _a === void 0 ? void 0 : _a.includes(item._source.properties.camera_id)
+                };
+            });
             //return data to client
             return res.status(200).json({
                 message: "Success",
-                report: response.data
+                report: facesRecognition
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "sabotage"));
+            return next(new HttpException_1.default(500, err.message, "Face Recognication"));
         }
     });
 });

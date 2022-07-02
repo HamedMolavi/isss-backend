@@ -50,7 +50,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
             let timeEndScientificSymbol = date2Epokh(date_end, time);
 
             //get data from elastic
-            response = await axios.get(dbUri + '/sabotage/_search', {
+            response = await axios.get(dbUri + '/sabotage_log/_search', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -90,17 +90,25 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         }
-        //ceate json response
-        let data: [{}] = [{}];
-        data = response.data.hits.hits.map(async (item: any) => {
-            let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
-            return {
-                
-                camera: await Camera.findById(model2camera?.camera_id).exec(),
-                time: new Date(item._source.properties.timestamp).getTime(),
-            }
-        });
 
+        //ceate json response
+        let data: any;
+        data = response.data.hits.hits.map(async (item: any) => {
+            let _time = new Date(item._source.properties.timestamp).getTime();
+            let model2camera = await ModelToCamera.findById('62bfe6ae54d90e82d9ba598b').exec();
+            let camera = await Camera.findById(model2camera?.camera_id).exec();
+            let result = {
+                camera: camera?.name,
+                time: _time,
+            }
+            // let camera = await Camera.findById('62c009a3fb115e110df9b460').exec();
+            // console.log(camera);
+            // let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
+            data.push(result);
+            console.log(result);
+            //return result;
+        });
+        console.log(data);
         //return data to client
         return res.status(200).json({
             message: "Success",

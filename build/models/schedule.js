@@ -30,6 +30,8 @@ const ScheduleSchema = new mongoose_1.Schema({
     stop_cron: { type: String, required: true },
     model_camera_id: { type: mongoose_1.Schema.Types.ObjectId, ref: 'ModelCamera', required: true },
     config: { type: Object }
+}, {
+    collection: "Schedule"
 });
 // Compile model from schema
 const Schedule = mongoose_1.default.model("Schedule", ScheduleSchema);
