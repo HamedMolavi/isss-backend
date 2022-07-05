@@ -13,7 +13,7 @@ const DepartementSchema: Schema<IDepartement> = new Schema({
     name: { type: String, required: true },
     created_date: { type: Date, default: Date.now }
 },{
-    collection: "Departement"
+    collection: "Department"
 });
 
 // Compile model from schema

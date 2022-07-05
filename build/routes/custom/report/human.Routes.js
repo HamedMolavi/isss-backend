@@ -57,24 +57,24 @@ router.get("", function (req, res, next) {
                 let timeStartScientificSymbol = (0, convertTimeEpokh_1.default)(date_start, time);
                 let timeEndScientificSymbol = (0, convertTimeEpokh_1.default)(date_end, time);
                 //get data from elastic
-                response = yield axios_1.default.get(dbUri + '/human/_search', {
+                response = yield axios_1.default.get(dbUri + '/human_log/_search', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     data: {
-                        'from': (page - 1) * perPage,
+                        'from': page,
                         'size': perPage,
                         'query': {
                             'bool': {
                                 'filter': [
                                     {
                                         'term': {
-                                            'properties.camera_id': search
+                                            'camera_id': search
                                         }
                                     },
                                     {
                                         'range': {
-                                            'properties.timestamp': {
+                                            'timestamp': {
                                                 'gte': timeStartScientificSymbol,
                                                 'lte': timeEndScientificSymbol
                                             }
@@ -87,32 +87,39 @@ router.get("", function (req, res, next) {
                 });
             }
             else {
-                response = yield axios_1.default.get(dbUri + '/human/_search?pretty=true&q=*:*', {
+                response = yield axios_1.default.get(dbUri + '/human_log/_search?pretty=true&q=*:*', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     // data: '\n{\n  \n}',
                     data: {
-                        'from': (page - 1) * perPage,
+                        'from': page,
                         'size': perPage
                     }
                 });
             }
             //ceate json response
-            let data = [{}];
-            data = response.data.hits.hits.map((item) => __awaiter(this, void 0, void 0, function* () {
-                let model2camera = yield modelToCamera_1.default.findOne({ _id: item._source.properties.m2c_id }).exec();
+            let _data = [];
+            for (let i = 0; i < response.data.hits.hits.length; i++) {
+                //get modelToCamera from mongo db by id
+                let model2camera = yield modelToCamera_1.default.findById(response.data.hits.hits[i]._source.model_camera_id).exec();
+                //get schedule from mongo db by model_camera_id for compare with max_people
                 let schedule = yield schedule_1.default.findOne({ model_camera_id: model2camera === null || model2camera === void 0 ? void 0 : model2camera._id }).exec();
-                return {
-                    camera: yield camera_1.default.findById(model2camera === null || model2camera === void 0 ? void 0 : model2camera.camera_id).exec(),
-                    time: new Date(item._source.properties.timestamp).getTime(),
-                    NumberOfPeople: schedule.config.max_people >= item.number_of_people ? true : false
+                //get camera from mongo db by id for get camera name
+                let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
+                let result = {
+                    camera_id: response.data.hits.hits[i]._source.camera_id,
+                    camera: camera === null || camera === void 0 ? void 0 : camera.name,
+                    time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+                    NumberOfPeople: schedule.config.max_people >= response.data.hits.hits[i].number_of_people ? true : false
                 };
-            }));
+                _data.push(yield result);
+            }
+            ;
             //return data to client
             return res.status(200).json({
                 message: "Success",
-                report: response.data
+                data: _data,
             });
         }
         catch (err) {

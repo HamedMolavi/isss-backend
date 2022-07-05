@@ -19,6 +19,10 @@ const convertTimeEpokh_1 = __importDefault(require("../../../tools/convertTimeEp
 const authentication_1 = require("../../../tools/authentication");
 const car_1 = __importDefault(require("../../../models/car"));
 const modelToCamera_1 = __importDefault(require("../../../models/modelToCamera"));
+const camera_1 = __importDefault(require("../../../models/camera"));
+const carColor_1 = __importDefault(require("../../../models/carColor"));
+const carBrand_1 = __importDefault(require("../../../models/carBrand"));
+const personnel_1 = __importDefault(require("../../../models/personnel"));
 //create router for add to routes file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -72,29 +76,24 @@ router.get("", function (req, res, next) {
                 let timeStartScientificSymbol = (0, convertTimeEpokh_1.default)(date_start, time);
                 let timeEndScientificSymbol = (0, convertTimeEpokh_1.default)(date_end, time);
                 //get data from elastic
-                response = yield axios_1.default.get(dbUri + '/plate/_search', {
+                response = yield axios_1.default.get(dbUri + '/plate_log/_search', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     data: {
-                        'from': (page - 1) * perPage,
+                        'from': page,
                         'size': perPage,
                         'query': {
                             'bool': {
                                 'filter': [
                                     {
                                         'term': {
-                                            'properties.plate_number': car.number_plate
-                                        }
-                                    },
-                                    {
-                                        'term': {
-                                            'properties.m2c_id': model2camera._id
+                                            'camera_id': search
                                         }
                                     },
                                     {
                                         'range': {
-                                            'properties.timestamp': {
+                                            'timestamp': {
                                                 'gte': timeStartScientificSymbol,
                                                 'lte': timeEndScientificSymbol
                                             }
@@ -107,33 +106,47 @@ router.get("", function (req, res, next) {
                 });
             }
             else {
-                response = yield axios_1.default.get(dbUri + '/plate/_search?pretty=true&q=*:*', {
+                response = yield axios_1.default.get(dbUri + '/plate_log/_search?pretty=true&q=*:*', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     // data: '\n{\n  \n}',
                     data: {
-                        'from': (page - 1) * perPage,
+                        'from': page,
                         'size': perPage
                     }
                 });
             }
-            //create return data to client
-            let plates = response.data.hits.hits.map((item) => {
-                var _a;
-                return {
-                    id: item._id,
-                    timestamp: item._source.properties.timestamp,
-                    plate_number: item._source.properties.plate_number,
-                    car: _car,
-                    color: _color,
-                    isAllowed: (_a = carDB === null || carDB === void 0 ? void 0 : carDB.camera_whitelist) === null || _a === void 0 ? void 0 : _a.includes(item._source.properties.camera_id)
+            //ceate json response
+            let _data = [];
+            for (let i = 0; i < response.data.hits.hits.length; i++) {
+                //get camera from mongo db by id for get camera name
+                let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
+                //get car from mongo db by id for get car name
+                let car = yield car_1.default.findById(response.data.hits.hits[i]._source.plate_number).exec();
+                //get car_color from mongo db by id for get car color
+                let car_color = yield carColor_1.default.findById(car === null || car === void 0 ? void 0 : car.color_id).exec();
+                //get car_brand from mongo db by id for get car brand
+                let car_brand = yield carBrand_1.default.findById(car === null || car === void 0 ? void 0 : car.brand_id).exec();
+                //get owner from mongo db by id for get owner name
+                let owner = yield personnel_1.default.findById(car === null || car === void 0 ? void 0 : car.owner).exec();
+                let result = {
+                    camera_id: response.data.hits.hits[i]._source.camera_id,
+                    camera: camera === null || camera === void 0 ? void 0 : camera.name,
+                    time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+                    car: car_brand,
+                    color: car_color,
+                    plate: response.data.hits.hits[i]._source.plate_number,
+                    owner: (owner === null || owner === void 0 ? void 0 : owner.first_name) + " " + (owner === null || owner === void 0 ? void 0 : owner.last_name),
+                    allowed: (owner === null || owner === void 0 ? void 0 : owner.camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id)) ? true : false
                 };
-            });
+                _data.push(yield result);
+            }
+            ;
             //return data to client
             return res.status(200).json({
                 message: "Success",
-                report: plates
+                report: _data
             });
         }
         catch (err) {

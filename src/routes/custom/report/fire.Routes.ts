@@ -5,6 +5,10 @@ import date2Epokh from "../../../tools/convertTimeEpokh";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import ModelToCamera from "../../../models/modelToCamera";
 import Camera from "../../../models/camera";
+import Car from "../../../models/car";
+import CarColor from "../../../models/carColor";
+import CarBrand from "../../../models/carBrand";
+import Personnel from "../../../models/personnel";
 
 //create router for add to routes file 
 const router: Router = Router();
@@ -54,28 +58,21 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                     'Content-Type': 'application/json'
                 },
                 data: {
-                    'from': page ,
+                    'from': page,
                     'size': perPage,
                     'query': {
                         'bool': {
                             'filter': [
                                 {
                                     'term': {
-                                        'properties.camera_id': search
+                                        'camera_id': search
                                     }
                                 },
                                 {
                                     'range': {
-                                        'properties.timestamp': {
+                                        'timestamp': {
                                             'gte': timeStartScientificSymbol,
                                             'lte': timeEndScientificSymbol
-                                        }
-                                    }
-                                },
-                                {
-                                    'range': {
-                                        'properties.confidence': {
-                                            'gte': probability
                                         }
                                     }
                                 }
@@ -85,7 +82,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         } else {
-            response = await axios.get(dbUri + '/fire_log/_search?pretty=true&q=*:*', {
+            response = await axios.get(dbUri + '/fire_log/_search', {
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -98,21 +95,22 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         }
 
         //ceate json response
-        let data: [{}] = [{}];
-        data = response.data.hits.hits.map(async (item: any) => {
-            let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
-            return {
-
-                camera: await Camera.findById(model2camera?.camera_id).exec(),
-                time: new Date(item._source.properties.timestamp).getTime(),
-                probability: item._source.properties.confidence,
-            }
-        });
-
+        let _data: object[] = [];
+        for (let i = 0; i < response.data.hits.hits.length; i++) {
+            //get camera from mongo db by id for get camera name
+            let camera = await Camera.findById(response.data.hits.hits[i]._source.camera_id).exec();
+            let result = {
+                camera_id: response.data.hits.hits[i]._source.camera_id,
+                camera: camera?.name,
+                time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+                probability: response.data.hits.hits[i]._source.confidence,
+            };
+            _data.push(await result);
+        };
         //return data to client
         return res.status(200).json({
             message: "Success",
-            report: response.data,
+            data: _data,
         });
 
     } catch (err: any) {

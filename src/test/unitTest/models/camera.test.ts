@@ -14,14 +14,14 @@ describe('camera', function () {
         mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            mongoose.connection.db.dropDatabase().then(() => {
+           // mongoose.connection.db.dropDatabase().then(() => {
                 require('./../../../models/camera').registerModels;
                 // This is the right model because ^registerModels set it up for us.
                 Camera = mongoose.model('Camera');
                 done();
-            }).catch((err: Error) => {
-                done(err);
-            });
+        //    }).catch((err: Error) => {
+         //       done(err);
+        //    });
         });
     });
     //disconnect from DB after test

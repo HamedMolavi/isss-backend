@@ -19,9 +19,9 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { network, departement_id, section_id, url, ip, name, username, password, is_enabled }: ICamera = req.body;
+        const {  section_id, url, ip, name, username, password, is_enabled }: ICamera = req.body;
         //verify body request
-        if (!network || !departement_id || !section_id || !url || !ip || !name || !username || !password || !is_enabled) {
+        if (  !section_id || !url || !ip || !name || !username || !password || !is_enabled) {
             req.flash("error", "Veuillez remplir tous les champs");
             return next(new HttpException(400, "Veuillez remplir tous les champs", "camera"));
         }
@@ -46,8 +46,6 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
 
         //fil new camera
         camera = new Camera({
-            network: network,
-            departement_id: departement_id,
             section_id: section_id,
             url: url,
             ip: ip,

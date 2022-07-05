@@ -3,7 +3,8 @@ import HttpException from "../../../error/HttpException";
 import axios from "axios";
 import date2Epokh from "../../../tools/convertTimeEpokh";
 import { getTokenAndVerify } from "../../../tools/authentication";
-import Personnel from "../../../models/personnel";
+import Personnel, { IPersonnel } from "../../../models/personnel";
+import Camera from "../../../models/camera";
 
 
 //create router for add to routes file 
@@ -58,19 +59,19 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                     'Content-Type': 'application/json'
                 },
                 data: {
-                    'from': (page - 1) * perPage,
+                    'from': page,
                     'size': perPage,
                     'query': {
                         'bool': {
                             'filter': [
                                 {
                                     'term': {
-                                        'properties.camera_id': search
+                                        'camera_id': search
                                     }
                                 },
                                 {
                                     'range': {
-                                        'properties.timestamp': {
+                                        'timestamp': {
                                             'gte': timeStartScientificSymbol,
                                             'lte': timeEndScientificSymbol
                                         }
@@ -93,21 +94,32 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 }
             });
         }
-        //check if isAllowed is true or false and create return data to client
-        let facesRecognition = response.data.hits.hits.map((item: any) => {
-            return {
-                id: item._id,
-                camera_id: item._source.properties.camera_id,
-                timestamp: item._source.properties.timestamp,
-                fullname: personnel?.first_name + " " + personnel?.last_name,
-                isAllowed: personnel?.camera_whitelist?.includes(item._source.properties.camera_id)
+        //ceate json response
+        let _data: object[] = [];
+        for (let i = 0; i < response.data.hits.hits.length; i++) {
+            //get personnel from mongo db by id
+            let _personnel: IPersonnel | null;
+            if (response.data.hits.hits[i]._source.personnel_id !== "-1") {
+                _personnel = await Personnel.findById(response.data.hits.hits[i]._source.personnel_id).exec();
+            }else{
+                _personnel = null;
             }
-        });
+            //get camera from mongo db by id for get camera name
+            let camera = await Camera.findById(response.data.hits.hits[i]._source.camera_id).exec();
+            let result = {
+                camera_id: response.data.hits.hits[i]._source.camera_id,
+                camera: camera?.name,
+                time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+                fullName: _personnel?.first_name + " " + personnel?.last_name,
+                Allowed: _personnel?.camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) ? true : false
+            };
+            _data.push(await result);
+        };
 
         //return data to client
         return res.status(200).json({
             message: "Success",
-            report: facesRecognition
+            data: _data,
         });
 
     } catch (err: any) {

@@ -18,6 +18,7 @@ const axios_1 = __importDefault(require("axios"));
 const convertTimeEpokh_1 = __importDefault(require("../../../tools/convertTimeEpokh"));
 const authentication_1 = require("../../../tools/authentication");
 const personnel_1 = __importDefault(require("../../../models/personnel"));
+const camera_1 = __importDefault(require("../../../models/camera"));
 //create router for add to routes file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -58,24 +59,24 @@ router.get("", function (req, res, next) {
                 //get personnel with personnel_id from DB
                 personnel = yield personnel_1.default.findOne({ _id: personnel_id }).exec();
                 //get data from elastic
-                response = yield axios_1.default.get(dbUri + '/face/_search', {
+                response = yield axios_1.default.get(dbUri + '/face_log/_search', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     data: {
-                        'from': (page - 1) * perPage,
+                        'from': page,
                         'size': perPage,
                         'query': {
                             'bool': {
                                 'filter': [
                                     {
                                         'term': {
-                                            'properties.camera_id': search
+                                            'camera_id': search
                                         }
                                     },
                                     {
                                         'range': {
-                                            'properties.timestamp': {
+                                            'timestamp': {
                                                 'gte': timeStartScientificSymbol,
                                                 'lte': timeEndScientificSymbol
                                             }
@@ -88,32 +89,44 @@ router.get("", function (req, res, next) {
                 });
             }
             else {
-                response = yield axios_1.default.get(dbUri + '/face/_search?pretty=true&q=*:*', {
+                response = yield axios_1.default.get(dbUri + '/face_log/_search?pretty=true&q=*:*', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     // data: '\n{\n  \n}',
                     data: {
-                        'from': (page - 1) * perPage,
+                        'from': page,
                         'size': perPage
                     }
                 });
             }
-            //check if isAllowed is true or false and create return data to client
-            let facesRecognition = response.data.hits.hits.map((item) => {
-                var _a;
-                return {
-                    id: item._id,
-                    camera_id: item._source.properties.camera_id,
-                    timestamp: item._source.properties.timestamp,
-                    fullname: (personnel === null || personnel === void 0 ? void 0 : personnel.first_name) + " " + (personnel === null || personnel === void 0 ? void 0 : personnel.last_name),
-                    isAllowed: (_a = personnel === null || personnel === void 0 ? void 0 : personnel.camera_whitelist) === null || _a === void 0 ? void 0 : _a.includes(item._source.properties.camera_id)
+            //ceate json response
+            let _data = [];
+            for (let i = 0; i < response.data.hits.hits.length; i++) {
+                //get personnel from mongo db by id
+                let _personnel;
+                if (response.data.hits.hits[i]._source.personnel_id !== "-1") {
+                    _personnel = yield personnel_1.default.findById(response.data.hits.hits[i]._source.personnel_id).exec();
+                }
+                else {
+                    _personnel = null;
+                }
+                //get camera from mongo db by id for get camera name
+                let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
+                let result = {
+                    camera_id: response.data.hits.hits[i]._source.camera_id,
+                    camera: camera === null || camera === void 0 ? void 0 : camera.name,
+                    time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+                    fullName: (_personnel === null || _personnel === void 0 ? void 0 : _personnel.first_name) + " " + (personnel === null || personnel === void 0 ? void 0 : personnel.last_name),
+                    Allowed: (_personnel === null || _personnel === void 0 ? void 0 : _personnel.camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id)) ? true : false
                 };
-            });
+                _data.push(yield result);
+            }
+            ;
             //return data to client
             return res.status(200).json({
                 message: "Success",
-                report: facesRecognition
+                data: _data,
             });
         }
         catch (err) {

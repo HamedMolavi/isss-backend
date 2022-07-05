@@ -18,7 +18,6 @@ const axios_1 = __importDefault(require("axios"));
 const convertTimeEpokh_1 = __importDefault(require("../../../tools/convertTimeEpokh"));
 const authentication_1 = require("../../../tools/authentication");
 const camera_1 = __importDefault(require("../../../models/camera"));
-const modelToCamera_1 = __importDefault(require("../../../models/modelToCamera"));
 //create router for add to routes file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -45,7 +44,6 @@ router.get("", function (req, res, next) {
             //get search from url
             let search = req.query.search || "";
             let response;
-            console.log(search);
             if (search !== "") {
                 //get body from request
                 const { time, date_start, date_end } = req.body;
@@ -61,20 +59,21 @@ router.get("", function (req, res, next) {
                     headers: {
                         'Content-Type': 'application/json'
                     },
+                    // data: '\n{\n  "query": {\n    "bool": {\n      "filter": [\n        {\n          "term": {\n            "camera_id": "628dc28ef014bc89f0280c4a"\n          }\n        },\n        {\n          "range": {\n            "timestamp": {\n              "gte": 10,\n              "lte": 20\n            }\n          }\n        }\n      ]\n    }\n  }\n}',
                     data: {
-                        'from': (page - 1) * perPage,
+                        'from': page,
                         'size': perPage,
                         'query': {
                             'bool': {
                                 'filter': [
                                     {
                                         'term': {
-                                            'properties.camera_id': search
+                                            'camera_id': search
                                         }
                                     },
                                     {
                                         'range': {
-                                            'properties.timestamp': {
+                                            'timestamp': {
                                                 'gte': timeStartScientificSymbol,
                                                 'lte': timeEndScientificSymbol
                                             }
@@ -93,33 +92,28 @@ router.get("", function (req, res, next) {
                     },
                     // data: '\n{\n  \n}',
                     data: {
-                        'from': (page - 1) * perPage,
+                        'from': page,
                         'size': perPage
                     }
                 });
             }
             //ceate json response
-            let data;
-            data = response.data.hits.hits.map((item) => __awaiter(this, void 0, void 0, function* () {
-                let _time = new Date(item._source.properties.timestamp).getTime();
-                let model2camera = yield modelToCamera_1.default.findById('62bfe6ae54d90e82d9ba598b').exec();
-                let camera = yield camera_1.default.findById(model2camera === null || model2camera === void 0 ? void 0 : model2camera.camera_id).exec();
+            let _data = [];
+            for (let i = 0; i < response.data.hits.hits.length; i++) {
+                //get camera from mongo db by id for get camera name
+                let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
                 let result = {
+                    camera_id: response.data.hits.hits[i]._source.camera_id,
                     camera: camera === null || camera === void 0 ? void 0 : camera.name,
-                    time: _time,
+                    time: new Date(response.data.hits.hits[i]._source.timestamp).getTime()
                 };
-                // let camera = await Camera.findById('62c009a3fb115e110df9b460').exec();
-                // console.log(camera);
-                // let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
-                data.push(result);
-                console.log(result);
-                //return result;
-            }));
-            console.log(data);
+                _data.push(yield result);
+            }
+            ;
             //return data to client
             return res.status(200).json({
                 message: "Success",
-                data: data
+                data: _data,
             });
         }
         catch (err) {

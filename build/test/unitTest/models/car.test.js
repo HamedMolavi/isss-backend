@@ -16,14 +16,14 @@ describe('car', function () {
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
         mongoose_1.default.connection.once('connected', (next) => {
-            mongoose_1.default.connection.db.dropDatabase().then(() => {
-                require('./../../../models/car').registerModels;
-                // This is the right model because register Models set it up for us.
-                Car = mongoose_1.default.model('Car');
-                done();
-            }).catch((err) => {
-                done(err);
-            });
+            //  mongoose.connection.db.dropDatabase().then(() => {
+            require('./../../../models/car').registerModels;
+            // This is the right model because register Models set it up for us.
+            Car = mongoose_1.default.model('Car');
+            done();
+            //  }).catch((err: Error) => {
+            //      done(err);
+            //  });
         });
     });
     //disconnect from DB after test
@@ -36,7 +36,7 @@ describe('car', function () {
         //create car model
         it('should save car in db', function (done) {
             var car = new Car({
-                owner: "test",
+                owner: "629592546558a38fbecb6d40",
                 number_plate: "123456",
                 brand_id: "629592546558a38fbecb6d40",
                 color_id: "629592546558a38fbecb6d40",
@@ -46,7 +46,7 @@ describe('car', function () {
             });
             //test this car model
             car.save().then(() => {
-                (0, chai_1.expect)(car.owner).to.equal('test');
+                (0, chai_1.expect)(car.owner.toString()).to.equal('629592546558a38fbecb6d40');
                 (0, chai_1.expect)(car.number_plate).to.equal('123456');
                 (0, chai_1.expect)(car.brand_id.toString()).to.equal('629592546558a38fbecb6d40');
                 (0, chai_1.expect)(car.color_id.toString()).to.equal('629592546558a38fbecb6d40');

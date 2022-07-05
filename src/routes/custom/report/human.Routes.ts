@@ -6,6 +6,8 @@ import { getTokenAndVerify } from "../../../tools/authentication";
 import ModelToCamera from "../../../models/modelToCamera";
 import Camera from "../../../models/camera";
 import Schedule, { ISchedule } from "./../../../models/schedule";
+import mongoose, { Schema } from "mongoose";
+import { nextTick } from "process";
 
 //create router for add to routes file 
 const router: Router = Router();
@@ -54,19 +56,19 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                     'Content-Type': 'application/json'
                 },
                 data: {
-                    'from': (page - 1) * perPage,
+                    'from': page,
                     'size': perPage,
                     'query': {
                         'bool': {
                             'filter': [
                                 {
                                     'term': {
-                                        'properties.camera_id': search
+                                        'camera_id': search
                                     }
                                 },
                                 {
                                     'range': {
-                                        'properties.timestamp': {
+                                        'timestamp': {
                                             'gte': timeStartScientificSymbol,
                                             'lte': timeEndScientificSymbol
                                         }
@@ -91,24 +93,27 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         }
 
         //ceate json response
-        let data: [{}] = [{}];
-        data = response.data.hits.hits.map(async (item: any) => {
-            let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
+        let _data: object[] = [];
+        for (let i = 0; i < response.data.hits.hits.length; i++) {
+            //get modelToCamera from mongo db by id
+            let model2camera = await ModelToCamera.findById(response.data.hits.hits[i]._source.model_camera_id).exec();
+            //get schedule from mongo db by model_camera_id for compare with max_people
             let schedule = await Schedule.findOne({ model_camera_id: model2camera?._id }).exec();
-            return {
-
-                camera: await Camera.findById(model2camera?.camera_id).exec(),
-                time: new Date(item._source.properties.timestamp).getTime(),
-                NumberOfPeople: schedule!.config.max_people >= item.number_of_people ? true : false
-            }
-        });
-
+            //get camera from mongo db by id for get camera name
+            let camera = await Camera.findById(response.data.hits.hits[i]._source.camera_id).exec();
+            let result = {
+                camera_id: response.data.hits.hits[i]._source.camera_id,
+                camera: camera?.name,
+                time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+                NumberOfPeople: schedule!.config.max_people >= response.data.hits.hits[i].number_of_people ? true : false
+            };
+            _data.push(await result);
+        };
         //return data to client
         return res.status(200).json({
             message: "Success",
-            report: response.data
-        });
-
+            data: _data,
+        })
     } catch (err: any) {
         return next(new HttpException(500, err.message, "sabotage"));
     }

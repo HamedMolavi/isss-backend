@@ -47,7 +47,6 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
             //convert date_start to epokh
             let timeStartScientificSymbol = date2Epokh(date_start, time);
             let timeEndScientificSymbol = date2Epokh(date_end, time);
-            console.log(search);
             //get data from elastic
             response = await axios.get(dbUri + '/sabotage_log/_search', {
                 headers: {
@@ -55,6 +54,8 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 },
                 // data: '\n{\n  "query": {\n    "bool": {\n      "filter": [\n        {\n          "term": {\n            "camera_id": "628dc28ef014bc89f0280c4a"\n          }\n        },\n        {\n          "range": {\n            "timestamp": {\n              "gte": 10,\n              "lte": 20\n            }\n          }\n        }\n      ]\n    }\n  }\n}',
                 data: {
+                    'from': page,
+                    'size': perPage,
                     'query': {
                         'bool': {
                             'filter': [
@@ -90,27 +91,21 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         }
 
         //ceate json response
-        let data: any;
-        data = response.data.hits.hits.map(async (item: any) => {
-            let _time = new Date(item._source.properties.timestamp).getTime();
-            let model2camera = await ModelToCamera.findById('62bfe6ae54d90e82d9ba598b').exec();
-            let camera = await Camera.findById(model2camera?.camera_id).exec();
+        let _data: object[] = [];
+        for (let i = 0; i < response.data.hits.hits.length; i++) {
+            //get camera from mongo db by id for get camera name
+            let camera = await Camera.findById(response.data.hits.hits[i]._source.camera_id).exec();
             let result = {
+                camera_id: response.data.hits.hits[i]._source.camera_id,
                 camera: camera?.name,
-                time: _time,
-            }
-            // let camera = await Camera.findById('62c009a3fb115e110df9b460').exec();
-            // console.log(camera);
-            // let model2camera = await ModelToCamera.findOne({ _id: item._source.properties.m2c_id }).exec();
-            data.push(result);
-            console.log(result);
-            //return result;
-        });
-        console.log(data);
+                time: new Date(response.data.hits.hits[i]._source.timestamp).getTime()
+            };
+            _data.push(await result);
+        };
         //return data to client
         return res.status(200).json({
             message: "Success",
-            data: response.data.hits.hits,
+            data: _data,
         });
 
     } catch (err: any) {

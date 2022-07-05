@@ -17,7 +17,6 @@ const HttpException_1 = __importDefault(require("../../../error/HttpException"))
 const axios_1 = __importDefault(require("axios"));
 const convertTimeEpokh_1 = __importDefault(require("../../../tools/convertTimeEpokh"));
 const authentication_1 = require("../../../tools/authentication");
-const modelToCamera_1 = __importDefault(require("../../../models/modelToCamera"));
 const camera_1 = __importDefault(require("../../../models/camera"));
 //create router for add to routes file 
 const router = (0, express_1.Router)();
@@ -57,33 +56,26 @@ router.get("", function (req, res, next) {
                 let timeStartScientificSymbol = (0, convertTimeEpokh_1.default)(date_start, time);
                 let timeEndScientificSymbol = (0, convertTimeEpokh_1.default)(date_end, time);
                 //get data from elastic
-                response = yield axios_1.default.get(dbUri + '/fire/_search', {
+                response = yield axios_1.default.get(dbUri + '/fire_log/_search', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     data: {
-                        'from': (page - 1) * perPage,
+                        'from': page,
                         'size': perPage,
                         'query': {
                             'bool': {
                                 'filter': [
                                     {
                                         'term': {
-                                            'properties.camera_id': search
+                                            'camera_id': search
                                         }
                                     },
                                     {
                                         'range': {
-                                            'properties.timestamp': {
+                                            'timestamp': {
                                                 'gte': timeStartScientificSymbol,
                                                 'lte': timeEndScientificSymbol
-                                            }
-                                        }
-                                    },
-                                    {
-                                        'range': {
-                                            'properties.confidence': {
-                                                'gte': probability
                                             }
                                         }
                                     }
@@ -94,31 +86,35 @@ router.get("", function (req, res, next) {
                 });
             }
             else {
-                response = yield axios_1.default.get(dbUri + '/fire/_search?pretty=true&q=*:*', {
+                response = yield axios_1.default.get(dbUri + '/fire_log/_search', {
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     // data: '\n{\n  \n}',
                     data: {
-                        'from': (page - 1) * perPage,
+                        'from': page,
                         'size': perPage
                     }
                 });
             }
             //ceate json response
-            let data = [{}];
-            data = response.data.hits.hits.map((item) => __awaiter(this, void 0, void 0, function* () {
-                let model2camera = yield modelToCamera_1.default.findOne({ _id: item._source.properties.m2c_id }).exec();
-                return {
-                    camera: yield camera_1.default.findById(model2camera === null || model2camera === void 0 ? void 0 : model2camera.camera_id).exec(),
-                    time: new Date(item._source.properties.timestamp).getTime(),
-                    probability: item._source.properties.confidence,
+            let _data = [];
+            for (let i = 0; i < response.data.hits.hits.length; i++) {
+                //get camera from mongo db by id for get camera name
+                let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
+                let result = {
+                    camera_id: response.data.hits.hits[i]._source.camera_id,
+                    camera: camera === null || camera === void 0 ? void 0 : camera.name,
+                    time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+                    probability: response.data.hits.hits[i]._source.confidence,
                 };
-            }));
+                _data.push(yield result);
+            }
+            ;
             //return data to client
             return res.status(200).json({
                 message: "Success",
-                report: data
+                data: _data,
             });
         }
         catch (err) {

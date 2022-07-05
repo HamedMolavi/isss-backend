@@ -14,14 +14,14 @@ describe('Schedule', function () {
         mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            mongoose.connection.db.dropDatabase().then(() => {
+         //   mongoose.connection.db.dropDatabase().then(() => {
                 require('./../../../models/schedule').registerModels;
                 // This is the right model because register Models set it up for us.
                 Schedule = mongoose.model('Schedule');
                 done();
-            }).catch((err: Error) => {
-                done(err);
-            });
+         //   }).catch((err: Error) => {
+         //       done(err);
+          //  });
         });
     });
     //disconnect from DB after test

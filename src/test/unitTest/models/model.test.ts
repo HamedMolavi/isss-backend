@@ -13,14 +13,14 @@ describe('model', function () {
         mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected', () => {
-            mongoose.connection.db.dropDatabase().then(() => {
+         //   mongoose.connection.db.dropDatabase().then(() => {
                 require('./../../../models/model').registerModels;
                 // This is the right model because register Models set it up for us.
                 Model = mongoose.model('Model');
                 done();
-            }).catch((err: Error) => {
-                done(err);
-            });
+          //  }).catch((err: Error) => {
+         //       done(err);
+          //  });
         });
     });
     //disconnect from DB after test

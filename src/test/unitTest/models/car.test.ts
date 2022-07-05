@@ -13,14 +13,14 @@ describe('car', function () {
         mongoose.connect(dbUri);
         //listen for connection events
         mongoose.connection.once('connected', (next) => {
-            mongoose.connection.db.dropDatabase().then(() => {
+          //  mongoose.connection.db.dropDatabase().then(() => {
                 require('./../../../models/car').registerModels;
                 // This is the right model because register Models set it up for us.
                 Car = mongoose.model('Car');
                 done();
-            }).catch((err: Error) => {
-                done(err);
-            });
+          //  }).catch((err: Error) => {
+          //      done(err);
+          //  });
         });
     });
     //disconnect from DB after test
@@ -33,7 +33,7 @@ describe('car', function () {
         //create car model
         it('should save car in db', function (done) {
             var car = new Car({
-                owner: "test",
+                owner: "629592546558a38fbecb6d40",
                 number_plate: "123456",
                 brand_id: "629592546558a38fbecb6d40",
                 color_id: "629592546558a38fbecb6d40",
@@ -43,7 +43,7 @@ describe('car', function () {
             });
             //test this car model
             car.save().then(() => {
-                expect(car.owner).to.equal('test');
+                expect(car.owner.toString()).to.equal('629592546558a38fbecb6d40');
                 expect(car.number_plate).to.equal('123456');
                 expect(car.brand_id.toString()).to.equal('629592546558a38fbecb6d40');
                 expect(car.color_id.toString()).to.equal('629592546558a38fbecb6d40');

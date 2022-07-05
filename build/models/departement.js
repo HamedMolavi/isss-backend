@@ -29,7 +29,7 @@ const DepartementSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     created_date: { type: Date, default: Date.now }
 }, {
-    collection: "Departement"
+    collection: "Department"
 });
 // Compile model from schema
 const Departement = mongoose_1.default.model("Departement", DepartementSchema);

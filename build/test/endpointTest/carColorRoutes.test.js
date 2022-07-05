@@ -14,7 +14,7 @@ describe('server run and crud car color', function () {
     //test route for register new car color in DB
     it('should send back a JSON object with car color for create new car color', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/api/v1/carcolors/')
+            .post('/api/v1/carcolors')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({

@@ -13,7 +13,7 @@ describe('server run and crud car color', function () {
     //test route for register new car color in DB
     it('should send back a JSON object with car color for create new car color', function (done) {
         request(app)
-            .post('/api/v1/carcolors/')
+            .post('/api/v1/carcolors')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({

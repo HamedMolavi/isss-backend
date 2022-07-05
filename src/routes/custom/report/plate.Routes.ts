@@ -5,6 +5,10 @@ import date2Epokh from "../../../tools/convertTimeEpokh";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import Car from "../../../models/car";
 import modelToCamera from "../../../models/modelToCamera";
+import Camera from "../../../models/camera";
+import CarColor from "../../../models/carColor";
+import CarBrand from "../../../models/carBrand";
+import Personnel from "../../../models/personnel";
 
 
 //create router for add to routes file 
@@ -79,17 +83,12 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                             'filter': [
                                 {
                                     'term': {
-                                        'properties.plate_number': car.number_plate
-                                    }
-                                },
-                                {
-                                    'term': {
-                                        'properties.m2c_id': model2camera._id
+                                        'camera_id': search
                                     }
                                 },
                                 {
                                     'range': {
-                                        'properties.timestamp': {
+                                        'timestamp': {
                                             'gte': timeStartScientificSymbol,
                                             'lte': timeEndScientificSymbol
                                         }
@@ -107,27 +106,41 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 },
                 // data: '\n{\n  \n}',
                 data: {
-                    'from': page ,
+                    'from': page,
                     'size': perPage
                 }
             });
         }
-        //create return data to client
-        let plates = response.data.hits.hits.map((item: any) => {
-            return {
-                id: item._id,
-                timestamp: item._source.properties.timestamp,
-                plate_number: item._source.properties.plate_number,
-                car: _car,
-                color: _color,
-                isAllowed: carDB?.camera_whitelist?.includes(item._source.properties.camera_id)
-            }
-        });
+        //ceate json response
+        let _data: object[] = [];
+        for (let i = 0; i < response.data.hits.hits.length; i++) {
+            //get camera from mongo db by id for get camera name
+            let camera = await Camera.findById(response.data.hits.hits[i]._source.camera_id).exec();
+            //get car from mongo db by id for get car name
+            let car = await Car.findById(response.data.hits.hits[i]._source.plate_number).exec();
+            //get car_color from mongo db by id for get car color
+            let car_color = await CarColor.findById(car?.color_id).exec();
+            //get car_brand from mongo db by id for get car brand
+            let car_brand = await CarBrand.findById(car?.brand_id).exec();
+            //get owner from mongo db by id for get owner name
+            let owner = await Personnel.findById(car?.owner).exec();
+            let result = {
+                camera_id: response.data.hits.hits[i]._source.camera_id,
+                camera: camera?.name,
+                time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+                car: car_brand,
+                color: car_color,
+                plate: response.data.hits.hits[i]._source.plate_number,
+                owner: owner?.first_name + " " + owner?.last_name,
+                allowed : owner?.camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) ? true : false
+            };
+            _data.push(await result);
+        };
 
         //return data to client
         return res.status(200).json({
             message: "Success",
-            report: response.data
+            report: _data
         });
 
     } catch (err: any) {
