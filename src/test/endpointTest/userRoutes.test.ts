@@ -30,7 +30,11 @@ describe('server run and server runnig and register user', function () {
             .send({
                 username: 'sasan',
                 password: '12345',
-                phone_number: '09330371133'
+                phone_number: '09330371133',
+                event: true,
+                report: true,
+                camera: true,
+                configuration: true
             })
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
@@ -40,7 +44,11 @@ describe('server run and server runnig and register user', function () {
                     expect(res.body.message).to.equal('Success');
                     expect(user.username).to.equal('sasan');
                     expect(user.phone_number).to.equal('09330371133');
-                } else  {
+                    expect(user.event).to.equal(true);
+                    expect(user.report).to.equal(true);
+                    expect(user.camera).to.equal(true);
+                    expect(user.configuration).to.equal(true);
+                } else {
                     let response = null;
                 }
                 // Done
@@ -64,15 +72,6 @@ describe('server run and server runnig and register user', function () {
     //test route for login user 
     it('should send back a JSON object for login user', function (done) {
         let loginUser: IUser;
-        //get user from DB
-        // User.findOne({
-        //     username: { $in: ['john'] },
-        // }, (err: Error, user: IUser) => {
-        //     if (err) {
-        //         console.log(err);
-        //     }
-        //     loginUser = user;
-        // });
 
         request(app)
             .post('/api/v1/users/login')
@@ -89,6 +88,10 @@ describe('server run and server runnig and register user', function () {
                 expect(user.username).to.equal(_user.username);
                 expect(user.password).to.equal(_user.password);
                 expect(user.role).to.equal(_user.role);
+                expect(user.event).to.equal(_user.event);
+                expect(user.report).to.equal(_user.report);
+                expect(user.camera).to.equal(_user.camera);
+                expect(user.configuration).to.equal(_user.configuration);
                 // Done
                 done();
             });
@@ -111,6 +114,10 @@ describe('server run and server runnig and register user', function () {
                 expect(userResponse[0]).have.to.property('phone_number');
                 expect(userResponse[0]).have.to.property('role');
                 expect(userResponse[0]).have.to.property('password');
+                expect(userResponse[0]).have.to.property('event');
+                expect(userResponse[0]).have.to.property('report');
+                expect(userResponse[0]).have.to.property('camera');
+                expect(userResponse[0]).have.to.property('configuration');
                 // Done
                 done();
             });
@@ -132,6 +139,10 @@ describe('server run and server runnig and register user', function () {
                 expect(userResponse[0]).have.to.property('phone_number');
                 expect(userResponse[0]).have.to.property('role');
                 expect(userResponse[0]).have.to.property('password');
+                expect(userResponse[0]).have.to.property('event');
+                expect(userResponse[0]).have.to.property('report');
+                expect(userResponse[0]).have.to.property('camera');
+                expect(userResponse[0]).have.to.property('configuration');
                 // Done
                 done();
             });
@@ -154,6 +165,10 @@ describe('server run and server runnig and register user', function () {
                 expect(userResponse.phone_number).to.equal(_user.phone_number);
                 expect(userResponse.role).to.equal(_user.role);
                 expect(userResponse.password).to.equal(_user.password);
+                expect(userResponse.event).to.equal(_user.event);
+                expect(userResponse.report).to.equal(_user.report);
+                expect(userResponse.camera).to.equal(_user.camera);
+                expect(userResponse.configuration).to.equal(_user.configuration);
                 // Done
                 done();
             });
@@ -179,6 +194,10 @@ describe('server run and server runnig and register user', function () {
                 expect(user.phone_number).to.equal(_user.phone_number);
                 expect(user.password).to.equal(_user.password);
                 expect(user.role).to.equal(_user.role);
+                expect(user.event).to.equal(_user.event);
+                expect(user.report).to.equal(_user.report);
+                expect(user.camera).to.equal(_user.camera);
+                expect(user.configuration).to.equal(_user.configuration);
                 // Done
                 done();
             });

@@ -15,7 +15,7 @@ describe('server run and crud car', function () {
     beforeEach(function (done) {
         //find plate by name
         car_1.default.findOne({
-            owner: { $in: ['test', 'john'] },
+            owner: { $in: ['629592546558a38fbecb6d40', '629592546558a38fbecb6e11'] },
             number_plate: { $in: ['1234567', '7654321'] }
         }, (err, car) => {
             if (err) {
@@ -28,11 +28,11 @@ describe('server run and crud car', function () {
     //test route for register new car in DB
     it('should send back a JSON object with car for create new car', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/api/v1/cars/')
+            .post('/api/v1/cars')
             .set('Content-Type', 'application/json')
             .set('Authorization', `Bearer ${token}`)
             .send({
-            owner: 'test',
+            owner: '629592546558a38fbecb6d40',
             number_plate: '1234567',
             brand_id: '629592546558a38fbecb6d40',
             color_id: '629592546558a38fbecb6d40',
@@ -45,7 +45,7 @@ describe('server run and crud car', function () {
             }
             if (res.body.message !== 'car already exists') {
                 let response = res.body.car;
-                (0, chai_1.expect)(response.owner).to.equal('test');
+                (0, chai_1.expect)(response.owner.toString()).to.equal('629592546558a38fbecb6d40');
                 (0, chai_1.expect)(response.number_plate).to.equal('1234567');
                 (0, chai_1.expect)(response.brand_id.toString()).to.equal('629592546558a38fbecb6d40');
                 (0, chai_1.expect)(response.color_id.toString()).to.equal('629592546558a38fbecb6d40');
@@ -70,11 +70,11 @@ describe('server run and crud car', function () {
                 return done(err);
             }
             let userResponse = res.body.cars;
-            (0, chai_1.expect)(userResponse[0].owner).to.equal('test');
-            (0, chai_1.expect)(userResponse[0].number_plate).to.equal('1234567');
-            (0, chai_1.expect)(userResponse[0].brand_id).to.equal('629592546558a38fbecb6d40');
-            (0, chai_1.expect)(userResponse[0].color_id).to.equal('629592546558a38fbecb6d40');
-            (0, chai_1.expect)(userResponse[0].camera_whitelist).to.deep.equal(['test']);
+            (0, chai_1.expect)(userResponse[0]).to.have.property('owner');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('number_plate');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('brand_id');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('color_id');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('camera_whitelist');
             // Done
             done();
         });
@@ -91,8 +91,8 @@ describe('server run and crud car', function () {
                 return done(err);
             }
             let userResponse = res.body.cars;
-            (0, chai_1.expect)(userResponse[0].owner).to.equal('test');
-            (0, chai_1.expect)(userResponse[0].number_plate).to.equal('1234567');
+            (0, chai_1.expect)(userResponse[0].owner.toString()).to.equal('629592546558a38fbecb6d40');
+            (0, chai_1.expect)(userResponse[0].number_plate).to.equal('123456');
             (0, chai_1.expect)(userResponse[0].brand_id).to.equal('629592546558a38fbecb6d40');
             (0, chai_1.expect)(userResponse[0].color_id).to.equal('629592546558a38fbecb6d40');
             (0, chai_1.expect)(userResponse[0].camera_whitelist).to.deep.equal(['test']);
@@ -112,7 +112,7 @@ describe('server run and crud car', function () {
                 return done(err);
             }
             let userResponse = res.body.car;
-            (0, chai_1.expect)(userResponse.owner).to.equal('test');
+            (0, chai_1.expect)(userResponse.owner.toString()).to.equal('629592546558a38fbecb6d40');
             (0, chai_1.expect)(userResponse.number_plate).to.equal('1234567');
             (0, chai_1.expect)(userResponse.brand_id.toString()).to.equal('629592546558a38fbecb6d40');
             (0, chai_1.expect)(userResponse.color_id.toString()).to.equal('629592546558a38fbecb6d40');
@@ -124,7 +124,7 @@ describe('server run and crud car', function () {
     //test route for edite car in DB
     it('should send back a JSON object with id for edit car', function (done) {
         let plateEditJson = {
-            owner: 'john',
+            owner: '629592546558a38fbecb6e11',
             number_plate: '7654321'
         };
         (0, supertest_1.default)(server_1.default)
@@ -138,7 +138,7 @@ describe('server run and crud car', function () {
                 return done(err);
             }
             let plate = res.body.car;
-            (0, chai_1.expect)(plate.owner).to.equal('john');
+            (0, chai_1.expect)(plate.owner.toString()).to.equal('629592546558a38fbecb6e11');
             (0, chai_1.expect)(plate.number_plate).to.equal('7654321');
             (0, chai_1.expect)(plate.brand_id.toString()).to.equal(_car.brand_id.toString());
             (0, chai_1.expect)(plate.color_id.toString()).to.equal(_car.color_id.toString());

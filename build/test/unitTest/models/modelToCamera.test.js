@@ -25,14 +25,14 @@ describe('model2camera', function () {
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => __awaiter(this, void 0, void 0, function* () {
-            yield mongoose_1.default.connection.db.dropDatabase().then(() => {
-                require('./../../../models/modelToCamera').registerModels;
-                // This is the right model because register Models set it up for us.
-                Model2Camera = mongoose_1.default.model('ModelToCamera');
-                done();
-            }).catch((err) => {
-                done(err);
-            });
+            //    await mongoose.connection.db.dropDatabase().then(() => {
+            require('./../../../models/modelToCamera').registerModels;
+            // This is the right model because register Models set it up for us.
+            Model2Camera = mongoose_1.default.model('ModelToCamera');
+            done();
+            //   }).catch((err: Error) => {
+            //       done(err);
+            //   });
         }));
     });
     //disconnect from DB after test

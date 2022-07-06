@@ -16,14 +16,14 @@ describe('car Brand', function () {
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
-            mongoose_1.default.connection.db.dropDatabase().then(() => {
-                require('./../../../models/carBrand').registerModels;
-                // This is the right model because register Models set it up for us.
-                Car = mongoose_1.default.model('Car_Brand');
-                done();
-            }).catch((err) => {
-                done(err);
-            });
+            //  mongoose.connection.db.dropDatabase().then(() => {
+            require('./../../../models/carBrand').registerModels;
+            // This is the right model because register Models set it up for us.
+            Car = mongoose_1.default.model('Car_Brand');
+            done();
+            //  }).catch((err: Error) => {
+            //      done(err);
+            //  });
         });
     });
     //disconnect from DB after test

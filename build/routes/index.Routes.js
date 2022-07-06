@@ -16,11 +16,12 @@ const schedule_Routes_1 = __importDefault(require("./custom/config/schedule.Rout
 const model_Routes_1 = __importDefault(require("./custom/config/model.Routes"));
 const carColor_Routes_1 = __importDefault(require("./custom/config/carColor.Routes"));
 const carBrand_Routes_1 = __importDefault(require("./custom/config/carBrand.Routes"));
-const sabotage_Routes_1 = __importDefault(require("./custom/logs/sabotage.Routes"));
-const fire_Routes_1 = __importDefault(require("./custom/logs/fire.Routes"));
-const face_Routes_1 = __importDefault(require("./custom/logs/face.Routes"));
-const human_Routes_1 = __importDefault(require("./custom/logs/human.Routes"));
-const plate_Routes_1 = __importDefault(require("./custom/logs/plate.Routes"));
+const sabotage_Routes_1 = __importDefault(require("./custom/report/sabotage.Routes"));
+const fire_Routes_1 = __importDefault(require("./custom/report/fire.Routes"));
+const face_Routes_1 = __importDefault(require("./custom/report/face.Routes"));
+const human_Routes_1 = __importDefault(require("./custom/report/human.Routes"));
+const plate_Routes_1 = __importDefault(require("./custom/report/plate.Routes"));
+const modelToCamera_Routes_1 = __importDefault(require("./custom/config/modelToCamera.Routes"));
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add rotes app
@@ -41,4 +42,5 @@ router.use('/fires', fire_Routes_1.default);
 router.use('/faces', face_Routes_1.default);
 router.use('/humans', human_Routes_1.default);
 router.use('/plates', plate_Routes_1.default);
+router.use('/modelToCameras', modelToCamera_Routes_1.default);
 exports.default = router;

@@ -19,9 +19,9 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
         //get jason from body request
-        const { network, departement_id, section_id, url, ip, name, username, password, is_enabled }: ICamera = req.body;
+        const {  section_id, url, ip, name, username, password, is_enabled }: ICamera = req.body;
         //verify body request
-        if (!network || !departement_id || !section_id || !url || !ip || !name || !username || !password || !is_enabled) {
+        if (  !section_id || !url || !ip || !name || !username || !password || !is_enabled) {
             req.flash("error", "Veuillez remplir tous les champs");
             return next(new HttpException(400, "Veuillez remplir tous les champs", "camera"));
         }
@@ -46,8 +46,6 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
 
         //fil new camera
         camera = new Camera({
-            network: network,
-            departement_id: departement_id,
             section_id: section_id,
             url: url,
             ip: ip,
@@ -64,7 +62,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         req.flash("info", "camera added");
         return res.status(201).json({
             message: 'Success',
-            camera: camera
+            data: camera
         });
     } catch (err: any) {
         return next(new HttpException(500, err.message, "camera"));
@@ -104,7 +102,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         //return response to client with departements list
         return res.status(200).json({
             message: "Success",
-            cameras: cameras,
+            data: cameras,
             page: page,
             perPage: perPage,
             total: await Camera.countDocuments().exec(),
@@ -139,7 +137,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //send response to client with camera
         return res.status(200).json({
             message: 'Success',
-            camera: camera
+            data: camera
         });
     } catch (err: any) {
         return next(new HttpException(500, err.message, "camera"));
@@ -169,7 +167,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
         //send response to client with user
         return res.status(201).json({
             message: 'Success',
-            camera: camera
+            data: camera
         });
     } catch (err: any) {
         return next(new HttpException(500, err.message, "camera"));
@@ -199,7 +197,7 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
         //send response to client with camera
         return res.status(201).json({
             message: 'Success',
-            camera: camera
+            data: camera
         });
     } catch (err: any) {
         return next(new HttpException(500, err.message, "camera"));

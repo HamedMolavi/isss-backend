@@ -25,7 +25,38 @@ router.use(function (req, res, next) {
     res.locals.infos = req.flash("info");
     next();
 });
-//route for get jobTitle by id from DB 
+//create route for get list of models
+router.get("", function (req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get page from url
+            let strPage = req.query.page;
+            let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+            //get perPage from url
+            let strPerPage = req.query.PerPage;
+            let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            //query for get list of models
+            let models = yield model_1.default.find().limit(perPage).skip(perPage * (page - 1)).exec();
+            //query for get total count of models
+            let total = yield model_1.default.countDocuments().exec();
+            //return list of models
+            return res.status(200).json({
+                message: "Success",
+                models: models,
+                page: page,
+                perPage: perPage,
+                total: yield model_1.default.countDocuments().exec(),
+                pages: Math.ceil((yield model_1.default.countDocuments().exec()) / perPage)
+            });
+        }
+        catch (err) {
+            return next(new HttpException_1.default(500, err.message, "model"));
+        }
+    });
+});
+//route for get model by category from DB 
 router.get("/:category", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {

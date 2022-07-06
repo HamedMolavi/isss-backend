@@ -11,6 +11,8 @@ export interface IModelToCamera extends Document {
 const ModelToCameraSchema: Schema<IModelToCamera> = new Schema({
     model_id: { type: Schema.Types.ObjectId, ref: "Model" },
     camera_id: { type: Schema.Types.ObjectId, ref: "Camera" }
+},{
+    collection: "Model_Camera"
 });
 
 // Compile Model from schema

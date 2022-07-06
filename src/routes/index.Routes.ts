@@ -11,11 +11,12 @@ import scheduleRoutes from './custom/config/schedule.Routes';
 import modelRoutes from './custom/config/model.Routes';
 import carColorRoutes from './custom/config/carColor.Routes';
 import carBrandRoutes from './custom/config/carBrand.Routes';
-import sabotageslogs from './custom/logs/sabotage.Routes';
-import firelogs from './custom/logs/fire.Routes';
-import facelogs from './custom/logs/face.Routes';
-import humanlogs from './custom/logs/human.Routes';
-import platelogs from './custom/logs/plate.Routes';
+import sabotageslogs from './custom/report/sabotage.Routes';
+import firelogs from './custom/report/fire.Routes';
+import facelogs from './custom/report/face.Routes';
+import humanlogs from './custom/report/human.Routes';
+import platelogs from './custom/report/plate.Routes';
+import modelToCamera from './custom/config/modelToCamera.Routes';
 
 //create router for add to server 
 const router: Router = Router();
@@ -38,5 +39,6 @@ router.use('/fires', firelogs);
 router.use('/faces', facelogs);
 router.use('/humans', humanlogs);
 router.use('/plates', platelogs);
+router.use('/modelToCameras', modelToCamera);
 
 export default router;

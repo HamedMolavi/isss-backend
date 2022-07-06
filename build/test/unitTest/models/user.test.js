@@ -16,14 +16,14 @@ describe('users', function () {
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
-            mongoose_1.default.connection.db.dropDatabase().then(() => {
-                require('./../../../models/user').registerModels;
-                // This is the right model because registerModels set it up for us.
-                User = mongoose_1.default.model('User');
-                done();
-            }).catch((err) => {
-                done(err);
-            });
+            //  mongoose.connection.db.dropDatabase().then(() => {
+            require('./../../../models/user').registerModels;
+            // This is the right model because registerModels set it up for us.
+            User = mongoose_1.default.model('User');
+            done();
+            //  }).catch((err: Error) => {
+            //      done(err);
+            //  });
         });
     });
     //disconnect from DB after test
@@ -38,12 +38,20 @@ describe('users', function () {
                 username: 'john',
                 password: "123452",
                 phone_number: '0123456789',
-                role: 'user'
+                role: 'user',
+                event: true,
+                report: true,
+                camera: true,
+                configuration: true
             });
             user.save().then(() => {
                 (0, chai_1.expect)(user.username).to.equal('john');
                 (0, chai_1.expect)(user.phone_number).to.equal('0123456789');
                 (0, chai_1.expect)(user.role).to.equal('user');
+                (0, chai_1.expect)(user.event).to.equal(true);
+                (0, chai_1.expect)(user.report).to.equal(true);
+                (0, chai_1.expect)(user.camera).to.equal(true);
+                (0, chai_1.expect)(user.configuration).to.equal(true);
                 done();
             }).catch((err) => {
                 // done(err);

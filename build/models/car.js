@@ -26,12 +26,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 //create car model with schema for save in DB
 const CarSchema = new mongoose_1.Schema({
-    owner: { type: String, required: true },
+    owner: { type: mongoose_1.Schema.Types.ObjectId, ref: "Personnel" },
     number_plate: { type: String, required: true },
     brand_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Car_Brand" },
     color_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Car_Color" },
     camera_whitelist: { type: [String] },
     create_date: { type: Date, default: Date.now }
+}, {
+    collection: "Car"
 });
 // Compile model from schema
 const Car = mongoose_1.default.model("Car", CarSchema);

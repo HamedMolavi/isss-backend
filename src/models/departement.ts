@@ -12,6 +12,8 @@ export interface IDepartement extends Document {
 const DepartementSchema: Schema<IDepartement> = new Schema({
     name: { type: String, required: true },
     created_date: { type: Date, default: Date.now }
+},{
+    collection: "Department"
 });
 
 // Compile model from schema

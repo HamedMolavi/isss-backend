@@ -27,6 +27,8 @@ const mongoose_1 = __importStar(require("mongoose"));
 //create car_color model with schema for save in DB
 const CarColorSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
+}, {
+    collection: "Car_Color"
 });
 // Compile model from schema
 const CarColor = mongoose_1.default.model("Car_Color", CarColorSchema);

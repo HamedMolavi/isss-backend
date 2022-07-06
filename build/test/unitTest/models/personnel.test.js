@@ -16,14 +16,14 @@ describe('personnel', function () {
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
         mongoose_1.default.connection.once('connected', () => {
-            mongoose_1.default.connection.db.dropDatabase().then(() => {
-                require('./../../../models/personnel').registerModels;
-                // This is the right model because register Models set it up for us.
-                Personnel = mongoose_1.default.model('Personnel');
-                done();
-            }).catch((err) => {
-                done(err);
-            });
+            //  mongoose.connection.db.dropDatabase().then(() => {
+            require('./../../../models/personnel').registerModels;
+            // This is the right model because register Models set it up for us.
+            Personnel = mongoose_1.default.model('Personnel');
+            done();
+            //   }).catch((err: Error) => {
+            //       done(err);
+            //   });
         });
     });
     //disconnect from DB after test
