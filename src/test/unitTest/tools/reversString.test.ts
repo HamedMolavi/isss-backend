@@ -1,7 +1,8 @@
 import { assert } from 'chai';
 import reverseString from './../../../tools/reverseString';
-
+//test function reverseString
 describe('Reverse String', function () {
+    //load function and get response and compare to following value
     describe('#reverseString()', function () {
         it('should return string for reverse string', function () {
             assert.isString(reverseString('10.12.2022'));

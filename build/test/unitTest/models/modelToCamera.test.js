@@ -17,22 +17,25 @@ const connectMongo_1 = require("./../../../db/connectMongo");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("./../../../server");
 //test  models model
-describe('model2camera', function () {
+describe("model2camera", function () {
     let Model2Camera;
     //connect to DB before test
     before(function (done) {
         //connect to DB
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
-        mongoose_1.default.connection.once('connected', () => __awaiter(this, void 0, void 0, function* () {
-            //    await mongoose.connection.db.dropDatabase().then(() => {
-            require('./../../../models/modelToCamera').registerModels;
-            // This is the right model because register Models set it up for us.
-            Model2Camera = mongoose_1.default.model('ModelToCamera');
-            done();
-            //   }).catch((err: Error) => {
-            //       done(err);
-            //   });
+        mongoose_1.default.connection.once("connected", () => __awaiter(this, void 0, void 0, function* () {
+            mongoose_1.default.connection.db
+                .dropDatabase()
+                .then(() => {
+                require("./../../../models/modelToCamera").registerModels;
+                // This is the right model because register Models set it up for us.
+                Model2Camera = mongoose_1.default.model("ModelToCamera");
+                done();
+            })
+                .catch((err) => {
+                done(err);
+            });
         }));
     });
     //disconnect from DB after test
@@ -41,19 +44,22 @@ describe('model2camera', function () {
         done();
     });
     //test ModelToCamera
-    describe('register ModelToCamera', function () {
+    describe("register ModelToCamera", function () {
         //create model ModelToCamera
-        it('should save ModelToCamera in db', function (done) {
+        it("should save ModelToCamera in db", function (done) {
             var modelToCamera = new Model2Camera({
                 model_id: "628dcf08f014bc89f0280c60",
                 camera_id: "628dcf08f014bc89f0280c60",
             });
             //test this model
-            modelToCamera.save().then(() => {
-                (0, chai_1.expect)(modelToCamera.model_id.toString()).to.equal('628dcf08f014bc89f0280c60');
-                (0, chai_1.expect)(modelToCamera.camera_id.toString()).to.equal('628dcf08f014bc89f0280c60');
+            modelToCamera
+                .save()
+                .then(() => {
+                (0, chai_1.expect)(modelToCamera.model_id.toString()).to.equal("628dcf08f014bc89f0280c60");
+                (0, chai_1.expect)(modelToCamera.camera_id.toString()).to.equal("628dcf08f014bc89f0280c60");
                 done();
-            }).catch((err) => {
+            })
+                .catch((err) => {
                 done(err);
             });
         });

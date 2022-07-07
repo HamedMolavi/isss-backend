@@ -8,22 +8,25 @@ const connectMongo_1 = require("./../../../db/connectMongo");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("./../../../server");
 //test car models
-describe('car', function () {
+describe("car", function () {
     let Car;
     //connect to DB before test
     before(function (done) {
         //connect to DB
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
-        mongoose_1.default.connection.once('connected', (next) => {
-            //  mongoose.connection.db.dropDatabase().then(() => {
-            require('./../../../models/car').registerModels;
-            // This is the right model because register Models set it up for us.
-            Car = mongoose_1.default.model('Car');
-            done();
-            //  }).catch((err: Error) => {
-            //      done(err);
-            //  });
+        mongoose_1.default.connection.once("connected", (next) => {
+            mongoose_1.default.connection.db
+                .dropDatabase()
+                .then(() => {
+                require("./../../../models/car").registerModels;
+                // This is the right model because register Models set it up for us.
+                Car = mongoose_1.default.model("Car");
+                done();
+            })
+                .catch((err) => {
+                done(err);
+            });
         });
     });
     //disconnect from DB after test
@@ -32,27 +35,30 @@ describe('car', function () {
         done();
     });
     //test car model
-    describe('register car', function () {
+    describe("register car", function () {
         //create car model
-        it('should save car in db', function (done) {
+        it("should save car in db", function (done) {
             var car = new Car({
                 owner: "629592546558a38fbecb6d40",
                 number_plate: "123456",
                 brand_id: "629592546558a38fbecb6d40",
                 color_id: "629592546558a38fbecb6d40",
-                camera_whitelist: [
-                    "629592546558a38fbecb6d40"
-                ]
+                camera_whitelist: ["629592546558a38fbecb6d40"],
             });
             //test this car model
-            car.save().then(() => {
-                (0, chai_1.expect)(car.owner.toString()).to.equal('629592546558a38fbecb6d40');
-                (0, chai_1.expect)(car.number_plate).to.equal('123456');
-                (0, chai_1.expect)(car.brand_id.toString()).to.equal('629592546558a38fbecb6d40');
-                (0, chai_1.expect)(car.color_id.toString()).to.equal('629592546558a38fbecb6d40');
-                (0, chai_1.expect)(car.camera_whitelist).to.deep.equal(['629592546558a38fbecb6d40']);
+            car
+                .save()
+                .then(() => {
+                (0, chai_1.expect)(car.owner.toString()).to.equal("629592546558a38fbecb6d40");
+                (0, chai_1.expect)(car.number_plate).to.equal("123456");
+                (0, chai_1.expect)(car.brand_id.toString()).to.equal("629592546558a38fbecb6d40");
+                (0, chai_1.expect)(car.color_id.toString()).to.equal("629592546558a38fbecb6d40");
+                (0, chai_1.expect)(car.camera_whitelist).to.deep.equal([
+                    "629592546558a38fbecb6d40",
+                ]);
                 done();
-            }).catch((err) => {
+            })
+                .catch((err) => {
                 done(err);
             });
         });

@@ -8,22 +8,25 @@ const connectMongo_1 = require("./../../../db/connectMongo");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("./../../../server");
 //test user models
-describe('users', function () {
+describe("users", function () {
     let User;
     //connect to DB before test
     before(function (done) {
         //connect to DB
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
-        mongoose_1.default.connection.once('connected', () => {
-            //  mongoose.connection.db.dropDatabase().then(() => {
-            require('./../../../models/user').registerModels;
-            // This is the right model because registerModels set it up for us.
-            User = mongoose_1.default.model('User');
-            done();
-            //  }).catch((err: Error) => {
-            //      done(err);
-            //  });
+        mongoose_1.default.connection.once("connected", () => {
+            mongoose_1.default.connection.db
+                .dropDatabase()
+                .then(() => {
+                require("./../../../models/user").registerModels;
+                // This is the right model because registerModels set it up for us.
+                User = mongoose_1.default.model("User");
+                done();
+            })
+                .catch((err) => {
+                done(err);
+            });
         });
     });
     //disconnect from DB after test
@@ -32,28 +35,31 @@ describe('users', function () {
         done();
     });
     //test user model
-    describe('register user', function () {
-        it('should save user in db', function (done) {
+    describe("register user", function () {
+        it("should save user in db", function (done) {
             var user = new User({
-                username: 'john',
+                username: "john",
                 password: "123452",
-                phone_number: '0123456789',
-                role: 'user',
+                phone_number: "0123456789",
+                role: "user",
                 event: true,
                 report: true,
                 camera: true,
-                configuration: true
+                configuration: true,
             });
-            user.save().then(() => {
-                (0, chai_1.expect)(user.username).to.equal('john');
-                (0, chai_1.expect)(user.phone_number).to.equal('0123456789');
-                (0, chai_1.expect)(user.role).to.equal('user');
+            user
+                .save()
+                .then(() => {
+                (0, chai_1.expect)(user.username).to.equal("john");
+                (0, chai_1.expect)(user.phone_number).to.equal("0123456789");
+                (0, chai_1.expect)(user.role).to.equal("user");
                 (0, chai_1.expect)(user.event).to.equal(true);
                 (0, chai_1.expect)(user.report).to.equal(true);
                 (0, chai_1.expect)(user.camera).to.equal(true);
                 (0, chai_1.expect)(user.configuration).to.equal(true);
                 done();
-            }).catch((err) => {
+            })
+                .catch((err) => {
                 // done(err);
             });
         });
