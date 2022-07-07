@@ -1,7 +1,8 @@
 import { expect } from 'chai';
 import { convertToCron, compareTime, convertToCronDay } from './../../../tools/convertTime';
-
+//test function convertToCron
 describe('convertToCron', () => {
+    //load function and get response and compare to following value
     it('should convert time to cron format', () => {
         let time = '10:00';
         let result = convertToCron(time);
@@ -10,8 +11,9 @@ describe('convertToCron', () => {
         expect(result2).to.equal('00 10 * * 2');
     });
 });
-
+//test function compareTime
 describe('compareTime', () => {
+    //load function and get response and compare to following value
     it('should compare time', () => {
         let start = '10:00';
         let stop = '11:00';
@@ -25,5 +27,5 @@ describe('compareTime', () => {
         let stop3 = '10:01';
         let result3 = compareTime(start3, stop3);
         expect(result3).to.equal(false);
-    }).timeout(5000);
+    }).timeout(5000);//timeout for test
 });

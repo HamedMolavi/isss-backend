@@ -8,22 +8,25 @@ const connectMongo_1 = require("./../../../db/connectMongo");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("./../../../server");
 //test section models
-describe('departement', function () {
+describe("departement", function () {
     let Departement;
     //connect to DB before test
     before(function (done) {
         //connect to DB
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
-        mongoose_1.default.connection.once('connected', () => {
-            // mongoose.connection.db.dropDatabase().then(() => {
-            require('./../../../models/departement').registerModels;
-            // This is the right model because registerModels set it up for us.
-            Departement = mongoose_1.default.model('Departement');
-            done();
-            //   }).catch((err: Error) => {
-            //      done(err);
-            // });
+        mongoose_1.default.connection.once("connected", () => {
+            mongoose_1.default.connection.db
+                .dropDatabase()
+                .then(() => {
+                require("./../../../models/departement").registerModels;
+                // This is the right model because registerModels set it up for us.
+                Departement = mongoose_1.default.model("Departement");
+                done();
+            })
+                .catch((err) => {
+                done(err);
+            });
         });
     });
     //disconnect from DB after test
@@ -32,18 +35,21 @@ describe('departement', function () {
         done();
     });
     //test departement model
-    describe('register departement', function () {
+    describe("register departement", function () {
         //create departement model
-        it('should save user in db', function (done) {
+        it("should save user in db", function (done) {
             var departement = new Departement({
-                name: 'offece',
-                created_date: new Date()
+                name: "offece",
+                created_date: new Date(),
             });
             //test this departement model
-            departement.save().then(() => {
-                (0, chai_1.expect)(departement.name).to.equal('offece');
+            departement
+                .save()
+                .then(() => {
+                (0, chai_1.expect)(departement.name).to.equal("offece");
                 done();
-            }).catch((err) => {
+            })
+                .catch((err) => {
                 done(err);
             });
         });

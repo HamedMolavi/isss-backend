@@ -8,22 +8,25 @@ const connectMongo_1 = require("./../../../db/connectMongo");
 const mongoose_1 = __importDefault(require("mongoose"));
 const server_1 = require("./../../../server");
 //test car models
-describe('car Brand', function () {
+describe("car Brand", function () {
     let Car;
     //connect to DB before test
     before(function (done) {
         //connect to DB
         mongoose_1.default.connect(server_1.dbUri);
         //listen for connection events
-        mongoose_1.default.connection.once('connected', () => {
-            //  mongoose.connection.db.dropDatabase().then(() => {
-            require('./../../../models/carBrand').registerModels;
-            // This is the right model because register Models set it up for us.
-            Car = mongoose_1.default.model('Car_Brand');
-            done();
-            //  }).catch((err: Error) => {
-            //      done(err);
-            //  });
+        mongoose_1.default.connection.once("connected", () => {
+            mongoose_1.default.connection.db
+                .dropDatabase()
+                .then(() => {
+                require("./../../../models/carBrand").registerModels;
+                // This is the right model because register Models set it up for us.
+                Car = mongoose_1.default.model("Car_Brand");
+                done();
+            })
+                .catch((err) => {
+                done(err);
+            });
         });
     });
     //disconnect from DB after test
@@ -32,17 +35,20 @@ describe('car Brand', function () {
         done();
     });
     //test car model
-    describe('register car', function () {
+    describe("register car", function () {
         //create car model
-        it('should save car in db', function (done) {
+        it("should save car in db", function (done) {
             var car = new Car({
-                name: 'pride',
+                name: "pride",
             });
             //test this car model
-            car.save().then(() => {
-                (0, chai_1.expect)(car.name).to.equal('pride');
+            car
+                .save()
+                .then(() => {
+                (0, chai_1.expect)(car.name).to.equal("pride");
                 done();
-            }).catch((err) => {
+            })
+                .catch((err) => {
                 done(err);
             });
         });
