@@ -16,31 +16,23 @@ const schedule_Routes_1 = __importDefault(require("./custom/config/schedule.Rout
 const model_Routes_1 = __importDefault(require("./custom/config/model.Routes"));
 const carColor_Routes_1 = __importDefault(require("./custom/config/carColor.Routes"));
 const carBrand_Routes_1 = __importDefault(require("./custom/config/carBrand.Routes"));
-const sabotage_Routes_1 = __importDefault(require("./custom/report/sabotage.Routes"));
-const fire_Routes_1 = __importDefault(require("./custom/report/fire.Routes"));
-const face_Routes_1 = __importDefault(require("./custom/report/face.Routes"));
-const human_Routes_1 = __importDefault(require("./custom/report/human.Routes"));
-const plate_Routes_1 = __importDefault(require("./custom/report/plate.Routes"));
 const modelToCamera_Routes_1 = __importDefault(require("./custom/config/modelToCamera.Routes"));
-//create router for add to server 
+const report_Routes_1 = __importDefault(require("./custom/report/report.Routes"));
+//create router for add to server
 const router = (0, express_1.Router)();
 //add rotes app
-router.use('/users', user_Routes_1.default);
-router.use('/cameras', camera_Routes_1.default);
-router.use('/files', file_Routes_1.default);
-router.use('/departements', departement_Routes_1.default);
-router.use('/sections', section_Routes_1.default);
-router.use('/jobtitles', jobTitle_Routes_1.default);
-router.use('/personnels', personnel_Routes_1.default);
-router.use('/cars', car_Routes_1.default);
-router.use('/schedules', schedule_Routes_1.default);
-router.use('/models', model_Routes_1.default);
-router.use('/carcolors', carColor_Routes_1.default);
-router.use('/carbrands', carBrand_Routes_1.default);
-router.use('/sabotages', sabotage_Routes_1.default);
-router.use('/fires', fire_Routes_1.default);
-router.use('/faces', face_Routes_1.default);
-router.use('/humans', human_Routes_1.default);
-router.use('/plates', plate_Routes_1.default);
-router.use('/modelToCameras', modelToCamera_Routes_1.default);
+router.use("/users", user_Routes_1.default);
+router.use("/cameras", camera_Routes_1.default);
+router.use("/files", file_Routes_1.default);
+router.use("/departements", departement_Routes_1.default);
+router.use("/sections", section_Routes_1.default);
+router.use("/jobtitles", jobTitle_Routes_1.default);
+router.use("/personnels", personnel_Routes_1.default);
+router.use("/cars", car_Routes_1.default);
+router.use("/schedules", schedule_Routes_1.default);
+router.use("/models", model_Routes_1.default);
+router.use("/carcolors", carColor_Routes_1.default);
+router.use("/carbrands", carBrand_Routes_1.default);
+router.use("/modelToCameras", modelToCamera_Routes_1.default);
+router.use("/reports", report_Routes_1.default);
 exports.default = router;

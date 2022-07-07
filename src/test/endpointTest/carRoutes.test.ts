@@ -96,7 +96,7 @@ describe('server run and crud car', function () {
                 if (err) { return done(err); }
                 let userResponse = res.body.cars;
                 expect(userResponse[0].owner.toString()).to.equal('629592546558a38fbecb6d40');
-                expect(userResponse[0].number_plate).to.equal('123456');
+                expect(userResponse[0].number_plate).to.equal('1234567');
                 expect(userResponse[0].brand_id).to.equal('629592546558a38fbecb6d40');
                 expect(userResponse[0].color_id).to.equal('629592546558a38fbecb6d40');
                 expect(userResponse[0].camera_whitelist).to.deep.equal(['test']);
