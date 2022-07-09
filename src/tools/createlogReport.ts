@@ -5,6 +5,7 @@ import CarColor from "../models/carColor";
 import Personnel, { IPersonnel } from "../models/personnel";
 import Schedule from "../models/schedule";
 import ModelToCamera from "../models/modelToCamera";
+import console from "console";
 
 //create json response sabotageLog report for send to client
 export async function sabotageLogResponse(response: any) {
@@ -140,6 +141,31 @@ export async function faceLogResponse(response: any) {
       )
         ? true
         : false,
+    };
+    _data.push(await result);
+  }
+  return _data;
+}
+
+
+
+
+//create json response eventLog report for send to client
+export async function eventLogResponse(response: any) {
+  //ceate json response
+  let _data: object[] = [];
+  for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
+    //get camera from mongo db by id for get camera name
+    
+    let camera = await Camera.findById(
+      response.data.hits.hits[0]._source.alerts[i].labels.camera_id
+    ).exec();
+    let result = {
+      camera_id: response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
+      camera: camera?.name,
+      time: response.data.hits.hits[0]._source.alerts[i].labels.timestamp,
+      AI : response.data.hits.hits[0]._source.alerts[i].labels.module,
+      description : response.data.hits.hits[0]._source.alerts[i].annotations.description,
     };
     _data.push(await result);
   }

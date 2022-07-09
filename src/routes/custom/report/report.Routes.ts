@@ -3,13 +3,17 @@ import HttpException from "../../../error/HttpException";
 import date2Epokh from "../../../tools/convertTimeEpokh";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import {
+  eventLogResponse,
   faceLogResponse,
   fireLogResponse,
   humanLogResponse,
   plateLogResponse,
   sabotageLogResponse,
 } from "../../../tools/createlogReport";
-import { requestToElasticSearch } from "../../../db/elasticsearch";
+import {
+  requestToElasticSearch,
+  requestToElasticSearchEvent,
+} from "../../../db/elasticsearch";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -59,29 +63,44 @@ router.get(
         timeEndScientificSymbol = date2Epokh(date_end, time);
       }
 
-      //get data from elastic
-      response = await requestToElasticSearch(
-        search,
-        timeStartScientificSymbol,
-        timeEndScientificSymbol,
-        model,
-        page,
-        perPage,
-        next
-      );
-      //create json response for client
       let _data: object[] = [];
-      if (model === "sabotage") {
-        _data = await sabotageLogResponse(response);
-      } else if (model === "plate") {
-        _data = await plateLogResponse(response);
-      } else if (model === "human") {
-        _data = await humanLogResponse(response);
-      } else if (model === "fire") {
-        _data = await fireLogResponse(response);
-      } else if (model === "face") {
-        _data = await faceLogResponse(response);
-      } 
+
+      if (model === "event") {
+        //get event data from elastic search
+        response = await requestToElasticSearchEvent(
+          search,
+          timeStartScientificSymbol,
+          timeEndScientificSymbol,
+          page,
+          perPage,
+          next
+        );
+        //create json response for client
+        _data = await eventLogResponse(response);
+      } else {
+        //get log for other models data from elastic
+        response = await requestToElasticSearch(
+          search,
+          timeStartScientificSymbol,
+          timeEndScientificSymbol,
+          model,
+          page,
+          perPage,
+          next
+        );
+        //create json response for client
+        if (model === "sabotage") {
+          _data = await sabotageLogResponse(response);
+        } else if (model === "plate") {
+          _data = await plateLogResponse(response);
+        } else if (model === "human") {
+          _data = await humanLogResponse(response);
+        } else if (model === "fire") {
+          _data = await fireLogResponse(response);
+        } else if (model === "face") {
+          _data = await faceLogResponse(response);
+        }
+      }
 
       //return data to client
       return res.status(200).json({
