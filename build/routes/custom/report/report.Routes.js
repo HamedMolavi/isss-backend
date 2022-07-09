@@ -14,10 +14,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const HttpException_1 = __importDefault(require("../../../error/HttpException"));
-const convertTimeEpokh_1 = __importDefault(require("../../../tools/convertTimeEpokh"));
 const authentication_1 = require("../../../tools/authentication");
 const createlogReport_1 = require("../../../tools/createlogReport");
 const elasticsearch_1 = require("../../../db/elasticsearch");
+const convertTime_1 = require("../../../tools/convertTime");
 //create router for add to routes file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -45,9 +45,13 @@ router.get("/:model", function (req, res, next) {
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             //get search from url
             let search = req.query.search || "";
+            //get searchName from url
+            let searchName = req.query.name || "";
             let response;
             let timeStartScientificSymbol = "";
             let timeEndScientificSymbol = "";
+            let timeStartTimeStamp = "";
+            let timeEndTimeStamp = "";
             if (search) {
                 //get body from request
                 const { time, date_start, date_end } = req.body;
@@ -56,27 +60,39 @@ router.get("/:model", function (req, res, next) {
                     return next(new HttpException_1.default(400, "Bad Request", "sabotage"));
                 }
                 //convert date_start to epokh
-                timeStartScientificSymbol = (0, convertTimeEpokh_1.default)(date_start, time);
-                timeEndScientificSymbol = (0, convertTimeEpokh_1.default)(date_end, time);
+                timeStartScientificSymbol = (0, convertTime_1.date2Epokh)(date_start, time);
+                timeEndScientificSymbol = (0, convertTime_1.date2Epokh)(date_end, time);
+                //convet time to timeStamp
+                //convert date_start to epokh
+                timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time).toString();
+                timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time).toString();
             }
-            //get data from elastic
-            response = yield (0, elasticsearch_1.requestToElasticSearch)(search, timeStartScientificSymbol, timeEndScientificSymbol, model, page, perPage, next);
-            //create json response for client
             let _data = [];
-            if (model === "sabotage") {
-                _data = yield (0, createlogReport_1.sabotageLogResponse)(response);
+            if (model === "event") {
+                //get event data from elastic search
+                response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, searchName, timeStartTimeStamp, timeEndTimeStamp, page, perPage, next);
+                //create json response for client
+                _data = yield (0, createlogReport_1.eventLogResponse)(response);
             }
-            else if (model === "plate") {
-                _data = yield (0, createlogReport_1.plateLogResponse)(response);
-            }
-            else if (model === "human") {
-                _data = yield (0, createlogReport_1.humanLogResponse)(response);
-            }
-            else if (model === "fire") {
-                _data = yield (0, createlogReport_1.fireLogResponse)(response);
-            }
-            else if (model === "face") {
-                _data = yield (0, createlogReport_1.faceLogResponse)(response);
+            else {
+                //get log for other models data from elastic
+                response = yield (0, elasticsearch_1.requestToElasticSearch)(search, timeStartScientificSymbol, timeEndScientificSymbol, model, page, perPage, next);
+                //create json response for client
+                if (model === "sabotage") {
+                    _data = yield (0, createlogReport_1.sabotageLogResponse)(response);
+                }
+                else if (model === "plate") {
+                    _data = yield (0, createlogReport_1.plateLogResponse)(response);
+                }
+                else if (model === "human") {
+                    _data = yield (0, createlogReport_1.humanLogResponse)(response);
+                }
+                else if (model === "fire") {
+                    _data = yield (0, createlogReport_1.fireLogResponse)(response);
+                }
+                else if (model === "face") {
+                    _data = yield (0, createlogReport_1.faceLogResponse)(response);
+                }
             }
             //return data to client
             return res.status(200).json({

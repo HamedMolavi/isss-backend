@@ -45,6 +45,13 @@ export async function requestToElasticSearch(
               ],
             },
           },
+          sort: [
+            {
+              timestamp: {
+                order: "asc",
+              },
+            },
+          ],
         },
       });
     } else {
@@ -58,6 +65,13 @@ export async function requestToElasticSearch(
           data: {
             from: page,
             size: perPage,
+            sort: [
+              {
+                timestamp: {
+                  order: "asc",
+                },
+              },
+            ],
           },
         }
       );
@@ -86,7 +100,7 @@ export async function requestToElasticSearchEvent(
       //format search to elastic search
       if (searchName === "all") {
         let model = search.split(" ")[0];
-        let camera_id =search.split(" ")[1];
+        let camera_id = search.split(" ")[1];
         console.log(model, camera_id);
         response = await axios.get(dbUri + "/alerts/_search", {
           headers: {
@@ -119,6 +133,13 @@ export async function requestToElasticSearchEvent(
                 ],
               },
             },
+            sort: [
+              {
+                "alerts.labels.timestamp.keyword": {
+                  missing: "_last",
+                },
+              },
+            ],
           },
         });
       } else if (searchName === "camera") {
@@ -148,6 +169,13 @@ export async function requestToElasticSearchEvent(
                 ],
               },
             },
+            sort: [
+              {
+                "alerts.labels.timestamp.keyword": {
+                  missing: "_last",
+                },
+              },
+            ],
           },
         });
       } else if (searchName === "date") {
@@ -177,6 +205,13 @@ export async function requestToElasticSearchEvent(
                 ],
               },
             },
+            sort: [
+              {
+                "alerts.labels.timestamp.keyword": {
+                  missing: "_last",
+                },
+              },
+            ],
           },
         });
       } else if (searchName === "ai") {
@@ -206,6 +241,13 @@ export async function requestToElasticSearchEvent(
                 ],
               },
             },
+            sort: [
+              {
+                "alerts.labels.timestamp.keyword": {
+                  missing: "_last",
+                },
+              },
+            ],
           },
         });
       }
@@ -221,7 +263,6 @@ export async function requestToElasticSearchEvent(
         },
       });
     }
-    console.log(response);
     return response;
   } catch (err: any) {
     return next(new HttpException(500, err.message, "event"));

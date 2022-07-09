@@ -5,7 +5,6 @@ import CarColor from "../models/carColor";
 import Personnel, { IPersonnel } from "../models/personnel";
 import Schedule from "../models/schedule";
 import ModelToCamera from "../models/modelToCamera";
-import console from "console";
 
 //create json response sabotageLog report for send to client
 export async function sabotageLogResponse(response: any) {
@@ -163,7 +162,7 @@ export async function eventLogResponse(response: any) {
     let result = {
       camera_id: response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
       camera: camera?.name,
-      time:new Date(response.data.hits.hits[0]._source.alerts[i].labels.timestampnew * 1000),
+      time: new Date(Number(response.data.hits.hits[0]._source.alerts[i].labels.timestamp) * 1000),
       AI : response.data.hits.hits[0]._source.alerts[i].labels.module,
       description : response.data.hits.hits[0]._source.alerts[i].annotations.description,
     };

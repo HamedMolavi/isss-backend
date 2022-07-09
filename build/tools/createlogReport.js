@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.faceLogResponse = exports.fireLogResponse = exports.humanLogResponse = exports.plateLogResponse = exports.sabotageLogResponse = void 0;
+exports.eventLogResponse = exports.faceLogResponse = exports.fireLogResponse = exports.humanLogResponse = exports.plateLogResponse = exports.sabotageLogResponse = void 0;
 const camera_1 = __importDefault(require("../models/camera"));
 const car_1 = __importDefault(require("../models/car"));
 const carBrand_1 = __importDefault(require("../models/carBrand"));
@@ -157,3 +157,24 @@ function faceLogResponse(response) {
     });
 }
 exports.faceLogResponse = faceLogResponse;
+//create json response eventLog report for send to client
+function eventLogResponse(response) {
+    return __awaiter(this, void 0, void 0, function* () {
+        //ceate json response
+        let _data = [];
+        for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
+            //get camera from mongo db by id for get camera name
+            let camera = yield camera_1.default.findById(response.data.hits.hits[0]._source.alerts[i].labels.camera_id).exec();
+            let result = {
+                camera_id: response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
+                camera: camera === null || camera === void 0 ? void 0 : camera.name,
+                time: new Date(Number(response.data.hits.hits[0]._source.alerts[i].labels.timestamp) * 1000),
+                AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
+                description: response.data.hits.hits[0]._source.alerts[i].annotations.description,
+            };
+            _data.push(yield result);
+        }
+        return _data;
+    });
+}
+exports.eventLogResponse = eventLogResponse;
