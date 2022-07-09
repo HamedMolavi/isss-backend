@@ -81,7 +81,7 @@ router.get(
         _data = await fireLogResponse(response);
       } else if (model === "face") {
         _data = await faceLogResponse(response);
-      }
+      } 
 
       //return data to client
       return res.status(200).json({
