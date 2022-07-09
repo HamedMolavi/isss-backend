@@ -1,6 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
 import HttpException from "../../../error/HttpException";
-import date2Epokh from "../../../tools/convertTimeEpokh";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import {
   eventLogResponse,
@@ -14,6 +13,7 @@ import {
   requestToElasticSearch,
   requestToElasticSearchEvent,
 } from "../../../db/elasticsearch";
+import { dataTime2TimeStamp, date2Epokh } from "../../../tools/convertTime";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -47,9 +47,14 @@ router.get(
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       //get search from url
       let search = (req.query.search as string) || "";
+      //get searchName from url
+      let searchName = (req.query.name as string) || "";
+
       let response: any;
       let timeStartScientificSymbol: string = "";
       let timeEndScientificSymbol: string = "";
+      let timeStartTimeStamp: string = "";
+      let timeEndTimeStamp: string = "";
       if (search) {
         //get body from request
         const { time, date_start, date_end } = req.body;
@@ -61,6 +66,11 @@ router.get(
         //convert date_start to epokh
         timeStartScientificSymbol = date2Epokh(date_start, time);
         timeEndScientificSymbol = date2Epokh(date_end, time);
+
+        //convet time to timeStamp
+        //convert date_start to epokh
+        timeStartTimeStamp = dataTime2TimeStamp(date_start, time).toString();
+        timeEndTimeStamp = dataTime2TimeStamp(date_end, time).toString();
       }
 
       let _data: object[] = [];
@@ -69,8 +79,9 @@ router.get(
         //get event data from elastic search
         response = await requestToElasticSearchEvent(
           search,
-          timeStartScientificSymbol,
-          timeEndScientificSymbol,
+          searchName,
+          timeStartTimeStamp,
+          timeEndTimeStamp,
           page,
           perPage,
           next

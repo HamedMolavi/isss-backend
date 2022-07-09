@@ -163,7 +163,7 @@ export async function eventLogResponse(response: any) {
     let result = {
       camera_id: response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
       camera: camera?.name,
-      time: response.data.hits.hits[0]._source.alerts[i].labels.timestamp,
+      time:new Date(response.data.hits.hits[0]._source.alerts[i].labels.timestampnew * 1000),
       AI : response.data.hits.hits[0]._source.alerts[i].labels.module,
       description : response.data.hits.hits[0]._source.alerts[i].annotations.description,
     };
