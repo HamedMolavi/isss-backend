@@ -42,20 +42,17 @@ router.get(
       let response: any;
       //get searchName from url
       let searchName = (req.query.name as string) || "";
-    
+
       let timeStartTimeStamp: string = "";
       let timeEndTimeStamp: string = "";
       if (search) {
         //get body from request
         const { time, date_start, date_end } = req.body;
-        if (!time || !date_start || !date_end) {
-          req.flash("error", "Please fill all fields");
-          return next(new HttpException(400, "Bad Request", "sabotage"));
+        if (time && date_start && date_end) {
+          //convet time to timeStamp
+          timeStartTimeStamp = dataTime2TimeStamp(date_start, time).toString();
+          timeEndTimeStamp = dataTime2TimeStamp(date_end, time).toString();
         }
-        //convet time to timeStamp
-        //convert date_start to epokh
-        timeStartTimeStamp = dataTime2TimeStamp(date_start, time).toString();
-        timeEndTimeStamp = dataTime2TimeStamp(date_end, time).toString();
       }
 
       let _data: object[] = [];

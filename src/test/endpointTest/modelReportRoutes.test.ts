@@ -290,11 +290,6 @@ describe("server run and get report logs", async function () {
       )
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
-      .send({
-        time: "05:30",
-        date_start: "15.04.2021",
-        date_end: "15.04.2023",
-      })
       .expect("Content-Type", /json/)
       .expect(200, function (err, res) {
         if (err) {
@@ -312,17 +307,12 @@ describe("server run and get report logs", async function () {
       });
   });
 
-  //test get fire report event logs search with camera_id with token
+  //test get fire report event logs search with model name with token
   it("should send back a JSON object search event log with model name report", function (done) {
     request(app)
       .get("/api/v1/reports/event?perPage=50&page=1&name=ai&search=human")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
-      .send({
-        time: "05:30",
-        date_start: "15.04.2021",
-        date_end: "15.04.2023",
-      })
       .expect("Content-Type", /json/)
       .expect(200, function (err, res) {
         if (err) {

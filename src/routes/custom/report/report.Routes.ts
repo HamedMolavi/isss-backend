@@ -58,24 +58,24 @@ router.get(
       if (search) {
         //get body from request
         const { time, date_start, date_end } = req.body;
-        if (!time || !date_start || !date_end) {
-          req.flash("error", "Please fill all fields");
-          return next(new HttpException(400, "Bad Request", "sabotage"));
+        
+        if(time && date_start && date_end){
+          //convert date_start to epokh
+          timeStartScientificSymbol = date2Epokh(date_start, time);
+          timeEndScientificSymbol = date2Epokh(date_end, time);
+  
+          
+          
+          //convet time to timeStamp
+          timeStartTimeStamp = dataTime2TimeStamp(date_start, time).toString();
+          timeEndTimeStamp = dataTime2TimeStamp(date_end, time).toString();
         }
-
-        //convert date_start to epokh
-        timeStartScientificSymbol = date2Epokh(date_start, time);
-        timeEndScientificSymbol = date2Epokh(date_end, time);
-
-        //convet time to timeStamp
-        //convert date_start to epokh
-        timeStartTimeStamp = dataTime2TimeStamp(date_start, time).toString();
-        timeEndTimeStamp = dataTime2TimeStamp(date_end, time).toString();
       }
 
       let _data: object[] = [];
 
       if (model === "event") {
+        console.log("event");
         //get event data from elastic search
         response = await requestToElasticSearchEvent(
           search,
