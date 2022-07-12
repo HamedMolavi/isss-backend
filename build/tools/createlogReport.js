@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.eventLogResponse = exports.faceLogResponse = exports.fireLogResponse = exports.humanLogResponse = exports.plateLogResponse = exports.sabotageLogResponse = void 0;
+exports.eventDepartmentLogResponse = exports.eventLogResponse = exports.faceLogResponse = exports.fireLogResponse = exports.humanLogResponse = exports.plateLogResponse = exports.sabotageLogResponse = void 0;
 const camera_1 = __importDefault(require("../models/camera"));
 const car_1 = __importDefault(require("../models/car"));
 const carBrand_1 = __importDefault(require("../models/carBrand"));
@@ -20,6 +20,8 @@ const carColor_1 = __importDefault(require("../models/carColor"));
 const personnel_1 = __importDefault(require("../models/personnel"));
 const schedule_1 = __importDefault(require("../models/schedule"));
 const modelToCamera_1 = __importDefault(require("../models/modelToCamera"));
+const section_1 = __importDefault(require("../models/section"));
+const departement_1 = __importDefault(require("../models/departement"));
 //create json response sabotageLog report for send to client
 function sabotageLogResponse(response) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -168,7 +170,8 @@ function eventLogResponse(response) {
             let result = {
                 camera_id: response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
                 camera: camera === null || camera === void 0 ? void 0 : camera.name,
-                time: new Date(Number(response.data.hits.hits[0]._source.alerts[i].labels.timestamp) * 1000),
+                time: new Date(Number(response.data.hits.hits[0]._source.alerts[i].labels.timestamp) *
+                    1000),
                 AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
                 description: response.data.hits.hits[0]._source.alerts[i].annotations.description,
             };
@@ -178,3 +181,40 @@ function eventLogResponse(response) {
     });
 }
 exports.eventLogResponse = eventLogResponse;
+//create json response eventLog report for send to client
+function eventDepartmentLogResponse(response) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        //ceate json response
+        let _data = [];
+        for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
+            //get camera from mongo db by id for get camera name
+            let camera = yield camera_1.default.findById(response.data.hits.hits[0]._source.alerts[i].labels.camera_id).exec();
+            let cameras = yield camera_1.default.find({ section_id: camera === null || camera === void 0 ? void 0 : camera.section_id }).exec();
+            let sections = yield section_1.default.find({
+                section_id: camera === null || camera === void 0 ? void 0 : camera.section_id,
+            }).exec();
+            let department = yield departement_1.default.findById((_a = sections[0]) === null || _a === void 0 ? void 0 : _a.departement_id).exec();
+            let _sections = [];
+            for (let i = 0; i < sections.length; i++) {
+                _sections.push({
+                    section: sections[i].name,
+                    camera: cameras
+                        .filter((camera) => camera.section_id === sections[i]._id)
+                        .map((camera) => camera.name),
+                });
+            }
+            let result = {
+                department: department === null || department === void 0 ? void 0 : department.name,
+                sections: _sections,
+                time: new Date(Number(response.data.hits.hits[0]._source.alerts[i].labels.timestamp) *
+                    1000),
+                AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
+                description: response.data.hits.hits[0]._source.alerts[i].annotations.description,
+            };
+            _data.push(yield result);
+        }
+        return _data;
+    });
+}
+exports.eventDepartmentLogResponse = eventDepartmentLogResponse;

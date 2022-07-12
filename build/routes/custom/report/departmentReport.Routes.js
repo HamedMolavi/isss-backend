@@ -30,7 +30,7 @@ router.use(function (req, res, next) {
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"];
 //route for get sabotage list
-router.get("/:model", function (req, res, next) {
+router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get model from url request
@@ -45,11 +45,7 @@ router.get("/:model", function (req, res, next) {
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             //get search from url
             let search = req.query.search || "";
-            //get searchName from url
-            let searchName = req.query.name || "";
             let response;
-            let timeStartScientificSymbol = "";
-            let timeEndScientificSymbol = "";
             let timeStartTimeStamp = "";
             let timeEndTimeStamp = "";
             if (search) {
@@ -59,9 +55,6 @@ router.get("/:model", function (req, res, next) {
                     req.flash("error", "Please fill all fields");
                     return next(new HttpException_1.default(400, "Bad Request", "sabotage"));
                 }
-                //convert date_start to epokh
-                timeStartScientificSymbol = (0, convertTime_1.date2Epokh)(date_start, time);
-                timeEndScientificSymbol = (0, convertTime_1.date2Epokh)(date_end, time);
                 //convet time to timeStamp
                 //convert date_start to epokh
                 timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time).toString();
@@ -70,29 +63,9 @@ router.get("/:model", function (req, res, next) {
             let _data = [];
             if (model === "event") {
                 //get event data from elastic search
-                response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, timeStartTimeStamp, timeEndTimeStamp, page, perPage, next, searchName);
+                response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, timeStartTimeStamp, timeEndTimeStamp, page, perPage, next);
                 //create json response for client
-                _data = yield (0, createlogReport_1.eventLogResponse)(response);
-            }
-            else {
-                //get log for other models data from elastic
-                response = yield (0, elasticsearch_1.requestToElasticSearch)(search, timeStartScientificSymbol, timeEndScientificSymbol, model, page, perPage, next);
-                //create json response for client
-                if (model === "sabotage") {
-                    _data = yield (0, createlogReport_1.sabotageLogResponse)(response);
-                }
-                else if (model === "plate") {
-                    _data = yield (0, createlogReport_1.plateLogResponse)(response);
-                }
-                else if (model === "human") {
-                    _data = yield (0, createlogReport_1.humanLogResponse)(response);
-                }
-                else if (model === "fire") {
-                    _data = yield (0, createlogReport_1.fireLogResponse)(response);
-                }
-                else if (model === "face") {
-                    _data = yield (0, createlogReport_1.faceLogResponse)(response);
-                }
+                _data = yield (0, createlogReport_1.eventDepartmentLogResponse)(response);
             }
             //return data to client
             return res.status(200).json({

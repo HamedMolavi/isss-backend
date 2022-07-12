@@ -89,7 +89,7 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
     });
 }
 exports.requestToElasticSearch = requestToElasticSearch;
-function requestToElasticSearchEvent(search, searchName, timeStart, timeEnd, page, perPage, next) {
+function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, next, searchName) {
     return __awaiter(this, void 0, void 0, function* () {
         //create json response for client
         try {

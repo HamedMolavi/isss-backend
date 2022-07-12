@@ -85,12 +85,12 @@ export async function requestToElasticSearch(
 
 export async function requestToElasticSearchEvent(
   search: string,
-  searchName: string,
   timeStart: string,
   timeEnd: string,
   page: number,
   perPage: number,
-  next: Function
+  next: Function,
+  searchName?: string,
 ) {
   //create json response for client
   try {
