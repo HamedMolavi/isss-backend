@@ -34,7 +34,7 @@ router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get model from url request
-            let model = req.params.model;
+            //let model = req.params.model;
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get page from url
@@ -46,6 +46,8 @@ router.get("", function (req, res, next) {
             //get search from url
             let search = req.query.search || "";
             let response;
+            //get searchName from url
+            let searchName = req.query.name || "";
             let timeStartTimeStamp = "";
             let timeEndTimeStamp = "";
             if (search) {
@@ -61,12 +63,10 @@ router.get("", function (req, res, next) {
                 timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time).toString();
             }
             let _data = [];
-            if (model === "event") {
-                //get event data from elastic search
-                response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, timeStartTimeStamp, timeEndTimeStamp, page, perPage, next);
-                //create json response for client
-                _data = yield (0, createlogReport_1.eventDepartmentLogResponse)(response);
-            }
+            //get event data from elastic search
+            response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, timeStartTimeStamp, timeEndTimeStamp, page, perPage, next, searchName);
+            //create json response for client
+            _data = yield (0, createlogReport_1.eventDepartmentLogResponse)(response);
             //return data to client
             return res.status(200).json({
                 message: "Success",

@@ -28,8 +28,11 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         let token = getTokenAndVerify(req, "user", next);
         //query for get list of models
         let models = await Model.find().limit(perPage).skip(perPage * (page - 1)).exec()
-        //query for get total count of models
-        let total = await Model.countDocuments().exec();
+        if (!models) {
+            req.flash("error", "No models found");
+            return next(new HttpException(404, "No models found", "Model"));
+        }
+
         //return list of models
         return res.status(200).json({
             message: "Success",
@@ -64,7 +67,7 @@ router.get("/:category", async function (req: Request, res: Response, next: Next
         //check model is exist
         if (!model) {
             req.flash("error", "model is not exist");
-            return next(new HttpException(400, "model is not exist", "model"));
+            return next(new HttpException(404, "model is not exist", "model"));
         }
 
         //send model to client

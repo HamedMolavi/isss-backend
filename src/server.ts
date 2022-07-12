@@ -58,7 +58,7 @@ app.use(passport.session());
 app.use(flash());
 
 //add logger
-app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
+//app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
 //add logger in file
 app.use(logger(process.env.REQUEST_LOG_FORMAT || 'dev', {
     stream: process.env.REQUEST_LOG_FILE ?

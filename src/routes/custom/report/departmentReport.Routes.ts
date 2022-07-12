@@ -69,7 +69,6 @@ router.get(
         next,
         searchName
       );
-        console.log(response);
       //create json response for client
       _data = await eventDepartmentLogResponse(response);
 

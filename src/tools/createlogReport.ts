@@ -193,19 +193,11 @@ export async function eventDepartmentLogResponse(response: any) {
       cameraIds.push(response.data.hits.hits[0]._source.alerts[i].labels.camera_id);
       let camera = await Camera.findById(response.data.hits.hits[0]._source.alerts[i].labels.camera_id).exec();
 
-      let cameras = await Camera.find({ section_id: camera?.section_id }).exec();
+      //let cameras = await Camera.find({ section_id: camera?.section_id }).exec();
 
       let sections = await Section.find({section_id: camera?.section_id,}).exec();
 
       let department = await Departement.findById(sections[0]?.departement_id).exec();
-
-      // let _sections = [];
-      // for (let i = 0; i < sections.length; i++) {
-      //   _sections.push({
-      //     section: sections[i].name,
-      //     cameras: cameras
-      //   });
-      // }
 
       let result = {
         department: department?.name,
@@ -218,14 +210,9 @@ export async function eventDepartmentLogResponse(response: any) {
         AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
         description:
           response.data.hits.hits[0]._source.alerts[i].annotations.description,
-        // camera: cameras,
-        // sections : sections,
-        // department : department,
       };
       _data.push(await result);
     }
   }
-  console.log(cameraIds);
-  console.log(1111);
   return _data;
 }
