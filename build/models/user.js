@@ -68,7 +68,6 @@ UserSchema.pre("save", function (done) {
 });
 //check password
 UserSchema.methods.checkPassword = function (guess, done) {
-    console.log(typeof guess);
     bcrypt_1.default.compare(guess, this.password, function (err, isMatch) {
         done(err, isMatch);
     });

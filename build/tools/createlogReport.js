@@ -195,7 +195,6 @@ function eventDepartmentLogResponse(response) {
         //ceate json response
         let _data = [];
         let cameraIds = [];
-        console.log(response.data.hits.hits[0]._source.alerts);
         for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
             //get camera from mongo db by id for get camera name
             if (cameraIds.includes(response.data.hits.hits[0]._source.alerts[i].labels.camera_id)) {

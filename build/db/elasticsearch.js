@@ -100,7 +100,6 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                 if (searchName === "all") {
                     let model = search.split(" ")[0];
                     let camera_id = search.split(" ")[1];
-                    console.log(model, camera_id);
                     response = yield axios_1.default.get(dbUri + "/alerts/_search", {
                         headers: {
                             "Content-Type": "application/json",
@@ -151,23 +150,9 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                             from: page,
                             size: perPage,
                             query: {
-                                bool: {
-                                    filter: [
-                                        {
-                                            term: {
-                                                "alerts.labels.camera_id": search,
-                                            },
-                                        },
-                                        {
-                                            range: {
-                                                "alerts.labels.timestamp": {
-                                                    gte: timeStart,
-                                                    lte: timeEnd,
-                                                },
-                                            },
-                                        },
-                                    ],
-                                },
+                                match: {
+                                    "alerts.labels.camera_id": "628dc14af014bc89f0280c46",
+                                }
                             },
                             sort: [
                                 {
@@ -231,15 +216,7 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                                             term: {
                                                 "alerts.labels.module": search,
                                             },
-                                        },
-                                        {
-                                            range: {
-                                                "alerts.labels.timestamp": {
-                                                    gte: timeStart,
-                                                    lte: timeEnd,
-                                                },
-                                            },
-                                        },
+                                        }
                                     ],
                                 },
                             },

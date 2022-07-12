@@ -230,7 +230,7 @@ describe("server run and get report logs", async function () {
       });
   });
 
-  //test get fire report people counting logs with token
+  //test get report people counting logs with token
   it("should send back a JSON object search people counting log report", function (done) {
     request(app)
       .get(
@@ -259,7 +259,7 @@ describe("server run and get report logs", async function () {
       });
   });
 
-  //test get fire report all event logs with token
+  //test get report all event logs with token
   it("should send back a JSON object all event log report", function (done) {
     request(app)
       .get("/api/v1/reports/event?perPage=10&page=1")
@@ -282,7 +282,7 @@ describe("server run and get report logs", async function () {
       });
   });
 
-  //test get fire report event logs search with camera_id with token
+  //test get report event logs search with camera_id with token
   it("should send back a JSON object search event log with camera_id report", function (done) {
     request(app)
       .get(
@@ -307,7 +307,7 @@ describe("server run and get report logs", async function () {
       });
   });
 
-  //test get fire report event logs search with model name with token
+  //test get report event logs search with model name with token
   it("should send back a JSON object search event log with model name report", function (done) {
     request(app)
       .get("/api/v1/reports/event?perPage=50&page=1&name=ai&search=human")
@@ -330,7 +330,7 @@ describe("server run and get report logs", async function () {
       });
   });
 
-  //test get fire report event logs search with camera_id && model name with token
+  //test get report event logs search with camera_id && model name with token
   it("should send back a JSON object search event log with camera_id && model name  report", function (done) {
     request(app)
       .get(
@@ -360,8 +360,8 @@ describe("server run and get report logs", async function () {
       });
   });
 
-  //test get fire report department event with token
-  it("should send back a JSON object department event report", function (done) {
+  //test get report all department event with token
+  it("should send back a JSON object all department event report", function (done) {
     request(app)
       .get(
         "/api/v1/reportDepartmets?perPage=5&page=1&name=all&search=human+628dc14af014bc89f0280c46"
@@ -390,6 +390,83 @@ describe("server run and get report logs", async function () {
       });
   });
 
+  //test get report department event search by camera_id with token
+  it("should send back a JSON object department event report search by camera_id", function (done) {
+    request(app)
+      .get(
+        "/api/v1/reportDepartmets?perPage=10&page=1&name=camera&search=628dc14af014bc89f0280c46"
+      )
+      .set("Content-Type", "application/json")
+      .set("Authorization", `Bearer ${token}`)
+      .expect("Content-Type", /json/)
+      .expect(200, function (err, res) {
+        if (err) {
+          return done(err);
+        }
+        let response = res.body;
+        expect(response.message).to.be.equal("Success");
+        //   expect(response.data[0]).to.have.property('camera');
+        expect(response.data[0]).to.have.property("time");
+        expect(response.data[0]).to.have.property("sections");
+        expect(response.data[0]).to.have.property("AI");
+        expect(response.data[0]).to.have.property("description");
+
+        done();
+      });
+  });
+
+  //test get report department event search by model name with token
+  it("should send back a JSON object department event report search by model name", function (done) {
+    request(app)
+      .get("/api/v1/reportDepartmets?perPage=10&page=1&name=ai&search=human")
+      .set("Content-Type", "application/json")
+      .set("Authorization", `Bearer ${token}`)
+      .expect("Content-Type", /json/)
+      .expect(200, function (err, res) {
+        if (err) {
+          return done(err);
+        }
+        let response = res.body;
+        expect(response.message).to.be.equal("Success");
+        //   expect(response.data[0]).to.have.property('camera');
+        expect(response.data[0]).to.have.property("time");
+        expect(response.data[0]).to.have.property("sections");
+        expect(response.data[0]).to.have.property("AI");
+        expect(response.data[0]).to.have.property("description");
+
+        done();
+      });
+  });
+
+  //test get report  department event search by camera , model , time with token
+  it("should send back a JSON object  department event report search by camera , model , time", function (done) {
+    request(app)
+      .get(
+        "/api/v1/reportDepartmets?perPage=10&page=1&name=all&search=human+628dc14af014bc89f0280c46"
+      )
+      .set("Content-Type", "application/json")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        time: "05:30",
+        date_start: "15.04.2021",
+        date_end: "15.04.2023",
+      })
+      .expect("Content-Type", /json/)
+      .expect(200, function (err, res) {
+        if (err) {
+          return done(err);
+        }
+        let response = res.body;
+        expect(response.message).to.be.equal("Success");
+        //   expect(response.data[0]).to.have.property('camera');
+        expect(response.data[0]).to.have.property("time");
+        expect(response.data[0]).to.have.property("sections");
+        expect(response.data[0]).to.have.property("AI");
+        expect(response.data[0]).to.have.property("description");
+
+        done();
+      });
+  }).timeout(20000);
   //  //test get fire report people counting logs with token
   //  it('should send back a JSON object with people counting log report', function (done) {
   //    //todo

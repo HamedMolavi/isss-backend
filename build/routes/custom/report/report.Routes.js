@@ -55,17 +55,14 @@ router.get("/:model", function (req, res, next) {
             if (search) {
                 //get body from request
                 const { time, date_start, date_end } = req.body;
-                if (!time || !date_start || !date_end) {
-                    req.flash("error", "Please fill all fields");
-                    return next(new HttpException_1.default(400, "Bad Request", "sabotage"));
+                if (time && date_start && date_end) {
+                    //convert date_start to epokh
+                    timeStartScientificSymbol = (0, convertTime_1.date2Epokh)(date_start, time);
+                    timeEndScientificSymbol = (0, convertTime_1.date2Epokh)(date_end, time);
+                    //convet time to timeStamp
+                    timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time).toString();
+                    timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time).toString();
                 }
-                //convert date_start to epokh
-                timeStartScientificSymbol = (0, convertTime_1.date2Epokh)(date_start, time);
-                timeEndScientificSymbol = (0, convertTime_1.date2Epokh)(date_end, time);
-                //convet time to timeStamp
-                //convert date_start to epokh
-                timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time).toString();
-                timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time).toString();
             }
             let _data = [];
             if (model === "event") {

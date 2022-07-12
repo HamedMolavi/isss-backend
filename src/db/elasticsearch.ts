@@ -142,7 +142,6 @@ export async function requestToElasticSearchEvent(
           },
         });
       } else if (searchName === "camera") {
-        console.log("search camera");
         response = await axios.get(dbUri + "/alerts/_search", {
           headers: {
             "Content-Type": "application/json",

@@ -58,7 +58,7 @@ router.get(
       if (search) {
         //get body from request
         const { time, date_start, date_end } = req.body;
-        
+
         if(time && date_start && date_end){
           //convert date_start to epokh
           timeStartScientificSymbol = date2Epokh(date_start, time);
@@ -75,7 +75,6 @@ router.get(
       let _data: object[] = [];
 
       if (model === "event") {
-        console.log("event");
         //get event data from elastic search
         response = await requestToElasticSearchEvent(
           search,
