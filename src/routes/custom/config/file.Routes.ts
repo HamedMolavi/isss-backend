@@ -125,7 +125,6 @@ router.post('/redis', upload.single('file'), async function (req: Request, res: 
         }
         //get url AI for send request
         const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
-        console.log(idHashed);
         //send request to AI api for send id_personnel
         await axios.post(dbUri, {
             id: idHashed

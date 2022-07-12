@@ -55,7 +55,7 @@ app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
 app.use((0, connect_flash_1.default)());
 //add logger
-app.use((0, morgan_1.default)(process.env.REQUEST_LOG_FORMAT));
+//app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
 //add logger in file
 app.use((0, morgan_1.default)(process.env.REQUEST_LOG_FORMAT || 'dev', {
     stream: process.env.REQUEST_LOG_FILE ?

@@ -13,6 +13,7 @@ import carColorRoutes from "./custom/config/carColor.Routes";
 import carBrandRoutes from "./custom/config/carBrand.Routes";
 import modelToCamera from "./custom/config/modelToCamera.Routes";
 import report from "./custom/report/report.Routes";
+import reportDepartmets from './custom/report/departmentReport.Routes';
 
 //create router for add to server
 const router: Router = Router();
@@ -32,5 +33,6 @@ router.use("/carcolors", carColorRoutes);
 router.use("/carbrands", carBrandRoutes);
 router.use("/modelToCameras", modelToCamera);
 router.use("/reports", report);
+router.use("/reportDepartmets", reportDepartmets);
 
 export default router;

@@ -39,8 +39,10 @@ router.get("", function (req, res, next) {
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get list of models
             let models = yield model_1.default.find().limit(perPage).skip(perPage * (page - 1)).exec();
-            //query for get total count of models
-            let total = yield model_1.default.countDocuments().exec();
+            if (!models) {
+                req.flash("error", "No models found");
+                return next(new HttpException_1.default(404, "No models found", "Model"));
+            }
             //return list of models
             return res.status(200).json({
                 message: "Success",
@@ -73,7 +75,7 @@ router.get("/:category", function (req, res, next) {
             //check model is exist
             if (!model) {
                 req.flash("error", "model is not exist");
-                return next(new HttpException_1.default(400, "model is not exist", "model"));
+                return next(new HttpException_1.default(404, "model is not exist", "model"));
             }
             //send model to client
             return res.status(200).json({

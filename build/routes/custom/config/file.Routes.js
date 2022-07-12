@@ -158,7 +158,6 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
             }
             //get url AI for send request
             const dbUri = process.env["API_AI_REDIS_NAME"];
-            console.log(idHashed);
             //send request to AI api for send id_personnel
             yield axios_1.default.post(dbUri, {
                 id: idHashed

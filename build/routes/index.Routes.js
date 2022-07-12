@@ -18,6 +18,7 @@ const carColor_Routes_1 = __importDefault(require("./custom/config/carColor.Rout
 const carBrand_Routes_1 = __importDefault(require("./custom/config/carBrand.Routes"));
 const modelToCamera_Routes_1 = __importDefault(require("./custom/config/modelToCamera.Routes"));
 const report_Routes_1 = __importDefault(require("./custom/report/report.Routes"));
+const departmentReport_Routes_1 = __importDefault(require("./custom/report/departmentReport.Routes"));
 //create router for add to server
 const router = (0, express_1.Router)();
 //add rotes app
@@ -35,4 +36,5 @@ router.use("/carcolors", carColor_Routes_1.default);
 router.use("/carbrands", carBrand_Routes_1.default);
 router.use("/modelToCameras", modelToCamera_Routes_1.default);
 router.use("/reports", report_Routes_1.default);
+router.use("/reportDepartmets", departmentReport_Routes_1.default);
 exports.default = router;
