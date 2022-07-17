@@ -23,9 +23,9 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file: .env
-    environment:
-      - PORT=${PORT_http}
-      - MONGO_URL=${MONGODB_URL}
+    # environment:
+    #   - PORT=${PORT_http}
+    #   - MONGO_URL=${MONGODB_URL}
     ports:
       - 3000:3000
     volumes:

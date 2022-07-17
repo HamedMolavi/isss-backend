@@ -90,7 +90,7 @@ export async function requestToElasticSearchEvent(
   page: number,
   perPage: number,
   next: Function,
-  searchName?: string,
+  searchName?: string
 ) {
   //create json response for client
   try {
@@ -151,8 +151,8 @@ export async function requestToElasticSearchEvent(
             size: perPage,
             query: {
               match: {
-                "alerts.labels.camera_id": "628dc14af014bc89f0280c46",
-              }
+                "alerts.labels.camera_id": search ,
+              },
             },
             sort: [
               {
@@ -214,7 +214,7 @@ export async function requestToElasticSearchEvent(
                     term: {
                       "alerts.labels.module": search,
                     },
-                  }
+                  },
                 ],
               },
             },
@@ -240,6 +240,9 @@ export async function requestToElasticSearchEvent(
         },
       });
     }
+    response.data.hits.hits[0]._source.alerts.forEach((element: any) => {
+      console.log(element.labels.camera_id);
+    });
     return response;
   } catch (err: any) {
     return next(new HttpException(500, err.message, "event"));
