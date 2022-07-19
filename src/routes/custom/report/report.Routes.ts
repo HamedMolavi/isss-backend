@@ -57,18 +57,18 @@ router.get(
       let timeEndTimeStamp: string = "";
       if (search) {
         //get body from request
-        const { time, date_start, date_end } = req.body;
+        const { time_start , time_end, date_start, date_end } = req.body;
 
-        if(time && date_start && date_end){
+        if(time_start && time_end && date_start && date_end){
           //convert date_start to epokh
-          timeStartScientificSymbol = date2Epokh(date_start, time);
-          timeEndScientificSymbol = date2Epokh(date_end, time);
+          timeStartScientificSymbol = date2Epokh(date_start, time_start);
+          timeEndScientificSymbol = date2Epokh(date_end, time_end);
   
           
           
           //convet time to timeStamp
-          timeStartTimeStamp = dataTime2TimeStamp(date_start, time).toString();
-          timeEndTimeStamp = dataTime2TimeStamp(date_end, time).toString();
+          timeStartTimeStamp = dataTime2TimeStamp(date_start, time_start).toString();
+          timeEndTimeStamp = dataTime2TimeStamp(date_end, time_end).toString();
         }
       }
 

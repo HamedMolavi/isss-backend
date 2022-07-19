@@ -1,10 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import HttpException from "../../../error/HttpException";
 import { getTokenAndVerify } from "../../../tools/authentication";
-import {
-  eventDepartmentLogResponse,
-  eventLogResponse,
-} from "../../../tools/createlogReport";
+import { eventDepartmentLogResponse } from "../../../tools/createlogReport";
 import { requestToElasticSearchEvent } from "../../../db/elasticsearch";
 import { dataTime2TimeStamp } from "../../../tools/convertTime";
 
@@ -47,11 +44,11 @@ router.get(
       let timeEndTimeStamp: string = "";
       if (search) {
         //get body from request
-        const { time, date_start, date_end } = req.body;
-        if (time && date_start && date_end) {
+        const { time_start , time_end, date_start, date_end } = req.body;
+        if (time_start && time_end && date_start && date_end) {
           //convet time to timeStamp
-          timeStartTimeStamp = dataTime2TimeStamp(date_start, time).toString();
-          timeEndTimeStamp = dataTime2TimeStamp(date_end, time).toString();
+          timeStartTimeStamp = dataTime2TimeStamp(date_start, time_start).toString();
+          timeEndTimeStamp = dataTime2TimeStamp(date_end, time_end).toString();
         }
       }
 

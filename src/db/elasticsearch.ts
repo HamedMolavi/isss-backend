@@ -240,9 +240,6 @@ export async function requestToElasticSearchEvent(
         },
       });
     }
-    response.data.hits.hits[0]._source.alerts.forEach((element: any) => {
-      console.log(element.labels.camera_id);
-    });
     return response;
   } catch (err: any) {
     return next(new HttpException(500, err.message, "event"));

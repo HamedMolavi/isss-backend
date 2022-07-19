@@ -14,7 +14,7 @@
     "test:tools": "mocha ./build/test/unitTest/tools ",
     "test:api": "mocha ./build/test/endpointTest --timeout 10000",
     "docker:build": "docker build -t isss-backend .",
-    "docker:run": "docker run -e .env -p 3000:8000 -d isss-backend"
+    "docker:run": "docker run -e .env -p 8000:3000 -d isss-backend"
   },
   "dependencies": {
     "@types/bcrypt": "^5.0.0",

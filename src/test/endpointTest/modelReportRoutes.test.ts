@@ -91,7 +91,6 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        console.log(response);
         expect(response.message).to.be.equal("Success");
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
@@ -196,7 +195,6 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        console.log(response);
         expect(response.message).to.be.equal("Success");
         //  expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");

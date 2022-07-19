@@ -176,7 +176,6 @@ export async function eventLogResponse(response: any) {
       _data.push(await result);
     }
   }
-  console.log(cameraIds);
   return _data;
 }
 
