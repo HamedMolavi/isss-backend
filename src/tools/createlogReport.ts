@@ -36,15 +36,19 @@ export async function plateLogResponse(response: any) {
       response.data.hits.hits[i]._source.camera_id
     ).exec();
     //get car from mongo db by id for get car name
-    let car = await Car.findById(
-      response.data.hits.hits[i]._source.plate_number
-    ).exec();
-    //get car_color from mongo db by id for get car color
-    let car_color = await CarColor.findById(car?.color_id).exec();
-    //get car_brand from mongo db by id for get car brand
-    let car_brand = await CarBrand.findById(car?.brand_id).exec();
-    //get owner from mongo db by id for get owner name
-    let owner = await Personnel.findById(car?.owner).exec();
+    let car = await Car.findOne({
+      number_plate: response.data.hits.hits[i]._source.plate_number,
+    }).exec();
+    let car_color, car_brand, owner: any;
+    if (car && camera) {
+      //get car_color from mongo db by id for get car color
+      car_color = await CarColor.findById(car?.color_id).exec();
+      //get car_brand from mongo db by id for get car brand
+      car_brand = await CarBrand.findById(car?.brand_id).exec();
+      //get owner from mongo db by id for get owner name
+      owner = await Personnel.findById(car?.owner).exec();
+    }
+
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
       camera: camera?.name,
@@ -156,19 +160,27 @@ export async function eventLogResponse(response: any) {
   let cameraIds: string[] = [];
   for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
     //get camera from mongo db by id for get camera name
-    if(cameraIds.includes(response.data.hits.hits[0]._source.alerts[i].labels.camera_id)){
+    if (
+      cameraIds.includes(
+        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
+      )
+    ) {
       continue;
-    }else{
-      cameraIds.push(response.data.hits.hits[0]._source.alerts[i].labels.camera_id);
+    } else {
+      cameraIds.push(
+        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
+      );
       let camera = await Camera.findById(
         response.data.hits.hits[0]._source.alerts[i].labels.camera_id
       ).exec();
       let result = {
-        camera_id: response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
+        camera_id:
+          response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
         camera: camera?.name,
         time: new Date(
-          Number(response.data.hits.hits[0]._source.alerts[i].labels.timestamp) *
-            1000
+          Number(
+            response.data.hits.hits[0]._source.alerts[i].labels.timestamp
+          ) * 1000
         ),
         AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
         description:
@@ -183,25 +195,37 @@ export async function eventLogResponse(response: any) {
 //create json response eventLog report for send to client
 export async function eventDepartmentLogResponse(response: any) {
   //ceate json response
-  let _data: object[] = []
+  let _data: object[] = [];
   let cameraIds: string[] = [];
   for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
     //get camera from mongo db by id for get camera name
-    if (cameraIds.includes(response.data.hits.hits[0]._source.alerts[i].labels.camera_id)) {
+    if (
+      cameraIds.includes(
+        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
+      )
+    ) {
       continue;
     } else {
-      cameraIds.push(response.data.hits.hits[0]._source.alerts[i].labels.camera_id);
-      let camera = await Camera.findById(response.data.hits.hits[0]._source.alerts[i].labels.camera_id).exec();
+      cameraIds.push(
+        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
+      );
+      let camera = await Camera.findById(
+        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
+      ).exec();
 
       //let cameras = await Camera.find({ section_id: camera?.section_id }).exec();
 
-      let sections = await Section.find({section_id: camera?.section_id,}).exec();
+      let sections = await Section.find({
+        section_id: camera?.section_id,
+      }).exec();
 
-      let department = await Departement.findById(sections[0]?.departement_id).exec();
+      let department = await Departement.findById(
+        sections[0]?.departement_id
+      ).exec();
 
       let result = {
         department: department?.name,
-       sections: sections,
+        sections: sections,
         time: new Date(
           Number(
             response.data.hits.hits[0]._source.alerts[i].labels.timestamp

@@ -50,13 +50,18 @@ function plateLogResponse(response) {
             //get camera from mongo db by id for get camera name
             let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
             //get car from mongo db by id for get car name
-            let car = yield car_1.default.findById(response.data.hits.hits[i]._source.plate_number).exec();
-            //get car_color from mongo db by id for get car color
-            let car_color = yield carColor_1.default.findById(car === null || car === void 0 ? void 0 : car.color_id).exec();
-            //get car_brand from mongo db by id for get car brand
-            let car_brand = yield carBrand_1.default.findById(car === null || car === void 0 ? void 0 : car.brand_id).exec();
-            //get owner from mongo db by id for get owner name
-            let owner = yield personnel_1.default.findById(car === null || car === void 0 ? void 0 : car.owner).exec();
+            let car = yield car_1.default.findOne({
+                number_plate: response.data.hits.hits[i]._source.plate_number,
+            }).exec();
+            let car_color, car_brand, owner;
+            if (car && camera) {
+                //get car_color from mongo db by id for get car color
+                car_color = yield carColor_1.default.findById(car === null || car === void 0 ? void 0 : car.color_id).exec();
+                //get car_brand from mongo db by id for get car brand
+                car_brand = yield carBrand_1.default.findById(car === null || car === void 0 ? void 0 : car.brand_id).exec();
+                //get owner from mongo db by id for get owner name
+                owner = yield personnel_1.default.findById(car === null || car === void 0 ? void 0 : car.owner).exec();
+            }
             let result = {
                 camera_id: response.data.hits.hits[i]._source.camera_id,
                 camera: camera === null || camera === void 0 ? void 0 : camera.name,
@@ -177,8 +182,7 @@ function eventLogResponse(response) {
                 let result = {
                     camera_id: response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
                     camera: camera === null || camera === void 0 ? void 0 : camera.name,
-                    time: new Date(Number(response.data.hits.hits[0]._source.alerts[i].labels.timestamp) *
-                        1000),
+                    time: new Date(Number(response.data.hits.hits[0]._source.alerts[i].labels.timestamp) * 1000),
                     AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
                     description: response.data.hits.hits[0]._source.alerts[i].annotations.description,
                 };
@@ -205,7 +209,9 @@ function eventDepartmentLogResponse(response) {
                 cameraIds.push(response.data.hits.hits[0]._source.alerts[i].labels.camera_id);
                 let camera = yield camera_1.default.findById(response.data.hits.hits[0]._source.alerts[i].labels.camera_id).exec();
                 //let cameras = await Camera.find({ section_id: camera?.section_id }).exec();
-                let sections = yield section_1.default.find({ section_id: camera === null || camera === void 0 ? void 0 : camera.section_id, }).exec();
+                let sections = yield section_1.default.find({
+                    section_id: camera === null || camera === void 0 ? void 0 : camera.section_id,
+                }).exec();
                 let department = yield departement_1.default.findById((_a = sections[0]) === null || _a === void 0 ? void 0 : _a.departement_id).exec();
                 let result = {
                     department: department === null || department === void 0 ? void 0 : department.name,
