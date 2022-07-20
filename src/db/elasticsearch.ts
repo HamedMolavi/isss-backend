@@ -19,7 +19,6 @@ export async function requestToElasticSearch(
     if (search !== "") {
       //get data from elastic
       //format search to elastic search
-      console.log(dbUri + "/" + model + "_log/_search")
       response = await axios.get(dbUri + "/" + model + "_log/_search", {
         headers: {
           'Content-Type': 'application/json'
@@ -75,7 +74,6 @@ export async function requestToElasticSearch(
         }
       );
     }
-    console.log(response.data.hits.hits);
     return response;
   } catch (err: any) {
     return next(new HttpException(500, err.message, model));

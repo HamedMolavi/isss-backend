@@ -26,7 +26,6 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
             if (search !== "") {
                 //get data from elastic
                 //format search to elastic search
-                console.log(dbUri + "/" + model + "_log/_search");
                 response = yield axios_1.default.get(dbUri + "/" + model + "_log/_search", {
                     headers: {
                         'Content-Type': 'application/json'
@@ -80,7 +79,6 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
                     },
                 });
             }
-            console.log(response.data.hits.hits);
             return response;
         }
         catch (err) {
