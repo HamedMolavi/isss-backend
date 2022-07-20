@@ -54,14 +54,14 @@ router.get("/:model", function (req, res, next) {
             let timeEndTimeStamp = "";
             if (search) {
                 //get body from request
-                const { time, date_start, date_end } = req.body;
-                if (time && date_start && date_end) {
+                const { time_start, time_end, date_start, date_end } = req.body;
+                if (time_start && time_end && date_start && date_end) {
                     //convert date_start to epokh
-                    timeStartScientificSymbol = (0, convertTime_1.date2Epokh)(date_start, time);
-                    timeEndScientificSymbol = (0, convertTime_1.date2Epokh)(date_end, time);
+                    timeStartScientificSymbol = (0, convertTime_1.date2Epokh)(date_start, time_start);
+                    timeEndScientificSymbol = (0, convertTime_1.date2Epokh)(date_end, time_end);
                     //convet time to timeStamp
-                    timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time).toString();
-                    timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time).toString();
+                    timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time_start).toString();
+                    timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time_end).toString();
                 }
             }
             let _data = [];

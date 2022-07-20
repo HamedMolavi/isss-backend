@@ -19,40 +19,39 @@ export async function requestToElasticSearch(
     if (search !== "") {
       //get data from elastic
       //format search to elastic search
+      console.log(dbUri + "/" + model + "_log/_search")
       response = await axios.get(dbUri + "/" + model + "_log/_search", {
         headers: {
-          "Content-Type": "application/json",
-        },
-        data: {
-          from: page,
-          size: perPage,
-          query: {
-            bool: {
-              filter: [
-                {
-                  term: {
-                    camera_id: search,
-                  },
-                },
-                {
-                  range: {
-                    timestamp: {
-                      gte: timeStart,
-                      lte: timeEnd,
-                    },
-                  },
-                },
-              ],
-            },
+          'Content-Type': 'application/json'
+      },
+      data: {
+          'size': 5,
+          'query': {
+              'bool': {
+                  'filter': [
+                      {
+                          'term': {
+                              'camera_id': search
+                          }
+                      },
+                      {
+                          'range': {
+                              'timestamp': {
+                                  'gte': 0
+                              }
+                          }
+                      }
+                  ]
+              }
           },
-          sort: [
-            {
-              timestamp: {
-                order: "asc",
-              },
-            },
-          ],
-        },
+          'sort': [
+              {
+                  'timestamp': {
+                      'order': 'desc'
+                  }
+              }
+          ]
+      }
       });
     } else {
       //send request to elastic search for get all  data with pagination
@@ -68,7 +67,7 @@ export async function requestToElasticSearch(
             sort: [
               {
                 timestamp: {
-                  order: "asc",
+                  order: "desc",
                 },
               },
             ],
@@ -76,7 +75,7 @@ export async function requestToElasticSearch(
         }
       );
     }
-
+    console.log(response.data.hits.hits);
     return response;
   } catch (err: any) {
     return next(new HttpException(500, err.message, model));
@@ -151,7 +150,7 @@ export async function requestToElasticSearchEvent(
             size: perPage,
             query: {
               match: {
-                "alerts.labels.camera_id": search ,
+                "alerts.labels.camera_id": search,
               },
             },
             sort: [

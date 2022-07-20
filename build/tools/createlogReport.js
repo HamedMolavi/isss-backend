@@ -92,6 +92,7 @@ function humanLogResponse(response) {
             }).exec();
             //get camera from mongo db by id for get camera name
             let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
+            console.log(response.data.hits.hits[i]._source.camera_id);
             let result = {
                 camera_id: response.data.hits.hits[i]._source.camera_id,
                 camera: camera === null || camera === void 0 ? void 0 : camera.name,

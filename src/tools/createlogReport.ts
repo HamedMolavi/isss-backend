@@ -80,6 +80,7 @@ export async function humanLogResponse(response: any) {
     let camera = await Camera.findById(
       response.data.hits.hits[i]._source.camera_id
     ).exec();
+    console.log(response.data.hits.hits[i]._source.camera_id);
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
       camera: camera?.name,

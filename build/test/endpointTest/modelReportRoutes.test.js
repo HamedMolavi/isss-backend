@@ -122,7 +122,6 @@ describe("server run and get report logs", function () {
                     return done(err);
                 }
                 let response = res.body;
-                console.log(response);
                 (0, chai_1.expect)(response.message).to.be.equal("Success");
                 (0, chai_1.expect)(response.data[0]).to.have.property("time");
                 (0, chai_1.expect)(response.data[0]).to.have.property("camera_id");
@@ -215,7 +214,6 @@ describe("server run and get report logs", function () {
                     return done(err);
                 }
                 let response = res.body;
-                console.log(response);
                 (0, chai_1.expect)(response.message).to.be.equal("Success");
                 //  expect(response.data[0]).to.have.property('camera');
                 (0, chai_1.expect)(response.data[0]).to.have.property("time");

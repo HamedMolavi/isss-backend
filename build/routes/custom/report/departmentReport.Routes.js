@@ -52,11 +52,11 @@ router.get("", function (req, res, next) {
             let timeEndTimeStamp = "";
             if (search) {
                 //get body from request
-                const { time, date_start, date_end } = req.body;
-                if (time && date_start && date_end) {
+                const { time_start, time_end, date_start, date_end } = req.body;
+                if (time_start && time_end && date_start && date_end) {
                     //convet time to timeStamp
-                    timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time).toString();
-                    timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time).toString();
+                    timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time_start).toString();
+                    timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time_end).toString();
                 }
             }
             let _data = [];
