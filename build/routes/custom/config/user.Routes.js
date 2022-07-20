@@ -16,7 +16,7 @@ const express_1 = require("express");
 const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
 const user_1 = __importDefault(require("../../../models/user"));
 const authentication_1 = require("../../../tools/authentication");
-//create router for add to server 
+//create router for add to server
 const router = (0, express_1.Router)();
 //add error handler middleware
 router.use(function (req, res, next) {
@@ -30,20 +30,17 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { username, password, phone_number, event, camera, report, configuration } = req.body;
+            const { username, password, phone_number, event, camera, report, configuration, } = req.body;
             //verify body request
             if (!username || !password || !phone_number) {
                 req.flash("error", "Please enter all fields");
                 return next(new HttpException_1.default(400, "Please enter all fields", "User"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "admin", next);
+            // let token = getTokenAndVerify(req, "admin", next);
             //query for save new user in DB
             let user = yield user_1.default.findOne({
-                $or: [
-                    { username: username },
-                    { phone_number: phone_number }
-                ]
+                $or: [{ username: username }, { phone_number: phone_number }],
             }).exec();
             //check user in DB
             if (user) {
@@ -65,8 +62,8 @@ router.post("", function (req, res, next) {
             req.flash("info", "User created");
             //send response
             return res.status(201).json({
-                message: 'Success',
-                user: newUser
+                message: "Success",
+                user: newUser,
             });
         }
         catch (err) {
@@ -74,7 +71,7 @@ router.post("", function (req, res, next) {
         }
     });
 });
-//route for get users list  
+//route for get users list
 router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -91,11 +88,17 @@ router.get("", function (req, res, next) {
             let users = [];
             if (!(search && search.length > 0)) {
                 users = yield user_1.default.find({
-                    name: { $regex: search, $options: "i" }
-                }).limit(perPage).skip(perPage * (page - 1)).exec();
+                    name: { $regex: search, $options: "i" },
+                })
+                    .limit(perPage)
+                    .skip(perPage * (page - 1))
+                    .exec();
             }
             else {
-                users = yield user_1.default.find().limit(perPage).skip(perPage * (page - 1)).exec();
+                users = yield user_1.default.find()
+                    .limit(perPage)
+                    .skip(perPage * (page - 1))
+                    .exec();
             }
             //send not found if user not found
             if (!users) {
@@ -104,12 +107,12 @@ router.get("", function (req, res, next) {
             }
             //send response
             return res.status(200).json({
-                message: 'Success',
+                message: "Success",
                 users: users,
                 page: page,
                 perPage: perPage,
                 total: yield user_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield user_1.default.countDocuments().exec()) / perPage)
+                pages: Math.ceil((yield user_1.default.countDocuments().exec()) / perPage),
             });
         }
         catch (err) {
@@ -117,7 +120,7 @@ router.get("", function (req, res, next) {
         }
     });
 });
-//route for get user by id from DB 
+//route for get user by id from DB
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -138,8 +141,8 @@ router.get("/:id", function (req, res, next) {
             }
             //send response
             return res.status(200).json({
-                message: 'Success',
-                user: user
+                message: "Success",
+                user: user,
             });
         }
         catch (err) {
@@ -162,16 +165,18 @@ router.patch("/:id", function (req, res, next) {
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "admin", next);
             //query for get user by username from DB
-            let user = yield user_1.default.findByIdAndUpdate(id, userBody, { new: true }).exec();
+            let user = yield user_1.default.findByIdAndUpdate(id, userBody, {
+                new: true,
+            }).exec();
             //send not found if user not found
             if (!user) {
                 req.flash("error", "User not found");
                 return next(new HttpException_1.default(404, "User not found", "User"));
             }
-            //send response 
+            //send response
             return res.status(201).json({
-                message: 'Success',
-                user: user
+                message: "Success",
+                user: user,
             });
         }
         catch (err) {
@@ -200,8 +205,8 @@ router.delete("/:id", function (req, res, next) {
             }
             //send response
             return res.status(201).json({
-                message: 'Success',
-                user: user
+                message: "Success",
+                user: user,
             });
         }
         catch (err) {
@@ -220,32 +225,25 @@ router.post("/login", function (req, res, next) {
                 return next({
                     status: 400,
                     message: "Bad request",
-                    name: "user"
+                    name: "user",
                 });
             }
             //  get user from DB
-            user_1.default.findOne({ username: username }, function (err, user) {
+            let user = yield user_1.default.findOne({ username: username }).exec((err, user) => {
                 if (err) {
-                    return next(err);
+                    return next(new HttpException_1.default(500, err.message, "User"));
                 }
-                ;
                 if (!user) {
                     return next(new HttpException_1.default(404, "User not found", "User"));
                 }
-                // verify password
-                user.checkPassword(password, function (err, isMatch) {
-                    if (err) {
-                        return next(err);
-                    }
-                    if (isMatch) {
-                        return res.status(200).json({
-                            message: 'Success',
-                            user: user.toAuthJSON()
-                        });
-                    }
-                    else {
-                        return next(null, false, { message: "Invalid password." });
-                    }
+                //verify password
+                if (user.checkPassword(password)) {
+                    return next(new HttpException_1.default(401, "Password incorrect", "User"));
+                }
+                //send response
+                return res.status(200).json({
+                    message: "Success",
+                    user: user.toAuthJSON(),
                 });
             });
         }

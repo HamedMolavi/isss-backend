@@ -26,40 +26,39 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
             if (search !== "") {
                 //get data from elastic
                 //format search to elastic search
+                console.log(dbUri + "/" + model + "_log/_search");
                 response = yield axios_1.default.get(dbUri + "/" + model + "_log/_search", {
                     headers: {
-                        "Content-Type": "application/json",
+                        'Content-Type': 'application/json'
                     },
                     data: {
-                        from: page,
-                        size: perPage,
-                        query: {
-                            bool: {
-                                filter: [
+                        'size': 5,
+                        'query': {
+                            'bool': {
+                                'filter': [
                                     {
-                                        term: {
-                                            camera_id: search,
-                                        },
+                                        'term': {
+                                            'camera_id': search
+                                        }
                                     },
                                     {
-                                        range: {
-                                            timestamp: {
-                                                gte: timeStart,
-                                                lte: timeEnd,
-                                            },
-                                        },
-                                    },
-                                ],
-                            },
+                                        'range': {
+                                            'timestamp': {
+                                                'gte': 0
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
                         },
-                        sort: [
+                        'sort': [
                             {
-                                timestamp: {
-                                    order: "asc",
-                                },
-                            },
-                        ],
-                    },
+                                'timestamp': {
+                                    'order': 'desc'
+                                }
+                            }
+                        ]
+                    }
                 });
             }
             else {
@@ -74,13 +73,14 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
                         sort: [
                             {
                                 timestamp: {
-                                    order: "asc",
+                                    order: "desc",
                                 },
                             },
                         ],
                     },
                 });
             }
+            console.log(response.data.hits.hits);
             return response;
         }
         catch (err) {
@@ -151,8 +151,8 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                             size: perPage,
                             query: {
                                 match: {
-                                    "alerts.labels.camera_id": "628dc14af014bc89f0280c46",
-                                }
+                                    "alerts.labels.camera_id": search,
+                                },
                             },
                             sort: [
                                 {
@@ -216,7 +216,7 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                                             term: {
                                                 "alerts.labels.module": search,
                                             },
-                                        }
+                                        },
                                     ],
                                 },
                             },

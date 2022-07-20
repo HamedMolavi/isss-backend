@@ -30,7 +30,6 @@ function setuppassport() {
                 return done(null, false, { message: "No user has that username!" });
             }
             user.checkPassword(password, function (err, isMatch) {
-                console.log(isMatch);
                 if (err) {
                     return done(err);
                 }
