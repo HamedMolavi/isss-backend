@@ -24,7 +24,8 @@ export async function requestToElasticSearch(
           'Content-Type': 'application/json'
       },
       data: {
-          'size': 5,
+          'from': page,
+          'size': perPage,
           'query': {
               'bool': {
                   'filter': [

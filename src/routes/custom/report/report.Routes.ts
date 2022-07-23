@@ -55,20 +55,26 @@ router.get(
       let timeEndScientificSymbol: string = "";
       let timeStartTimeStamp: string = "";
       let timeEndTimeStamp: string = "";
+      let _allowed: boolean | undefined = undefined;
       if (search) {
         //get body from request
-        const { time_start , time_end, date_start, date_end } = req.body;
-
-        if(time_start && time_end && date_start && date_end){
+        const { time_start, time_end, date_start, date_end, allowed } =
+          req.body;
+        _allowed = Boolean(allowed) ?? undefined;
+        if (time_start && time_end && date_start && date_end) {
           //convert date_start to epokh
           timeStartScientificSymbol = date2Epokh(date_start, time_start);
           timeEndScientificSymbol = date2Epokh(date_end, time_end);
-  
-          
-          
+
           //convet time to timeStamp
-          timeStartTimeStamp = dataTime2TimeStamp(date_start, time_start).toString();
+          timeStartTimeStamp = dataTime2TimeStamp(
+            date_start,
+            time_start
+          ).toString();
           timeEndTimeStamp = dataTime2TimeStamp(date_end, time_end).toString();
+        }else if(!time_start || !time_end || !date_start || !date_end){
+          req.flash("error", "Time and date is required");
+          return next(new HttpException(400, "Time and date is required", model));
         }
       }
 
@@ -83,7 +89,7 @@ router.get(
           page,
           perPage,
           next,
-          searchName,
+          searchName
         );
         //create json response for client
         _data = await eventLogResponse(response);
@@ -104,7 +110,7 @@ router.get(
         } else if (model === "plate") {
           _data = await plateLogResponse(response);
         } else if (model === "human") {
-          _data = await humanLogResponse(response);
+          _data = await humanLogResponse(response, _allowed);
         } else if (model === "fire") {
           _data = await fireLogResponse(response);
         } else if (model === "face") {

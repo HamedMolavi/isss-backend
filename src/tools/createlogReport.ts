@@ -68,7 +68,7 @@ export async function plateLogResponse(response: any) {
   return _data;
 }
 //create json response humanLog report for send to client
-export async function humanLogResponse(response: any) {
+export async function humanLogResponse(response: any, allowed: boolean | undefined) {
   //ceate json response
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
@@ -84,18 +84,38 @@ export async function humanLogResponse(response: any) {
     let camera = await Camera.findById(
       response.data.hits.hits[i]._source.camera_id
     ).exec();
-    console.log(response.data.hits.hits[i]._source.camera_id);
-    let result = {
-      camera_id: response.data.hits.hits[i]._source.camera_id,
-      camera: camera?.name,
-      time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
-      numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
-      NumberOfPeople:
-        schedule!?.config!?.max_people! >=
-        response.data.hits.hits[i].number_of_people
-          ? true
-          : false,
-    };
+    let result: any;
+    if (
+      allowed &&
+      (schedule!?.config!?.max_people! >=
+        response.data.hits.hits[i].number_of_people) ==
+        allowed
+    ) {
+      
+      result = {
+        camera_id: response.data.hits.hits[i]._source.camera_id,
+        camera: camera?.name,
+        time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+        numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
+        NumberOfPeople:
+          schedule!?.config!?.max_people! >=
+          response.data.hits.hits[i].number_of_people
+            ? true
+            : false,
+      };
+    } else if (allowed === undefined) {
+      result = {
+        camera_id: response.data.hits.hits[i]._source.camera_id,
+        camera: camera?.name,
+        time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+        numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
+        NumberOfPeople:
+          schedule!?.config!?.max_people! >=
+          response.data.hits.hits[i].number_of_people
+            ? true
+            : false,
+      };
+    }
     _data.push(await result);
   }
   return _data;
