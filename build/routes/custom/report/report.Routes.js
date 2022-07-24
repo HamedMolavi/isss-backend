@@ -31,6 +31,7 @@ router.use(function (req, res, next) {
 const dbUri = process.env["ELASTIC_SEARCH"];
 //route for get sabotage list
 router.get("/:model", function (req, res, next) {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get model from url request
@@ -52,9 +53,17 @@ router.get("/:model", function (req, res, next) {
             let timeEndScientificSymbol = "";
             let timeStartTimeStamp = "";
             let timeEndTimeStamp = "";
+            let _allowed = undefined;
+            let _carBrand = null;
+            let _carColor = null;
+            let _owner = null;
             if (search) {
                 //get body from request
-                const { time_start, time_end, date_start, date_end } = req.body;
+                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed } = req.body;
+                _allowed = (_a = Boolean(allowed)) !== null && _a !== void 0 ? _a : undefined;
+                _carBrand = car_brand !== null && car_brand !== void 0 ? car_brand : null;
+                _carColor = car_color !== null && car_color !== void 0 ? car_color : null;
+                _owner = owner !== null && owner !== void 0 ? owner : null;
                 if (time_start && time_end && date_start && date_end) {
                     //convert date_start to epokh
                     timeStartScientificSymbol = (0, convertTime_1.date2Epokh)(date_start, time_start);
@@ -63,6 +72,11 @@ router.get("/:model", function (req, res, next) {
                     timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time_start).toString();
                     timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time_end).toString();
                 }
+                // else 
+                // if(!time_start || !time_end || !date_start || !date_end ){
+                //   req.flash("error", "Time and date is required");
+                //   return next(new HttpException(400, "Time and date is required", model));
+                // }
             }
             let _data = [];
             if (model === "event") {
@@ -79,10 +93,15 @@ router.get("/:model", function (req, res, next) {
                     _data = yield (0, createlogReport_1.sabotageLogResponse)(response);
                 }
                 else if (model === "plate") {
-                    _data = yield (0, createlogReport_1.plateLogResponse)(response);
+                    console.log(_owner);
+                    if ((_carBrand === null || _carColor === null || _owner === null) && search) {
+                        req.flash("error", "Car brand, car color and owner is required");
+                        return next(new HttpException_1.default(400, "Car brand, car color and owner is required", model));
+                    }
+                    _data = yield (0, createlogReport_1.plateLogResponse)(response, _carBrand, _carColor, _owner, _allowed, search);
                 }
                 else if (model === "human") {
-                    _data = yield (0, createlogReport_1.humanLogResponse)(response);
+                    _data = yield (0, createlogReport_1.humanLogResponse)(response, _allowed);
                 }
                 else if (model === "fire") {
                     _data = yield (0, createlogReport_1.fireLogResponse)(response);

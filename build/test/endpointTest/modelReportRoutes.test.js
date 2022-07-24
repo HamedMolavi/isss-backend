@@ -108,11 +108,12 @@ describe("server run and get report logs", function () {
         //test search sabotage report sabotage logs with token
         it("should send back a JSON object search sabotage log report", function (done) {
             (0, supertest_1.default)(server_1.default)
-                .get("/api/v1/reports/sabotage?perPage=300&page=1&search=628dc28ef014bc89f0280c4a")
+                .get("/api/v1/reports/sabotage?perPage=300&page=1&search=628dc14af014bc89f0280c46")
                 .set("Content-Type", "application/json")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                time: "05:30",
+                time_start: "05:30",
+                time_end: "12:30",
                 date_start: "15.04.2021",
                 date_end: "15.04.2023",
             })
@@ -151,11 +152,12 @@ describe("server run and get report logs", function () {
         //test search fire  logs with token
         it("should send back a JSON object search fire log report", function (done) {
             (0, supertest_1.default)(server_1.default)
-                .get("/api/v1/reports/fire?perPage=50&page=1&search=628dc28ef014bc89f0280c4a")
+                .get("/api/v1/reports/fire?perPage=10&page=1&search=628dc31bf014bc89f0280c54")
                 .set("Content-Type", "application/json")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                time: "05:30",
+                time_start: "05:30",
+                time_end: "12:30",
                 date_start: "15.04.2021",
                 date_end: "15.04.2023",
                 probability: 0.5,
@@ -199,11 +201,12 @@ describe("server run and get report logs", function () {
         //test get fire report face logs with token
         it("should send back a JSON object search face log report", function (done) {
             (0, supertest_1.default)(server_1.default)
-                .get("/api/v1/reports/face?perPage=3&page=1&search=628dc28ef014bc89f0280c4a")
+                .get("/api/v1/reports/face?perPage=3&page=1&search=628dc2c0f014bc89f0280c4e")
                 .set("Content-Type", "application/json")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                time: "05:30",
+                time_start: "05:30",
+                time_end: "05:30",
                 date_start: "15.04.2021",
                 date_end: "15.04.2023",
                 personnel_id: "62ada289eac910a0f3f0c42e",
@@ -246,11 +249,12 @@ describe("server run and get report logs", function () {
         //test get report people counting logs with token
         it("should send back a JSON object search people counting log report", function (done) {
             (0, supertest_1.default)(server_1.default)
-                .get("/api/v1/reports/human?perPage=3&page=1&search=628dc28ef014bc89f0280c4a")
+                .get("/api/v1/reports/human?perPage=3&page=1&search=628dc289f014bc89f0280c48")
                 .set("Content-Type", "application/json")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                time: "05:30",
+                time_start: "05:30",
+                time_end: "12:30",
                 date_start: "15.04.2021",
                 date_end: "15.04.2023",
             })
@@ -281,7 +285,7 @@ describe("server run and get report logs", function () {
                 }
                 let response = res.body;
                 (0, chai_1.expect)(response.message).to.be.equal("Success");
-                //   expect(response.data[0]).to.have.property('camera');
+                //   expect(response.da628dc14af014bc89f0280c46ta[0]).to.have.property('camera');
                 (0, chai_1.expect)(response.data[0]).to.have.property("time");
                 (0, chai_1.expect)(response.data[0]).to.have.property("camera_id");
                 (0, chai_1.expect)(response.data[0]).to.have.property("AI");
@@ -338,7 +342,8 @@ describe("server run and get report logs", function () {
                 .set("Content-Type", "application/json")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                time: "05:30",
+                time_start: "05:30",
+                time_end: "12:30",
                 date_start: "15.04.2021",
                 date_end: "15.04.2023",
             })
@@ -364,7 +369,8 @@ describe("server run and get report logs", function () {
                 .set("Content-Type", "application/json")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                time: "05:30",
+                time_start: "05:30",
+                time_end: "12:30",
                 date_start: "15.04.2021",
                 date_end: "15.04.2023",
             })
@@ -432,7 +438,8 @@ describe("server run and get report logs", function () {
                 .set("Content-Type", "application/json")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                time: "05:30",
+                time_start: "05:30",
+                time_end: "12:30",
                 date_start: "15.04.2021",
                 date_end: "15.04.2023",
             })

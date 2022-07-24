@@ -37,10 +37,10 @@ function date2Epokh(date, time) {
     //convert date to epokh
     let timeDateEpokhStart = new Date(timeDateStart).getTime();
     //delete last 3 digits from epokh for delete milisecond
-    timeDateEpokhStart = timeDateEpokhStart / 1000;
+    // timeDateEpokhStart = timeDateEpokhStart / 1000;
     //convert epokh to Scientific Symbol
-    let timeStartScientificSymbol = timeDateEpokhStart.toExponential();
-    return timeStartScientificSymbol;
+    // let timeStartScientificSymbol = timeDateEpokhStart.toExponential();
+    return timeDateEpokhStart.toString();
 }
 exports.date2Epokh = date2Epokh;
 //convert dataTime to TimeStamp

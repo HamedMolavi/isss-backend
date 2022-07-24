@@ -117,11 +117,11 @@ router.get(
           _data = await sabotageLogResponse(response);
         } else if (model === "plate") {
           console.log(_owner);
-          if(_carBrand === null || _carColor === null || _owner === null){
+          if((_carBrand === null || _carColor === null || _owner === null) && search){
             req.flash("error", "Car brand, car color and owner is required");
             return next(new HttpException(400, "Car brand, car color and owner is required", model));
           }
-          _data = await plateLogResponse(response  , _carBrand , _carColor , _owner , _allowed);
+          _data = await plateLogResponse(response  , _carBrand , _carColor , _owner , _allowed , search);
         } else if (model === "human") {
           _data = await humanLogResponse(response, _allowed);
         } else if (model === "fire") {

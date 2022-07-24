@@ -31,7 +31,8 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
                         'Content-Type': 'application/json'
                     },
                     data: {
-                        'size': 5,
+                        'from': page,
+                        'size': perPage,
                         'query': {
                             'bool': {
                                 'filter': [
@@ -43,7 +44,8 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
                                     {
                                         'range': {
                                             'timestamp': {
-                                                'gte': 0
+                                                'gte': timeStart,
+                                                'lte': timeEnd
                                             }
                                         }
                                     }
@@ -67,12 +69,12 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
                         "Content-Type": "application/json",
                     },
                     data: {
-                        from: page,
-                        size: perPage,
-                        sort: [
+                        'from': page,
+                        'size': perPage,
+                        'sort': [
                             {
-                                timestamp: {
-                                    order: "desc",
+                                'timestamp': {
+                                    'order': "desc",
                                 },
                             },
                         ],
@@ -103,23 +105,23 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                             "Content-Type": "application/json",
                         },
                         data: {
-                            from: page,
-                            size: perPage,
-                            query: {
-                                bool: {
-                                    filter: [
+                            'from': page,
+                            'size': perPage,
+                            'query': {
+                                'bool': {
+                                    'filter': [
                                         {
-                                            term: {
+                                            'term': {
                                                 "alerts.labels.camera_id": camera_id,
                                             },
                                         },
                                         {
-                                            term: {
+                                            'term': {
                                                 "alerts.labels.module": model,
                                             },
                                         },
                                         {
-                                            range: {
+                                            'range': {
                                                 "alerts.labels.timestamp": {
                                                     gte: timeStart,
                                                     lte: timeEnd,
@@ -129,7 +131,7 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                                     ],
                                 },
                             },
-                            sort: [
+                            'sort': [
                                 {
                                     "alerts.labels.timestamp.keyword": {
                                         missing: "_last",
@@ -145,14 +147,14 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                             "Content-Type": "application/json",
                         },
                         data: {
-                            from: page,
-                            size: perPage,
-                            query: {
-                                match: {
+                            'from': page,
+                            'size': perPage,
+                            'query': {
+                                'match': {
                                     "alerts.labels.camera_id": search,
                                 },
                             },
-                            sort: [
+                            'sort': [
                                 {
                                     "alerts.labels.timestamp.keyword": {
                                         missing: "_last",
@@ -168,28 +170,28 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                             "Content-Type": "application/json",
                         },
                         data: {
-                            from: page,
-                            size: perPage,
-                            query: {
-                                bool: {
-                                    filter: [
+                            'from': page,
+                            'size': perPage,
+                            'query': {
+                                'bool': {
+                                    'filter': [
                                         {
-                                            term: {
+                                            'term': {
                                                 "alerts.labels.timestamp": search,
                                             },
                                         },
                                         {
-                                            range: {
+                                            'range': {
                                                 "alerts.labels.timestamp": {
-                                                    gte: timeStart,
-                                                    lte: timeEnd,
+                                                    'gte': timeStart,
+                                                    'lte': timeEnd,
                                                 },
                                             },
                                         },
                                     ],
                                 },
                             },
-                            sort: [
+                            'sort': [
                                 {
                                     "alerts.labels.timestamp.keyword": {
                                         missing: "_last",
@@ -205,20 +207,20 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                             "Content-Type": "application/json",
                         },
                         data: {
-                            from: page,
-                            size: perPage,
-                            query: {
-                                bool: {
-                                    filter: [
+                            'from': page,
+                            'size': perPage,
+                            'query': {
+                                'bool': {
+                                    'filter': [
                                         {
-                                            term: {
+                                            'term': {
                                                 "alerts.labels.module": search,
                                             },
                                         },
                                     ],
                                 },
                             },
-                            sort: [
+                            'sort': [
                                 {
                                     "alerts.labels.timestamp.keyword": {
                                         missing: "_last",
@@ -236,8 +238,8 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                         "Content-Type": "application/json",
                     },
                     data: {
-                        from: page,
-                        size: perPage,
+                        'from': page,
+                        'size': perPage,
                     },
                 });
             }
