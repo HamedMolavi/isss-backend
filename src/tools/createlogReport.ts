@@ -27,7 +27,13 @@ export async function sabotageLogResponse(response: any) {
   return _data;
 }
 //create json response plateLog report for send to client
-export async function plateLogResponse(response: any) {
+export async function plateLogResponse(
+  response: any,
+  carBrand: string | null,
+  carColor: string | null,
+  owner: string | null,
+  allowed: boolean | undefined
+) {
   //ceate json response
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
@@ -39,15 +45,29 @@ export async function plateLogResponse(response: any) {
     let car = await Car.findOne({
       number_plate: response.data.hits.hits[i]._source.plate_number,
     }).exec();
-    let car_color, car_brand, owner: any;
+    console.log(response.data.hits.hits[i]._source.plate_number);
+    console.log(car);
+    let car_color, car_brand, _owner: any;
     if (car && camera) {
       //get car_color from mongo db by id for get car color
       car_color = await CarColor.findById(car?.color_id).exec();
+      if (carColor && carColor !== car_color?._id.toString()) continue;
       //get car_brand from mongo db by id for get car brand
       car_brand = await CarBrand.findById(car?.brand_id).exec();
+      if (carBrand && carBrand !== car_brand?._id.toString()) continue;
       //get owner from mongo db by id for get owner name
-      owner = await Personnel.findById(car?.owner).exec();
+      _owner = await Personnel.findById(car?.owner).exec();
+      if (owner && (owner !== _owner?._id.toString())) continue;
+    } else {
+      continue;
     }
+    let _allowed = _owner?.camera_whitelist.includes(
+      response.data.hits.hits[i]._source.camera_id
+    )
+      ? true
+      : false;
+
+    // if (_allowed !== allowed) continue;
 
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
@@ -56,19 +76,18 @@ export async function plateLogResponse(response: any) {
       car: car_brand,
       color: car_color,
       plate: response.data.hits.hits[i]._source.plate_number,
-      owner: owner?.first_name + " " + owner?.last_name,
-      allowed: owner?.camera_whitelist.includes(
-        response.data.hits.hits[i]._source.camera_id
-      )
-        ? true
-        : false,
+      owner: _owner?.first_name + " " + _owner?.last_name,
+      allowed: _allowed,
     };
     _data.push(await result);
   }
   return _data;
 }
 //create json response humanLog report for send to client
-export async function humanLogResponse(response: any, allowed: boolean | undefined) {
+export async function humanLogResponse(
+  response: any,
+  allowed: boolean | undefined
+) {
   //ceate json response
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
@@ -87,11 +106,10 @@ export async function humanLogResponse(response: any, allowed: boolean | undefin
     let result: any;
     if (
       allowed &&
-      (schedule!?.config!?.max_people! >=
-        response.data.hits.hits[i].number_of_people) ==
+      schedule!?.config!?.max_people! >=
+        response.data.hits.hits[i].number_of_people ==
         allowed
     ) {
-      
       result = {
         camera_id: response.data.hits.hits[i]._source.camera_id,
         camera: camera?.name,
@@ -147,9 +165,15 @@ export async function faceLogResponse(response: any) {
     //get personnel from mongo db by id
     let _personnel: IPersonnel | null;
     if (response.data.hits.hits[i]._source.personnel_id !== "-1") {
-      _personnel = await Personnel.findById(
-        response.data.hits.hits[i]._source.personnel_id
-      ).exec();
+      _personnel = await Personnel.findOne({
+        $or: [
+          {
+            first_name:
+              response.data.hits.hits[i]._source.personnel_id.split(" ")[0],
+          },
+        ],
+      }).exec();
+      console.log(_personnel);
     } else {
       _personnel = null;
     }

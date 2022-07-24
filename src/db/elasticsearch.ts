@@ -27,30 +27,31 @@ export async function requestToElasticSearch(
           'from': page,
           'size': perPage,
           'query': {
-              'bool': {
-                  'filter': [
-                      {
-                          'term': {
-                              'camera_id': search
-                          }
-                      },
-                      {
-                          'range': {
-                              'timestamp': {
-                                  'gte': 0
-                              }
-                          }
-                      }
-                  ]
-              }
-          },
-          'sort': [
-              {
-                  'timestamp': {
-                      'order': 'desc'
-                  }
-              }
-          ]
+            'bool': {
+                'filter': [
+                    {
+                        'term': {
+                            'camera_id': search
+                        }
+                    },
+                    {
+                        'range': {
+                            'timestamp': {
+                                'gte': timeStart,
+                                'lte': timeEnd
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        'sort': [
+            {
+                'timestamp': {
+                    'order': 'desc'
+                }
+            }
+        ]
       }
       });
     } else {
@@ -62,12 +63,12 @@ export async function requestToElasticSearch(
             "Content-Type": "application/json",
           },
           data: {
-            from: page,
-            size: perPage,
-            sort: [
+            'from': page,
+            'size': perPage,
+            'sort': [
               {
-                timestamp: {
-                  order: "desc",
+                'timestamp': {
+                  'order': "desc",
                 },
               },
             ],
@@ -104,23 +105,23 @@ export async function requestToElasticSearchEvent(
             "Content-Type": "application/json",
           },
           data: {
-            from: page,
-            size: perPage,
-            query: {
-              bool: {
-                filter: [
+            'from': page,
+            'size': perPage,
+            'query': {
+              'bool': {
+                'filter': [
                   {
-                    term: {
+                    'term': {
                       "alerts.labels.camera_id": camera_id,
                     },
                   },
                   {
-                    term: {
+                    'term': {
                       "alerts.labels.module": model,
                     },
                   },
                   {
-                    range: {
+                    'range': {
                       "alerts.labels.timestamp": {
                         gte: timeStart,
                         lte: timeEnd,
@@ -130,7 +131,7 @@ export async function requestToElasticSearchEvent(
                 ],
               },
             },
-            sort: [
+            'sort': [
               {
                 "alerts.labels.timestamp.keyword": {
                   missing: "_last",
@@ -145,14 +146,14 @@ export async function requestToElasticSearchEvent(
             "Content-Type": "application/json",
           },
           data: {
-            from: page,
-            size: perPage,
-            query: {
-              match: {
+            'from': page,
+            'size': perPage,
+            'query': {
+              'match': {
                 "alerts.labels.camera_id": search,
               },
             },
-            sort: [
+            'sort': [
               {
                 "alerts.labels.timestamp.keyword": {
                   missing: "_last",
@@ -167,28 +168,28 @@ export async function requestToElasticSearchEvent(
             "Content-Type": "application/json",
           },
           data: {
-            from: page,
-            size: perPage,
-            query: {
-              bool: {
-                filter: [
+            'from': page,
+            'size': perPage,
+            'query': {
+              'bool': {
+                'filter': [
                   {
-                    term: {
+                    'term': {
                       "alerts.labels.timestamp": search,
                     },
                   },
                   {
-                    range: {
+                    'range': {
                       "alerts.labels.timestamp": {
-                        gte: timeStart,
-                        lte: timeEnd,
+                        'gte': timeStart,
+                        'lte': timeEnd,
                       },
                     },
                   },
                 ],
               },
             },
-            sort: [
+            'sort': [
               {
                 "alerts.labels.timestamp.keyword": {
                   missing: "_last",
@@ -203,20 +204,20 @@ export async function requestToElasticSearchEvent(
             "Content-Type": "application/json",
           },
           data: {
-            from: page,
-            size: perPage,
-            query: {
-              bool: {
-                filter: [
+            'from': page,
+            'size': perPage,
+            'query': {
+              'bool': {
+                'filter': [
                   {
-                    term: {
+                    'term': {
                       "alerts.labels.module": search,
                     },
                   },
                 ],
               },
             },
-            sort: [
+            'sort': [
               {
                 "alerts.labels.timestamp.keyword": {
                   missing: "_last",
@@ -233,8 +234,8 @@ export async function requestToElasticSearchEvent(
           "Content-Type": "application/json",
         },
         data: {
-          from: page,
-          size: perPage,
+          'from': page,
+          'size': perPage,
         },
       });
     }
