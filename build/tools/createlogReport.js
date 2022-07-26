@@ -57,11 +57,11 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
             if (car && camera) {
                 //get car_color from mongo db by id for get car color
                 car_color = yield carColor_1.default.findById(car === null || car === void 0 ? void 0 : car.color_id).exec();
-                if (search && carColor && carColor !== (car_color === null || car_color === void 0 ? void 0 : car_color._id.toString()))
+                if (search && carColor && (carColor !== (car_color === null || car_color === void 0 ? void 0 : car_color._id.toString())))
                     continue;
                 //get car_brand from mongo db by id for get car brand
                 car_brand = yield carBrand_1.default.findById(car === null || car === void 0 ? void 0 : car.brand_id).exec();
-                if (search && carBrand && carBrand !== (car_brand === null || car_brand === void 0 ? void 0 : car_brand._id.toString()))
+                if (search && carBrand && (carBrand !== (car_brand === null || car_brand === void 0 ? void 0 : car_brand._id.toString())))
                     continue;
                 //get owner from mongo db by id for get owner name
                 _owner = yield personnel_1.default.findById(car === null || car === void 0 ? void 0 : car.owner).exec();
@@ -109,10 +109,10 @@ function humanLogResponse(response, allowed) {
             //get camera from mongo db by id for get camera name
             let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
             let result;
-            if ((allowed !== undefined) &&
-                (((_a = schedule === null || schedule === void 0 ? void 0 : schedule.config) === null || _a === void 0 ? void 0 : _a.max_people) >=
+            if (allowed !== undefined &&
+                ((_a = schedule === null || schedule === void 0 ? void 0 : schedule.config) === null || _a === void 0 ? void 0 : _a.max_people) >=
                     response.data.hits.hits[i].number_of_people ==
-                    allowed)) {
+                    allowed) {
                 result = {
                     camera_id: response.data.hits.hits[i]._source.camera_id,
                     camera: camera === null || camera === void 0 ? void 0 : camera.name,
@@ -171,13 +171,7 @@ function faceLogResponse(response) {
             //get personnel from mongo db by id
             let _personnel;
             if (response.data.hits.hits[i]._source.personnel_id !== "-1") {
-                _personnel = yield personnel_1.default.findOne({
-                    $or: [
-                        {
-                            first_name: response.data.hits.hits[i]._source.personnel_id.split(" ")[0],
-                        },
-                    ],
-                }).exec();
+                _personnel = yield personnel_1.default.findById(response.data.hits.hits[i]._source.personnel_id).exec();
                 console.log(_personnel);
             }
             else {

@@ -1,21 +1,21 @@
 version: "3.7"
 services:
-  mongo:
-    container_name: mongo
-    image: ${REG}mongo
-    restart: always
-    volumes:
-      - mongo-data:/data
-    ports:
-      - 27017:27017
-  redis:
-    container_name: redis
-    image: ${REG}redis
-    restart: always
-    volumes: 
-      - cache:/data
-    ports:
-      - 6379:6379
+  # mongo:
+  #   container_name: mongo
+  #   image: ${REG}mongo
+  #   restart: always
+  #   volumes:
+  #     - mongo-data:/data
+  #   ports:
+  #     - 27017:27017
+  #  redis:
+  #    container_name: redis
+  #    image: ${REG}redis
+  #   restart: always
+  #   volumes: 
+  #     - cache:/data
+  #   ports:
+  #     - 6379:6379
   app:
     container_name: isss-backend
     restart: always
@@ -33,14 +33,14 @@ services:
       - ./logs:/isss-backend/logs
       - ./assets:/isss-backend/assets
       - ./security:/isss-backend/security
-    external_links:
-      - mongo
-      - redis
-    depends_on:
-      - mongo
-      - redis
-volumes:
-  cache:
-    driver: local
-  mongo-data:
-    driver: local
+#     external_links:
+#       - mongo
+#       - redis
+#     depends_on:
+#       - mongo
+#       - redis
+# volumes:
+#   cache:
+#     driver: local
+#   mongo-data:
+#     driver: local

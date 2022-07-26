@@ -56,13 +56,21 @@ router.get(
       let timeStartTimeStamp: string = "";
       let timeEndTimeStamp: string = "";
       let _allowed: boolean | undefined = undefined;
-      let _carBrand : string | null = null;
-      let _carColor : string | null = null;
-      let _owner : string | null = null;
+      let _carBrand: string | null = null;
+      let _carColor: string | null = null;
+      let _owner: string | null = null;
       if (search) {
         //get body from request
-        const { time_start, time_end, date_start, date_end, car_brand , car_color , owner ,allowed } =
-          req.body;
+        const {
+          time_start,
+          time_end,
+          date_start,
+          date_end,
+          car_brand,
+          car_color,
+          owner,
+          allowed,
+        } = req.body;
         _allowed = Boolean(allowed) ?? undefined;
         _carBrand = car_brand ?? null;
         _carColor = car_color ?? null;
@@ -79,7 +87,7 @@ router.get(
           ).toString();
           timeEndTimeStamp = dataTime2TimeStamp(date_end, time_end).toString();
         }
-        // else 
+        // else
         // if(!time_start || !time_end || !date_start || !date_end ){
         //   req.flash("error", "Time and date is required");
         //   return next(new HttpException(400, "Time and date is required", model));
@@ -117,11 +125,27 @@ router.get(
           _data = await sabotageLogResponse(response);
         } else if (model === "plate") {
           console.log(_owner);
-          if((_carBrand === null || _carColor === null || _owner === null) && search){
+          if (
+            (_carBrand === null || _carColor === null || _owner === null) &&
+            search
+          ) {
             req.flash("error", "Car brand, car color and owner is required");
-            return next(new HttpException(400, "Car brand, car color and owner is required", model));
+            return next(
+              new HttpException(
+                400,
+                "Car brand, car color and owner is required",
+                model
+              )
+            );
           }
-          _data = await plateLogResponse(response  , _carBrand , _carColor , _owner , _allowed , search);
+          _data = await plateLogResponse(
+            response,
+            _carBrand,
+            _carColor,
+            _owner,
+            _allowed,
+            search
+          );
         } else if (model === "human") {
           _data = await humanLogResponse(response, _allowed);
         } else if (model === "fire") {

@@ -50,11 +50,11 @@ export async function plateLogResponse(
     if (car && camera) {
       //get car_color from mongo db by id for get car color
       car_color = await CarColor.findById(car?.color_id).exec();
-      if (search && carColor && carColor !== car_color?._id.toString())
+      if (search && carColor && (carColor !== car_color?._id.toString()))
         continue;
       //get car_brand from mongo db by id for get car brand
       car_brand = await CarBrand.findById(car?.brand_id).exec();
-      if (search && carBrand && carBrand !== car_brand?._id.toString())
+      if (search && carBrand && (carBrand !== car_brand?._id.toString()))
         continue;
       //get owner from mongo db by id for get owner name
       _owner = await Personnel.findById(car?.owner).exec();
@@ -106,10 +106,10 @@ export async function humanLogResponse(
     ).exec();
     let result: any;
     if (
-      (allowed !== undefined) &&
-      (schedule!?.config!?.max_people! >=
+      allowed !== undefined &&
+      schedule!?.config!?.max_people! >=
         response.data.hits.hits[i].number_of_people ==
-        allowed)
+        allowed
     ) {
       result = {
         camera_id: response.data.hits.hits[i]._source.camera_id,
@@ -166,14 +166,9 @@ export async function faceLogResponse(response: any) {
     //get personnel from mongo db by id
     let _personnel: IPersonnel | null;
     if (response.data.hits.hits[i]._source.personnel_id !== "-1") {
-      _personnel = await Personnel.findOne({
-        $or: [
-          {
-            first_name:
-              response.data.hits.hits[i]._source.personnel_id.split(" ")[0],
-          },
-        ],
-      }).exec();
+      _personnel = await Personnel.findById(
+        response.data.hits.hits[i]._source.personnel_id
+      ).exec();
       console.log(_personnel);
     } else {
       _personnel = null;

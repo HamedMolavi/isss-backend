@@ -59,7 +59,7 @@ router.get("/:model", function (req, res, next) {
             let _owner = null;
             if (search) {
                 //get body from request
-                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed } = req.body;
+                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, } = req.body;
                 _allowed = (_a = Boolean(allowed)) !== null && _a !== void 0 ? _a : undefined;
                 _carBrand = car_brand !== null && car_brand !== void 0 ? car_brand : null;
                 _carColor = car_color !== null && car_color !== void 0 ? car_color : null;
@@ -72,7 +72,7 @@ router.get("/:model", function (req, res, next) {
                     timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time_start).toString();
                     timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time_end).toString();
                 }
-                // else 
+                // else
                 // if(!time_start || !time_end || !date_start || !date_end ){
                 //   req.flash("error", "Time and date is required");
                 //   return next(new HttpException(400, "Time and date is required", model));
@@ -94,7 +94,8 @@ router.get("/:model", function (req, res, next) {
                 }
                 else if (model === "plate") {
                     console.log(_owner);
-                    if ((_carBrand === null || _carColor === null || _owner === null) && search) {
+                    if ((_carBrand === null || _carColor === null || _owner === null) &&
+                        search) {
                         req.flash("error", "Car brand, car color and owner is required");
                         return next(new HttpException_1.default(400, "Car brand, car color and owner is required", model));
                     }

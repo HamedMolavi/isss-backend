@@ -83,8 +83,8 @@ describe("server run and get report logs", async function () {
       .send({
         time_start: "05:30",
         time_end: "12:30",
-        date_start: "15.04.2021",
-        date_end: "15.04.2023",
+        date_start: "04/15/2021",
+        date_end: "04/15/2023",
       })
       .expect("Content-Type", /json/)
       .expect(200, function (err, res) {
@@ -133,8 +133,8 @@ describe("server run and get report logs", async function () {
       .send({
         time_start: "05:30",
         time_end: "12:30",
-        date_start: "15.04.2021",
-        date_end: "15.04.2023",
+        date_start: "4/15/2021",
+        date_end: "4/15/2023",
         probability: 0.5,
       })
       .expect("Content-Type", /json/)
@@ -188,8 +188,8 @@ describe("server run and get report logs", async function () {
       .send({
         time_start: "05:30",
         time_end: "05:30",
-        date_start: "15.04.2021",
-        date_end: "15.04.2023",
+        date_start: "4/15/2021",
+        date_end: "4/15/2023",
         personnel_id: "62ada289eac910a0f3f0c42e",
       })
       .expect("Content-Type", /json/)
@@ -242,8 +242,8 @@ describe("server run and get report logs", async function () {
       .send({
         time_start: "05:30",
         time_end: "12:30",
-        date_start: "15.04.2021",
-        date_end: "15.04.2023",
+        date_start: "4/15/2021",
+        date_end: "4/15/2023",
       })
       .expect("Content-Type", /json/)
       .expect(200, function (err, res) {
@@ -343,8 +343,8 @@ describe("server run and get report logs", async function () {
       .send({
         time_start: "05:30",
         time_end: "12:30",
-        date_start: "15.04.2021",
-        date_end: "15.04.2023",
+        date_start: "4/15/2021",
+        date_end: "4/15/2023",
       })
       .expect("Content-Type", /json/)
       .expect(200, function (err, res) {
@@ -374,8 +374,8 @@ describe("server run and get report logs", async function () {
       .send({
         time_start: "05:30",
         time_end: "12:30",
-        date_start: "15.04.2021",
-        date_end: "15.04.2023",
+        date_start: "4/15/2021",
+        date_end: "4/15/2023",
       })
       .expect("Content-Type", /json/)
       .expect(200, function (err, res) {
@@ -442,19 +442,75 @@ describe("server run and get report logs", async function () {
       });
   });
 
-  //test get report  department event search by camera , model , time with token
-  it("should send back a JSON object  department event report search by camera , model , time", function (done) {
+  // //test get report  department event search by camera , model , time with token
+  // it("should send back a JSON object  department event report search by camera , model , time", function (done) {
+  //   request(app)
+  //     .get(
+  //       "/api/v1/reportDepartmets?perPage=10&page=1&name=all&search=human+628dc14af014bc89f0280c46"
+  //     )
+  //     .set("Content-Type", "application/json")
+  //     .set("Authorization", `Bearer ${token}`)
+  //     .send({
+  //       time_start: "05:30",
+  //       time_end: "12:30",
+  //       date_start: "4/15/2021",
+  //       date_end: "4/15/2023",
+  //     })
+  //     .expect("Content-Type", /json/)
+  //     .expect(200, function (err, res) {
+  //       if (err) {
+  //         return done(err);
+  //       }
+  //       let response = res.body;
+  //       expect(response.message).to.be.equal("Success");
+  //       //   expect(response.data[0]).to.have.property('camera');
+  //       expect(response.data[0]).to.have.property("time");
+  //       expect(response.data[0]).to.have.property("sections");
+  //       expect(response.data[0]).to.have.property("AI");
+  //       expect(response.data[0]).to.have.property("description");
+
+  //       done();
+  //     });
+  // }).timeout(20000);
+  //test get plate log report plate logs with token
+  it("should send back a JSON object with all plate log report", function (done) {
     request(app)
-      .get(
-        "/api/v1/reportDepartmets?perPage=10&page=1&name=all&search=human+628dc14af014bc89f0280c46"
-      )
+      .get("/api/v1/reports/plate?perPage=3&page=1")
+      .set("Content-Type", "application/json")
+      .set("Authorization", `Bearer ${token}`)
+      .expect("Content-Type", /json/)
+      .expect(200, function (err, res) {
+        if (err) {
+          return done(err);
+        }
+        let response = res.body;
+        expect(response.message).to.be.equal("Success");
+        //   expect(response.data[0]).to.have.property('camera');
+        expect(response.data[0]).to.have.property("camera_id");
+        expect(response.data[0]).to.have.property("time");
+        expect(response.data[0]).to.have.property("plate");
+        expect(response.data[0]).to.have.property("owner");
+        expect(response.data[0]).to.have.property("allowed");
+
+        done();
+      });
+  }).timeout(10000);
+
+  //test get plate log report search plate logs with token
+  it("should send back a JSON object with search plate log report", function (done) {
+    request(app)
+      .get("/api/v1/reports/plate?perPage=3&page=1")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .send({
         time_start: "05:30",
-        time_end: "12:30",
-        date_start: "15.04.2021",
-        date_end: "15.04.2023",
+        time_end: "20:00",
+        date_start: "04/15/2021",
+        date_end: "04/15/2023",
+        car_brand: "62943e1c2008add06c796aa3",
+        car_color: "62935b82b465fdf3f2b8084e",
+        owner:"628df9bdf014bc89f0280c78",
+        allowed: false,
       })
       .expect("Content-Type", /json/)
       .expect(200, function (err, res) {
@@ -464,16 +520,13 @@ describe("server run and get report logs", async function () {
         let response = res.body;
         expect(response.message).to.be.equal("Success");
         //   expect(response.data[0]).to.have.property('camera');
+        expect(response.data[0]).to.have.property("camera_id");
         expect(response.data[0]).to.have.property("time");
-        expect(response.data[0]).to.have.property("sections");
-        expect(response.data[0]).to.have.property("AI");
-        expect(response.data[0]).to.have.property("description");
+        expect(response.data[0]).to.have.property("plate");
+        expect(response.data[0]).to.have.property("owner");
+        expect(response.data[0]).to.have.property("allowed");
 
         done();
       });
-  }).timeout(20000);
-  //  //test get fire report people counting logs with token
-  //  it('should send back a JSON object with people counting log report', function (done) {
-  //    //todo
-  // });
+  }).timeout(10000);
 });
