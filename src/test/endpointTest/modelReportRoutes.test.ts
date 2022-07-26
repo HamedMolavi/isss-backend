@@ -55,7 +55,7 @@ describe("server run and get report logs", async function () {
   //test get sabotage report sabotage logs with token
   it("should send back a JSON object with all sabotage log report", function (done) {
     request(app)
-      .get("/api/v1/reports/sabotage?perPage=10&page=1")
+      .post("/api/v1/reports/sabotage?perPage=10&page=1")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .expect("Content-Type", /json/)
@@ -75,7 +75,7 @@ describe("server run and get report logs", async function () {
   //test search sabotage report sabotage logs with token
   it("should send back a JSON object search sabotage log report", function (done) {
     request(app)
-      .get(
+      .post(
         "/api/v1/reports/sabotage?perPage=300&page=1&search=628dc14af014bc89f0280c46"
       )
       .set("Content-Type", "application/json")
@@ -103,7 +103,7 @@ describe("server run and get report logs", async function () {
   //test get fire report fire logs with token
   it("should send back a JSON object with all fire log report", function (done) {
     request(app)
-      .get("/api/v1/reports/fire?perPage=200&page=1")
+      .post("/api/v1/reports/fire?perPage=200&page=1")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .expect("Content-Type", /json/)
@@ -125,7 +125,7 @@ describe("server run and get report logs", async function () {
   //test search fire  logs with token
   it("should send back a JSON object search fire log report", function (done) {
     request(app)
-      .get(
+      .post(
         "/api/v1/reports/fire?perPage=10&page=1&search=628dc31bf014bc89f0280c54"
       )
       .set("Content-Type", "application/json")
@@ -157,7 +157,7 @@ describe("server run and get report logs", async function () {
   //test get  all face logs with token
   it("should send back a JSON object with all face log report", function (done) {
     request(app)
-      .get("/api/v1/reports/face?perPage=10&page=1")
+      .post("/api/v1/reports/face?perPage=10&page=1")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .expect("Content-Type", /json/)
@@ -180,7 +180,7 @@ describe("server run and get report logs", async function () {
   //test get fire report face logs with token
   it("should send back a JSON object search face log report", function (done) {
     request(app)
-      .get(
+      .post(
         "/api/v1/reports/face?perPage=3&page=1&search=628dc2c0f014bc89f0280c4e"
       )
       .set("Content-Type", "application/json")
@@ -212,7 +212,7 @@ describe("server run and get report logs", async function () {
   //test get all report people counting logs with token
   it("should send back a JSON object all people counting log report", function (done) {
     request(app)
-      .get("/api/v1/reports/human?perPage=3&page=1")
+      .post("/api/v1/reports/human?perPage=3&page=1")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .expect("Content-Type", /json/)
@@ -234,7 +234,7 @@ describe("server run and get report logs", async function () {
   //test get report people counting logs with token
   it("should send back a JSON object search people counting log report", function (done) {
     request(app)
-      .get(
+      .post(
         "/api/v1/reports/human?perPage=3&page=1&search=628dc289f014bc89f0280c48"
       )
       .set("Content-Type", "application/json")
@@ -264,7 +264,7 @@ describe("server run and get report logs", async function () {
   //test get report all event logs with token
   it("should send back a JSON object all event log report", function (done) {
     request(app)
-      .get("/api/v1/reports/event?perPage=10&page=1")
+      .post("/api/v1/reports/event?perPage=10&page=1")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .expect("Content-Type", /json/)
@@ -287,7 +287,7 @@ describe("server run and get report logs", async function () {
   //test get report event logs search with camera_id with token
   it("should send back a JSON object search event log with camera_id report", function (done) {
     request(app)
-      .get(
+      .post(
         "/api/v1/reports/event?perPage=5&page=1&name=camera&search=628dc14af014bc89f0280c46"
       )
       .set("Content-Type", "application/json")
@@ -312,7 +312,7 @@ describe("server run and get report logs", async function () {
   //test get report event logs search with model name with token
   it("should send back a JSON object search event log with model name report", function (done) {
     request(app)
-      .get("/api/v1/reports/event?perPage=50&page=1&name=ai&search=human")
+      .post("/api/v1/reports/event?perPage=50&page=1&name=ai&search=human")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .expect("Content-Type", /json/)
@@ -335,7 +335,7 @@ describe("server run and get report logs", async function () {
   //test get report event logs search with camera_id && model name with token
   it("should send back a JSON object search event log with camera_id && model name  report", function (done) {
     request(app)
-      .get(
+      .post(
         "/api/v1/reports/event?perPage=5&page=1&name=all&search=human+628dc14af014bc89f0280c46"
       )
       .set("Content-Type", "application/json")
@@ -366,7 +366,7 @@ describe("server run and get report logs", async function () {
   //test get report all department event with token
   it("should send back a JSON object all department event report", function (done) {
     request(app)
-      .get(
+      .post(
         "/api/v1/reportDepartmets?perPage=5&page=1&name=all&search=human+628dc14af014bc89f0280c46"
       )
       .set("Content-Type", "application/json")
@@ -397,7 +397,7 @@ describe("server run and get report logs", async function () {
   //test get report department event search by camera_id with token
   it("should send back a JSON object department event report search by camera_id", function (done) {
     request(app)
-      .get(
+      .post(
         "/api/v1/reportDepartmets?perPage=10&page=1&name=camera&search=628dc14af014bc89f0280c46"
       )
       .set("Content-Type", "application/json")
@@ -422,7 +422,7 @@ describe("server run and get report logs", async function () {
   //test get report department event search by model name with token
   it("should send back a JSON object department event report search by model name", function (done) {
     request(app)
-      .get("/api/v1/reportDepartmets?perPage=10&page=1&name=ai&search=human")
+      .post("/api/v1/reportDepartmets?perPage=10&page=1&name=ai&search=human")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .expect("Content-Type", /json/)
@@ -475,7 +475,7 @@ describe("server run and get report logs", async function () {
   //test get plate log report plate logs with token
   it("should send back a JSON object with all plate log report", function (done) {
     request(app)
-      .get("/api/v1/reports/plate?perPage=3&page=1")
+      .post("/api/v1/reports/plate?perPage=3&page=1")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .expect("Content-Type", /json/)
@@ -499,7 +499,7 @@ describe("server run and get report logs", async function () {
   //test get plate log report search plate logs with token
   it("should send back a JSON object with search plate log report", function (done) {
     request(app)
-      .get("/api/v1/reports/plate?perPage=3&page=1")
+      .post("/api/v1/reports/plate?perPage=3&page=1")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .send({

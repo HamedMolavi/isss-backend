@@ -30,7 +30,7 @@ router.use(function (req, res, next) {
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"];
 //route for get sabotage list
-router.get("", function (req, res, next) {
+router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get model from url request
@@ -48,20 +48,20 @@ router.get("", function (req, res, next) {
             let response;
             //get searchName from url
             let searchName = req.query.name || "";
-            let timeStartTimeStamp = "";
-            let timeEndTimeStamp = "";
+            let timeEpokhStart = "";
+            let timeEpokhEnd = "";
             if (search) {
                 //get body from request
                 const { time_start, time_end, date_start, date_end } = req.body;
                 if (time_start && time_end && date_start && date_end) {
                     //convet time to timeStamp
-                    timeStartTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_start, time_start).toString();
-                    timeEndTimeStamp = (0, convertTime_1.dataTime2TimeStamp)(date_end, time_end).toString();
+                    timeEpokhStart = (0, convertTime_1.date2Epokh)(date_start, time_start);
+                    timeEpokhEnd = (0, convertTime_1.date2Epokh)(date_end, time_end);
                 }
             }
             let _data = [];
             //get event data from elastic search
-            response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, timeStartTimeStamp, timeEndTimeStamp, page, perPage, next, searchName);
+            response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, timeEpokhStart, timeEpokhEnd, page, perPage, next, searchName);
             //create json response for client
             _data = yield (0, createlogReport_1.eventDepartmentLogResponse)(response);
             //return data to client

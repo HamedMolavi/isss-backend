@@ -13,7 +13,7 @@ import {
   requestToElasticSearch,
   requestToElasticSearchEvent,
 } from "../../../db/elasticsearch";
-import { dataTime2TimeStamp, date2Epokh } from "../../../tools/convertTime";
+import { date2Epokh } from "../../../tools/convertTime";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -30,7 +30,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 const dbUri = process.env["ELASTIC_SEARCH"] as string;
 
 //route for get sabotage list
-router.get(
+router.post(
   "/:model",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
@@ -51,10 +51,8 @@ router.get(
       let searchName = (req.query.name as string) || "";
 
       let response: any;
-      let timeStartScientificSymbol: string = "";
-      let timeEndScientificSymbol: string = "";
-      let timeStartTimeStamp: string = "";
-      let timeEndTimeStamp: string = "";
+      let timeEpokhStart: string = "";
+      let timeEpokhEnd: string = "";
       let _allowed: boolean | undefined = undefined;
       let _carBrand: string | null = null;
       let _carColor: string | null = null;
@@ -77,15 +75,8 @@ router.get(
         _owner = owner ?? null;
         if (time_start && time_end && date_start && date_end) {
           //convert date_start to epokh
-          timeStartScientificSymbol = date2Epokh(date_start, time_start);
-          timeEndScientificSymbol = date2Epokh(date_end, time_end);
-
-          //convet time to timeStamp
-          timeStartTimeStamp = dataTime2TimeStamp(
-            date_start,
-            time_start
-          ).toString();
-          timeEndTimeStamp = dataTime2TimeStamp(date_end, time_end).toString();
+          timeEpokhStart = date2Epokh(date_start, time_start);
+          timeEpokhEnd = date2Epokh(date_end, time_end);
         }
         // else
         // if(!time_start || !time_end || !date_start || !date_end ){
@@ -100,21 +91,28 @@ router.get(
         //get event data from elastic search
         response = await requestToElasticSearchEvent(
           search,
-          timeStartTimeStamp,
-          timeEndTimeStamp,
+          timeEpokhEnd,
+          timeEpokhStart,
           page,
           perPage,
           next,
           searchName
         );
+        //report error on data null or undefined
+        if (!response) {
+          req.flash("error", "Data is null or undefined");
+          return next(
+            new HttpException(404, "Data is null or undefined", model)
+          );
+        }
         //create json response for client
         _data = await eventLogResponse(response);
       } else {
         //get log for other models data from elastic
         response = await requestToElasticSearch(
           search,
-          timeStartScientificSymbol,
-          timeEndScientificSymbol,
+          timeEpokhStart,
+          timeEpokhEnd,
           model,
           page,
           perPage,
@@ -124,7 +122,6 @@ router.get(
         if (model === "sabotage") {
           _data = await sabotageLogResponse(response);
         } else if (model === "plate") {
-          console.log(_owner);
           if (
             (_carBrand === null || _carColor === null || _owner === null) &&
             search
