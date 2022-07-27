@@ -29,9 +29,12 @@ export const compareTime = (start: string, stop: string) => {
 //convert date to epokh
 export function date2Epokh(date: string, time: string): string {
   //revers date string and concat with time
-  let timeDateStart: string = reverseString(date) + "T" + time + ":00";
+  let dates = date.split("/");
+  let times = time.split(":");
+  //let timeDateStart: string = reverseString(date) + "T" + time + ":00";
   //convert date to epokh
-  let timeDateEpokhStart: number = new Date(timeDateStart).getTime();
+  //let timeDateEpokhStart: number = new Date(timeDateStart).getTime();
+  const timeDateEpokhStart : number = new Date(Number(dates[2]), Number(dates[0]), Number(dates[1]), Number(times[0]), Number(times[1]), 0).getTime();
   //delete last 3 digits from epokh for delete milisecond
  // timeDateEpokhStart = timeDateEpokhStart / 1000;
   //convert epokh to Scientific Symbol

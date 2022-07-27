@@ -3,7 +3,7 @@ import HttpException from "../../../error/HttpException";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import { eventDepartmentLogResponse } from "../../../tools/createlogReport";
 import { requestToElasticSearchEvent } from "../../../db/elasticsearch";
-import { dataTime2TimeStamp } from "../../../tools/convertTime";
+import { date2Epokh } from "../../../tools/convertTime";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -20,7 +20,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 const dbUri = process.env["ELASTIC_SEARCH"] as string;
 
 //route for get sabotage list
-router.get(
+router.post(
   "",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
@@ -40,15 +40,15 @@ router.get(
       //get searchName from url
       let searchName = (req.query.name as string) || "";
 
-      let timeStartTimeStamp: string = "";
-      let timeEndTimeStamp: string = "";
+      let timeEpokhStart: string = "";
+      let timeEpokhEnd: string = "";
       if (search) {
         //get body from request
         const { time_start , time_end, date_start, date_end } = req.body;
         if (time_start && time_end && date_start && date_end) {
           //convet time to timeStamp
-          timeStartTimeStamp = dataTime2TimeStamp(date_start, time_start).toString();
-          timeEndTimeStamp = dataTime2TimeStamp(date_end, time_end).toString();
+          timeEpokhStart = date2Epokh(date_start, time_start);
+          timeEpokhEnd = date2Epokh(date_end, time_end);
         }
       }
 
@@ -56,8 +56,8 @@ router.get(
       //get event data from elastic search
       response = await requestToElasticSearchEvent(
         search,
-        timeStartTimeStamp,
-        timeEndTimeStamp,
+        timeEpokhStart,
+        timeEpokhEnd,
         page,
         perPage,
         next,

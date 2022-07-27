@@ -33,14 +33,17 @@ exports.compareTime = compareTime;
 //convert date to epokh
 function date2Epokh(date, time) {
     //revers date string and concat with time
-    let timeDateStart = (0, reverseString_1.default)(date) + "T" + time + ":00";
+    let dates = date.split("/");
+    let times = time.split(":");
+    //let timeDateStart: string = reverseString(date) + "T" + time + ":00";
     //convert date to epokh
-    let timeDateEpokhStart = new Date(timeDateStart).getTime();
+    //let timeDateEpokhStart: number = new Date(timeDateStart).getTime();
+    const timeDateEpokhStart = new Date(Number(dates[2]), Number(dates[0]), Number(dates[1]), Number(times[0]), Number(times[1]), 0).getTime();
     //delete last 3 digits from epokh for delete milisecond
-    timeDateEpokhStart = timeDateEpokhStart / 1000;
+    // timeDateEpokhStart = timeDateEpokhStart / 1000;
     //convert epokh to Scientific Symbol
-    let timeStartScientificSymbol = timeDateEpokhStart.toExponential();
-    return timeStartScientificSymbol;
+    // let timeStartScientificSymbol = timeDateEpokhStart.toExponential();
+    return timeDateEpokhStart.toString();
 }
 exports.date2Epokh = date2Epokh;
 //convert dataTime to TimeStamp

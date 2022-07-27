@@ -2,9 +2,9 @@ FROM node:alpine
 
 WORKDIR /isss-backend
 
-# COPY logs ./logs
-# COPY security ./security
-# COPY assets ./assets
+COPY logs ./logs ./
+COPY security ./security ./
+COPY assets ./assets ./
 COPY tsconfig.json ./
 COPY package.json ./
 COPY src ./src
