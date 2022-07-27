@@ -34,6 +34,8 @@ router.post(
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+
+      page = ((page -1) * perPage )+ 1;
       //get search from url
       let search = (req.query.search as string) || "";
       let response: any;
