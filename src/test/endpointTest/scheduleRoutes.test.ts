@@ -33,7 +33,7 @@ describe('server run and crud schedule', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 if (res.body.message !== "schedule already exist") {
-                    let response = res.body.schedule;
+                    let response = res.body.data;
                     expect(response.start_cron).to.equal('00 10 * * 1');
                     expect(response.stop_cron).to.equal('00 12 * * 1');
                     expect(response.model_camera_id).to.be.an('String');
@@ -76,7 +76,7 @@ describe('server run and crud schedule', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.schedules;
+                let userResponse = res.body.data;
                 expect(userResponse[0].start_cron).to.equal('00 10 * * 1');
                 expect(userResponse[0].stop_cron).to.equal('00 12 * * 1');
                 expect(userResponse[0].model_camera_id).to.be.an('String');

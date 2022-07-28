@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import HttpException from "./../../../error/HttpException";
+import { ApiError } from "../../../error/error.handler";
 import CarBrand, { ICarBrand } from "./../../../models/carBrand";
-import { authorize, getToken, getTokenAndVerify, ICritential } from "./../../../tools/authentication";
+import { getTokenAndVerify } from "./../../../tools/authentication";
 
 //create router for add to server file 
 const router: Router = Router();
@@ -23,7 +23,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         //verify body request
         if (!name) {
             req.flash("error", "Car brand is required");
-            return next(new HttpException(400, "Bad request", "Car_Brand"));
+            return next(new ApiError(400, "Bad request car brand is required"));
         }
         //get token from header request and verify
         let token = getTokenAndVerify(req, "user", next);
@@ -33,7 +33,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         //retrun error if car_brand already exists
         if (carBrand) {
             req.flash("error", "Car Brand already exists");
-            return next(new HttpException(400, "Car Brand already exists", "Car_Brand"));
+            return next(new ApiError(400, "Car Brand already exists"));
         }
         //fill new car_brand
         let newCarBrand = new CarBrand({
@@ -43,11 +43,11 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         await newCarBrand.save();
         req.flash("info", "Car Brand added");
         return res.status(201).json({
-            message: "car created",
-            carBrand: newCarBrand
+            success: true,
+            data: newCarBrand
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "Car_Brand"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 
@@ -77,20 +77,20 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         //return response not found to client if not found car_brand
         if (!carBrands) {
             req.flash("error", "Car Brands not found");
-            return next(new HttpException(404, "Car Brands not found", "Car_Brand"));
+            return next(new ApiError(404, "Car Brands not found"));
         }
 
         //return response to client with car_brand list
         return res.status(200).json({
-            message: "Success",
-            carBrands: carBrands,
+            success: true,
+            data: carBrands,
             page: page,
             perPage: perPage,
             total: await CarBrand.countDocuments().exec(),
             pages: Math.ceil(await CarBrand.countDocuments().exec() / perPage)
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "Car_Brand"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 
@@ -101,7 +101,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "Car Brand id is required");
-            return next(new HttpException(400, "Bad request", "Car_Brand"));
+            return next(new ApiError(400, "Bad request car brand id is required"));
         }
 
         //get token from header request and verify
@@ -113,15 +113,15 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found car_brand
         if (!carBrand) {
             req.flash("error", "Car Brand not found");
-            return next(new HttpException(404, "Car Brand not found", "Car_Brand"));
+            return next(new ApiError(404, "Car Brand not found"));
         }
         //return response to client with car
         return res.status(200).json({
-            message: "Success",
-            carBrand: carBrand
+            success: true,
+            data: carBrand
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "Car_Brand"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 
@@ -133,7 +133,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "Car Brand id is required");
-            return next(new HttpException(400, "Bad request", "Car_Brand"));
+            return next(new ApiError(400, "Bad request car brand id is required"));
         }
 
         //get token from header request and verify
@@ -144,15 +144,15 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         //return response not found to client if not found car_brand
         if (!carBrand) {
             req.flash("error", "Car Brand not found");
-            return next(new HttpException(404, "Car Brand not found", "Car_Brand"));
+            return next(new ApiError(404, "Car Brand not found"));
         }
         //return response to client with car_brand
         return res.status(201).json({
-            message: "Success",
-            carBrand: carBrand
+            success: true,
+            data: carBrand
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "Car_Brand"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 
 });

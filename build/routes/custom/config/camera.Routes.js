@@ -13,10 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const error_handler_1 = require("../../../error/error.handler");
 const camera_1 = __importDefault(require("./../../../models/camera"));
 const authentication_1 = require("./../../../tools/authentication");
-//create router for add to server 
+//create router for add to server
 const router = (0, express_1.Router)();
 //add error handler middleware
 router.use(function (req, res, next) {
@@ -30,26 +30,28 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { section_id, url, ip, name, username, password, is_enabled } = req.body;
+            const { section_id, url, ip, name, username, password, is_enabled, } = req.body;
             //verify body request
-            if (!section_id || !url || !ip || !name || !username || !password || !is_enabled) {
+            if (!section_id ||
+                !url ||
+                !ip ||
+                !name ||
+                !username ||
+                !password ||
+                !is_enabled) {
                 req.flash("error", "Veuillez remplir tous les champs");
-                return next(new HttpException_1.default(400, "Veuillez remplir tous les champs", "camera"));
+                return next(new error_handler_1.ApiError(400, "Veuillez remplir tous les champs"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for save new Camera in DB
             let camera = yield camera_1.default.findOne({
-                $or: [
-                    { ip: ip },
-                    { name: name },
-                    { url: url },
-                ]
+                $or: [{ ip: ip }, { name: name }, { url: url }],
             }).exec();
             //return error if camera already exist
             if (camera) {
                 req.flash("error", "camera already exist");
-                return next(new HttpException_1.default(400, "camera already exist", "camera"));
+                return next(new error_handler_1.ApiError(400, "camera already exist"));
             }
             //fil new camera
             camera = new camera_1.default({
@@ -66,16 +68,16 @@ router.post("", function (req, res, next) {
             //return success
             req.flash("info", "camera added");
             return res.status(201).json({
-                message: 'Success',
-                data: camera
+                success: true,
+                data: camera,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "camera"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });
-//route for get cameras list  
+//route for get cameras list
 router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -92,33 +94,39 @@ router.get("", function (req, res, next) {
             //query for get cameras list
             if (search !== "") {
                 cameras = yield camera_1.default.find({
-                    name: { $regex: search, $options: "i" }
-                }).skip((page - 1) * perPage).limit(perPage).exec();
+                    name: { $regex: search, $options: "i" },
+                })
+                    .skip((page - 1) * perPage)
+                    .limit(perPage)
+                    .exec();
             }
             else {
-                cameras = yield camera_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+                cameras = yield camera_1.default.find({})
+                    .limit(perPage)
+                    .skip(perPage * (page - 1))
+                    .exec();
             }
             //return response not found to client if not found cameras
             if (!cameras) {
                 req.flash("error", "Cameras not found");
-                return next(new HttpException_1.default(404, "Cameras not found", "camera"));
+                return next(new error_handler_1.ApiError(404, "Cameras not found"));
             }
             //return response to client with departements list
             return res.status(200).json({
-                message: "Success",
+                success: true,
                 data: cameras,
                 page: page,
                 perPage: perPage,
                 total: yield camera_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield camera_1.default.countDocuments().exec()) / perPage)
+                pages: Math.ceil((yield camera_1.default.countDocuments().exec()) / perPage),
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "camera"));
+            return next(new error_handler_1.ApiError(500, "internal server error , " + err.message));
         }
     });
 });
-//route for get camera by id from DB 
+//route for get camera by id from DB
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -135,16 +143,16 @@ router.get("/:id", function (req, res, next) {
             //return error if camera not found
             if (!camera) {
                 req.flash("error", "camera not found");
-                return next(new HttpException_1.default(404, "camera not found", "camera"));
+                return next(new error_handler_1.ApiError(404, "camera not found"));
             }
             //send response to client with camera
             return res.status(200).json({
-                message: 'Success',
-                data: camera
+                success: true,
+                data: camera,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "camera"));
+            return next(new error_handler_1.ApiError(500, "internal server error , " + err.message));
         }
     });
 });
@@ -156,27 +164,29 @@ router.patch("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "id not found");
-                return next(new HttpException_1.default(400, "Bad request", "camera"));
+                return next(new error_handler_1.ApiError(400, "Bad request id not found"));
             }
             //get jason from body request
             const cameraBody = req.body;
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get user by id from DB
-            let camera = yield camera_1.default.findByIdAndUpdate(id, cameraBody, { new: true }).exec();
+            let camera = yield camera_1.default.findByIdAndUpdate(id, cameraBody, {
+                new: true,
+            }).exec();
             //return error if user not found
             if (!camera) {
                 req.flash("error", "camera not found");
-                return next(new HttpException_1.default(404, "camera not found", "camera"));
+                return next(new error_handler_1.ApiError(404, "camera not found"));
             }
             //send response to client with user
             return res.status(201).json({
-                message: 'Success',
-                data: camera
+                success: true,
+                data: camera,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "camera"));
+            return next(new error_handler_1.ApiError(500, "internal server error , " + err.message));
         }
     });
 });
@@ -187,7 +197,7 @@ router.delete("/:id", function (req, res, next) {
             //get id from url
             let id = req.params.id;
             if (!id) {
-                return next(new HttpException_1.default(400, "Bad request", "camera"));
+                return next(new error_handler_1.ApiError(400, "Bad request id not found"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -196,16 +206,16 @@ router.delete("/:id", function (req, res, next) {
             //return error if camera not found
             if (!camera) {
                 req.flash("error", "camera not found");
-                return next(new HttpException_1.default(404, "camera not found", "camera"));
+                return next(new error_handler_1.ApiError(404, "camera not found"));
             }
             //send response to client with camera
             return res.status(201).json({
-                message: 'Success',
-                data: camera
+                success: true,
+                data: camera,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "camera"));
+            return next(new error_handler_1.ApiError(500, "internal server error , " + err.message));
         }
     });
 });

@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const error_handler_1 = require("../../../error/error.handler");
 const carBrand_1 = __importDefault(require("./../../../models/carBrand"));
 const authentication_1 = require("./../../../tools/authentication");
 //create router for add to server file 
@@ -34,7 +34,7 @@ router.post("", function (req, res, next) {
             //verify body request
             if (!name) {
                 req.flash("error", "Car brand is required");
-                return next(new HttpException_1.default(400, "Bad request", "Car_Brand"));
+                return next(new error_handler_1.ApiError(400, "Bad request car brand is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -43,7 +43,7 @@ router.post("", function (req, res, next) {
             //retrun error if car_brand already exists
             if (carBrand) {
                 req.flash("error", "Car Brand already exists");
-                return next(new HttpException_1.default(400, "Car Brand already exists", "Car_Brand"));
+                return next(new error_handler_1.ApiError(400, "Car Brand already exists"));
             }
             //fill new car_brand
             let newCarBrand = new carBrand_1.default({
@@ -53,12 +53,12 @@ router.post("", function (req, res, next) {
             yield newCarBrand.save();
             req.flash("info", "Car Brand added");
             return res.status(201).json({
-                message: "car created",
-                carBrand: newCarBrand
+                success: true,
+                data: newCarBrand
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "Car_Brand"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -88,12 +88,12 @@ router.get("", function (req, res, next) {
             //return response not found to client if not found car_brand
             if (!carBrands) {
                 req.flash("error", "Car Brands not found");
-                return next(new HttpException_1.default(404, "Car Brands not found", "Car_Brand"));
+                return next(new error_handler_1.ApiError(404, "Car Brands not found"));
             }
             //return response to client with car_brand list
             return res.status(200).json({
-                message: "Success",
-                carBrands: carBrands,
+                success: true,
+                data: carBrands,
                 page: page,
                 perPage: perPage,
                 total: yield carBrand_1.default.countDocuments().exec(),
@@ -101,7 +101,7 @@ router.get("", function (req, res, next) {
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "Car_Brand"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -113,7 +113,7 @@ router.get("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Car Brand id is required");
-                return next(new HttpException_1.default(400, "Bad request", "Car_Brand"));
+                return next(new error_handler_1.ApiError(400, "Bad request car brand id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -122,16 +122,16 @@ router.get("/:id", function (req, res, next) {
             //return response not found to client if not found car_brand
             if (!carBrand) {
                 req.flash("error", "Car Brand not found");
-                return next(new HttpException_1.default(404, "Car Brand not found", "Car_Brand"));
+                return next(new error_handler_1.ApiError(404, "Car Brand not found"));
             }
             //return response to client with car
             return res.status(200).json({
-                message: "Success",
-                carBrand: carBrand
+                success: true,
+                data: carBrand
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "Car_Brand"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -143,7 +143,7 @@ router.delete("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Car Brand id is required");
-                return next(new HttpException_1.default(400, "Bad request", "Car_Brand"));
+                return next(new error_handler_1.ApiError(400, "Bad request car brand id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -152,16 +152,16 @@ router.delete("/:id", function (req, res, next) {
             //return response not found to client if not found car_brand
             if (!carBrand) {
                 req.flash("error", "Car Brand not found");
-                return next(new HttpException_1.default(404, "Car Brand not found", "Car_Brand"));
+                return next(new error_handler_1.ApiError(404, "Car Brand not found"));
             }
             //return response to client with car_brand
             return res.status(201).json({
-                message: "Success",
-                carBrand: carBrand
+                success: true,
+                data: carBrand
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "Car_Brand"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });

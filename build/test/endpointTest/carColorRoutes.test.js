@@ -27,7 +27,7 @@ describe('server run and crud car color', function () {
             }
             if (res.body.message !== 'Car Color already exists') {
                 let response = res.body;
-                (0, chai_1.expect)(response.carColor.name).to.equal('red');
+                (0, chai_1.expect)(response.data.name).to.equal('red');
             }
             else {
                 let response = null;
@@ -59,7 +59,7 @@ describe('server run and crud car color', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.carColors;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).to.have.property('name');
             // Done
             done();
@@ -76,7 +76,7 @@ describe('server run and crud car color', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.carColors;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).to.have.property('name');
             // Done
             done();
@@ -93,7 +93,7 @@ describe('server run and crud car color', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.carColor;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse.name).to.equal(_carColor.name);
             // Done
             done();
@@ -111,7 +111,7 @@ describe('server run and crud car color', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("Success");
+            (0, chai_1.expect)(result.success).to.equal(true);
             // Done
             done();
         });

@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import HttpException from "./../../../error/HttpException";
+import { ApiError } from "../../../error/error.handler";
 import User, { IUser } from "../../../models/user";
 import { getTokenAndVerify } from "../../../tools/authentication";
 
@@ -33,10 +33,10 @@ router.post(
       //verify body request
       if (!username || !password || !phone_number) {
         req.flash("error", "Please enter all fields");
-        return next(new HttpException(400, "Please enter all fields", "User"));
+        return next(new ApiError(400, "Please enter all fields"));
       }
       //get token from header request and verify
-      // let token = getTokenAndVerify(req, "admin", next);
+      let token = getTokenAndVerify(req, "admin", next);
 
       //query for save new user in DB
       let user = await User.findOne({
@@ -46,7 +46,7 @@ router.post(
       //check user in DB
       if (user) {
         req.flash("error", "User already exists");
-        return next(new HttpException(400, "User already exists", "User"));
+        return next(new ApiError(400, "User already exists"));
       }
 
       //set data for new user
@@ -65,11 +65,11 @@ router.post(
       req.flash("info", "User created");
       //send response
       return res.status(201).json({
-        message: "Success",
-        user: newUser,
+        success: true,
+        data: newUser,
       });
     } catch (err: any) {
-      return next(new HttpException(500, err.message, "User"));
+      return next(new ApiError(500, "internal server error" + err.message));
     }
   }
 );
@@ -107,19 +107,19 @@ router.get(
       //send not found if user not found
       if (!users) {
         req.flash("error", "User not found");
-        return next(new HttpException(404, "User not found", "User"));
+        return next(new ApiError(404, "User not found"));
       }
       //send response
       return res.status(200).json({
-        message: "Success",
-        users: users,
+        success: true,
+        data: users,
         page: page,
         perPage: perPage,
         total: await User.countDocuments().exec(),
         pages: Math.ceil((await User.countDocuments().exec()) / perPage),
       });
     } catch (err: any) {
-      return next(new HttpException(500, err.message, "User"));
+      return next(new ApiError(500, "internal server error , " + err.message));
     }
   }
 );
@@ -133,7 +133,7 @@ router.get(
       let id: string = req.params.id;
       if (!id) {
         req.flash("error", "Please enter id");
-        return next(new HttpException(400, "Please enter id", "User"));
+        return next(new ApiError(400, "Please enter id"));
       }
 
       //get token from header request and verify
@@ -145,16 +145,16 @@ router.get(
       //send not found if user not found
       if (!user) {
         req.flash("error", "User not found");
-        return next(new HttpException(404, "User not found", "User"));
+        return next(new ApiError(404, "User not found"));
       }
 
       //send response
       return res.status(200).json({
-        message: "Success",
-        user: user,
+        success: true,
+        data: user,
       });
     } catch (err: any) {
-      return next(new HttpException(500, err.message, "User"));
+      return next(new ApiError(500, "internal server error , " + err.message));
     }
   }
 );
@@ -168,7 +168,7 @@ router.patch(
       let id: string = req.params.id as string;
       if (!id) {
         req.flash("error", "Please enter id");
-        return next(new HttpException(400, "Please enter id", "User"));
+        return next(new ApiError(400, "Please enter id"));
       }
       //get jason from body request
       const userBody = req.body;
@@ -182,16 +182,16 @@ router.patch(
       //send not found if user not found
       if (!user) {
         req.flash("error", "User not found");
-        return next(new HttpException(404, "User not found", "User"));
+        return next(new ApiError(404, "User not found"));
       }
 
       //send response
       return res.status(201).json({
-        message: "Success",
-        user: user,
+        success: true,
+        data: user,
       });
     } catch (err: any) {
-      return next(new HttpException(500, err.message, "User"));
+      return next(new ApiError(500, "internal server error , " + err.message));
     }
   }
 );
@@ -205,7 +205,7 @@ router.delete(
       let id = req.params.id;
       if (!id) {
         req.flash("error", "Please enter id");
-        return next(new HttpException(400, "Please enter id", "User"));
+        return next(new ApiError(400, "Please enter id"));
       }
 
       //get token from header request and verify
@@ -217,16 +217,16 @@ router.delete(
       //send not found if user not found
       if (!user) {
         req.flash("error", "User not found");
-        return next(new HttpException(404, "User not found", "User"));
+        return next(new ApiError(404, "User not found"));
       }
 
       //send response
       return res.status(201).json({
-        message: "Success",
+        success: true,
         user: user,
       });
     } catch (err: any) {
-      return next(new HttpException(500, err.message, "User"));
+      return next(new ApiError(500, "internal server error , " + err.message));
     }
   }
 );
@@ -250,24 +250,26 @@ router.post(
       let user = await User.findOne({ username: username }).exec(
         (err: any, user: any) => {
           if (err) {
-            return next(new HttpException(500, err.message, "User"));
+            return next(
+              new ApiError(500, "internal server error , " + err.message)
+            );
           }
           if (!user) {
-            return next(new HttpException(404, "User not found", "User"));
+            return next(new ApiError(404, "User not found"));
           }
           //verify password
           if (user.checkPassword(password)) {
-            return next(new HttpException(401, "Password incorrect", "User"));
+            return next(new ApiError(401, "Password incorrect"));
           }
           //send response
           return res.status(200).json({
-            message: "Success",
-            user: user.toAuthJSON(),
+            success: true,
+            data: user.toAuthJSON(),
           });
         }
       );
     } catch (err: any) {
-      return next(new HttpException(500, err.message, "User"));
+      return next(new ApiError(500, "internal server error , " + err.message));
     }
   }
 );

@@ -24,7 +24,7 @@ describe('server run and crud car brand', function () {
                 if (err) { return done(err); }
                 if (res.body.message !== 'Car Brand already exists') {
                     let response = res.body;
-                    expect(response.carBrand.name).to.equal('pride');
+                    expect(response.data.name).to.equal('pride');
                 } else {
                     let response = null;
                 }
@@ -57,7 +57,7 @@ describe('server run and crud car brand', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.carBrands;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).to.have.property('name');
                 // Done
                 done();
@@ -73,7 +73,7 @@ describe('server run and crud car brand', function () {
          .set('Authorization', `Bearer ${token}`)
          .expect(200, function (err, res) {
              if (err) { return done(err); }
-             let userResponse = res.body.carBrands;
+             let userResponse = res.body.data;
              expect(userResponse[0]).to.have.property('name');
              // Done
              done();
@@ -90,7 +90,7 @@ describe('server run and crud car brand', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.carBrand;
+                let userResponse = res.body.data;
                 expect(userResponse.name).to.equal(_carBrand.name);
                 // Done
                 done();
@@ -108,7 +108,7 @@ describe('server run and crud car brand', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("Success");
+                expect(result.success).to.equal(true);
                 // Done
                 done();
             });

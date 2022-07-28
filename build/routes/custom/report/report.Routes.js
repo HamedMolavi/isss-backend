@@ -8,16 +8,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("../../../error/HttpException"));
 const authentication_1 = require("../../../tools/authentication");
 const createlogReport_1 = require("../../../tools/createlogReport");
 const elasticsearch_1 = require("../../../db/elasticsearch");
 const convertTime_1 = require("../../../tools/convertTime");
+const error_handler_1 = require("../../../error/error.handler");
 //create router for add to routes file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -44,6 +41,7 @@ router.post("/:model", function (req, res, next) {
             //get perPage from url
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+            page = (page - 1) * perPage + 1;
             //get search from url
             let search = req.query.search || "";
             //get searchName from url
@@ -80,7 +78,7 @@ router.post("/:model", function (req, res, next) {
                 //report error on data null or undefined
                 if (!response) {
                     req.flash("error", "Data is null or undefined");
-                    return next(new HttpException_1.default(404, "Data is null or undefined", model));
+                    return next(new error_handler_1.ApiError(404, "Data is null or undefined"));
                 }
                 //create json response for client
                 _data = yield (0, createlogReport_1.eventLogResponse)(response);
@@ -88,6 +86,10 @@ router.post("/:model", function (req, res, next) {
             else {
                 //get log for other models data from elastic
                 response = yield (0, elasticsearch_1.requestToElasticSearch)(search, timeEpokhStart, timeEpokhEnd, model, page, perPage, next);
+                if (!response) {
+                    req.flash("error", "Data is null or undefined");
+                    return next(new error_handler_1.ApiError(404, "Data is null or undefined"));
+                }
                 //create json response for client
                 if (model === "sabotage") {
                     _data = yield (0, createlogReport_1.sabotageLogResponse)(response);
@@ -95,8 +97,7 @@ router.post("/:model", function (req, res, next) {
                 else if (model === "plate") {
                     if ((_carBrand === null || _carColor === null || _owner === null) &&
                         search) {
-                        req.flash("error", "Car brand, car color and owner is required");
-                        return next(new HttpException_1.default(400, "Car brand, car color and owner is required", model));
+                        return next(new error_handler_1.ApiError(400, `car_brand, car_color, owner is required`));
                     }
                     _data = yield (0, createlogReport_1.plateLogResponse)(response, _carBrand, _carColor, _owner, _allowed, search);
                 }
@@ -112,12 +113,12 @@ router.post("/:model", function (req, res, next) {
             }
             //return data to client
             return res.status(200).json({
-                message: "Success",
+                success: true,
                 data: _data,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "sabotage"));
+            return next(new error_handler_1.ApiError(500, "Internal server error ," + err));
         }
     });
 });

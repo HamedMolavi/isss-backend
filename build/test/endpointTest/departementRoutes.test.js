@@ -28,7 +28,7 @@ describe('server run and crud departement', function () {
             }
             if (res.body.message !== 'departement already exists') {
                 let response = res.body;
-                (0, chai_1.expect)(response.departement.name).to.equal('office');
+                (0, chai_1.expect)(response.data.name).to.equal('office');
             }
             else {
                 let response = null;
@@ -60,7 +60,7 @@ describe('server run and crud departement', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.departements;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).to.have.property('name');
             // Done
             done();
@@ -77,7 +77,7 @@ describe('server run and crud departement', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.departements;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).to.have.property('name');
             // Done
             done();
@@ -94,7 +94,7 @@ describe('server run and crud departement', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.departement;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse.name).to.equal(_departement.name);
             // Done
             done();
@@ -115,7 +115,7 @@ describe('server run and crud departement', function () {
             if (err) {
                 return done(err);
             }
-            let departement = res.body.departement;
+            let departement = res.body.data;
             (0, chai_1.expect)(departement.name).to.equal(departementEditJson.name);
             ;
             // Done
@@ -134,7 +134,7 @@ describe('server run and crud departement', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("Success");
+            (0, chai_1.expect)(result.success).to.equal(true);
             // Done
             done();
         });

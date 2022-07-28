@@ -19,6 +19,7 @@ const carBrand_Routes_1 = __importDefault(require("./custom/config/carBrand.Rout
 const modelToCamera_Routes_1 = __importDefault(require("./custom/config/modelToCamera.Routes"));
 const report_Routes_1 = __importDefault(require("./custom/report/report.Routes"));
 const departmentReport_Routes_1 = __importDefault(require("./custom/report/departmentReport.Routes"));
+const error_handler_1 = require("../error/error.handler");
 //create router for add to server
 const router = (0, express_1.Router)();
 //add rotes app
@@ -37,4 +38,22 @@ router.use("/carbrands", carBrand_Routes_1.default);
 router.use("/modelToCameras", modelToCamera_Routes_1.default);
 router.use("/reports", report_Routes_1.default);
 router.use("/reportDepartmets", departmentReport_Routes_1.default);
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+//add not found route handler
+router.use("*", (req, res, next) => {
+    const err = new error_handler_1.ApiError(404, `Requested path ${req.path} not found`);
+    next(err);
+    //next(new ApiError(404, `Requested path ${req.path} not found`));
+});
+const enviroment = process.env.NODE_ENV || "development";
+//add error handler middleware
+router.use((err, req, res, next) => {
+    const statusCode = err.statusCode || 500; // <- Look here
+    return res.status(statusCode).send({
+        success: false,
+        message: err.message,
+        stack: enviroment === "development" ? err.stack : "",
+    });
+});
 exports.default = router;

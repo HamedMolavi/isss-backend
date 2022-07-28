@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import userRoutes from "./custom/config/user.Routes";
 import cameraRoutes from "./custom/config/camera.Routes";
 import fileRoutes from "./custom/config/file.Routes";
@@ -13,7 +13,8 @@ import carColorRoutes from "./custom/config/carColor.Routes";
 import carBrandRoutes from "./custom/config/carBrand.Routes";
 import modelToCamera from "./custom/config/modelToCamera.Routes";
 import report from "./custom/report/report.Routes";
-import reportDepartmets from './custom/report/departmentReport.Routes';
+import reportDepartmets from "./custom/report/departmentReport.Routes";
+import { ApiError } from "../error/error.handler";
 
 //create router for add to server
 const router: Router = Router();
@@ -34,5 +35,26 @@ router.use("/carbrands", carBrandRoutes);
 router.use("/modelToCameras", modelToCamera);
 router.use("/reports", report);
 router.use("/reportDepartmets", reportDepartmets);
+
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+//add not found route handler
+router.use("*", (req: Request, res: Response, next: NextFunction) => {
+  const err = new ApiError(404, `Requested path ${req.path} not found`);
+  next(err);
+  //next(new ApiError(404, `Requested path ${req.path} not found`));
+});
+
+const enviroment = process.env.NODE_ENV || "development";
+//add error handler middleware
+router.use((err: ApiError, req: Request, res: Response, next: NextFunction) => {
+  const statusCode = err.statusCode || 500; // <- Look here
+  return res.status(statusCode).send({
+    success: false,
+    message: err.message,
+    stack: enviroment ===  "development" ? err.stack : "",
+  });
+});
 
 export default router;

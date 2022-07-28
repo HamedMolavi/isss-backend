@@ -1,9 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
-import HttpException from "../../../error/HttpException";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import { eventDepartmentLogResponse } from "../../../tools/createlogReport";
 import { requestToElasticSearchEvent } from "../../../db/elasticsearch";
 import { date2Epokh } from "../../../tools/convertTime";
+import { ApiError } from "../../../error/error.handler";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -65,16 +65,20 @@ router.post(
         next,
         searchName
       );
+      if (!response) {
+        req.flash("error", "Data is null or undefined");
+        return next(new ApiError(404, "Data is null or undefined"));
+      }
       //create json response for client
       _data = await eventDepartmentLogResponse(response);
 
       //return data to client
       return res.status(200).json({
-        message: "Success",
+        success: true,
         data: _data,
       });
     } catch (err: any) {
-      return next(new HttpException(500, err.message, "sabotage"));
+      return next(new ApiError(500, "Internal server error ," + err));
     }
   }
 );

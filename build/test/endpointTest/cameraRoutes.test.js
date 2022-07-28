@@ -171,7 +171,7 @@ describe('server run and server runnig and crud camera', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("Success");
+            (0, chai_1.expect)(result.success).to.equal(true);
             // expect(result.message.camera).to.equal(null);
             // Done
             done();

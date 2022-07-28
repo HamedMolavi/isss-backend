@@ -13,12 +13,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
 const schedule_1 = __importDefault(require("./../../../models/schedule"));
 const authentication_1 = require("./../../../tools/authentication");
 const convertTime_1 = require("./../../../tools/convertTime");
 const modelToCamera_1 = __importDefault(require("./../../../models/modelToCamera"));
-//create router for add to server file 
+const error_handler_1 = require("../../../error/error.handler");
+//create router for add to server file
 const router = (0, express_1.Router)();
 //add error handler middleware
 router.use(function (req, res, next) {
@@ -32,25 +32,28 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { start, stop, dayOfWeek, camera_id, model_id, montionDetection, threshold, zones, min_people, max_people } = req.body;
+            const { start, stop, dayOfWeek, camera_id, model_id, montionDetection, threshold, zones, min_people, max_people, } = req.body;
             //verify body request
-            if (!start || !stop || !dayOfWeek || !camera_id || !model_id || !montionDetection || !threshold) {
+            if (!start ||
+                !stop ||
+                !dayOfWeek ||
+                !camera_id ||
+                !model_id ||
+                !montionDetection ||
+                !threshold) {
                 req.flash("error", "Please fill all fields");
-                return next(new HttpException_1.default(400, "Please fill all fields", "schedule"));
+                return next(new error_handler_1.ApiError(400, "Please fill all fields"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //check for valid time
             if (!(0, convertTime_1.compareTime)(start, stop)) {
                 req.flash("error", "Invalid time");
-                return next(new HttpException_1.default(400, "Invalid time", "schedule"));
+                return next(new error_handler_1.ApiError(400, "Invalid time"));
             }
             //search for model in DB
             let model2Camera = yield modelToCamera_1.default.findOne({
-                $or: [
-                    { model_id: model_id },
-                    { camera_id: camera_id }
-                ]
+                $or: [{ model_id: model_id }, { camera_id: camera_id }],
             }).exec();
             //convert input time to cron format
             let start_cron = (0, convertTime_1.convertToCron)(start);
@@ -63,22 +66,19 @@ router.post("", function (req, res, next) {
                     $or: [
                         { start_cron: start_cron },
                         { stop_cron: stop_cron },
-                        { model_camera_id: model2Camera._id }
-                    ]
+                        { model_camera_id: model2Camera._id },
+                    ],
                 }).exec();
                 if (schedule) {
                     model2Camera = yield modelToCamera_1.default.findOneAndDelete({
-                        $or: [
-                            { model_id: model_id },
-                            { camera_id: camera_id }
-                        ]
+                        $or: [{ model_id: model_id }, { camera_id: camera_id }],
                     }).exec();
                 }
             }
             //save model to camera
             let model2CameraSave = new modelToCamera_1.default({
                 model_id: model_id,
-                camera_id: camera_id
+                camera_id: camera_id,
             });
             let model2camera = yield model2CameraSave.save();
             //fil new schedule
@@ -91,24 +91,24 @@ router.post("", function (req, res, next) {
                     threshold: threshold !== null && threshold !== void 0 ? threshold : 0,
                     zones: zones !== null && zones !== void 0 ? zones : null,
                     min_people: min_people !== null && min_people !== void 0 ? min_people : 0,
-                    max_people: max_people !== null && max_people !== void 0 ? max_people : 0
-                }
+                    max_people: max_people !== null && max_people !== void 0 ? max_people : 0,
+                },
             });
             //save schedule in DB
             yield schedule.save();
             //return success
             req.flash("info", "schedule added");
             return res.status(201).json({
-                message: 'Success',
-                schedule: schedule
+                success: true,
+                data: schedule,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "schedule"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });
-//route for get schedule list  
+//route for get schedule list
 router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -121,25 +121,28 @@ router.get("", function (req, res, next) {
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get schedule from DB
-            let schedules = yield schedule_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+            let schedules = yield schedule_1.default.find({})
+                .limit(perPage)
+                .skip(perPage * (page - 1))
+                .exec();
             //return success
             req.flash("info", "schedule list");
             //send response to client with schedules
             return res.status(200).json({
-                message: 'Success',
-                schedules: schedules,
+                success: true,
+                data: schedules,
                 page: page,
                 perPage: perPage,
                 total: yield schedule_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield schedule_1.default.countDocuments().exec()) / perPage)
+                pages: Math.ceil((yield schedule_1.default.countDocuments().exec()) / perPage),
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "schedule"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });
-//route for get schedule by id from DB 
+//route for get schedule by id from DB
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -147,7 +150,7 @@ router.get("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Schedule id is required");
-                return next(new HttpException_1.default(400, "Schedule id is required", "schedule"));
+                return next(new error_handler_1.ApiError(400, "Schedule id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -156,16 +159,16 @@ router.get("/:id", function (req, res, next) {
             //return response not found to client if not found schedule
             if (!schedule) {
                 req.flash("error", "schedule not found");
-                return next(new HttpException_1.default(404, "schedule not found", "schedule"));
+                return next(new error_handler_1.ApiError(404, "schedule not found"));
             }
             //return response to client with schedule
             return res.status(200).json({
                 message: "Success",
-                schedule: schedule
+                schedule: schedule,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "schedule"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });
@@ -177,7 +180,7 @@ router.patch("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "schedule id is required");
-                return next(new HttpException_1.default(400, "schedule id is required", "schedule"));
+                return next(new error_handler_1.ApiError(400, "schedule id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -185,21 +188,21 @@ router.patch("/:id", function (req, res, next) {
             const scheduleBody = req.body;
             if (!scheduleBody.start && !scheduleBody.stop && scheduleBody.dayOfWeek) {
                 req.flash("error", "start and stop is required");
-                return next(new HttpException_1.default(400, "start and stop is required", "schedule"));
+                return next(new error_handler_1.ApiError(400, "start and stop is required"));
             }
             if (scheduleBody.start && !scheduleBody.stop && !scheduleBody.dayOfWeek) {
                 req.flash("error", "start and stop is required");
-                return next(new HttpException_1.default(400, "start and stop is required", "schedule"));
+                return next(new error_handler_1.ApiError(400, "start and stop is required"));
             }
             if (!scheduleBody.start && scheduleBody.stop && !scheduleBody.dayOfWeek) {
                 req.flash("error", "start and stop is required");
-                return next(new HttpException_1.default(400, "start and stop is required", "schedule"));
+                return next(new error_handler_1.ApiError(400, "start and stop is required"));
             }
             if (scheduleBody.start && scheduleBody.stop) {
                 //check for valid time
                 if (!(0, convertTime_1.compareTime)(scheduleBody.start, scheduleBody.stop)) {
                     req.flash("error", "Invalid time");
-                    return next(new HttpException_1.default(400, "Invalid time", "schedule"));
+                    return next(new error_handler_1.ApiError(400, "Invalid time"));
                 }
                 //convert input time to cron format
                 let start_cron = (0, convertTime_1.convertToCron)(scheduleBody.start);
@@ -208,20 +211,22 @@ router.patch("/:id", function (req, res, next) {
                 stop_cron = (0, convertTime_1.convertToCronDay)(stop_cron, scheduleBody.dayOfWeek.toString());
             }
             //query for get schedule by id from DB and update
-            let schedule = yield schedule_1.default.findByIdAndUpdate(id, scheduleBody, { new: true }).exec();
+            let schedule = yield schedule_1.default.findByIdAndUpdate(id, scheduleBody, {
+                new: true,
+            }).exec();
             //return response not found to client if not found schedule
             if (!schedule) {
                 req.flash("error", "schedule not found");
-                return next(new HttpException_1.default(404, "schedule not found", "schedule"));
+                return next(new error_handler_1.ApiError(404, "schedule not found"));
             }
             //return response to client with schedule
             return res.status(201).json({
                 message: "Success",
-                schedule: schedule
+                schedule: schedule,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "schedule"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });
@@ -233,7 +238,7 @@ router.delete("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "schedule id is required");
-                return next(new HttpException_1.default(400, "schedule id is required", "schedule"));
+                return next(new error_handler_1.ApiError(400, "schedule id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -242,16 +247,16 @@ router.delete("/:id", function (req, res, next) {
             //return response not found to client if not found schedule
             if (!schedule) {
                 req.flash("error", "schedule not found");
-                return next(new HttpException_1.default(404, "schedule not found", "schedule"));
+                return next(new error_handler_1.ApiError(404, "schedule not found"));
             }
             //return response to client with schedule
             return res.status(201).json({
                 message: "Success",
-                schedule: schedule
+                schedule: schedule,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "schedule"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });

@@ -64,7 +64,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
 
@@ -92,7 +92,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
 
@@ -112,7 +112,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         expect(response.data[0]).to.have.property("camera_id");
         // expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
@@ -144,7 +144,7 @@ describe("server run and get report logs", async function () {
         }
         let response = res.body;
         console.log(response);
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //  expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
@@ -166,7 +166,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         // expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
@@ -198,7 +198,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //  expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
@@ -221,7 +221,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
@@ -251,7 +251,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
@@ -273,7 +273,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.da628dc14af014bc89f0280c46ta[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
@@ -298,7 +298,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
@@ -321,7 +321,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
@@ -352,7 +352,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");
@@ -383,7 +383,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("sections");
@@ -408,7 +408,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("sections");
@@ -431,7 +431,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("sections");
@@ -484,7 +484,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("camera_id");
         expect(response.data[0]).to.have.property("time");
@@ -518,7 +518,7 @@ describe("server run and get report logs", async function () {
           return done(err);
         }
         let response = res.body;
-        expect(response.message).to.be.equal("Success");
+        expect(response.success).to.be.equal(true);
         //   expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("camera_id");
         expect(response.data[0]).to.have.property("time");

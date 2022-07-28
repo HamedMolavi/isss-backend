@@ -45,7 +45,7 @@ const path_1 = __importDefault(require("path"));
 const personImage_1 = __importDefault(require("./../../../models/personImage"));
 const multer_1 = __importDefault(require("multer"));
 const hash_1 = require("./../../../tools/hash");
-const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const error_handler_1 = require("../../../error/error.handler");
 //create router for add to server 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -64,7 +64,7 @@ router.post('/upload', function (req, res, next) {
             //get file from request body and save 
             yield (0, fileUpload_1.default)(req, res);
             if (req.file == undefined) {
-                return next(new HttpException_1.default(400, "File is required", "file"));
+                return next(new error_handler_1.ApiError(400, "File is required"));
             }
             res.status(200).send({
                 name: fileUpload_1.fileName,
@@ -73,7 +73,7 @@ router.post('/upload', function (req, res, next) {
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "file"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -91,12 +91,12 @@ router.get('/download/:fileName', function (req, res, next) {
             yield res.download(directoryPath + fileName, fileName, (err) => {
                 if (err) {
                     req.flash("error", "File not found");
-                    return next(new HttpException_1.default(404, "File not found", "file"));
+                    return next(new error_handler_1.ApiError(404, "File not found"));
                 }
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "file"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -113,7 +113,7 @@ router.get('/list', function (req, res, next) {
             //read directory for get list file
             yield fs_1.default.readdir(directoryPath, function (err, files) {
                 if (err) {
-                    return next(new HttpException_1.default(500, err.message, "file"));
+                    return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
                 }
                 let fileInfos = [];
                 //get file info
@@ -127,7 +127,7 @@ router.get('/list', function (req, res, next) {
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "file"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -154,7 +154,7 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
             let id = yield (0, fileUpload_1.setFileInRedis)(fileBase64, idHashed);
             if (!id) {
                 req.flash("error", "File not upload");
-                return next(new HttpException_1.default(400, "File not upload", "file"));
+                return next(new error_handler_1.ApiError(400, "File not upload"));
             }
             //get url AI for send request
             const dbUri = process.env["API_AI_REDIS_NAME"];
@@ -167,7 +167,7 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
                 //  send response to client
             }).catch(function (error) {
                 console.log(error.response.data);
-                return next(new HttpException_1.default(500, error.message, "file"));
+                return next(new error_handler_1.ApiError(500, "internal server error" + error.message));
             });
             res.status(201).send({
                 message: "Uploaded the file successfully"
@@ -175,7 +175,7 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
             //send error if file is not upload
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "file"));
+            return next(new error_handler_1.ApiError(500, "internal server error ->" + err.message));
         }
     });
 });
@@ -206,7 +206,7 @@ router.post('/verify', function (req, res, next) {
                 //write image in path 
                 yield fs_1.default.writeFile(pathSave + fileName, image, (err) => {
                     if (err) {
-                        return next(new HttpException_1.default(500, err.message, "file"));
+                        return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
                     }
                 });
                 //query to database for search personnel
@@ -242,7 +242,7 @@ router.post('/verify', function (req, res, next) {
             }
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "file"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });

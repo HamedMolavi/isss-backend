@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const error_handler_1 = require("../../../error/error.handler");
 const car_1 = __importDefault(require("./../../../models/car"));
 const authentication_1 = require("./../../../tools/authentication");
 //create router for add to routes file 
@@ -33,7 +33,7 @@ router.post("", function (req, res, next) {
             const { owner, number_plate, brand_id, color_id, camera_whitelist } = req.body;
             if (!owner || !number_plate || !brand_id || !color_id || !camera_whitelist) {
                 req.flash("error", "Car is required");
-                return next(new HttpException_1.default(400, "Car is required", "car"));
+                return next(new error_handler_1.ApiError(400, "Car is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -47,7 +47,7 @@ router.post("", function (req, res, next) {
             //retrun error if car already exists
             if (car) {
                 req.flash("error", "Car already exists");
-                return next(new HttpException_1.default(400, "Car already exists", "car"));
+                return next(new error_handler_1.ApiError(400, "Car already exists"));
             }
             //fill new car
             let newCar = new car_1.default({
@@ -62,12 +62,12 @@ router.post("", function (req, res, next) {
             req.flash("info", "Car added");
             //send response to client
             return res.status(201).json({
-                message: "Success",
-                car: newCar
+                success: true,
+                data: newCar
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "car"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -97,12 +97,12 @@ router.get("", function (req, res, next) {
             //return response not found to client if not found cars
             if (!cars) {
                 req.flash("error", "car not found");
-                return next(new HttpException_1.default(404, "car not found", "car"));
+                return next(new error_handler_1.ApiError(404, "car not found"));
             }
             //return response to client with cars list
             return res.status(200).json({
-                message: "Success",
-                cars: cars,
+                success: true,
+                data: cars,
                 page: page,
                 perPage: perPage,
                 total: yield car_1.default.countDocuments().exec(),
@@ -110,7 +110,7 @@ router.get("", function (req, res, next) {
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "car"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -122,7 +122,7 @@ router.get("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Car id is required");
-                return next(new HttpException_1.default(400, "Car id is required", "car"));
+                return next(new error_handler_1.ApiError(400, "Car id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -131,16 +131,16 @@ router.get("/:id", function (req, res, next) {
             //return response not found to client if not found car
             if (!car) {
                 req.flash("error", "Car not found");
-                return next(new HttpException_1.default(404, "Car not found", "car"));
+                return next(new error_handler_1.ApiError(404, "Car not found"));
             }
             //return response to client with departement
             return res.status(200).json({
-                message: "Success",
-                car: car
+                success: true,
+                data: car
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "car"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -153,7 +153,7 @@ router.patch("/:id", function (req, res, next) {
             //verify body request
             if (!id) {
                 req.flash("error", "Car id is required");
-                return next(new HttpException_1.default(400, "Car id is required", "car"));
+                return next(new error_handler_1.ApiError(400, "Car id is required"));
             }
             //get body request
             const carBody = req.body;
@@ -164,16 +164,16 @@ router.patch("/:id", function (req, res, next) {
             //return response not found to client if not found car
             if (!car) {
                 req.flash("error", "Car not found");
-                return next(new HttpException_1.default(404, "Car not found", "car"));
+                return next(new error_handler_1.ApiError(404, "Car not found"));
             }
             //return response to client with car
             return res.status(201).json({
-                message: "Success",
-                car: car
+                success: true,
+                data: car
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "car"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -185,7 +185,7 @@ router.delete("/:id", function (req, res, next) {
             //verify body request
             if (!id) {
                 req.flash("error", "Car id is required");
-                return next(new HttpException_1.default(400, "Car id is required", "car"));
+                return next(new error_handler_1.ApiError(400, "Car id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -194,16 +194,16 @@ router.delete("/:id", function (req, res, next) {
             //return response not found to client if not found car
             if (!car) {
                 req.flash("error", "Car not found");
-                return next(new HttpException_1.default(404, "Car not found", "car"));
+                return next(new error_handler_1.ApiError(404, "Car not found"));
             }
             //return response to client with car
             return res.status(201).json({
-                message: "Success",
-                car: car
+                success: true,
+                data: car
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "car"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });

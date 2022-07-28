@@ -1,5 +1,4 @@
 import { Router, Request, Response, NextFunction } from "express";
-import HttpException from "../../../error/HttpException";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import {
   eventLogResponse,
@@ -14,6 +13,7 @@ import {
   requestToElasticSearchEvent,
 } from "../../../db/elasticsearch";
 import { date2Epokh } from "../../../tools/convertTime";
+import { ApiError } from "../../../error/error.handler";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -45,7 +45,7 @@ router.post(
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-      page = ((page -1) * perPage )+ 1;
+      page = (page - 1) * perPage + 1;
 
       //get search from url
       let search = (req.query.search as string) || "";
@@ -103,9 +103,7 @@ router.post(
         //report error on data null or undefined
         if (!response) {
           req.flash("error", "Data is null or undefined");
-          return next(
-            new HttpException(404, "Data is null or undefined", model)
-          );
+          return next(new ApiError(404, "Data is null or undefined"));
         }
         //create json response for client
         _data = await eventLogResponse(response);
@@ -120,6 +118,10 @@ router.post(
           perPage,
           next
         );
+        if (!response) {
+          req.flash("error", "Data is null or undefined");
+          return next(new ApiError(404, "Data is null or undefined"));
+        }
         //create json response for client
         if (model === "sabotage") {
           _data = await sabotageLogResponse(response);
@@ -128,14 +130,7 @@ router.post(
             (_carBrand === null || _carColor === null || _owner === null) &&
             search
           ) {
-            req.flash("error", "Car brand, car color and owner is required");
-            return next(
-              new HttpException(
-                400,
-                "Car brand, car color and owner is required",
-                model
-              )
-            );
+            return next(new ApiError(400, `car_brand, car_color, owner is required`));
           }
           _data = await plateLogResponse(
             response,
@@ -153,14 +148,13 @@ router.post(
           _data = await faceLogResponse(response);
         }
       }
-
       //return data to client
       return res.status(200).json({
-        message: "Success",
+        success: true,
         data: _data,
       });
     } catch (err: any) {
-      return next(new HttpException(500, err.message, "sabotage"));
+      return next(new ApiError(500, "Internal server error ," + err));
     }
   }
 );

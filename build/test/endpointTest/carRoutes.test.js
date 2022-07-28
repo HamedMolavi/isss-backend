@@ -44,7 +44,7 @@ describe('server run and crud car', function () {
                 return done(err);
             }
             if (res.body.message !== 'car already exists') {
-                let response = res.body.car;
+                let response = res.body.data;
                 (0, chai_1.expect)(response.owner.toString()).to.equal('629592546558a38fbecb6d40');
                 (0, chai_1.expect)(response.number_plate).to.equal('1234567');
                 (0, chai_1.expect)(response.brand_id.toString()).to.equal('629592546558a38fbecb6d40');
@@ -69,7 +69,7 @@ describe('server run and crud car', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.cars;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).to.have.property('owner');
             (0, chai_1.expect)(userResponse[0]).to.have.property('number_plate');
             (0, chai_1.expect)(userResponse[0]).to.have.property('brand_id');
@@ -90,7 +90,7 @@ describe('server run and crud car', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.cars;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0].owner.toString()).to.equal('629592546558a38fbecb6d40');
             (0, chai_1.expect)(userResponse[0].number_plate).to.equal('1234567');
             (0, chai_1.expect)(userResponse[0].brand_id).to.equal('629592546558a38fbecb6d40');
@@ -111,7 +111,7 @@ describe('server run and crud car', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.car;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse.owner.toString()).to.equal('629592546558a38fbecb6d40');
             (0, chai_1.expect)(userResponse.number_plate).to.equal('1234567');
             (0, chai_1.expect)(userResponse.brand_id.toString()).to.equal('629592546558a38fbecb6d40');
@@ -137,7 +137,7 @@ describe('server run and crud car', function () {
             if (err) {
                 return done(err);
             }
-            let plate = res.body.car;
+            let plate = res.body.data;
             (0, chai_1.expect)(plate.owner.toString()).to.equal('629592546558a38fbecb6e11');
             (0, chai_1.expect)(plate.number_plate).to.equal('7654321');
             (0, chai_1.expect)(plate.brand_id.toString()).to.equal(_car.brand_id.toString());
@@ -159,7 +159,7 @@ describe('server run and crud car', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("Success");
+            (0, chai_1.expect)(result.success).to.equal(true);
             // Done
             done();
         });

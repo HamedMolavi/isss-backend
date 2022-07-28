@@ -57,11 +57,11 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
             if (car && camera) {
                 //get car_color from mongo db by id for get car color
                 car_color = yield carColor_1.default.findById(car === null || car === void 0 ? void 0 : car.color_id).exec();
-                if (search && carColor && (carColor !== (car_color === null || car_color === void 0 ? void 0 : car_color._id.toString())))
+                if (search && carColor && carColor !== (car_color === null || car_color === void 0 ? void 0 : car_color._id.toString()))
                     continue;
                 //get car_brand from mongo db by id for get car brand
                 car_brand = yield carBrand_1.default.findById(car === null || car === void 0 ? void 0 : car.brand_id).exec();
-                if (search && carBrand && (carBrand !== (car_brand === null || car_brand === void 0 ? void 0 : car_brand._id.toString())))
+                if (search && carBrand && carBrand !== (car_brand === null || car_brand === void 0 ? void 0 : car_brand._id.toString()))
                     continue;
                 //get owner from mongo db by id for get owner name
                 _owner = yield personnel_1.default.findById(car === null || car === void 0 ? void 0 : car.owner).exec();

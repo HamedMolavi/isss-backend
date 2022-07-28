@@ -13,10 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const error_handler_1 = require("../../../error/error.handler");
 const personnel_1 = __importDefault(require("./../../../models/personnel"));
 const authentication_1 = require("./../../../tools/authentication");
-//create router for add to routes file 
+//create router for add to routes file
 const router = (0, express_1.Router)();
 //add error handler middleware
 router.use(function (req, res, next) {
@@ -30,12 +30,22 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed } = req.body;
+            const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, } = req.body;
             //verify body request
-            if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code ||
-                !section_id || !camera_whitelist || !is_active || !is_employee || !is_dismissed) {
+            if (!first_name ||
+                !last_name ||
+                !national_code ||
+                !email ||
+                !phone_number ||
+                !job_id ||
+                !personnel_code ||
+                !section_id ||
+                !camera_whitelist ||
+                !is_active ||
+                !is_employee ||
+                !is_dismissed) {
                 req.flash("error", "Please fill all fields");
-                return next(new HttpException_1.default(400, "Please fill all fields", "Personnel"));
+                return next(new error_handler_1.ApiError(400, "Please fill all fields"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -43,13 +53,13 @@ router.post("", function (req, res, next) {
             let personnel = yield personnel_1.default.findOne({
                 $or: [
                     { national_code: personnel_code },
-                    { personnel_code: personnel_code }
-                ]
+                    { personnel_code: personnel_code },
+                ],
             }).exec();
             //check personnel in DB
             if (personnel) {
                 req.flash("error", "Personnel already exists");
-                return next(new HttpException_1.default(400, "Personnel already exists", "Personnel"));
+                return next(new error_handler_1.ApiError(400, "Personnel already exists"));
             }
             //create new personnel
             personnel = new personnel_1.default({
@@ -64,23 +74,23 @@ router.post("", function (req, res, next) {
                 camera_whitelist,
                 is_active,
                 is_employee,
-                is_dismissed
+                is_dismissed,
             });
             //save personnel in DB
             yield personnel.save();
             req.flash("info", "Personnel has been registered");
             //send response
             res.status(201).json({
-                message: "Success",
-                personnel: personnel
+                success: true,
+                data: personnel,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "Personnel"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });
-//route for get personnels list  
+//route for get personnels list
 router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -97,33 +107,39 @@ router.get("", function (req, res, next) {
             let personnels = [];
             if (!(search && search.length > 0)) {
                 personnels = yield personnel_1.default.find({
-                    name: { $regex: search, $options: "i" }
-                }).limit(perPage).skip(perPage * (page - 1)).exec();
+                    name: { $regex: search, $options: "i" },
+                })
+                    .limit(perPage)
+                    .skip(perPage * (page - 1))
+                    .exec();
             }
             else {
-                personnels = yield personnel_1.default.find().limit(perPage).skip(perPage * (page - 1)).exec();
+                personnels = yield personnel_1.default.find()
+                    .limit(perPage)
+                    .skip(perPage * (page - 1))
+                    .exec();
             }
             //send not found if personnels not found
             if (!personnels) {
                 req.flash("error", "Personnels not found");
-                return next(new HttpException_1.default(404, "Personnels not found", "Personnel"));
+                return next(new error_handler_1.ApiError(404, "Personnels not found"));
             }
             //send response
             return res.status(200).json({
-                message: 'Success',
-                personnels: personnels,
+                success: true,
+                data: personnels,
                 page: page,
                 perPage: perPage,
                 total: yield personnel_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield personnel_1.default.countDocuments().exec()) / perPage)
+                pages: Math.ceil((yield personnel_1.default.countDocuments().exec()) / perPage),
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "Personnel"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });
-//route for get personnel by id from DB 
+//route for get personnel by id from DB
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -131,7 +147,7 @@ router.get("/:id", function (req, res, next) {
             //verify body request
             if (!id) {
                 req.flash("error", "Please enter id");
-                return next(new HttpException_1.default(400, "Please enter id", "Personnel"));
+                return next(new error_handler_1.ApiError(400, "Please enter id"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -140,16 +156,16 @@ router.get("/:id", function (req, res, next) {
             //send not found if personnel not found
             if (!personnel) {
                 req.flash("error", "Personnel not found");
-                return next(new HttpException_1.default(404, "Personnel not found", "Personnel"));
+                return next(new error_handler_1.ApiError(404, "Personnel not found"));
             }
             //send response
             return res.status(200).json({
-                message: 'Success',
-                personnel: personnel
+                success: true,
+                data: personnel,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "Personnel"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });
@@ -161,26 +177,28 @@ router.patch("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Please enter id");
-                return next(new HttpException_1.default(400, "Please enter id", "Personnel"));
+                return next(new error_handler_1.ApiError(400, "Please enter id"));
             }
             const personnelBody = req.body;
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get personnel by id from DB
-            let personnel = yield personnel_1.default.findByIdAndUpdate(id, personnelBody, { new: true }).exec();
+            let personnel = yield personnel_1.default.findByIdAndUpdate(id, personnelBody, {
+                new: true,
+            }).exec();
             //send not found if personnel not found
             if (!personnel) {
                 req.flash("error", "Personnel not found");
-                return next(new HttpException_1.default(404, "Personnel not found", "Personnel"));
+                return next(new error_handler_1.ApiError(404, "Personnel not found"));
             }
             //send response
             return res.status(201).json({
-                message: 'Success',
-                personnel: personnel
+                success: true,
+                data: personnel,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "Personnel"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });
@@ -192,7 +210,7 @@ router.delete("/:id", function (req, res, next) {
             let id = req.params.id;
             if (!id) {
                 req.flash("error", "Please enter id");
-                return next(new HttpException_1.default(400, "Please enter id", "Personnel"));
+                return next(new error_handler_1.ApiError(400, "Please enter id"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -201,16 +219,16 @@ router.delete("/:id", function (req, res, next) {
             //send not found if personnel not found
             if (!personnel) {
                 req.flash("error", "Personnel not found");
-                return next(new HttpException_1.default(404, "Personnel not found", "Personnel"));
+                return next(new error_handler_1.ApiError(404, "Personnel not found"));
             }
             //send response
             return res.status(201).json({
-                message: 'Success',
-                personnel: personnel
+                success: true,
+                data: personnel,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "Personnel"));
+            return next(new error_handler_1.ApiError(500, "Internal server error , " + err.message));
         }
     });
 });

@@ -1,5 +1,5 @@
 import axios from "axios";
-import HttpException from "../error/HttpException";
+import { ApiError } from "../error/error.handler";
 
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"] as string;
@@ -78,7 +78,7 @@ export async function requestToElasticSearch(
     }
     return response;
   } catch (err: any) {
-    return next(new HttpException(500, err.message, model));
+    return next(new ApiError(500, "Error while getting data from elastic search"));
   }
 }
 
@@ -241,6 +241,6 @@ export async function requestToElasticSearchEvent(
     }
     return response;
   } catch (err: any) {
-    return next(new HttpException(500, err.message, "event"));
+    return next(new ApiError(500, "Error while getting data from elastic search"));
   }
 }

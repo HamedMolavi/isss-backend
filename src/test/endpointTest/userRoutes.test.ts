@@ -39,9 +39,9 @@ describe('server run and server runnig and register user', function () {
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
-                if (res.body.message !== 'User already exists') {
-                    let user = res.body.user;
-                    expect(res.body.message).to.equal('Success');
+                if (res.body.success !== false) {
+                    let user = res.body.data;
+                    expect(res.body.success).to.equal(true);
                     expect(user.username).to.equal('sasan');
                     expect(user.phone_number).to.equal('09330371133');
                     expect(user.event).to.equal(true);
@@ -83,7 +83,7 @@ describe('server run and server runnig and register user', function () {
             .expect('Content-Type', /json/)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let user = res.body.user;
+                let user = res.body.data;
                 // expect(user._id.toString()).to.equal(loginUser._id.toString());
                 expect(user.username).to.equal(_user.username);
                 expect(user.password).to.equal(_user.password);
@@ -109,7 +109,7 @@ describe('server run and server runnig and register user', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.users;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).have.to.property('username');
                 expect(userResponse[0]).have.to.property('phone_number');
                 expect(userResponse[0]).have.to.property('role');
@@ -134,7 +134,7 @@ describe('server run and server runnig and register user', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.users;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).have.to.property('username');
                 expect(userResponse[0]).have.to.property('phone_number');
                 expect(userResponse[0]).have.to.property('role');
@@ -160,7 +160,7 @@ describe('server run and server runnig and register user', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.user;
+                let userResponse = res.body.data;
                 expect(userResponse.username).to.equal(_user.username);
                 expect(userResponse.phone_number).to.equal(_user.phone_number);
                 expect(userResponse.role).to.equal(_user.role);
@@ -189,7 +189,7 @@ describe('server run and server runnig and register user', function () {
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
-                let user = res.body.user;
+                let user = res.body.data;
                 expect(user.username).to.equal(userEditJson.username);
                 expect(user.phone_number).to.equal(_user.phone_number);
                 expect(user.password).to.equal(_user.password);
@@ -201,7 +201,7 @@ describe('server run and server runnig and register user', function () {
                 // Done
                 done();
             });
-    });
+    }).timeout(10000);
 
     //test route for delete user 
     it('should send back a JSON object for delete user', function (done) {
@@ -214,7 +214,7 @@ describe('server run and server runnig and register user', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal('Success');
+                expect(result.success).to.equal(true);
                 // Done
                 done();
             });

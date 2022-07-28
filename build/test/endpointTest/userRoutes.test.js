@@ -43,9 +43,9 @@ describe('server run and server runnig and register user', function () {
             if (err) {
                 return done(err);
             }
-            if (res.body.message !== 'User already exists') {
-                let user = res.body.user;
-                (0, chai_1.expect)(res.body.message).to.equal('Success');
+            if (res.body.success !== false) {
+                let user = res.body.data;
+                (0, chai_1.expect)(res.body.success).to.equal(true);
                 (0, chai_1.expect)(user.username).to.equal('sasan');
                 (0, chai_1.expect)(user.phone_number).to.equal('09330371133');
                 (0, chai_1.expect)(user.event).to.equal(true);
@@ -86,7 +86,7 @@ describe('server run and server runnig and register user', function () {
             if (err) {
                 return done(err);
             }
-            let user = res.body.user;
+            let user = res.body.data;
             // expect(user._id.toString()).to.equal(loginUser._id.toString());
             (0, chai_1.expect)(user.username).to.equal(_user.username);
             (0, chai_1.expect)(user.password).to.equal(_user.password);
@@ -111,7 +111,7 @@ describe('server run and server runnig and register user', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.users;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).have.to.property('username');
             (0, chai_1.expect)(userResponse[0]).have.to.property('phone_number');
             (0, chai_1.expect)(userResponse[0]).have.to.property('role');
@@ -135,7 +135,7 @@ describe('server run and server runnig and register user', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.users;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).have.to.property('username');
             (0, chai_1.expect)(userResponse[0]).have.to.property('phone_number');
             (0, chai_1.expect)(userResponse[0]).have.to.property('role');
@@ -159,7 +159,7 @@ describe('server run and server runnig and register user', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.user;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse.username).to.equal(_user.username);
             (0, chai_1.expect)(userResponse.phone_number).to.equal(_user.phone_number);
             (0, chai_1.expect)(userResponse.role).to.equal(_user.role);
@@ -188,7 +188,7 @@ describe('server run and server runnig and register user', function () {
             if (err) {
                 return done(err);
             }
-            let user = res.body.user;
+            let user = res.body.data;
             (0, chai_1.expect)(user.username).to.equal(userEditJson.username);
             (0, chai_1.expect)(user.phone_number).to.equal(_user.phone_number);
             (0, chai_1.expect)(user.password).to.equal(_user.password);
@@ -200,7 +200,7 @@ describe('server run and server runnig and register user', function () {
             // Done
             done();
         });
-    });
+    }).timeout(10000);
     //test route for delete user 
     it('should send back a JSON object for delete user', function (done) {
         (0, supertest_1.default)(server_1.default)
@@ -213,7 +213,7 @@ describe('server run and server runnig and register user', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal('Success');
+            (0, chai_1.expect)(result.success).to.equal(true);
             // Done
             done();
         });
