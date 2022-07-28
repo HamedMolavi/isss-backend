@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const error_handler_1 = require("../../../error/error.handler");
 const model_1 = __importDefault(require("./../../../models/model"));
 const authentication_1 = require("./../../../tools/authentication");
 //create router for add to server file 
@@ -41,12 +41,12 @@ router.get("", function (req, res, next) {
             let models = yield model_1.default.find().limit(perPage).skip(perPage * (page - 1)).exec();
             if (!models) {
                 req.flash("error", "No models found");
-                return next(new HttpException_1.default(404, "No models found", "Model"));
+                return next(new error_handler_1.ApiError(404, "No models found"));
             }
             //return list of models
             return res.status(200).json({
-                message: "Success",
-                models: models,
+                success: true,
+                data: models,
                 page: page,
                 perPage: perPage,
                 total: yield model_1.default.countDocuments().exec(),
@@ -54,7 +54,7 @@ router.get("", function (req, res, next) {
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "model"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -66,7 +66,7 @@ router.get("/:category", function (req, res, next) {
             let category = req.params.category;
             if (!category) {
                 req.flash("error", "category is required");
-                return next(new HttpException_1.default(400, "category is required", "model"));
+                return next(new error_handler_1.ApiError(400, "category is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -75,16 +75,16 @@ router.get("/:category", function (req, res, next) {
             //check model is exist
             if (!model) {
                 req.flash("error", "model is not exist");
-                return next(new HttpException_1.default(404, "model is not exist", "model"));
+                return next(new error_handler_1.ApiError(404, "model is not exist"));
             }
             //send model to client
             return res.status(200).json({
-                message: 'Success',
-                model: model
+                success: true,
+                data: model
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "model"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });

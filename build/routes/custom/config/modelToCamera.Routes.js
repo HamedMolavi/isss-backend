@@ -13,13 +13,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("../../../error/HttpException"));
+const error_handler_1 = require("../../../error/error.handler");
 const camera_1 = __importDefault(require("../../../models/camera"));
 const model_1 = __importDefault(require("../../../models/model"));
 const modelToCamera_1 = __importDefault(require("../../../models/modelToCamera"));
 const authentication_1 = require("../../../tools/authentication");
 const convertTime_1 = require("../../../tools/convertTime");
-//create router for add to server file 
+//create router for add to server file
 const router = (0, express_1.Router)();
 //add error handler middleware
 router.use(function (req, res, next) {
@@ -28,7 +28,7 @@ router.use(function (req, res, next) {
     res.locals.infos = req.flash("info");
     next();
 });
-//add route for register modelToCamera 
+//add route for register modelToCamera
 router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -37,7 +37,7 @@ router.post("", function (req, res, next) {
             //verify body request
             if (!camera_id || start || stop || !dayOfWeek || !model_id) {
                 req.flash("error", "Departement name is required");
-                return next(new HttpException_1.default(400, "Departement name is required", "departement"));
+                return next(new error_handler_1.ApiError(400, "Departement name is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -53,11 +53,11 @@ router.post("", function (req, res, next) {
                     { stop_cron: stop_cron },
                     { model_id: model_id },
                     { camera_id: camera_id },
-                ]
+                ],
             }).exec();
             if (modelToCamera) {
                 req.flash("error", "This modelToCamera is already exist");
-                return next(new HttpException_1.default(400, "This modelToCamera is already exist", "schedule"));
+                return next(new error_handler_1.ApiError(400, "This schedule is already exist"));
             }
             //create new modelToCamera
             modelToCamera = new modelToCamera_1.default({
@@ -70,16 +70,16 @@ router.post("", function (req, res, next) {
             yield modelToCamera.save();
             //send response
             res.status(201).json({
-                message: "Success",
-                data: modelToCamera
+                success: true,
+                data: modelToCamera,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "departement"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
-//route for get modelsToCamera list  
+//route for get modelsToCamera list
 router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -96,41 +96,56 @@ router.get("", function (req, res, next) {
             let model2Cameras = [];
             if (!(search && search.length > 0)) {
                 let camera = yield camera_1.default.find({
-                    name: { $regex: search, $options: "i" }
-                }).skip((page - 1) * perPage).limit(perPage).exec();
+                    name: { $regex: search, $options: "i" },
+                })
+                    .skip((page - 1) * perPage)
+                    .limit(perPage)
+                    .exec();
                 model2Cameras = yield modelToCamera_1.default.find({
-                    camera_id: { $regex: camera[0]._id.toString(), $options: "i" }
-                }).limit(perPage).skip(perPage * (page - 1)).exec();
+                    camera_id: { $regex: camera[0]._id.toString(), $options: "i" },
+                })
+                    .limit(perPage)
+                    .skip(perPage * (page - 1))
+                    .exec();
             }
             else {
-                model2Cameras = yield modelToCamera_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+                model2Cameras = yield modelToCamera_1.default.find({})
+                    .limit(perPage)
+                    .skip(perPage * (page - 1))
+                    .exec();
             }
             //return response not found to client if not found modelToCamera
             if (!model2Cameras) {
                 req.flash("error", "modelToCamera not found");
-                return next(new HttpException_1.default(404, "modelToCamera not found", "modelToCamera"));
+                return next(new error_handler_1.ApiError(404, "modelToCamera not found"));
             }
             let response = [{}];
             //ceate json response
             let json = model2Cameras.forEach((model2Camera) => __awaiter(this, void 0, void 0, function* () {
                 var _a;
                 return response.push({
-                    camera: (_a = yield camera_1.default.findById({}).skip((page - 1) * perPage).limit(perPage).exec()) !== null && _a !== void 0 ? _a : "not found",
-                    model: yield model_1.default.findById({}).skip((page - 1) * perPage).limit(perPage).exec(),
+                    camera: (_a = (yield camera_1.default.findById({})
+                        .skip((page - 1) * perPage)
+                        .limit(perPage)
+                        .exec())) !== null && _a !== void 0 ? _a : "not found",
+                    model: yield model_1.default.findById({})
+                        .skip((page - 1) * perPage)
+                        .limit(perPage)
+                        .exec(),
                 });
             }));
             //return response to client with modelToCamera list
             return res.status(200).json({
-                message: "Success",
+                success: true,
                 data: response,
                 page: page,
                 perPage: perPage,
                 total: yield modelToCamera_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield modelToCamera_1.default.countDocuments().exec()) / perPage)
+                pages: Math.ceil((yield modelToCamera_1.default.countDocuments().exec()) / perPage),
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "departement"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });

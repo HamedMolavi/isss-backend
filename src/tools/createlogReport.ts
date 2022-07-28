@@ -50,11 +50,11 @@ export async function plateLogResponse(
     if (car && camera) {
       //get car_color from mongo db by id for get car color
       car_color = await CarColor.findById(car?.color_id).exec();
-      if (search && carColor && (carColor !== car_color?._id.toString()))
+      if (search && carColor && carColor !== car_color?._id.toString())
         continue;
       //get car_brand from mongo db by id for get car brand
       car_brand = await CarBrand.findById(car?.brand_id).exec();
-      if (search && carBrand && (carBrand !== car_brand?._id.toString()))
+      if (search && carBrand && carBrand !== car_brand?._id.toString())
         continue;
       //get owner from mongo db by id for get owner name
       _owner = await Personnel.findById(car?.owner).exec();

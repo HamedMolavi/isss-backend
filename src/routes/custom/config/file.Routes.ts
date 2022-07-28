@@ -8,7 +8,7 @@ import path from 'path';
 import PersonImage, { IPersonImage } from './../../../models/personImage';
 import multer from 'multer';
 import { hashJson } from './../../../tools/hash';
-import HttpException from './../../../error/HttpException';
+import { ApiError } from '../../../error/error.handler';
 
 
 //create router for add to server 
@@ -32,7 +32,7 @@ router.post('/upload', async function (req: Request, res: Response, next: NextFu
         //get file from request body and save 
         await uploadFile(req, res);
         if (req.file == undefined) {
-            return next(new HttpException(400, "File is required", "file"));
+            return next(new ApiError(400, "File is required"));
         }
         res.status(200).send({
             name: fileName,
@@ -40,7 +40,7 @@ router.post('/upload', async function (req: Request, res: Response, next: NextFu
             message: "Uploaded the file successfully: " + fileName,
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "file"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 
@@ -58,11 +58,11 @@ router.get('/download/:fileName', async function (req: Request, res: Response, n
         await res.download(directoryPath + fileName, fileName, (err) => {
             if (err) {
                 req.flash("error", "File not found");
-                return next(new HttpException(404, "File not found", "file"));
+                return next(new ApiError(404, "File not found"));
             }
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "file"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 
@@ -80,7 +80,7 @@ router.get('/list', async function (req: Request, res: Response, next: NextFunct
         //read directory for get list file
         await fs.readdir(directoryPath, function (err, files) {
             if (err) {
-                return next(new HttpException(500, err.message, "file"));
+                return next(new ApiError(500, "internal server error" + err.message));
             }
             let fileInfos: object[] = [];
             //get file info
@@ -93,7 +93,7 @@ router.get('/list', async function (req: Request, res: Response, next: NextFunct
             res.status(200).send(fileInfos);
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "file"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 
 });
@@ -121,7 +121,7 @@ router.post('/redis', upload.single('file'), async function (req: Request, res: 
         let id = await setFileInRedis(fileBase64, idHashed);
         if (!id) {
             req.flash("error", "File not upload");
-            return next(new HttpException(400, "File not upload", "file"));
+            return next(new ApiError(400, "File not upload"));
         }
         //get url AI for send request
         const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
@@ -135,7 +135,7 @@ router.post('/redis', upload.single('file'), async function (req: Request, res: 
 
         }).catch(function (error) {
             console.log(error.response.data);
-            return next(new HttpException(500, error.message, "file"));
+            return next(new ApiError(500, "internal server error" + error.message));
         });
         res.status(201).send({
             message: "Uploaded the file successfully"
@@ -143,7 +143,7 @@ router.post('/redis', upload.single('file'), async function (req: Request, res: 
         //send error if file is not upload
 
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "file"));
+        return next(new ApiError(500, "internal server error ->" + err.message));
     }
 });
 
@@ -176,7 +176,7 @@ router.post('/verify', async function (req: Request, res: Response, next: NextFu
             //write image in path 
             await fs.writeFile(pathSave + fileName, image, (err) => {
                 if (err) {
-                    return next(new HttpException(500, err.message, "file"));
+                    return next(new ApiError(500, "internal server error" + err.message));
                 }
             });
             //query to database for search personnel
@@ -212,7 +212,7 @@ router.post('/verify', async function (req: Request, res: Response, next: NextFu
             });
         }
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "file"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 

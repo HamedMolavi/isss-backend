@@ -24,7 +24,7 @@ describe('server run and crud car color', function () {
                 if (err) { return done(err); }
                 if (res.body.message !== 'Car Color already exists') {
                     let response = res.body;
-                    expect(response.carColor.name).to.equal('red');
+                    expect(response.data.name).to.equal('red');
                 } else {
                     let response = null;
                 }
@@ -57,7 +57,7 @@ describe('server run and crud car color', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.carColors;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).to.have.property('name');
                 // Done
                 done();
@@ -74,7 +74,7 @@ describe('server run and crud car color', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.carColors;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).to.have.property('name');
                 // Done
                 done();
@@ -92,7 +92,7 @@ describe('server run and crud car color', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.carColor;
+                let userResponse = res.body.data;
                 expect(userResponse.name).to.equal(_carColor.name);
                 // Done
                 done();
@@ -110,7 +110,7 @@ describe('server run and crud car color', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("Success");
+                expect(result.success).to.equal(true);
                 // Done
                 done();
             });

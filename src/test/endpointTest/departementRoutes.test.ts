@@ -25,7 +25,7 @@ describe('server run and crud departement', function () {
                 if (err) { return done(err); }
                 if (res.body.message !== 'departement already exists') {
                     let response = res.body;
-                    expect(response.departement.name).to.equal('office');
+                    expect(response.data.name).to.equal('office');
                 } else {
                     let response = null;
                 }
@@ -58,7 +58,7 @@ describe('server run and crud departement', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.departements;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).to.have.property('name');
                 // Done
                 done();
@@ -76,7 +76,7 @@ describe('server run and crud departement', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.departements;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).to.have.property('name');
                 // Done
                 done();
@@ -94,7 +94,7 @@ describe('server run and crud departement', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.departement;
+                let userResponse = res.body.data;
                 expect(userResponse.name).to.equal(_departement.name);
                 // Done
                 done();
@@ -115,7 +115,7 @@ describe('server run and crud departement', function () {
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
-                let departement = res.body.departement;
+                let departement = res.body.data;
                 expect(departement.name).to.equal(departementEditJson.name);;
                 // Done
                 done();
@@ -134,7 +134,7 @@ describe('server run and crud departement', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("Success");
+                expect(result.success).to.equal(true);
                 // Done
                 done();
             });

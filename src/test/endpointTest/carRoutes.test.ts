@@ -42,7 +42,7 @@ describe('server run and crud car', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 if (res.body.message !== 'car already exists') {
-                    let response = res.body.car;
+                    let response = res.body.data;
 
                     expect(response.owner.toString()).to.equal('629592546558a38fbecb6d40');
                     expect(response.number_plate).to.equal('1234567');
@@ -69,7 +69,7 @@ describe('server run and crud car', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.cars;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).to.have.property('owner');
                 expect(userResponse[0]).to.have.property('number_plate');
                 expect(userResponse[0]).to.have.property('brand_id');
@@ -94,7 +94,7 @@ describe('server run and crud car', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.cars;
+                let userResponse = res.body.data;
                 expect(userResponse[0].owner.toString()).to.equal('629592546558a38fbecb6d40');
                 expect(userResponse[0].number_plate).to.equal('1234567');
                 expect(userResponse[0].brand_id).to.equal('629592546558a38fbecb6d40');
@@ -118,7 +118,7 @@ describe('server run and crud car', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.car;
+                let userResponse = res.body.data;
 
                 expect(userResponse.owner.toString()).to.equal('629592546558a38fbecb6d40');
                 expect(userResponse.number_plate).to.equal('1234567');
@@ -146,7 +146,7 @@ describe('server run and crud car', function () {
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
-                let plate = res.body.car;
+                let plate = res.body.data;
 
                 expect(plate.owner.toString()).to.equal('629592546558a38fbecb6e11');
                 expect(plate.number_plate).to.equal('7654321');
@@ -170,7 +170,7 @@ describe('server run and crud car', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("Success");
+                expect(result.success).to.equal(true);
                 // Done
                 done();
             });

@@ -26,11 +26,11 @@ describe('server run and crud jobTitle', function () {
                 return done(err);
             }
             if (res.body.message !== 'jobTitle already exists') {
-                let response = res.body;
-                (0, chai_1.expect)(response.jobTitle.name).to.equal('developer');
-                (0, chai_1.expect)(response.jobTitle).to.have.property('_id');
-                (0, chai_1.expect)(response.jobTitle).to.have.property('name');
-                (0, chai_1.expect)(response.jobTitle).to.have.property('create_date');
+                let response = res.body.data;
+                (0, chai_1.expect)(response.name).to.equal('developer');
+                (0, chai_1.expect)(response).to.have.property('_id');
+                (0, chai_1.expect)(response).to.have.property('name');
+                (0, chai_1.expect)(response).to.have.property('create_date');
             }
             else {
                 let response = null;
@@ -63,7 +63,7 @@ describe('server run and crud jobTitle', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.jobTitles;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).have.to.property('name');
             // Done
             done();
@@ -80,7 +80,7 @@ describe('server run and crud jobTitle', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.jobTitles;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).have.to.property('name');
             // Done
             done();
@@ -97,7 +97,7 @@ describe('server run and crud jobTitle', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.jobTitle;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse.name).to.equal(_jobTitle.name);
             // Done
             done();
@@ -119,7 +119,7 @@ describe('server run and crud jobTitle', function () {
             if (err) {
                 return done(err);
             }
-            let jobTitle = res.body.jobTitle;
+            let jobTitle = res.body.data;
             (0, chai_1.expect)(jobTitle.name).to.equal(jobTitleEditJson.name);
             ;
             // Done
@@ -138,7 +138,7 @@ describe('server run and crud jobTitle', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("Success");
+            (0, chai_1.expect)(result.success).to.equal(true);
             // Done
             done();
         });

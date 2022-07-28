@@ -39,7 +39,7 @@ describe("server run and get model", function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.model;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse.category).to.equal("fire");
             (0, chai_1.expect)(userResponse.name).to.equal("googlenet");
             (0, chai_1.expect)(userResponse.uri).to.equal("/home/mohsen/PycharmProjects/FireDetectionPackage/models/fire_exception.onnx");
@@ -58,8 +58,8 @@ describe("server run and get model", function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.models;
-            (0, chai_1.expect)(res.body.message).to.equal("Success");
+            let userResponse = res.body.data;
+            (0, chai_1.expect)(res.body.success).to.equal(true);
             (0, chai_1.expect)(userResponse[0]).to.have.property("category");
             (0, chai_1.expect)(userResponse[0]).to.have.property("name");
             (0, chai_1.expect)(userResponse[0]).to.have.property("uri");

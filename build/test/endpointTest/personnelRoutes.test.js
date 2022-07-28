@@ -37,19 +37,19 @@ describe('server run and crud personnel', function () {
                 return done(err);
             }
             if (res.body.message !== 'Personnel already exists') {
-                let response = res.body;
-                (0, chai_1.expect)(response.personnel.first_name).to.equal('jack');
-                (0, chai_1.expect)(response.personnel.last_name).to.equal('jackson');
-                (0, chai_1.expect)(response.personnel.national_code).to.equal('123456789');
-                (0, chai_1.expect)(response.personnel.email).to.equal("test@test.gmail.com");
-                (0, chai_1.expect)(response.personnel.phone_number).to.equal("09122222222");
-                (0, chai_1.expect)(response.personnel.job_id).to.equal("6283724be1996b883080a495");
-                (0, chai_1.expect)(response.personnel.personnel_code).to.equal("6283724be1996b883080a495");
-                (0, chai_1.expect)(response.personnel.section_id).to.equal("6283724be1996b883080a495");
-                (0, chai_1.expect)(response.personnel.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
-                (0, chai_1.expect)(response.personnel.is_active).to.equal(true);
-                (0, chai_1.expect)(response.personnel.is_employee).to.equal(true);
-                (0, chai_1.expect)(response.personnel.is_dismissed).to.equal(true);
+                let response = res.body.data;
+                (0, chai_1.expect)(response.first_name).to.equal('jack');
+                (0, chai_1.expect)(response.last_name).to.equal('jackson');
+                (0, chai_1.expect)(response.national_code).to.equal('123456789');
+                (0, chai_1.expect)(response.email).to.equal("test@test.gmail.com");
+                (0, chai_1.expect)(response.phone_number).to.equal("09122222222");
+                (0, chai_1.expect)(response.job_id).to.equal("6283724be1996b883080a495");
+                (0, chai_1.expect)(response.personnel_code).to.equal("6283724be1996b883080a495");
+                (0, chai_1.expect)(response.section_id).to.equal("6283724be1996b883080a495");
+                (0, chai_1.expect)(response.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
+                (0, chai_1.expect)(response.is_active).to.equal(true);
+                (0, chai_1.expect)(response.is_employee).to.equal(true);
+                (0, chai_1.expect)(response.is_dismissed).to.equal(true);
             }
             else {
                 let response = null;
@@ -83,7 +83,7 @@ describe('server run and crud personnel', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.personnels;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).to.have.property('first_name');
             (0, chai_1.expect)(userResponse[0]).to.have.property('last_name');
             (0, chai_1.expect)(userResponse[0]).to.have.property('national_code');
@@ -111,7 +111,7 @@ describe('server run and crud personnel', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.personnels;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse[0]).to.have.property('first_name');
             (0, chai_1.expect)(userResponse[0]).to.have.property('last_name');
             (0, chai_1.expect)(userResponse[0]).to.have.property('national_code');
@@ -139,7 +139,7 @@ describe('server run and crud personnel', function () {
             if (err) {
                 return done(err);
             }
-            let userResponse = res.body.personnel;
+            let userResponse = res.body.data;
             (0, chai_1.expect)(userResponse).to.have.property('first_name');
             // Done
             done();
@@ -161,7 +161,7 @@ describe('server run and crud personnel', function () {
             if (err) {
                 return done(err);
             }
-            let personnel = res.body.personnel;
+            let personnel = res.body.data;
             (0, chai_1.expect)(personnel.first_name).to.equal('john');
             (0, chai_1.expect)(personnel.last_name).to.equal('johnson');
             (0, chai_1.expect)(personnel.national_code).to.equal('123456789');
@@ -190,7 +190,7 @@ describe('server run and crud personnel', function () {
                 return done(err);
             }
             let result = res.body;
-            (0, chai_1.expect)(result.message).to.equal("Success");
+            (0, chai_1.expect)(result.success).to.equal(true);
             // Done
             done();
         });

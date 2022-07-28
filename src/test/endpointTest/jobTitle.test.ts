@@ -23,11 +23,11 @@ describe('server run and crud jobTitle', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 if (res.body.message !== 'jobTitle already exists') {
-                    let response = res.body;
-                    expect(response.jobTitle.name).to.equal('developer');
-                    expect(response.jobTitle).to.have.property('_id');
-                    expect(response.jobTitle).to.have.property('name');
-                    expect(response.jobTitle).to.have.property('create_date');
+                    let response = res.body.data;
+                    expect(response.name).to.equal('developer');
+                    expect(response).to.have.property('_id');
+                    expect(response).to.have.property('name');
+                    expect(response).to.have.property('create_date');
                 } else {
                     let response = null;
                 }
@@ -63,7 +63,7 @@ describe('server run and crud jobTitle', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.jobTitles;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).have.to.property('name');
 
                 // Done
@@ -82,7 +82,7 @@ describe('server run and crud jobTitle', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.jobTitles;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).have.to.property('name');
 
                 // Done
@@ -102,7 +102,7 @@ describe('server run and crud jobTitle', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.jobTitle;
+                let userResponse = res.body.data;
                 expect(userResponse.name).to.equal(_jobTitle.name);
                 // Done
                 done();
@@ -124,7 +124,7 @@ describe('server run and crud jobTitle', function () {
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
-                let jobTitle = res.body.jobTitle;
+                let jobTitle = res.body.data;
                 expect(jobTitle.name).to.equal(jobTitleEditJson.name);;
                 // Done
                 done();
@@ -143,7 +143,7 @@ describe('server run and crud jobTitle', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("Success");
+                expect(result.success).to.equal(true);
                 // Done
                 done();
             });

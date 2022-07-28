@@ -8,16 +8,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("../../../error/HttpException"));
 const authentication_1 = require("../../../tools/authentication");
 const createlogReport_1 = require("../../../tools/createlogReport");
 const elasticsearch_1 = require("../../../db/elasticsearch");
 const convertTime_1 = require("../../../tools/convertTime");
+const error_handler_1 = require("../../../error/error.handler");
 //create router for add to routes file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -43,6 +40,7 @@ router.post("", function (req, res, next) {
             //get perPage from url
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+            page = ((page - 1) * perPage) + 1;
             //get search from url
             let search = req.query.search || "";
             let response;
@@ -62,16 +60,20 @@ router.post("", function (req, res, next) {
             let _data = [];
             //get event data from elastic search
             response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, timeEpokhStart, timeEpokhEnd, page, perPage, next, searchName);
+            if (!response) {
+                req.flash("error", "Data is null or undefined");
+                return next(new error_handler_1.ApiError(404, "Data is null or undefined"));
+            }
             //create json response for client
             _data = yield (0, createlogReport_1.eventDepartmentLogResponse)(response);
             //return data to client
             return res.status(200).json({
-                message: "Success",
+                success: true,
                 data: _data,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "sabotage"));
+            return next(new error_handler_1.ApiError(500, "Internal server error ," + err));
         }
     });
 });

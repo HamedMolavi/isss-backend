@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import HttpException from "./../../../error/HttpException";
+import { ApiError } from "../../../error/error.handler";
 import CarColor, { ICarColor } from "./../../../models/carColor";
 import { getTokenAndVerify } from "./../../../tools/authentication";
 
@@ -23,7 +23,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         //verify body request
         if (!name) {
             req.flash("error", "Car Color name is required");
-            return next(new HttpException(400, "Bad request", "Car_Color"));
+            return next(new ApiError(400, "Bad request car color name is required"));
         }
         //get token from header request and verify
         let token = getTokenAndVerify(req, "user", next);
@@ -33,7 +33,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         //retrun error if car_color already exists
         if (carColor) {
             req.flash("error", "Car Color already exists");
-            return next(new HttpException(400, "Car Color already exists", "Car_Color"));
+            return next(new ApiError(400, "Car Color already exists"));
         }
         //fill new car_color
         let newCarColor = new CarColor({
@@ -43,11 +43,11 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         await newCarColor.save();
         req.flash("info", "Car Color added");
         return res.status(201).json({
-            message: "Car Color created",
-            carColor: newCarColor
+            success: true,
+            data: newCarColor
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "Car_Color"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 
@@ -78,20 +78,20 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         //return response not found to client if not found car_colors
         if (!carColors) {
             req.flash("error", "Car Color not found");
-            return next(new HttpException(404, "Car Color not found", "Car_Color"));
+            return next(new ApiError(404, "Car Color not found"));
         }
 
         //return response to client with car_color list
         return res.status(200).json({
-            message: "Success",
-            carColors: carColors,
+            success: true,
+            data: carColors,
             page: page,
             perPage: perPage,
             total: await CarColor.countDocuments().exec(),
             pages: Math.ceil(await CarColor.countDocuments().exec() / perPage)
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "Car_Color"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 
@@ -102,7 +102,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "Car Color id is required");
-            return next(new HttpException(400, "Bad request", "Car_Color"));
+            return next(new ApiError(400, "Bad request car color id is required"));
         }
 
         //get token from header request and verify
@@ -114,15 +114,15 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         //return response not found to client if not found car_color
         if (!carColor) {
             req.flash("error", "Car Color not found");
-            return next(new HttpException(404, "Car Color not found", "Car_Color"));
+            return next(new ApiError(404, "Car Color not found"));
         }
         //return response to client with car_color
         return res.status(200).json({
-            message: "Success",
-            carColor: carColor
+            success: true,
+            data: carColor
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "Car_Color"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 
@@ -134,7 +134,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "Car Color id is required");
-            return next(new HttpException(400, "Bad request", "Car_Color"));
+            return next(new ApiError(400, "Bad request car color id is required"));
         }
 
         //get token from header request and verify
@@ -145,15 +145,15 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         //return response not found to client if not found car_color
         if (!carColor) {
             req.flash("error", "Car Color not found");
-            return next(new HttpException(404, "Car Color not found", "Car_Color"));
+            return next(new ApiError(404, "Car Color not found"));
         }
         //return response to client with car_color
         return res.status(201).json({
-            message: "Success",
-            carColor: carColor
+            success: true,
+            data: carColor
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "Car_Color"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 
 });

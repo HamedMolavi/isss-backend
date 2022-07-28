@@ -37,7 +37,7 @@ describe("server run and get model", function () {
         if (err) {
           return done(err);
         }
-        let userResponse = res.body.model;
+        let userResponse = res.body.data;
         expect(userResponse.category).to.equal("fire");
         expect(userResponse.name).to.equal("googlenet");
         expect(userResponse.uri).to.equal(
@@ -59,8 +59,8 @@ describe("server run and get model", function () {
         if (err) {
           return done(err);
         }
-        let userResponse = res.body.models;
-        expect(res.body.message).to.equal("Success");
+        let userResponse = res.body.data;
+        expect(res.body.success).to.equal(true);
         expect(userResponse[0]).to.have.property("category");
         expect(userResponse[0]).to.have.property("name");
         expect(userResponse[0]).to.have.property("uri");

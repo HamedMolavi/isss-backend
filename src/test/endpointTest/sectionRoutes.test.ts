@@ -39,8 +39,8 @@ describe('server run and crud section', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 if (res.body.message !== 'section already exists') {
-                    let response = res.body;
-                    expect(response.section.name).to.equal('section1');
+                    let response = res.body.data;
+                    expect(response.name).to.equal('section1');
                 } else {
                     let response = null;
                 }
@@ -62,7 +62,7 @@ describe('server run and crud section', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.sections;
+                let userResponse = res.body.data;
 
                 expect(userResponse[0]).to.have.property('name');
                 // Done
@@ -82,7 +82,7 @@ describe('server run and crud section', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.sections;
+                let userResponse = res.body.data;
 
                 expect(userResponse[0]).to.have.property('name');
                 // Done
@@ -102,7 +102,7 @@ describe('server run and crud section', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.section;
+                let userResponse = res.body.data;
                 expect(userResponse.name).to.equal(_section.name);
                 // Done
                 done();

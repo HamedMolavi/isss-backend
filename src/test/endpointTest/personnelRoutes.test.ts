@@ -35,19 +35,19 @@ describe('server run and crud personnel', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 if (res.body.message !== 'Personnel already exists') {
-                    let response = res.body;
-                    expect(response.personnel.first_name).to.equal('jack');
-                    expect(response.personnel.last_name).to.equal('jackson');
-                    expect(response.personnel.national_code).to.equal('123456789');
-                    expect(response.personnel.email).to.equal("test@test.gmail.com");
-                    expect(response.personnel.phone_number).to.equal("09122222222");
-                    expect(response.personnel.job_id).to.equal("6283724be1996b883080a495");
-                    expect(response.personnel.personnel_code).to.equal("6283724be1996b883080a495");
-                    expect(response.personnel.section_id).to.equal("6283724be1996b883080a495");
-                    expect(response.personnel.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
-                    expect(response.personnel.is_active).to.equal(true);
-                    expect(response.personnel.is_employee).to.equal(true);
-                    expect(response.personnel.is_dismissed).to.equal(true);
+                    let response = res.body.data;
+                    expect(response.first_name).to.equal('jack');
+                    expect(response.last_name).to.equal('jackson');
+                    expect(response.national_code).to.equal('123456789');
+                    expect(response.email).to.equal("test@test.gmail.com");
+                    expect(response.phone_number).to.equal("09122222222");
+                    expect(response.job_id).to.equal("6283724be1996b883080a495");
+                    expect(response.personnel_code).to.equal("6283724be1996b883080a495");
+                    expect(response.section_id).to.equal("6283724be1996b883080a495");
+                    expect(response.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
+                    expect(response.is_active).to.equal(true);
+                    expect(response.is_employee).to.equal(true);
+                    expect(response.is_dismissed).to.equal(true);
 
                 } else {
                     let response = null;
@@ -86,7 +86,7 @@ describe('server run and crud personnel', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.personnels;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).to.have.property('first_name');
                 expect(userResponse[0]).to.have.property('last_name');
                 expect(userResponse[0]).to.have.property('national_code');
@@ -116,7 +116,7 @@ describe('server run and crud personnel', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.personnels;
+                let userResponse = res.body.data;
                 expect(userResponse[0]).to.have.property('first_name');
                 expect(userResponse[0]).to.have.property('last_name');
                 expect(userResponse[0]).to.have.property('national_code');
@@ -145,7 +145,7 @@ describe('server run and crud personnel', function () {
             .set('Authorization', `Bearer ${token}`)
             .expect(200, function (err, res) {
                 if (err) { return done(err); }
-                let userResponse = res.body.personnel;
+                let userResponse = res.body.data;
                 expect(userResponse).to.have.property('first_name');
                 // Done
                 done();
@@ -167,7 +167,7 @@ describe('server run and crud personnel', function () {
             .expect('Content-Type', /json/)
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
-                let personnel = res.body.personnel;
+                let personnel = res.body.data;
                 expect(personnel.first_name).to.equal('john');
                 expect(personnel.last_name).to.equal('johnson');
                 expect(personnel.national_code).to.equal('123456789');
@@ -198,7 +198,7 @@ describe('server run and crud personnel', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("Success");
+                expect(result.success).to.equal(true);
                 // Done
                 done();
             });

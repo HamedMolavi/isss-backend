@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requestToElasticSearchEvent = exports.requestToElasticSearch = void 0;
 const axios_1 = __importDefault(require("axios"));
-const HttpException_1 = __importDefault(require("../error/HttpException"));
+const error_handler_1 = require("../error/error.handler");
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"];
 //send request to elastic search and get data
@@ -84,7 +84,7 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
             return response;
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, model));
+            return next(new error_handler_1.ApiError(500, "Error while getting data from elastic search"));
         }
     });
 }
@@ -246,7 +246,7 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
             return response;
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "event"));
+            return next(new error_handler_1.ApiError(500, "Error while getting data from elastic search"));
         }
     });
 }

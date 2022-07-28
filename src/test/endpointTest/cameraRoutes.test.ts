@@ -180,7 +180,7 @@ describe('server run and server runnig and crud camera', function () {
             .expect(201, function (err, res) {
                 if (err) { return done(err); }
                 let result = res.body;
-                expect(result.message).to.equal("Success");
+                expect(result.success).to.equal(true);
                // expect(result.message.camera).to.equal(null);
                 // Done
                 done();

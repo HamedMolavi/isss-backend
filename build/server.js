@@ -20,18 +20,17 @@ const setuppassport_1 = __importDefault(require("./tools/setuppassport"));
 const passport_1 = __importDefault(require("passport"));
 const index_Routes_1 = __importDefault(require("./routes/index.Routes"));
 const rotating_file_stream_1 = require("rotating-file-stream");
-const error_middleware_1 = __importDefault(require("./error/error.middleware"));
 const chai_1 = require("chai");
 //initial file .env
 dotenv_1.default.config();
 exports.dbUri = process.env["MONGODB_URL"];
 //export default function server() {
 //read key and cert from files for certificate in https server
-const key = fs_1.default.readFileSync(__dirname + '/../security/sslconfig/key.pem', 'utf-8');
-const cert = fs_1.default.readFileSync(__dirname + '/../security/sslconfig/cert.pem', 'utf-8');
+const key = fs_1.default.readFileSync(__dirname + "/../security/sslconfig/key.pem", "utf-8");
+const cert = fs_1.default.readFileSync(__dirname + "/../security/sslconfig/cert.pem", "utf-8");
 const options = {
     key: key,
-    cert: cert
+    cert: cert,
 };
 const PORT_HTTP = process.env["PORT_http"];
 const PORT_HTTPS = process.env["PORT_https"];
@@ -49,7 +48,7 @@ app.use(body_parser_1.default.json());
 app.use((0, express_session_1.default)({
     secret: "TKRv0IJs=HYqrvagQ#&!F!%V]Ww/4KiVs$s,<<MX",
     resave: true,
-    saveUninitialized: true
+    saveUninitialized: true,
 }));
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
@@ -57,31 +56,29 @@ app.use((0, connect_flash_1.default)());
 //add logger
 //app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
 //add logger in file
-app.use((0, morgan_1.default)(process.env.REQUEST_LOG_FORMAT || 'dev', {
-    stream: process.env.REQUEST_LOG_FILE ?
-        (0, rotating_file_stream_1.createStream)(process.env.REQUEST_LOG_FILE, {
-            size: '10M',
-            interval: '1d',
-            compress: 'gzip' // compress rotated files
+app.use((0, morgan_1.default)(process.env.REQUEST_LOG_FORMAT || "dev", {
+    stream: process.env.REQUEST_LOG_FILE
+        ? (0, rotating_file_stream_1.createStream)(process.env.REQUEST_LOG_FILE, {
+            size: "10M",
+            interval: "1d",
+            compress: "gzip", // compress rotated files
         })
-        : process.stdout
+        : process.stdout,
 }));
 //create route for test
-app.get('/', (req, res, next) => {
+app.get("/", (req, res, next) => {
     res.status(200).json({
-        message: 'Application works!'
+        message: "Application works!",
     });
 });
 //add routes app
 app.use("/api/v1", index_Routes_1.default);
-//add error handler
-app.use(error_middleware_1.default);
 //for get unhandeled error in express
-process.on('uncaughtException', function (err) {
-    console.error(`I've crashed!!! - ${(err.stack || err)}`);
+process.on("uncaughtException", function (err) {
+    console.error(`I've crashed!!! - ${err.stack || err}`);
 });
 //for get unhandeled rejection in express
-process.on('unhandledRejection', (reason, p) => {
+process.on("unhandledRejection", (reason, p) => {
     console.error(`Unhandled Rejection at: ${chai_1.util.inspect(p)} reason: ${reason}`);
 });
 //run https server on port 4000

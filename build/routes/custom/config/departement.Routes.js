@@ -13,10 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const HttpException_1 = __importDefault(require("./../../../error/HttpException"));
+const error_handler_1 = require("../../../error/error.handler");
 const departement_1 = __importDefault(require("./../../../models/departement"));
 const authentication_1 = require("./../../../tools/authentication");
-//create router for add to server file 
+//create router for add to server file
 const router = (0, express_1.Router)();
 //add error handler middleware
 router.use(function (req, res, next) {
@@ -34,7 +34,7 @@ router.post("", function (req, res, next) {
             //verify body request
             if (!name) {
                 req.flash("error", "Departement name is required");
-                return next(new HttpException_1.default(400, "Departement name is required", "departement"));
+                return next(new error_handler_1.ApiError(400, "Departement name is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -44,27 +44,27 @@ router.post("", function (req, res, next) {
             //retrun error if departement already exists
             if (departement) {
                 req.flash("error", "Departement already exists");
-                return next(new HttpException_1.default(400, "Departement already exists", "departement"));
+                return next(new error_handler_1.ApiError(400, "Departement already exists"));
             }
             //fill new departement
             newDepartement = new departement_1.default({
                 name: name,
-                created_date: created_date
+                created_date: created_date,
             });
             //query for save new departement in DB
             yield newDepartement.save();
             req.flash("info", "Departement added");
             return res.status(201).json({
-                message: "departement created",
-                departement: newDepartement
+                success: true,
+                data: newDepartement,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "departement"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
-//route for get departements list  
+//route for get departements list
 router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -81,33 +81,39 @@ router.get("", function (req, res, next) {
             let departements = [];
             if (!(search && search.length > 0)) {
                 departements = yield departement_1.default.find({
-                    name: { $regex: search, $options: "i" }
-                }).limit(perPage).skip(perPage * (page - 1)).exec();
+                    name: { $regex: search, $options: "i" },
+                })
+                    .limit(perPage)
+                    .skip(perPage * (page - 1))
+                    .exec();
             }
             else {
-                departements = yield departement_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+                departements = yield departement_1.default.find({})
+                    .limit(perPage)
+                    .skip(perPage * (page - 1))
+                    .exec();
             }
             //return response not found to client if not found departements
             if (!departements) {
                 req.flash("error", "Departement not found");
-                return next(new HttpException_1.default(404, "Departement not found", "departement"));
+                return next(new error_handler_1.ApiError(404, "Departement not found"));
             }
             //return response to client with departements list
             return res.status(200).json({
-                message: "Success",
-                departements: departements,
+                success: true,
+                data: departements,
                 page: page,
                 perPage: perPage,
                 total: yield departement_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield departement_1.default.countDocuments().exec()) / perPage)
+                pages: Math.ceil((yield departement_1.default.countDocuments().exec()) / perPage),
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "departement"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
-//route for get departement by id from DB 
+//route for get departement by id from DB
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -115,7 +121,7 @@ router.get("/:id", function (req, res, next) {
             //verify body request
             if (!id) {
                 req.flash("error", "Departement id is required");
-                return next(new HttpException_1.default(400, "Departement id is required", "departement"));
+                return next(new error_handler_1.ApiError(400, "Departement id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -124,16 +130,16 @@ router.get("/:id", function (req, res, next) {
             //return response not found to client if not found departement
             if (!departement) {
                 req.flash("error", "Departement not found");
-                return next(new HttpException_1.default(404, "Departement not found", "departement"));
+                return next(new error_handler_1.ApiError(404, "Departement not found"));
             }
             //return response to client with departement
             return res.status(200).json({
-                message: "Success",
-                departement: departement
+                success: true,
+                data: departement,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "departement"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -146,7 +152,7 @@ router.patch("/:id", function (req, res, next) {
             //verify body request
             if (!id) {
                 req.flash("error", "Departement id is required");
-                return next(new HttpException_1.default(400, "Departement id is required", "departement"));
+                return next(new error_handler_1.ApiError(400, "Department id is required"));
             }
             const departementBody = req.body;
             //get token from header request and verify
@@ -156,16 +162,16 @@ router.patch("/:id", function (req, res, next) {
             //return response not found to client if not found departement
             if (!departement) {
                 req.flash("error", "Departement not found");
-                return next(new HttpException_1.default(404, "Departement not found", "departement"));
+                return next(new error_handler_1.ApiError(404, "Departement not found"));
             }
             //return response to client with departement
             return res.status(201).json({
-                message: "Success",
-                departement: departement
+                success: true,
+                data: departement,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "departement"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
@@ -177,7 +183,7 @@ router.delete("/:id", function (req, res, next) {
             //verify body request
             if (!id) {
                 req.flash("error", "Departement id is required");
-                return next(new HttpException_1.default(400, "Departement id is required", "departement"));
+                return next(new error_handler_1.ApiError(400, "Departement id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
@@ -186,16 +192,16 @@ router.delete("/:id", function (req, res, next) {
             //return response not found to client if not found departement
             if (!departement) {
                 req.flash("error", "Departement not found");
-                return next(new HttpException_1.default(404, "Departement not found", "departement"));
+                return next(new error_handler_1.ApiError(404, "Departement not found"));
             }
             //return response to client with departement
             return res.status(201).json({
-                message: "Success",
-                departement: departement
+                success: true,
+                data: departement,
             });
         }
         catch (err) {
-            return next(new HttpException_1.default(500, err.message, "departement"));
+            return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });

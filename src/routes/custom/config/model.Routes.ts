@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import HttpException from "./../../../error/HttpException";
+import { ApiError } from "../../../error/error.handler";
 import Model, { IModel } from "./../../../models/model";
 import { getTokenAndVerify } from "./../../../tools/authentication";
 
@@ -30,20 +30,20 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         let models = await Model.find().limit(perPage).skip(perPage * (page - 1)).exec()
         if (!models) {
             req.flash("error", "No models found");
-            return next(new HttpException(404, "No models found", "Model"));
+            return next(new ApiError(404, "No models found"));
         }
 
         //return list of models
         return res.status(200).json({
-            message: "Success",
-            models: models,
+            success: true,
+            data: models,
             page: page,
             perPage: perPage,
             total: await Model.countDocuments().exec(),
             pages: Math.ceil(await Model.countDocuments().exec() / perPage)
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "model"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 
@@ -55,7 +55,7 @@ router.get("/:category", async function (req: Request, res: Response, next: Next
         let category: string = req.params.category;
         if (!category) {
             req.flash("error", "category is required");
-            return next(new HttpException(400, "category is required", "model"));
+            return next(new ApiError(400, "category is required"));
         }
 
         //get token from header request and verify
@@ -67,16 +67,16 @@ router.get("/:category", async function (req: Request, res: Response, next: Next
         //check model is exist
         if (!model) {
             req.flash("error", "model is not exist");
-            return next(new HttpException(404, "model is not exist", "model"));
+            return next(new ApiError(404, "model is not exist"));
         }
 
         //send model to client
         return res.status(200).json({
-            message: 'Success',
-            model: model
+            success: true,
+            data: model
         });
     } catch (err: any) {
-        return next(new HttpException(500, err.message, "model"));
+        return next(new ApiError(500, "internal server error" + err.message));
     }
 });
 
