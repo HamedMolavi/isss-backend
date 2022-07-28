@@ -22,7 +22,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: isss-backend
+    # image: isss-backend
     env_file: .env
     # environment:
     #   - PORT=${PORT_http}

@@ -93,13 +93,28 @@ UserSchema.methods.generateJWT = function () {
     }, secret);
 }
 
+//get user data jason for register
+UserSchema.methods.toJSON = function () {
+    return {
+        _id: this._id,
+        name: this.name,
+        username: this.username,
+        email: this.email,
+        role: this.role,
+        event : this.event,
+        camera : this.camera,
+        report : this.report,
+        configuration : this.configuration,
+        create_date: this.created_date,
+    };
+};
+
 //get user data jason for auth
 UserSchema.methods.toAuthJSON = function () {
     return {
         _id: this._id,
         name: this.name,
         username: this.username,
-        password: this.password,
         email: this.email,
         role: this.role,
         event : this.event,

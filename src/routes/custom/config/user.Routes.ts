@@ -66,7 +66,7 @@ router.post(
       //send response
       return res.status(201).json({
         success: true,
-        data: newUser,
+        data: newUser.toJSON(),
       });
     } catch (err: any) {
       return next(new ApiError(500, "internal server error" + err.message));
