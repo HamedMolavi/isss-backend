@@ -53,9 +53,13 @@ router.post("/:model", function (req, res, next) {
             let _carBrand = null;
             let _carColor = null;
             let _owner = null;
+            let _cameras = [];
+            let _models = [];
             if (search) {
                 //get body from request
-                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, } = req.body;
+                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, models, } = req.body;
+                _cameras = cameras;
+                _models = models;
                 _allowed = (_a = Boolean(allowed)) !== null && _a !== void 0 ? _a : undefined;
                 _carBrand = car_brand !== null && car_brand !== void 0 ? car_brand : null;
                 _carColor = car_color !== null && car_color !== void 0 ? car_color : null;
@@ -74,7 +78,7 @@ router.post("/:model", function (req, res, next) {
             let _data = [];
             if (model === "event") {
                 //get event data from elastic search
-                response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, timeEpokhEnd, timeEpokhStart, page, perPage, next, searchName);
+                response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(_cameras, _models, search, timeEpokhEnd, timeEpokhStart, page, perPage, next, searchName);
                 //report error on data null or undefined
                 if (!response) {
                     req.flash("error", "Data is null or undefined");
@@ -85,7 +89,7 @@ router.post("/:model", function (req, res, next) {
             }
             else {
                 //get log for other models data from elastic
-                response = yield (0, elasticsearch_1.requestToElasticSearch)(search, timeEpokhStart, timeEpokhEnd, model, page, perPage, next);
+                response = yield (0, elasticsearch_1.requestToElasticSearch)(_cameras, search, timeEpokhStart, timeEpokhEnd, model, page, perPage, next);
                 if (!response) {
                     req.flash("error", "Data is null or undefined");
                     return next(new error_handler_1.ApiError(404, "Data is null or undefined"));

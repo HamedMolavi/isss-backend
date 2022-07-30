@@ -56,9 +56,11 @@ router.post(
       let timeEpokhStart: string = "";
       let timeEpokhEnd: string = "";
       let _allowed: boolean | undefined = undefined;
-      let _carBrand: string | null = null;
-      let _carColor: string | null = null;
-      let _owner: string | null = null;
+      let _carBrand: string[] | null = null;
+      let _carColor: string[] | null = null;
+      let _owner: string[] | null = null;
+      let _cameras : string[] = [];
+      let _models : string[] = [];
       if (search) {
         //get body from request
         const {
@@ -70,7 +72,11 @@ router.post(
           car_color,
           owner,
           allowed,
+          cameras,
+          models,
         } = req.body;
+        _cameras = cameras;
+        _models = models;
         _allowed = Boolean(allowed) ?? undefined;
         _carBrand = car_brand ?? null;
         _carColor = car_color ?? null;
@@ -92,6 +98,8 @@ router.post(
       if (model === "event") {
         //get event data from elastic search
         response = await requestToElasticSearchEvent(
+          _cameras,
+          _models,
           search,
           timeEpokhEnd,
           timeEpokhStart,
@@ -110,6 +118,7 @@ router.post(
       } else {
         //get log for other models data from elastic
         response = await requestToElasticSearch(
+          _cameras,
           search,
           timeEpokhStart,
           timeEpokhEnd,

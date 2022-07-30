@@ -32,29 +32,19 @@ router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
-            let strPage = req.query.page;
-            let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-            //get perPage from url
-            let strPerPage = req.query.perPage;
-            let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-            let search = req.query.search || "";
+            // let strPage = req.query.page as string;
+            // let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+            // //get perPage from url
+            // let strPerPage = req.query.perPage as string;
+            // let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get departements list
-            let departments = yield departement_1.default.find({})
-                .limit(perPage)
-                .skip(perPage * (page - 1))
-                .exec();
+            let departments = yield departement_1.default.find({}).exec();
             //query for get all section from DB
-            let sections = yield section_1.default.find({})
-                .limit(perPage)
-                .skip(perPage * (page - 1))
-                .exec();
+            let sections = yield section_1.default.find({}).exec();
             //query for get all camera from DB
-            let cameras = yield camera_1.default.find({})
-                .limit(perPage)
-                .skip(perPage * (page - 1))
-                .exec();
+            let cameras = yield camera_1.default.find({}).exec();
             //return response not found to client if not found departements
             if (!departments) {
                 req.flash("error", "Departement not found");
@@ -121,10 +111,10 @@ router.get("", function (req, res, next) {
             return res.status(200).json({
                 success: true,
                 data: response,
-                page: page,
-                perPage: perPage,
+                // page: page,
+                // perPage: perPage,
                 total: yield departement_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield departement_1.default.countDocuments().exec()) / perPage),
+                // pages: Math.ceil((await Departement.countDocuments().exec()) / perPage),
             });
         }
         catch (err) {

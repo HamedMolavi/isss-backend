@@ -20,7 +20,7 @@ export async function sabotageLogResponse(response: any) {
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
       camera: camera?.name,
-      time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+      time: new Date(response.data.hits.hits[i]._source.timestamp),
     };
     _data.push(await result);
   }
@@ -29,58 +29,60 @@ export async function sabotageLogResponse(response: any) {
 //create json response plateLog report for send to client
 export async function plateLogResponse(
   response: any,
-  carBrand: string | null,
-  carColor: string | null,
-  owner: string | null,
+  carBrand: string[] | null,
+  carColor: string[] | null,
+  owner: string[] | null,
   allowed: boolean | undefined,
   search: string | null
 ) {
-  //ceate json response
+  //query for get cars from mongo db
+  let cars: any;
+  if (owner && carColor && carBrand) {
+    cars = await Car.find({
+      $and: [
+        { owner: { $in: owner } },
+        { color_id: { $in: carColor } },
+        { brand_id: { $in: carBrand } },
+      ],
+    }).exec();
+  } else {
+    console.log("owner, carColor, carBrand is null");
+    cars = await Car.find({}).exec();
+  }
+  //get casr with match plate_number from elastic search to cars plate_number
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
-    //get camera from mongo db by id for get camera name
-    let camera = await Camera.findById(
-      response.data.hits.hits[i]._source.camera_id
-    ).exec();
-    //get car from mongo db by id for get car name
-    let car = await Car.findOne({
-      number_plate: response.data.hits.hits[i]._source.plate_number,
-    }).exec();
-    let car_color, car_brand, _owner: any;
-    if (car && camera) {
-      //get car_color from mongo db by id for get car color
-      car_color = await CarColor.findById(car?.color_id).exec();
-      if (search && carColor && carColor !== car_color?._id.toString())
-        continue;
-      //get car_brand from mongo db by id for get car brand
-      car_brand = await CarBrand.findById(car?.brand_id).exec();
-      if (search && carBrand && carBrand !== car_brand?._id.toString())
-        continue;
-      //get owner from mongo db by id for get owner name
-      _owner = await Personnel.findById(car?.owner).exec();
-      if (search && owner && owner !== _owner?._id.toString()) continue;
-    } else if (search) {
-      continue;
+    for (let j = 0; j < cars.length; j++) {
+      if (
+        response.data.hits.hits[i]._source.plate_number === cars[j].number_plate
+      ) {
+        let result = {
+          camera_id: response.data.hits.hits[i]._source.camera_id,
+          camera: response.data.hits.hits[i]._source.camera,
+          time: new Date(response.data.hits.hits[i]._source.timestamp),
+          plate_number: response.data.hits.hits[i]._source.plate_number,
+          owner:
+            (await Personnel.findById(cars[j].owner)
+              .exec()
+              .then((personnel) => {
+                return personnel?.first_name + " " + personnel?.last_name;
+              })) ?? "null",
+          color:
+            (await CarColor.findById(cars[j].color_id)
+              .exec()
+              .then((carColor) => {
+                return carColor?.name;
+              })) ?? "null",
+          brand:
+            (await CarBrand.findById(cars[j].brand_id)
+              .exec()
+              .then((car) => {
+                return car?.name;
+              })) ?? "null",
+        };
+        _data.push(result);
+      }
     }
-    let _allowed = _owner?.camera_whitelist.includes(
-      response.data.hits.hits[i]._source.camera_id
-    )
-      ? true
-      : false;
-
-    // if (_allowed !== allowed) continue;
-
-    let result = {
-      camera_id: response.data.hits.hits[i]._source.camera_id,
-      camera: camera?.name,
-      time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
-      car: car_brand,
-      color: car_color,
-      plate: response.data.hits.hits[i]._source.plate_number,
-      owner: _owner?.first_name + " " + _owner?.last_name,
-      allowed: _allowed,
-    };
-    _data.push(await result);
   }
   return _data;
 }
@@ -114,7 +116,7 @@ export async function humanLogResponse(
       result = {
         camera_id: response.data.hits.hits[i]._source.camera_id,
         camera: camera?.name,
-        time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+        time: new Date(response.data.hits.hits[i]._source.timestamp),
         numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
         NumberOfPeople:
           schedule!?.config!?.max_people! >=
@@ -126,7 +128,7 @@ export async function humanLogResponse(
       result = {
         camera_id: response.data.hits.hits[i]._source.camera_id,
         camera: camera?.name,
-        time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+        time: new Date(response.data.hits.hits[i]._source.timestamp),
         numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
         NumberOfPeople:
           schedule!?.config!?.max_people! >=
@@ -151,7 +153,7 @@ export async function fireLogResponse(response: any) {
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
       camera: camera?.name,
-      time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+      time: new Date(response.data.hits.hits[i]._source.timestamp),
       probability: response.data.hits.hits[i]._source.confidence,
     };
     _data.push(await result);
@@ -180,7 +182,7 @@ export async function faceLogResponse(response: any) {
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
       camera: camera?.name,
-      time: new Date(response.data.hits.hits[i]._source.timestamp).getTime(),
+      time: new Date(response.data.hits.hits[i]._source.timestamp),
       fullName: _personnel?.first_name + " " + _personnel?.last_name,
       Allowed: _personnel?.camera_whitelist.includes(
         response.data.hits.hits[i]._source.camera_id
@@ -218,9 +220,7 @@ export async function eventLogResponse(response: any) {
           response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
         camera: camera?.name,
         time: new Date(
-          Number(
-            response.data.hits.hits[0]._source.alerts[i].labels.timestamp
-          ) * 1000
+          response.data.hits.hits[0]._source.alerts[i].labels.timestamp
         ),
         AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
         description:
@@ -267,9 +267,7 @@ export async function eventDepartmentLogResponse(response: any) {
         department: department?.name,
         sections: sections,
         time: new Date(
-          Number(
-            response.data.hits.hits[0]._source.alerts[i].labels.timestamp
-          ) * 1000
+          response.data.hits.hits[0]._source.alerts[i].labels.timestamp
         ),
         AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
         description:

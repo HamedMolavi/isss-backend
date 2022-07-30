@@ -34,7 +34,6 @@ router.post(
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-
       page = ((page -1) * perPage )+ 1;
       //get search from url
       let search = (req.query.search as string) || "";
@@ -44,9 +43,13 @@ router.post(
 
       let timeEpokhStart: string = "";
       let timeEpokhEnd: string = "";
+      let _cameras : string[] = [];
+      let _models : string[] = [];
       if (search) {
         //get body from request
-        const { time_start , time_end, date_start, date_end } = req.body;
+        const { time_start , time_end, date_start, date_end , cameras , models} = req.body;
+        _models=models ?? [];
+        _cameras = cameras ?? [];
         if (time_start && time_end && date_start && date_end) {
           //convet time to timeStamp
           timeEpokhStart = date2Epokh(date_start, time_start);
@@ -57,6 +60,8 @@ router.post(
       let _data: object[] = [];
       //get event data from elastic search
       response = await requestToElasticSearchEvent(
+        _cameras,
+        _models,
         search,
         timeEpokhStart,
         timeEpokhEnd,

@@ -48,9 +48,13 @@ router.post("", function (req, res, next) {
             let searchName = req.query.name || "";
             let timeEpokhStart = "";
             let timeEpokhEnd = "";
+            let _cameras = [];
+            let _models = [];
             if (search) {
                 //get body from request
-                const { time_start, time_end, date_start, date_end } = req.body;
+                const { time_start, time_end, date_start, date_end, cameras, models } = req.body;
+                _models = models !== null && models !== void 0 ? models : [];
+                _cameras = cameras !== null && cameras !== void 0 ? cameras : [];
                 if (time_start && time_end && date_start && date_end) {
                     //convet time to timeStamp
                     timeEpokhStart = (0, convertTime_1.date2Epokh)(date_start, time_start);
@@ -59,7 +63,7 @@ router.post("", function (req, res, next) {
             }
             let _data = [];
             //get event data from elastic search
-            response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, timeEpokhStart, timeEpokhEnd, page, perPage, next, searchName);
+            response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(_cameras, _models, search, timeEpokhStart, timeEpokhEnd, page, perPage, next, searchName);
             if (!response) {
                 req.flash("error", "Data is null or undefined");
                 return next(new error_handler_1.ApiError(404, "Data is null or undefined"));

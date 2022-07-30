@@ -48,32 +48,22 @@ router.get(
   async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get page from url
-      let strPage = req.query.page as string;
-      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-      //get perPage from url
-      let strPerPage = req.query.perPage as string;
-      let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-      let search = (req.query.search as string) || "";
+      // let strPage = req.query.page as string;
+      // let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+      // //get perPage from url
+      // let strPerPage = req.query.perPage as string;
+      // let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
       //get token from header request and verify
       let token = getTokenAndVerify(req, "user", next);
       //query for get departements list
-      let departments: IDepartement[] = await Departement.find({})
-        .limit(perPage)
-        .skip(perPage * (page - 1))
-        .exec();
+      let departments: IDepartement[] = await Departement.find({}).exec();
 
       //query for get all section from DB
-      let sections: ISection[] = await Section.find({})
-        .limit(perPage)
-        .skip(perPage * (page - 1))
-        .exec();
+      let sections: ISection[] = await Section.find({}).exec();
 
       //query for get all camera from DB
-      let cameras: ICamera[] = await Camera.find({})
-        .limit(perPage)
-        .skip(perPage * (page - 1))
-        .exec();
+      let cameras: ICamera[] = await Camera.find({}).exec();
       //return response not found to client if not found departements
       if (!departments) {
         req.flash("error", "Departement not found");
@@ -146,10 +136,10 @@ router.get(
       return res.status(200).json({
         success: true,
         data: response,
-        page: page,
-        perPage: perPage,
+        // page: page,
+        // perPage: perPage,
         total: await Departement.countDocuments().exec(),
-        pages: Math.ceil((await Departement.countDocuments().exec()) / perPage),
+       // pages: Math.ceil((await Departement.countDocuments().exec()) / perPage),
       });
     } catch (err: any) {
       return next(new ApiError(500, "internal server error" + err.message));

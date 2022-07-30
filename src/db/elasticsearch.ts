@@ -5,6 +5,7 @@ import { ApiError } from "../error/error.handler";
 const dbUri = process.env["ELASTIC_SEARCH"] as string;
 //send request to elastic search and get data
 export async function requestToElasticSearch(
+  cameras : string[],
   search: string,
   timeStart: string,
   timeEnd: string,
@@ -17,6 +18,7 @@ export async function requestToElasticSearch(
   try {
     let response: any;
     if (search !== "") {
+      console.log(111111);
       //get data from elastic
       //format search to elastic search
       response = await axios.get(dbUri + "/" + model + "_log/_search", {
@@ -30,8 +32,8 @@ export async function requestToElasticSearch(
             'bool': {
                 'filter': [
                     {
-                        'term': {
-                            'camera_id': search
+                        'terms': {
+                            'camera_id': cameras
                         }
                     },
                     {
@@ -76,6 +78,7 @@ export async function requestToElasticSearch(
         }
       );
     }
+    console.log(response.data.hits.hits);
     return response;
   } catch (err: any) {
     return next(new ApiError(500, "Error while getting data from elastic search"));
@@ -83,6 +86,8 @@ export async function requestToElasticSearch(
 }
 
 export async function requestToElasticSearchEvent(
+  cameras : string[],
+  models : string[],
   search: string,
   timeStart: string,
   timeEnd: string,
@@ -98,8 +103,6 @@ export async function requestToElasticSearchEvent(
       //get data from elastic
       //format search to elastic search
       if (searchName === "all") {
-        let model = search.split(" ")[0];
-        let camera_id = search.split(" ")[1];
         response = await axios.get(dbUri + "/alerts/_search", {
           headers: {
             "Content-Type": "application/json",
@@ -112,12 +115,12 @@ export async function requestToElasticSearchEvent(
                 'filter': [
                   {
                     'term': {
-                      "alerts.labels.camera_id": camera_id,
+                      "alerts.labels.camera_id": cameras
                     },
                   },
                   {
                     'term': {
-                      "alerts.labels.module": model,
+                      "alerts.labels.module": models,
                     },
                   },
                   {
@@ -150,7 +153,7 @@ export async function requestToElasticSearchEvent(
             'size': perPage,
             'query': {
               'match': {
-                "alerts.labels.camera_id": search,
+                "alerts.labels.camera_id": cameras,
               },
             },
             'sort': [
@@ -211,7 +214,7 @@ export async function requestToElasticSearchEvent(
                 'filter': [
                   {
                     'term': {
-                      "alerts.labels.module": search,
+                      "alerts.labels.module": models,
                     },
                   },
                 ],
