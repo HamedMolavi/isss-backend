@@ -58,13 +58,22 @@ router.get(
       //get token from header request and verify
       let token = getTokenAndVerify(req, "user", next);
       //query for get departements list
-      let departments: IDepartement[] = await Departement.find({}).exec();
+      let departments: IDepartement[] = await Departement.find({})
+        .limit(perPage)
+        .skip(perPage * (page - 1))
+        .exec();
 
       //query for get all section from DB
-      let sections: ISection[] = await Section.find({}).exec();
+      let sections: ISection[] = await Section.find({})
+        .limit(perPage)
+        .skip(perPage * (page - 1))
+        .exec();
 
       //query for get all camera from DB
-      let cameras: ICamera[] = await Camera.find({}).exec();
+      let cameras: ICamera[] = await Camera.find({})
+        .limit(perPage)
+        .skip(perPage * (page - 1))
+        .exec();
       //return response not found to client if not found departements
       if (!departments) {
         req.flash("error", "Departement not found");
@@ -72,15 +81,20 @@ router.get(
       }
       let response: IResponseJson[] = [];
       //loop for get sort departments and section in json response
-      for (let i = 0 ; i < departments.length ; i++) {
+      for (let i = 0; i < departments.length; i++) {
         let childrenSection: IChildrenSection[] = [];
-        for (let j = 0 ; j < sections.length ; j++) {
-          if (sections[j].departement_id.toString() == departments[i]._id.toString()) {
+        for (let j = 0; j < sections.length; j++) {
+          if (
+            sections[j].departement_id.toString() ==
+            departments[i]._id.toString()
+          ) {
             let childrenCamera: IChildrenCamera[] = [];
-            for (let k = 0 ; k < cameras.length ; k++) {
-              if (cameras[k].section_id.toString() == sections[j]._id.toString()) {
+            for (let k = 0; k < cameras.length; k++) {
+              if (
+                cameras[k].section_id.toString() == sections[j]._id.toString()
+              ) {
                 childrenCamera.push({
-                  _id:cameras[k]._id,
+                  _id: cameras[k]._id,
                   name: cameras[k].name,
                   type: "camera",
                   url: cameras[k].url,

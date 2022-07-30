@@ -41,11 +41,20 @@ router.get("", function (req, res, next) {
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get departements list
-            let departments = yield departement_1.default.find().exec();
+            let departments = yield departement_1.default.find({})
+                .limit(perPage)
+                .skip(perPage * (page - 1))
+                .exec();
             //query for get all section from DB
-            let sections = yield section_1.default.find().exec();
+            let sections = yield section_1.default.find({})
+                .limit(perPage)
+                .skip(perPage * (page - 1))
+                .exec();
             //query for get all camera from DB
-            let cameras = yield camera_1.default.find().exec();
+            let cameras = yield camera_1.default.find({})
+                .limit(perPage)
+                .skip(perPage * (page - 1))
+                .exec();
             //return response not found to client if not found departements
             if (!departments) {
                 req.flash("error", "Departement not found");
@@ -53,30 +62,29 @@ router.get("", function (req, res, next) {
             }
             let response = [];
             //loop for get sort departments and section in json response
-            for (let department of departments) {
+            for (let i = 0; i < departments.length; i++) {
                 let childrenSection = [];
-                for (let section of sections) {
-                    console.log(sections);
-                    if (section.departement_id == department._id) {
+                for (let j = 0; j < sections.length; j++) {
+                    if (sections[j].departement_id.toString() ==
+                        departments[i]._id.toString()) {
                         let childrenCamera = [];
-                        for (let camera of cameras) {
-                            if (camera.section_id == section._id) {
+                        for (let k = 0; k < cameras.length; k++) {
+                            if (cameras[k].section_id.toString() == sections[j]._id.toString()) {
                                 childrenCamera.push({
-                                    _id: camera._id,
-                                    name: camera.name,
+                                    _id: cameras[k]._id,
+                                    name: cameras[k].name,
                                     type: "camera",
-                                    url: camera.url,
-                                    username: camera.username,
-                                    password: camera.password,
-                                    ip: camera.ip,
-                                    is_enabled: camera.is_enabled,
+                                    url: cameras[k].url,
+                                    username: cameras[k].username,
+                                    password: cameras[k].password,
+                                    ip: cameras[k].ip,
+                                    is_enabled: cameras[k].is_enabled,
                                 });
                             }
                         }
-                        console.log(childrenCamera);
                         childrenSection.push({
-                            _id: section._id,
-                            name: section.name,
+                            _id: sections[j]._id,
+                            name: sections[j].name,
                             type: "section",
                             children: childrenCamera,
                         });
@@ -93,8 +101,8 @@ router.get("", function (req, res, next) {
                     });
                 }
                 response.push({
-                    _id: department._id,
-                    name: department.name,
+                    _id: departments[i]._id,
+                    name: departments[i].name,
                     type: "department",
                     children: childrenSection,
                 });
