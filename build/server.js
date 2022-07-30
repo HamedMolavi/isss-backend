@@ -50,7 +50,6 @@ app.use((0, express_session_1.default)({
     resave: true,
     saveUninitialized: true,
 }));
-app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
 app.use((0, connect_flash_1.default)());
 //add logger

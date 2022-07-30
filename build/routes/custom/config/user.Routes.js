@@ -63,7 +63,7 @@ router.post("", function (req, res, next) {
             //send response
             return res.status(201).json({
                 success: true,
-                data: newUser,
+                data: newUser.toJSON(),
             });
         }
         catch (err) {

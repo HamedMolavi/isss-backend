@@ -15,6 +15,7 @@ import modelToCamera from "./custom/config/modelToCamera.Routes";
 import report from "./custom/report/report.Routes";
 import reportDepartmets from "./custom/report/departmentReport.Routes";
 import { ApiError } from "../error/error.handler";
+import reportDepartementfiles from "./custom/config/departmentFile.Routes";
 
 //create router for add to server
 const router: Router = Router();
@@ -35,6 +36,7 @@ router.use("/carbrands", carBrandRoutes);
 router.use("/modelToCameras", modelToCamera);
 router.use("/reports", report);
 router.use("/reportDepartmets", reportDepartmets);
+router.use("/departementfiles", reportDepartementfiles);
 
 
 ////////////////////////////////////////////////////////////////////////
