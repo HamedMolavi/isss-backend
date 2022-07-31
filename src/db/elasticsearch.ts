@@ -18,7 +18,6 @@ export async function requestToElasticSearch(
   try {
     let response: any;
     if (search !== "") {
-      console.log(111111);
       //get data from elastic
       //format search to elastic search
       response = await axios.get(dbUri + "/" + model + "_log/_search", {
@@ -78,7 +77,6 @@ export async function requestToElasticSearch(
         }
       );
     }
-    console.log(response.data.hits.hits);
     return response;
   } catch (err: any) {
     return next(new ApiError(500, "Error while getting data from elastic search"));
@@ -213,7 +211,7 @@ export async function requestToElasticSearchEvent(
               'bool': {
                 'filter': [
                   {
-                    'term': {
+                    'terms': {
                       "alerts.labels.module": models,
                     },
                   },

@@ -12,9 +12,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const authentication_1 = require("../../../tools/authentication");
 const createlogReport_1 = require("../../../tools/createlogReport");
-const elasticsearch_1 = require("../../../db/elasticsearch");
 const convertTime_1 = require("../../../tools/convertTime");
 const error_handler_1 = require("../../../error/error.handler");
+const connectElasticSearch_1 = require("../../../db/connectElasticSearch");
 //create router for add to routes file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -55,9 +55,11 @@ router.post("/:model", function (req, res, next) {
             let _owner = null;
             let _cameras = [];
             let _models = [];
+            let _personnels = [];
             if (search) {
                 //get body from request
-                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, models, } = req.body;
+                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, models, personnels, } = req.body;
+                _personnels = personnels;
                 _cameras = cameras;
                 _models = models;
                 _allowed = (_a = Boolean(allowed)) !== null && _a !== void 0 ? _a : undefined;
@@ -69,51 +71,33 @@ router.post("/:model", function (req, res, next) {
                     timeEpokhStart = (0, convertTime_1.date2Epokh)(date_start, time_start);
                     timeEpokhEnd = (0, convertTime_1.date2Epokh)(date_end, time_end);
                 }
-                // else
-                // if(!time_start || !time_end || !date_start || !date_end ){
-                //   req.flash("error", "Time and date is required");
-                //   return next(new HttpException(400, "Time and date is required", model));
-                // }
             }
             let _data = [];
-            if (model === "event") {
-                //get event data from elastic search
-                response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(_cameras, _models, search, timeEpokhEnd, timeEpokhStart, page, perPage, next, searchName);
-                //report error on data null or undefined
-                if (!response) {
-                    req.flash("error", "Data is null or undefined");
-                    return next(new error_handler_1.ApiError(404, "Data is null or undefined"));
-                }
-                //create json response for client
-                _data = yield (0, createlogReport_1.eventLogResponse)(response);
+            //get log for other models data from elastic
+            response = yield (0, connectElasticSearch_1.dynamicRequestToElasticSearch)(_cameras, _personnels, _models, timeEpokhStart, timeEpokhEnd, model, page, perPage, next);
+            if (!response) {
+                req.flash("error", "Data is null or undefined");
+                return next(new error_handler_1.ApiError(404, "Data is null or undefined"));
             }
-            else {
-                //get log for other models data from elastic
-                response = yield (0, elasticsearch_1.requestToElasticSearch)(_cameras, search, timeEpokhStart, timeEpokhEnd, model, page, perPage, next);
-                if (!response) {
-                    req.flash("error", "Data is null or undefined");
-                    return next(new error_handler_1.ApiError(404, "Data is null or undefined"));
+            //create json response for client
+            if (model === "sabotage") {
+                _data = yield (0, createlogReport_1.sabotageLogResponse)(response);
+            }
+            else if (model === "plate") {
+                if ((_carBrand === null || _carColor === null || _owner === null) &&
+                    search) {
+                    return next(new error_handler_1.ApiError(400, `car_brand, car_color, owner is required`));
                 }
-                //create json response for client
-                if (model === "sabotage") {
-                    _data = yield (0, createlogReport_1.sabotageLogResponse)(response);
-                }
-                else if (model === "plate") {
-                    if ((_carBrand === null || _carColor === null || _owner === null) &&
-                        search) {
-                        return next(new error_handler_1.ApiError(400, `car_brand, car_color, owner is required`));
-                    }
-                    _data = yield (0, createlogReport_1.plateLogResponse)(response, _carBrand, _carColor, _owner, _allowed, search);
-                }
-                else if (model === "human") {
-                    _data = yield (0, createlogReport_1.humanLogResponse)(response, _allowed);
-                }
-                else if (model === "fire") {
-                    _data = yield (0, createlogReport_1.fireLogResponse)(response);
-                }
-                else if (model === "face") {
-                    _data = yield (0, createlogReport_1.faceLogResponse)(response);
-                }
+                _data = yield (0, createlogReport_1.plateLogResponse)(response, _carBrand, _carColor, _owner, _allowed, search);
+            }
+            else if (model === "human") {
+                _data = yield (0, createlogReport_1.humanLogResponse)(response, _allowed);
+            }
+            else if (model === "fire") {
+                _data = yield (0, createlogReport_1.fireLogResponse)(response);
+            }
+            else if (model === "face") {
+                _data = yield (0, createlogReport_1.faceLogResponse)(response);
             }
             //return data to client
             return res.status(200).json({

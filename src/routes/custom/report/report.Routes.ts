@@ -1,19 +1,15 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import {
-  eventLogResponse,
   faceLogResponse,
   fireLogResponse,
   humanLogResponse,
   plateLogResponse,
   sabotageLogResponse,
 } from "../../../tools/createlogReport";
-import {
-  requestToElasticSearch,
-  requestToElasticSearchEvent,
-} from "../../../db/elasticsearch";
 import { date2Epokh } from "../../../tools/convertTime";
 import { ApiError } from "../../../error/error.handler";
+import { dynamicRequestToElasticSearch } from "../../../db/connectElasticSearch";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -59,8 +55,9 @@ router.post(
       let _carBrand: string[] | null = null;
       let _carColor: string[] | null = null;
       let _owner: string[] | null = null;
-      let _cameras : string[] = [];
-      let _models : string[] = [];
+      let _cameras: string[] = [];
+      let _models: string[] = [];
+      let _personnels: string[] = [];
       if (search) {
         //get body from request
         const {
@@ -74,7 +71,9 @@ router.post(
           allowed,
           cameras,
           models,
+          personnels,
         } = req.body;
+        _personnels = personnels;
         _cameras = cameras;
         _models = models;
         _allowed = Boolean(allowed) ?? undefined;
@@ -86,76 +85,51 @@ router.post(
           timeEpokhStart = date2Epokh(date_start, time_start);
           timeEpokhEnd = date2Epokh(date_end, time_end);
         }
-        // else
-        // if(!time_start || !time_end || !date_start || !date_end ){
-        //   req.flash("error", "Time and date is required");
-        //   return next(new HttpException(400, "Time and date is required", model));
-        // }
       }
 
       let _data: object[] = [];
-
-      if (model === "event") {
-        //get event data from elastic search
-        response = await requestToElasticSearchEvent(
-          _cameras,
-          _models,
-          search,
-          timeEpokhEnd,
-          timeEpokhStart,
-          page,
-          perPage,
-          next,
-          searchName
-        );
-        //report error on data null or undefined
-        if (!response) {
-          req.flash("error", "Data is null or undefined");
-          return next(new ApiError(404, "Data is null or undefined"));
-        }
-        //create json response for client
-        _data = await eventLogResponse(response);
-      } else {
-        //get log for other models data from elastic
-        response = await requestToElasticSearch(
-          _cameras,
-          search,
-          timeEpokhStart,
-          timeEpokhEnd,
-          model,
-          page,
-          perPage,
-          next
-        );
-        if (!response) {
-          req.flash("error", "Data is null or undefined");
-          return next(new ApiError(404, "Data is null or undefined"));
-        }
-        //create json response for client
-        if (model === "sabotage") {
-          _data = await sabotageLogResponse(response);
-        } else if (model === "plate") {
-          if (
-            (_carBrand === null || _carColor === null || _owner === null) &&
-            search
-          ) {
-            return next(new ApiError(400, `car_brand, car_color, owner is required`));
-          }
-          _data = await plateLogResponse(
-            response,
-            _carBrand,
-            _carColor,
-            _owner,
-            _allowed,
-            search
+      //get log for other models data from elastic
+      response = await dynamicRequestToElasticSearch(
+        _cameras,
+        _personnels,
+        _models,
+        timeEpokhStart,
+        timeEpokhEnd,
+        model,
+        page,
+        perPage,
+        next
+      );
+      if (!response) {
+        req.flash("error", "Data is null or undefined");
+        return next(new ApiError(404, "Data is null or undefined"));
+      }
+      //create json response for client
+      if (model === "sabotage") {
+        _data = await sabotageLogResponse(response);
+      } else if (model === "plate") {
+        if (
+          (_carBrand === null || _carColor === null || _owner === null) &&
+          search
+        ) {
+          return next(
+            new ApiError(400, `car_brand, car_color, owner is required`)
           );
-        } else if (model === "human") {
-          _data = await humanLogResponse(response, _allowed);
-        } else if (model === "fire") {
-          _data = await fireLogResponse(response);
-        } else if (model === "face") {
-          _data = await faceLogResponse(response);
         }
+        _data = await plateLogResponse(
+          response,
+          _carBrand,
+          _carColor,
+          _owner,
+          _allowed,
+          search
+        );
+      } else if (model === "human") {
+        _data = await humanLogResponse(response, _allowed);
+      } else if (model === "fire") {
+        _data = await fireLogResponse(response);
+      } else if (model === "face") {
+        _data = await faceLogResponse(response);
       }
       //return data to client
       return res.status(200).json({

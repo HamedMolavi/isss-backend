@@ -24,7 +24,6 @@ function requestToElasticSearch(cameras, search, timeStart, timeEnd, model, page
         try {
             let response;
             if (search !== "") {
-                console.log(111111);
                 //get data from elastic
                 //format search to elastic search
                 response = yield axios_1.default.get(dbUri + "/" + model + "_log/_search", {
@@ -82,7 +81,6 @@ function requestToElasticSearch(cameras, search, timeStart, timeEnd, model, page
                     },
                 });
             }
-            console.log(response.data.hits.hits);
             return response;
         }
         catch (err) {
@@ -213,7 +211,7 @@ function requestToElasticSearchEvent(cameras, models, search, timeStart, timeEnd
                                 'bool': {
                                     'filter': [
                                         {
-                                            'term': {
+                                            'terms': {
                                                 "alerts.labels.module": models,
                                             },
                                         },
