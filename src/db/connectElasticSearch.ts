@@ -10,6 +10,7 @@ export async function dynamicRequestToElasticSearch(
   cameras: string[] = [],
   personnels: string[] = [],
   models: string[] = [],
+  probability: number[] = [],
   timeStart: string,
   timeEnd: string,
   model: string,
@@ -78,6 +79,17 @@ export async function dynamicRequestToElasticSearch(
           },
         });
       }
+
+      //add filter for confidence if confidence is not empty  and model is not event
+      //confidence ai array string confidence number
+      if (probability.length > 0) {
+        jsonResuest.query.bool.filter.push({
+          terms: {
+            confidence: probability,
+          },
+        });
+      }
+
       //create url for elastic search with model for name table in elastic search
       let baseurl: string = "";
       if (model !== "") {
@@ -89,7 +101,7 @@ export async function dynamicRequestToElasticSearch(
           "Content-Type": "application/json",
         },
         data: jsonResuest,
-      }); 
+      });
     } else if (model === "event") {
     }
     return response;
@@ -100,11 +112,7 @@ export async function dynamicRequestToElasticSearch(
   }
 }
 
-
-
-
-
-//function for send request to elastic search and get count data 
+//function for send request to elastic search and get count data
 export async function dynamicRequestToElasticSearchCount(
   cameras: string[] = [],
   personnels: string[] = [],
@@ -163,7 +171,7 @@ export async function dynamicRequestToElasticSearchCount(
           "Content-Type": "application/json",
         },
         data: jsonResuest,
-      }); 
+      });
     } else if (model === "event") {
     }
     return response.data.count;

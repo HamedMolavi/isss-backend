@@ -58,6 +58,7 @@ router.post(
       let _cameras: string[] = [];
       let _models: string[] = [];
       let _personnels: string[] = [];
+      let _probabilities: number[] = [];
       if (search) {
         //get body from request
         const {
@@ -72,10 +73,12 @@ router.post(
           cameras,
           models,
           personnels,
+          probabilities
         } = req.body;
         _personnels = personnels;
         _cameras = cameras;
         _models = models;
+        _probabilities = probabilities;
         _allowed = Boolean(allowed) ?? undefined;
         _carBrand = car_brand ?? null;
         _carColor = car_color ?? null;
@@ -93,6 +96,7 @@ router.post(
         _cameras,
         _personnels,
         _models,
+        _probabilities,
         timeEpokhStart,
         timeEpokhEnd,
         model,

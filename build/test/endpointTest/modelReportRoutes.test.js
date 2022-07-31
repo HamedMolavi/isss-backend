@@ -234,7 +234,7 @@ describe("server run and get report logs", function () {
                 time_end: "12:30",
                 date_start: "4/15/2021",
                 date_end: "4/15/2023",
-                probability: 0.5,
+                probability: [0.5, 1],
                 cameras: ["628dc31bf014bc89f0280c54", "628dc2cff014bc89f0280c50"],
             })
                 .expect("Content-Type", /json/)

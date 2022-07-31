@@ -18,7 +18,7 @@ const error_handler_1 = require("../error/error.handler");
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"];
 //function for send request to elastic search and get data
-function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [], timeStart, timeEnd, model, page, perPage, next) {
+function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [], probability = [], timeStart, timeEnd, model, page, perPage, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //create json response for client
@@ -79,6 +79,15 @@ function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [
                         },
                     });
                 }
+                //add filter for confidence if confidence is not empty  and model is not event
+                //confidence ai array string confidence number
+                if (probability.length > 0) {
+                    jsonResuest.query.bool.filter.push({
+                        terms: {
+                            confidence: probability,
+                        },
+                    });
+                }
                 //create url for elastic search with model for name table in elastic search
                 let baseurl = "";
                 if (model !== "") {
@@ -102,7 +111,7 @@ function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [
     });
 }
 exports.dynamicRequestToElasticSearch = dynamicRequestToElasticSearch;
-//function for send request to elastic search and get count data 
+//function for send request to elastic search and get count data
 function dynamicRequestToElasticSearchCount(cameras = [], personnels = [], models = [], model, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
