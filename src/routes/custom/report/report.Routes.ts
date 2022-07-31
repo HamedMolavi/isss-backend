@@ -9,7 +9,7 @@ import {
 } from "../../../tools/createlogReport";
 import { date2Epokh } from "../../../tools/convertTime";
 import { ApiError } from "../../../error/error.handler";
-import { dynamicRequestToElasticSearch, dynamicRequestToElasticSearchCount } from "../../../db/connectElasticSearch";
+import { dynamicRequestToElasticSearch} from "../../../db/connectElasticSearch";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -140,8 +140,7 @@ router.post(
       return res.status(200).json({
         success: true,
         data: _data,
-        //get total from elastic
-        total : await dynamicRequestToElasticSearchCount(_cameras,_personnels,_models,model,next)
+        total : response.data.hits.total.value
       });
     } catch (err: any) {
       return next(new ApiError(500, "Internal server error ," + err));
