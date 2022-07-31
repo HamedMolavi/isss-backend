@@ -36,7 +36,7 @@ export async function plateLogResponse(
   allowed: boolean | undefined,
   search: string | null
 ) {
-  //query for get cars from mongo db
+  //query for get cars from mongo db with list color and list brand and list owner
   let cars: any;
   if (owner && carColor && carBrand) {
     cars = await Car.find({
@@ -47,17 +47,13 @@ export async function plateLogResponse(
       ],
     }).exec();
   } else {
+    //send error if owner or color or brand is not found in DB
     console.log("owner, carColor, carBrand is null");
     cars = await Car.find({}).exec();
   }
   //get casr with match plate_number from elastic search to cars plate_number
   let _data: object[] = [];
-  let count = 0;
-  if (!search) {
-    count = response.data.hits.hits.length;
-  } else {
-    count = cars.length;
-  }
+  //create json response
   for (let i = 0; i < response.data.hits.hits.length; i++) {
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
@@ -68,7 +64,7 @@ export async function plateLogResponse(
       color: "",
       brand: "",
     };
-
+    //get compare plate_number from elastic search to cars plate_number and get owner, color, brand fore search api
     for (let j = 0; j < cars.length; j++) {
       if (
         response.data.hits.hits[i]._source.plate_number === cars[j].number_plate
@@ -77,18 +73,21 @@ export async function plateLogResponse(
         //plateNumber[2] = toPersianPlate[plateNumber[2]];
         // plateNumber = plateNumber[0] + plateNumber[1] + plateNumber[2] + plateNumber[3] + " ایران "+ plateNumber[4] + plateNumber[5];
         //  let persianPlateNumber = plateNumber.replace("/[a-zA-Z]+/g",toPersianPlate.get(key));
+        //get owner from DB and set to result
         result.owner =
           (await Personnel.findById(cars[j].owner)
             .exec()
             .then((personnel) => {
               return personnel?.first_name + " " + personnel?.last_name;
             })) ?? "null";
+        //get color from DB and set to result
         result.color =
           (await CarColor.findById(cars[j].color_id)
             .exec()
             .then((carColor) => {
               return carColor?.name;
             })) ?? "null";
+        //get brand from DB and set to result
         result.brand =
           (await CarBrand.findById(cars[j].brand_id)
             .exec()
@@ -99,7 +98,8 @@ export async function plateLogResponse(
         break;
       }
     }
-    if(!search){
+    //if car not found in DB and request for all log report then add plate without owner
+    if (!search) {
       _data.push(result);
     }
   }

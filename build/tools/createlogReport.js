@@ -45,7 +45,7 @@ exports.sabotageLogResponse = sabotageLogResponse;
 function plateLogResponse(response, carBrand, carColor, owner, allowed, search) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
-        //query for get cars from mongo db
+        //query for get cars from mongo db with list color and list brand and list owner
         let cars;
         if (owner && carColor && carBrand) {
             cars = yield car_1.default.find({
@@ -57,18 +57,13 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
             }).exec();
         }
         else {
+            //send error if owner or color or brand is not found in DB
             console.log("owner, carColor, carBrand is null");
             cars = yield car_1.default.find({}).exec();
         }
         //get casr with match plate_number from elastic search to cars plate_number
         let _data = [];
-        let count = 0;
-        if (!search) {
-            count = response.data.hits.hits.length;
-        }
-        else {
-            count = cars.length;
-        }
+        //create json response
         for (let i = 0; i < response.data.hits.hits.length; i++) {
             let result = {
                 camera_id: response.data.hits.hits[i]._source.camera_id,
@@ -79,24 +74,28 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
                 color: "",
                 brand: "",
             };
+            //get compare plate_number from elastic search to cars plate_number and get owner, color, brand fore search api
             for (let j = 0; j < cars.length; j++) {
                 if (response.data.hits.hits[i]._source.plate_number === cars[j].number_plate) {
                     //let plateNumber = response.data.hits.hits[i]._source.plate_number.split();
                     //plateNumber[2] = toPersianPlate[plateNumber[2]];
                     // plateNumber = plateNumber[0] + plateNumber[1] + plateNumber[2] + plateNumber[3] + " ایران "+ plateNumber[4] + plateNumber[5];
                     //  let persianPlateNumber = plateNumber.replace("/[a-zA-Z]+/g",toPersianPlate.get(key));
+                    //get owner from DB and set to result
                     result.owner =
                         (_a = (yield personnel_1.default.findById(cars[j].owner)
                             .exec()
                             .then((personnel) => {
                             return (personnel === null || personnel === void 0 ? void 0 : personnel.first_name) + " " + (personnel === null || personnel === void 0 ? void 0 : personnel.last_name);
                         }))) !== null && _a !== void 0 ? _a : "null";
+                    //get color from DB and set to result
                     result.color =
                         (_b = (yield carColor_1.default.findById(cars[j].color_id)
                             .exec()
                             .then((carColor) => {
                             return carColor === null || carColor === void 0 ? void 0 : carColor.name;
                         }))) !== null && _b !== void 0 ? _b : "null";
+                    //get brand from DB and set to result
                     result.brand =
                         (_c = (yield carBrand_1.default.findById(cars[j].brand_id)
                             .exec()
@@ -107,6 +106,7 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
                     break;
                 }
             }
+            //if car not found in DB and request for all log report then add plate without owner
             if (!search) {
                 _data.push(result);
             }
