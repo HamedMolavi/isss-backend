@@ -32,6 +32,10 @@ router.post(
     try {
       //get model from url request
       let model = req.params.model;
+      if(model !== "face" && model !== "fire" && model !== "human" && model !== "plate" && model !== "sabotage"){
+        req.flash("error", "Model not found");
+        return next(new ApiError(404,"Model not found"));
+      }
       //get token from header request and verify
       let token = getTokenAndVerify(req, "user", next);
 
@@ -46,7 +50,7 @@ router.post(
       //get search from url
       let search = (req.query.search as string) || "";
       //get searchName from url
-      let searchName = (req.query.name as string) || "";
+      //let searchName = (req.query.name as string) || "";
 
       let response: any;
       let timeEpokhStart,timeEpokhEnd: string = "";

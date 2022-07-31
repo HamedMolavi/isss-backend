@@ -33,6 +33,10 @@ router.post("/:model", function (req, res, next) {
         try {
             //get model from url request
             let model = req.params.model;
+            if (model !== "face" && model !== "fire" && model !== "human" && model !== "plate" && model !== "sabotage") {
+                req.flash("error", "Model not found");
+                return next(new error_handler_1.ApiError(404, "Model not found"));
+            }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //get page from url
@@ -45,7 +49,7 @@ router.post("/:model", function (req, res, next) {
             //get search from url
             let search = req.query.search || "";
             //get searchName from url
-            let searchName = req.query.name || "";
+            //let searchName = (req.query.name as string) || "";
             let response;
             let timeEpokhStart, timeEpokhEnd = "";
             let _allowed = undefined;
