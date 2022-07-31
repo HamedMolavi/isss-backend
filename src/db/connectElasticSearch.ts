@@ -11,6 +11,7 @@ export async function dynamicRequestToElasticSearch(
   personnels: string[] = [],
   models: string[] = [],
   probability: number[] = [],
+  humanCounts: number[] = [],
   timeStart: string | undefined,
   timeEnd: string,
   model: string,
@@ -89,6 +90,17 @@ export async function dynamicRequestToElasticSearch(
           },
         });
       }
+      
+      //add filter for human count if human count is not empty  and human count is not event
+      //human count ai array string confidence number
+      if (humanCounts.length > 0) {
+        jsonResuest.query.bool.filter.push({
+          terms: {
+            number_of_people: humanCounts,
+          },
+        });
+      }
+
 
       //create url for elastic search with model for name table in elastic search
       let baseurl: string = "";

@@ -53,7 +53,7 @@ router.post(
       let _allowed: boolean | undefined = undefined;
       let _carBrand,_carColor,_owner: string[] | null = null;
       let _cameras,_models,_personnels: string[] = [];
-      let _probabilities: number[] = [];
+      let _probabilities , _humanCounts: number[] = [];
       if (search) {
         //get body from request
         const {
@@ -68,8 +68,10 @@ router.post(
           cameras,
           models,
           personnels,
-          probabilities
+          probabilities,
+          humanCounts
         } = req.body;
+        _humanCounts = humanCounts;
         _personnels = personnels;
         _cameras = cameras;
         _models = models;
@@ -92,6 +94,7 @@ router.post(
         _personnels,
         _models,
         _probabilities,
+        _humanCounts,
         timeEpokhStart,
         timeEpokhEnd,
         model,

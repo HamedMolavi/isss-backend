@@ -336,6 +336,7 @@ describe("server run and get report logs", function () {
                 date_start: "4/15/2021",
                 date_end: "4/15/2023",
                 cameras: ["628dc289f014bc89f0280c48"],
+                humanCounts: [1, 10]
             })
                 .expect("Content-Type", /json/)
                 .expect(200, function (err, res) {

@@ -51,10 +51,11 @@ router.post("/:model", function (req, res, next) {
             let _allowed = undefined;
             let _carBrand, _carColor, _owner = null;
             let _cameras, _models, _personnels = [];
-            let _probabilities = [];
+            let _probabilities, _humanCounts = [];
             if (search) {
                 //get body from request
-                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, models, personnels, probabilities } = req.body;
+                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, models, personnels, probabilities, humanCounts } = req.body;
+                _humanCounts = humanCounts;
                 _personnels = personnels;
                 _cameras = cameras;
                 _models = models;
@@ -71,7 +72,7 @@ router.post("/:model", function (req, res, next) {
             }
             let _data = [];
             //get log for other models data from elastic
-            response = yield (0, connectElasticSearch_1.dynamicRequestToElasticSearch)(_cameras, _personnels, _models, _probabilities, timeEpokhStart, timeEpokhEnd, model, page, perPage, next);
+            response = yield (0, connectElasticSearch_1.dynamicRequestToElasticSearch)(_cameras, _personnels, _models, _probabilities, _humanCounts, timeEpokhStart, timeEpokhEnd, model, page, perPage, next);
             if (!response) {
                 req.flash("error", "Data is null or undefined");
                 return next(new error_handler_1.ApiError(404, "Data is null or undefined"));
