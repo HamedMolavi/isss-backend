@@ -103,6 +103,8 @@ router.post("/:model", function (req, res, next) {
             return res.status(200).json({
                 success: true,
                 data: _data,
+                //get total from elastic
+                total: yield (0, connectElasticSearch_1.dynamicRequestToElasticSearchCount)(_cameras, _personnels, _models, model, next)
             });
         }
         catch (err) {
