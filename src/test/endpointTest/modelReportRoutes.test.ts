@@ -36,17 +36,6 @@ describe("server run and get report logs", async function (this:any) {
       is_enabled: true,
     });
 
-    let camera3 = new Camera({
-      _id: new mongoose.Types.ObjectId("628dc332f014bc89f0280c56"),
-      section_id: new mongoose.Types.ObjectId("628db904f014bc89f0280c40"),
-      name: "eng_door",
-      url: "rtsp://{username}:{password}@{ip}:554/media/video2",
-      username: "admin",
-      password: "Admin12345!",
-      ip: "172.10.10.221",
-      is_enabled: true,
-    });
-
     let model = new Model({
       _id: new mongoose.Types.ObjectId("628dcf60f014bc89f0280c64"),
       name: "yolov5",
@@ -115,7 +104,6 @@ describe("server run and get report logs", async function (this:any) {
 
     await camera1.save();
     await camera2.save();
-    await camera3.save();
     await model.save();
     await section.save();
     await department.save();
@@ -131,13 +119,27 @@ describe("server run and get report logs", async function (this:any) {
     done();
   });
   //delete model , camera , section , department after test
-  // this.afterAll(function (done) {
-  //   Model.deleteOne({ category: "human" }).exec();
-  //   Camera.deleteOne({ name: "mali" }).exec();
-  //   Section.deleteOne({ name: "AI" }).exec();
-  //   Departement.deleteOne({ name: "ENG" }).exec();
-  //   done();
-  // });
+  this.afterAll(function (done : NextFunction) {
+    Model.findOneAndDelete({ category: "human" }).exec();
+    Camera.findOneAndDelete({ name: "eng_door" }).exec();
+    Camera.findOneAndDelete({ name: "mali" }).exec();
+    Camera.findOneAndDelete({ name: "mali" }).exec();
+    Camera.findOneAndDelete({ name: "mali" }).exec();
+    Camera.findOneAndDelete({ name: "mali" }).exec();
+    Camera.findOneAndDelete({ name: "mali" }).exec();
+    Section.findOneAndDelete({ name: "AI" }).exec();
+    Departement.findOneAndDelete({ name: "ENG" }).exec();
+    Personnel.findOneAndDelete({first_name :"Mohsen" }).exec();
+    Personnel.findOneAndDelete({first_name : "Javad"}).exec();
+    Personnel.findOneAndDelete({first_name : "Zeinab"}).exec();
+    CarBrand.findOneAndDelete({first_name : "lexus"}).exec();
+    CarBrand.findOneAndDelete({first_name : "pars"}).exec();
+    CarBrand.findOneAndDelete({first_name : "dena"}).exec();
+    CarColor.findOneAndDelete({first_name : "white"}).exec();
+    CarColor.findOneAndDelete({first_name : "black"}).exec();
+    CarColor.findOneAndDelete({first_name : "yellow"}).exec();
+    done();
+  });
   //test get sabotage report sabotage logs with token
   it("should send back a JSON object with all sabotage log report", function (done) {
     request(app)

@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -10,6 +19,9 @@ const user_1 = __importDefault(require("./../../models/user"));
 const token = process.env.sample_token;
 let _user;
 describe("server run and server runnig and register user", function () {
+    this.afterAll(() => __awaiter(this, void 0, void 0, function* () {
+        user_1.default.findOneAndDelete({ username: "sasan" }).exec();
+    }));
     // describe('first test for registe new user and runnig app', function () {
     //test default rote for server is running
     it("should return a 200 response and message application works", function (done) {
@@ -31,7 +43,7 @@ describe("server run and server runnig and register user", function () {
             .set("Authorization", `Bearer ${token}`)
             .send({
             username: "sasan",
-            password: "12345Ariapa@",
+            password: "Ariapa1401@#",
             phone_number: "09330371133",
             event: true,
             report: true,

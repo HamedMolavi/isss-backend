@@ -47,15 +47,10 @@ router.post("/:model", function (req, res, next) {
             //get searchName from url
             let searchName = req.query.name || "";
             let response;
-            let timeEpokhStart = "";
-            let timeEpokhEnd = "";
+            let timeEpokhStart, timeEpokhEnd = "";
             let _allowed = undefined;
-            let _carBrand = null;
-            let _carColor = null;
-            let _owner = null;
-            let _cameras = [];
-            let _models = [];
-            let _personnels = [];
+            let _carBrand, _carColor, _owner = null;
+            let _cameras, _models, _personnels = [];
             let _probabilities = [];
             if (search) {
                 //get body from request

@@ -49,15 +49,10 @@ router.post(
       let searchName = (req.query.name as string) || "";
 
       let response: any;
-      let timeEpokhStart: string = "";
-      let timeEpokhEnd: string = "";
+      let timeEpokhStart,timeEpokhEnd: string = "";
       let _allowed: boolean | undefined = undefined;
-      let _carBrand: string[] | null = null;
-      let _carColor: string[] | null = null;
-      let _owner: string[] | null = null;
-      let _cameras: string[] = [];
-      let _models: string[] = [];
-      let _personnels: string[] = [];
+      let _carBrand,_carColor,_owner: string[] | null = null;
+      let _cameras,_models,_personnels: string[] = [];
       let _probabilities: number[] = [];
       if (search) {
         //get body from request

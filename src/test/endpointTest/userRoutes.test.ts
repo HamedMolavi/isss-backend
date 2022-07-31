@@ -7,6 +7,9 @@ const token = process.env.sample_token;
 let _user: IUser;
 
 describe("server run and server runnig and register user", function () {
+  this.afterAll(async () => {
+      User.findOneAndDelete({ username: "sasan"}).exec();
+  });
   // describe('first test for registe new user and runnig app', function () {
   //test default rote for server is running
   it("should return a 200 response and message application works", function (done) {
@@ -29,7 +32,7 @@ describe("server run and server runnig and register user", function () {
       .set("Authorization", `Bearer ${token}`)
       .send({
         username: "sasan",
-        password: "12345Ariapa@",
+        password: "Ariapa1401@#",
         phone_number: "09330371133",
         event: true,
         report: true,

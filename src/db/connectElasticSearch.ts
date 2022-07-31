@@ -11,7 +11,7 @@ export async function dynamicRequestToElasticSearch(
   personnels: string[] = [],
   models: string[] = [],
   probability: number[] = [],
-  timeStart: string,
+  timeStart: string | undefined,
   timeEnd: string,
   model: string,
   page: number,
