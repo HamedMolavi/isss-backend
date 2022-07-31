@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../../error/error.handler";
 import User, { IUser } from "../../../models/user";
 import { getTokenAndVerify } from "../../../tools/authentication";
+import { getStrength } from "../../../tools/verifyPasswordRegex";
 
 //create router for add to server
 const router: Router = Router();
@@ -37,6 +38,13 @@ router.post(
       }
       //get token from header request and verify
       let token = getTokenAndVerify(req, "admin", next);
+
+      //verify password
+      let resultVerifyPassword = getStrength(password);
+      if (resultVerifyPassword < 99) {
+        req.flash("error", "Password is not strong enough");
+        return next(new ApiError(400, "Password is not strong enough"));
+      }
 
       //query for save new user in DB
       let user = await User.findOne({

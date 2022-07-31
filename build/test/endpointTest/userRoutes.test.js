@@ -31,7 +31,7 @@ describe("server run and server runnig and register user", function () {
             .set("Authorization", `Bearer ${token}`)
             .send({
             username: "sasan",
-            password: "12345",
+            password: "12345Ariapa@",
             phone_number: "09330371133",
             event: true,
             report: true,

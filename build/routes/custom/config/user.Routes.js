@@ -16,6 +16,7 @@ const express_1 = require("express");
 const error_handler_1 = require("../../../error/error.handler");
 const user_1 = __importDefault(require("../../../models/user"));
 const authentication_1 = require("../../../tools/authentication");
+const verifyPasswordRegex_1 = require("../../../tools/verifyPasswordRegex");
 //create router for add to server
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -38,6 +39,12 @@ router.post("", function (req, res, next) {
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "admin", next);
+            //verify password
+            let resultVerifyPassword = (0, verifyPasswordRegex_1.getStrength)(password);
+            if (resultVerifyPassword < 99) {
+                req.flash("error", "Password is not strong enough");
+                return next(new error_handler_1.ApiError(400, "Password is not strong enough"));
+            }
             //query for save new user in DB
             let user = yield user_1.default.findOne({
                 $or: [{ username: username }, { phone_number: phone_number }],
