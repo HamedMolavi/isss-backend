@@ -62,32 +62,53 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
         }
         //get casr with match plate_number from elastic search to cars plate_number
         let _data = [];
+        let count = 0;
+        if (!search) {
+            count = response.data.hits.hits.length;
+        }
+        else {
+            count = cars.length;
+        }
         for (let i = 0; i < response.data.hits.hits.length; i++) {
+            let result = {
+                camera_id: response.data.hits.hits[i]._source.camera_id,
+                camera: response.data.hits.hits[i]._source.camera,
+                time: new Date(response.data.hits.hits[i]._source.timestamp),
+                plate_number: response.data.hits.hits[i]._source.plate_number,
+                owner: "",
+                color: "",
+                brand: "",
+            };
             for (let j = 0; j < cars.length; j++) {
                 if (response.data.hits.hits[i]._source.plate_number === cars[j].number_plate) {
-                    let result = {
-                        camera_id: response.data.hits.hits[i]._source.camera_id,
-                        camera: response.data.hits.hits[i]._source.camera,
-                        time: new Date(response.data.hits.hits[i]._source.timestamp),
-                        plate_number: response.data.hits.hits[i]._source.plate_number,
-                        owner: (_a = (yield personnel_1.default.findById(cars[j].owner)
+                    //let plateNumber = response.data.hits.hits[i]._source.plate_number.split();
+                    //plateNumber[2] = toPersianPlate[plateNumber[2]];
+                    // plateNumber = plateNumber[0] + plateNumber[1] + plateNumber[2] + plateNumber[3] + " ایران "+ plateNumber[4] + plateNumber[5];
+                    //  let persianPlateNumber = plateNumber.replace("/[a-zA-Z]+/g",toPersianPlate.get(key));
+                    result.owner =
+                        (_a = (yield personnel_1.default.findById(cars[j].owner)
                             .exec()
                             .then((personnel) => {
                             return (personnel === null || personnel === void 0 ? void 0 : personnel.first_name) + " " + (personnel === null || personnel === void 0 ? void 0 : personnel.last_name);
-                        }))) !== null && _a !== void 0 ? _a : "null",
-                        color: (_b = (yield carColor_1.default.findById(cars[j].color_id)
+                        }))) !== null && _a !== void 0 ? _a : "null";
+                    result.color =
+                        (_b = (yield carColor_1.default.findById(cars[j].color_id)
                             .exec()
                             .then((carColor) => {
                             return carColor === null || carColor === void 0 ? void 0 : carColor.name;
-                        }))) !== null && _b !== void 0 ? _b : "null",
-                        brand: (_c = (yield carBrand_1.default.findById(cars[j].brand_id)
+                        }))) !== null && _b !== void 0 ? _b : "null";
+                    result.brand =
+                        (_c = (yield carBrand_1.default.findById(cars[j].brand_id)
                             .exec()
                             .then((car) => {
                             return car === null || car === void 0 ? void 0 : car.name;
-                        }))) !== null && _c !== void 0 ? _c : "null",
-                    };
+                        }))) !== null && _c !== void 0 ? _c : "null";
                     _data.push(result);
+                    break;
                 }
+            }
+            if (!search) {
+                _data.push(result);
             }
         }
         return _data;
@@ -175,7 +196,6 @@ function faceLogResponse(response) {
             let _personnel;
             if (response.data.hits.hits[i]._source.personnel_id !== "-1") {
                 _personnel = yield personnel_1.default.findById(response.data.hits.hits[i]._source.personnel_id).exec();
-                console.log(_personnel);
             }
             else {
                 _personnel = null;

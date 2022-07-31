@@ -7,6 +7,7 @@ import Schedule from "../models/schedule";
 import ModelToCamera from "../models/modelToCamera";
 import Section from "../models/section";
 import Departement from "../models/departement";
+import toPersianPlate from "./EnglishToPersianPlate";
 
 //create json response sabotageLog report for send to client
 export async function sabotageLogResponse(response: any) {
@@ -51,37 +52,55 @@ export async function plateLogResponse(
   }
   //get casr with match plate_number from elastic search to cars plate_number
   let _data: object[] = [];
+  let count = 0;
+  if (!search) {
+    count = response.data.hits.hits.length;
+  } else {
+    count = cars.length;
+  }
   for (let i = 0; i < response.data.hits.hits.length; i++) {
+    let result = {
+      camera_id: response.data.hits.hits[i]._source.camera_id,
+      camera: response.data.hits.hits[i]._source.camera,
+      time: new Date(response.data.hits.hits[i]._source.timestamp),
+      plate_number: response.data.hits.hits[i]._source.plate_number,
+      owner: "",
+      color: "",
+      brand: "",
+    };
+
     for (let j = 0; j < cars.length; j++) {
       if (
         response.data.hits.hits[i]._source.plate_number === cars[j].number_plate
       ) {
-        let result = {
-          camera_id: response.data.hits.hits[i]._source.camera_id,
-          camera: response.data.hits.hits[i]._source.camera,
-          time: new Date(response.data.hits.hits[i]._source.timestamp),
-          plate_number: response.data.hits.hits[i]._source.plate_number,
-          owner:
-            (await Personnel.findById(cars[j].owner)
-              .exec()
-              .then((personnel) => {
-                return personnel?.first_name + " " + personnel?.last_name;
-              })) ?? "null",
-          color:
-            (await CarColor.findById(cars[j].color_id)
-              .exec()
-              .then((carColor) => {
-                return carColor?.name;
-              })) ?? "null",
-          brand:
-            (await CarBrand.findById(cars[j].brand_id)
-              .exec()
-              .then((car) => {
-                return car?.name;
-              })) ?? "null",
-        };
+        //let plateNumber = response.data.hits.hits[i]._source.plate_number.split();
+        //plateNumber[2] = toPersianPlate[plateNumber[2]];
+        // plateNumber = plateNumber[0] + plateNumber[1] + plateNumber[2] + plateNumber[3] + " ایران "+ plateNumber[4] + plateNumber[5];
+        //  let persianPlateNumber = plateNumber.replace("/[a-zA-Z]+/g",toPersianPlate.get(key));
+        result.owner =
+          (await Personnel.findById(cars[j].owner)
+            .exec()
+            .then((personnel) => {
+              return personnel?.first_name + " " + personnel?.last_name;
+            })) ?? "null";
+        result.color =
+          (await CarColor.findById(cars[j].color_id)
+            .exec()
+            .then((carColor) => {
+              return carColor?.name;
+            })) ?? "null";
+        result.brand =
+          (await CarBrand.findById(cars[j].brand_id)
+            .exec()
+            .then((car) => {
+              return car?.name;
+            })) ?? "null";
         _data.push(result);
+        break;
       }
+    }
+    if(!search){
+      _data.push(result);
     }
   }
   return _data;
@@ -171,7 +190,6 @@ export async function faceLogResponse(response: any) {
       _personnel = await Personnel.findById(
         response.data.hits.hits[i]._source.personnel_id
       ).exec();
-      console.log(_personnel);
     } else {
       _personnel = null;
     }
