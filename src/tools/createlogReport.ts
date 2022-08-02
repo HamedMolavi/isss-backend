@@ -6,12 +6,12 @@ import Personnel, { IPersonnel } from "../models/personnel";
 import Schedule from "../models/schedule";
 import ModelToCamera from "../models/modelToCamera";
 import Section from "../models/section";
-import Departement from "../models/departement";
+import Department from "../models/department";
 import toPersianPlate from "./EnglishToPersianPlate";
 
 //create json response sabotageLog report for send to client
 export async function sabotageLogResponse(response: any) {
-  //ceate json response
+  //create json response
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
     //get camera from mongo db by id for get camera name
@@ -51,28 +51,39 @@ export async function plateLogResponse(
     console.log("owner, carColor, carBrand is null");
     cars = await Car.find({}).exec();
   }
-  //get casr with match plate_number from elastic search to cars plate_number
+  //get cars with match plate_number from elastic search to cars plate_number
   let _data: object[] = [];
   //create json response
   for (let i = 0; i < response.data.hits.hits.length; i++) {
+    //split plate_number to get first and last digit
+    //change plate number format from english to persian
+    let plateNumber1 = Number(response.data.hits.hits[i]._source.plate_number.substr(0, 2)).toLocaleString('fa-IR');
+    let plateNumber2 = response.data.hits.hits[i]._source.plate_number.substr(2, 1);
+    let plateNumber3 = Number(response.data.hits.hits[i]._source.plate_number.substr(3,3)).toLocaleString('fa-IR');
+    let plateNumber4 = Number(response.data.hits.hits[i]._source.plate_number.substr(6,2)).toLocaleString('fa-IR');
+    let plateNumber = { 1 : plateNumber1 , 2 : toPersianPlate[plateNumber2] , 3 :plateNumber3 , 4 : "ایران",5 :plateNumber4 };
+    
+    //define json for add in list response data
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
-      camera: response.data.hits.hits[i]._source.camera,
+      camera:
+        (await Camera.findById(
+          response.data.hits.hits[i]._source.camera_id
+        ).then((camera) => {
+          return camera?.name;
+        })) ?? "null",
       time: new Date(response.data.hits.hits[i]._source.timestamp),
-      plate_number: response.data.hits.hits[i]._source.plate_number,
+      plate_number: plateNumber,
       owner: "",
       color: "",
       brand: "",
+      allowed: false,
     };
     //get compare plate_number from elastic search to cars plate_number and get owner, color, brand fore search api
     for (let j = 0; j < cars.length; j++) {
       if (
         response.data.hits.hits[i]._source.plate_number === cars[j].number_plate
       ) {
-        //let plateNumber = response.data.hits.hits[i]._source.plate_number.split();
-        //plateNumber[2] = toPersianPlate[plateNumber[2]];
-        // plateNumber = plateNumber[0] + plateNumber[1] + plateNumber[2] + plateNumber[3] + " ایران "+ plateNumber[4] + plateNumber[5];
-        //  let persianPlateNumber = plateNumber.replace("/[a-zA-Z]+/g",toPersianPlate.get(key));
         //get owner from DB and set to result
         result.owner =
           (await Personnel.findById(cars[j].owner)
@@ -94,6 +105,11 @@ export async function plateLogResponse(
             .then((car) => {
               return car?.name;
             })) ?? "null";
+        //set allowed to result if car is allowed
+        result.allowed =
+          cars[j].camera_whitelist.includes(
+            response.data.hits.hits[i]._source.camera_id
+          ) ?? false;
         _data.push(result);
         break;
       }
@@ -110,7 +126,7 @@ export async function humanLogResponse(
   response: any,
   allowed: boolean | undefined
 ) {
-  //ceate json response
+  //create json response
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
     //get modelToCamera from mongo db by id
@@ -149,7 +165,7 @@ export async function humanLogResponse(
         camera: camera?.name,
         time: new Date(response.data.hits.hits[i]._source.timestamp),
         numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
-        NumberOfPeople:
+        allowed:
           schedule!?.config!?.max_people! >=
           response.data.hits.hits[i].number_of_people
             ? true
@@ -162,7 +178,7 @@ export async function humanLogResponse(
 }
 //create json response fireLog report for send to client
 export async function fireLogResponse(response: any) {
-  //ceate json response
+  //create json response
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
     //get camera from mongo db by id for get camera name
@@ -181,7 +197,7 @@ export async function fireLogResponse(response: any) {
 }
 //create json response faceLog report for send to client
 export async function faceLogResponse(response: any) {
-  //ceate json response
+  //create json response
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
     //get personnel from mongo db by id
@@ -215,7 +231,7 @@ export async function faceLogResponse(response: any) {
 
 //create json response eventLog report for send to client
 export async function eventLogResponse(response: any) {
-  //ceate json response
+  //create json response
   let _data: object[] = [];
   let cameraIds: string[] = [];
   for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
@@ -252,7 +268,7 @@ export async function eventLogResponse(response: any) {
 
 //create json response eventLog report for send to client
 export async function eventDepartmentLogResponse(response: any) {
-  //ceate json response
+  //create json response
   let _data: object[] = [];
   let cameraIds: string[] = [];
   for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
@@ -277,8 +293,8 @@ export async function eventDepartmentLogResponse(response: any) {
         section_id: camera?.section_id,
       }).exec();
 
-      let department = await Departement.findById(
-        sections[0]?.departement_id
+      let department = await Department.findById(
+        sections[0]?.department_id
       ).exec();
 
       let result = {

@@ -24,13 +24,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-//create departement model with schema for save in DB
-const DepartementSchema = new mongoose_1.Schema({
+//create department model with schema for save in DB
+const DepartmentSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     created_date: { type: Date, default: Date.now }
 }, {
     collection: "Department"
 });
 // Compile model from schema
-const Departement = mongoose_1.default.model("Departement", DepartementSchema);
-exports.default = Departement;
+const Department = mongoose_1.default.model("Department", DepartmentSchema);
+exports.default = Department;

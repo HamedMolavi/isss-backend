@@ -4,7 +4,7 @@ import request from "supertest";
 import Camera from "../../models/camera";
 import mongoose, { Model } from "mongoose";
 import Section from "../../models/section";
-import Departement from "../../models/departement";
+import Departement from "../../models/department";
 import Personnel from "../../models/personnel";
 import CarBrand from "../../models/carBrand";
 import CarColor from "../../models/carColor";

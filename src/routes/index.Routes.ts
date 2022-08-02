@@ -13,7 +13,7 @@ import carColorRoutes from "./custom/config/carColor.Routes";
 import carBrandRoutes from "./custom/config/carBrand.Routes";
 import modelToCamera from "./custom/config/modelToCamera.Routes";
 import report from "./custom/report/report.Routes";
-import reportDepartmets from "./custom/report/departmentReport.Routes";
+import reportDepartments from "./custom/report/departmentReport.Routes";
 import { ApiError } from "../error/error.handler";
 import reportDepartementfiles from "./custom/config/departmentFile.Routes";
 
@@ -24,7 +24,7 @@ const router: Router = Router();
 router.use("/users", userRoutes);
 router.use("/cameras", cameraRoutes);
 router.use("/files", fileRoutes);
-router.use("/departements", departementRoutes);
+router.use("/departments", departementRoutes);
 router.use("/sections", sectionRoutes);
 router.use("/jobtitles", jobTitleRoutes);
 router.use("/personnels", personnelRoutes);
@@ -35,7 +35,7 @@ router.use("/carcolors", carColorRoutes);
 router.use("/carbrands", carBrandRoutes);
 router.use("/modelToCameras", modelToCamera);
 router.use("/reports", report);
-router.use("/reportDepartmets", reportDepartmets);
+router.use("/reportDepartmets", reportDepartments);
 router.use("/departementfiles", reportDepartementfiles);
 
 

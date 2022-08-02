@@ -21,9 +21,9 @@ router.post(
   async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get jason from body request
-      const { name, departement_id }: ISection = req.body;
+      const { name, department_id }: ISection = req.body;
       //verify body request
-      if (!name || !departement_id) {
+      if (!name || !department_id) {
         req.flash("error", "Please enter all fields");
         return next(new ApiError(400, "Please enter all fields"));
       }
@@ -43,7 +43,7 @@ router.post(
       //set section data
       let newSection = new Section();
       newSection.name = name;
-      newSection.departement_id = departement_id;
+      newSection.department_id = department_id;
 
       //save section in DB
       await newSection.save();

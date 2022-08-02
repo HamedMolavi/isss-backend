@@ -27,7 +27,7 @@ const router = (0, express_1.Router)();
 router.use("/users", user_Routes_1.default);
 router.use("/cameras", camera_Routes_1.default);
 router.use("/files", file_Routes_1.default);
-router.use("/departements", departement_Routes_1.default);
+router.use("/departments", departement_Routes_1.default);
 router.use("/sections", section_Routes_1.default);
 router.use("/jobtitles", jobTitle_Routes_1.default);
 router.use("/personnels", personnel_Routes_1.default);

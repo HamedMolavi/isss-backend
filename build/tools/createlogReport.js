@@ -21,11 +21,12 @@ const personnel_1 = __importDefault(require("../models/personnel"));
 const schedule_1 = __importDefault(require("../models/schedule"));
 const modelToCamera_1 = __importDefault(require("../models/modelToCamera"));
 const section_1 = __importDefault(require("../models/section"));
-const departement_1 = __importDefault(require("../models/departement"));
+const department_1 = __importDefault(require("../models/department"));
+const EnglishToPersianPlate_1 = __importDefault(require("./EnglishToPersianPlate"));
 //create json response sabotageLog report for send to client
 function sabotageLogResponse(response) {
     return __awaiter(this, void 0, void 0, function* () {
-        //ceate json response
+        //create json response
         let _data = [];
         for (let i = 0; i < response.data.hits.hits.length; i++) {
             //get camera from mongo db by id for get camera name
@@ -43,7 +44,7 @@ function sabotageLogResponse(response) {
 exports.sabotageLogResponse = sabotageLogResponse;
 //create json response plateLog report for send to client
 function plateLogResponse(response, carBrand, carColor, owner, allowed, search) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     return __awaiter(this, void 0, void 0, function* () {
         //query for get cars from mongo db with list color and list brand and list owner
         let cars;
@@ -61,47 +62,57 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
             console.log("owner, carColor, carBrand is null");
             cars = yield car_1.default.find({}).exec();
         }
-        //get casr with match plate_number from elastic search to cars plate_number
+        //get cars with match plate_number from elastic search to cars plate_number
         let _data = [];
         //create json response
         for (let i = 0; i < response.data.hits.hits.length; i++) {
+            //split plate_number to get first and last digit
+            //change plate number format from english to persian
+            let plateNumber1 = Number(response.data.hits.hits[i]._source.plate_number.substr(0, 2)).toLocaleString('fa-IR');
+            let plateNumber2 = response.data.hits.hits[i]._source.plate_number.substr(2, 1);
+            let plateNumber3 = Number(response.data.hits.hits[i]._source.plate_number.substr(3, 3)).toLocaleString('fa-IR');
+            let plateNumber4 = Number(response.data.hits.hits[i]._source.plate_number.substr(6, 2)).toLocaleString('fa-IR');
+            let plateNumber = { 1: plateNumber1, 2: EnglishToPersianPlate_1.default[plateNumber2], 3: plateNumber3, 4: "ایران", 5: plateNumber4 };
+            //define json for add in list response data
             let result = {
                 camera_id: response.data.hits.hits[i]._source.camera_id,
-                camera: response.data.hits.hits[i]._source.camera,
+                camera: (_a = (yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).then((camera) => {
+                    return camera === null || camera === void 0 ? void 0 : camera.name;
+                }))) !== null && _a !== void 0 ? _a : "null",
                 time: new Date(response.data.hits.hits[i]._source.timestamp),
-                plate_number: response.data.hits.hits[i]._source.plate_number,
+                plate_number: plateNumber,
                 owner: "",
                 color: "",
                 brand: "",
+                allowed: false,
             };
             //get compare plate_number from elastic search to cars plate_number and get owner, color, brand fore search api
             for (let j = 0; j < cars.length; j++) {
                 if (response.data.hits.hits[i]._source.plate_number === cars[j].number_plate) {
-                    //let plateNumber = response.data.hits.hits[i]._source.plate_number.split();
-                    //plateNumber[2] = toPersianPlate[plateNumber[2]];
-                    // plateNumber = plateNumber[0] + plateNumber[1] + plateNumber[2] + plateNumber[3] + " ایران "+ plateNumber[4] + plateNumber[5];
-                    //  let persianPlateNumber = plateNumber.replace("/[a-zA-Z]+/g",toPersianPlate.get(key));
                     //get owner from DB and set to result
                     result.owner =
-                        (_a = (yield personnel_1.default.findById(cars[j].owner)
+                        (_b = (yield personnel_1.default.findById(cars[j].owner)
                             .exec()
                             .then((personnel) => {
                             return (personnel === null || personnel === void 0 ? void 0 : personnel.first_name) + " " + (personnel === null || personnel === void 0 ? void 0 : personnel.last_name);
-                        }))) !== null && _a !== void 0 ? _a : "null";
+                        }))) !== null && _b !== void 0 ? _b : "null";
                     //get color from DB and set to result
                     result.color =
-                        (_b = (yield carColor_1.default.findById(cars[j].color_id)
+                        (_c = (yield carColor_1.default.findById(cars[j].color_id)
                             .exec()
                             .then((carColor) => {
                             return carColor === null || carColor === void 0 ? void 0 : carColor.name;
-                        }))) !== null && _b !== void 0 ? _b : "null";
+                        }))) !== null && _c !== void 0 ? _c : "null";
                     //get brand from DB and set to result
                     result.brand =
-                        (_c = (yield carBrand_1.default.findById(cars[j].brand_id)
+                        (_d = (yield carBrand_1.default.findById(cars[j].brand_id)
                             .exec()
                             .then((car) => {
                             return car === null || car === void 0 ? void 0 : car.name;
-                        }))) !== null && _c !== void 0 ? _c : "null";
+                        }))) !== null && _d !== void 0 ? _d : "null";
+                    //set allowed to result if car is allowed
+                    result.allowed =
+                        (_e = cars[j].camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id)) !== null && _e !== void 0 ? _e : false;
                     _data.push(result);
                     break;
                 }
@@ -119,7 +130,7 @@ exports.plateLogResponse = plateLogResponse;
 function humanLogResponse(response, allowed) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
-        //ceate json response
+        //create json response
         let _data = [];
         for (let i = 0; i < response.data.hits.hits.length; i++) {
             //get modelToCamera from mongo db by id
@@ -154,7 +165,7 @@ function humanLogResponse(response, allowed) {
                     camera: camera === null || camera === void 0 ? void 0 : camera.name,
                     time: new Date(response.data.hits.hits[i]._source.timestamp),
                     numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
-                    NumberOfPeople: ((_c = schedule === null || schedule === void 0 ? void 0 : schedule.config) === null || _c === void 0 ? void 0 : _c.max_people) >=
+                    allowed: ((_c = schedule === null || schedule === void 0 ? void 0 : schedule.config) === null || _c === void 0 ? void 0 : _c.max_people) >=
                         response.data.hits.hits[i].number_of_people
                         ? true
                         : false,
@@ -169,7 +180,7 @@ exports.humanLogResponse = humanLogResponse;
 //create json response fireLog report for send to client
 function fireLogResponse(response) {
     return __awaiter(this, void 0, void 0, function* () {
-        //ceate json response
+        //create json response
         let _data = [];
         for (let i = 0; i < response.data.hits.hits.length; i++) {
             //get camera from mongo db by id for get camera name
@@ -189,7 +200,7 @@ exports.fireLogResponse = fireLogResponse;
 //create json response faceLog report for send to client
 function faceLogResponse(response) {
     return __awaiter(this, void 0, void 0, function* () {
-        //ceate json response
+        //create json response
         let _data = [];
         for (let i = 0; i < response.data.hits.hits.length; i++) {
             //get personnel from mongo db by id
@@ -220,7 +231,7 @@ exports.faceLogResponse = faceLogResponse;
 //create json response eventLog report for send to client
 function eventLogResponse(response) {
     return __awaiter(this, void 0, void 0, function* () {
-        //ceate json response
+        //create json response
         let _data = [];
         let cameraIds = [];
         for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
@@ -249,7 +260,7 @@ exports.eventLogResponse = eventLogResponse;
 function eventDepartmentLogResponse(response) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        //ceate json response
+        //create json response
         let _data = [];
         let cameraIds = [];
         for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
@@ -264,7 +275,7 @@ function eventDepartmentLogResponse(response) {
                 let sections = yield section_1.default.find({
                     section_id: camera === null || camera === void 0 ? void 0 : camera.section_id,
                 }).exec();
-                let department = yield departement_1.default.findById((_a = sections[0]) === null || _a === void 0 ? void 0 : _a.departement_id).exec();
+                let department = yield department_1.default.findById((_a = sections[0]) === null || _a === void 0 ? void 0 : _a.department_id).exec();
                 let result = {
                     department: department === null || department === void 0 ? void 0 : department.name,
                     sections: sections,

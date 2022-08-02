@@ -30,9 +30,9 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { name, departement_id } = req.body;
+            const { name, department_id } = req.body;
             //verify body request
-            if (!name || !departement_id) {
+            if (!name || !department_id) {
                 req.flash("error", "Please enter all fields");
                 return next(new error_handler_1.ApiError(400, "Please enter all fields"));
             }
@@ -48,7 +48,7 @@ router.post("", function (req, res, next) {
             //set section data
             let newSection = new section_1.default();
             newSection.name = name;
-            newSection.departement_id = departement_id;
+            newSection.department_id = department_id;
             //save section in DB
             yield newSection.save();
             req.flash("info", "Section has been registered");

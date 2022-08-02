@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../../error/error.handler";
-import Departement, { IDepartement } from "./../../../models/departement";
+import Departement , {IDepartment} from "../../../models/department";
 import { getTokenAndVerify } from "./../../../tools/authentication";
 
 //create router for add to server file
@@ -71,7 +71,7 @@ router.get(
       //get token from header request and verify
       let token = getTokenAndVerify(req, "user", next);
       //query for get departements list
-      let departements: IDepartement[] = [];
+      let departements: IDepartment[] = [];
       if (!(search && search.length > 0)) {
         departements = await Departement.find({
           name: { $regex: search, $options: "i" },

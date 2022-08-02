@@ -1,7 +1,7 @@
 import app from "../../server";
 import { expect } from "chai";
 import request from "supertest";
-import Departement, { IDepartement } from "../../models/departement";
+import Departement, { IDepartment } from "../../models/department";
 import Camera from "../../models/camera";
 import mongoose from "mongoose";
 import Section from "../../models/section";

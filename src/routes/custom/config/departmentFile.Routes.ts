@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import mongoose, { Schema } from "mongoose";
 import { ApiError } from "../../../error/error.handler";
 import Camera, { ICamera } from "../../../models/camera";
-import Departement, { IDepartement } from "../../../models/departement";
+import Departement, { IDepartment } from "../../../models/department";
 import Section, { ISection } from "../../../models/section";
 import { getTokenAndVerify } from "../../../tools/authentication";
 
@@ -57,7 +57,7 @@ router.get(
       //get token from header request and verify
       let token = getTokenAndVerify(req, "user", next);
       //query for get departements list
-      let departments: IDepartement[] = await Departement.find({}).exec();
+      let departments: IDepartment[] = await Departement.find({}).exec();
 
       //query for get all section from DB
       let sections: ISection[] = await Section.find({}).exec();
@@ -75,7 +75,7 @@ router.get(
         let childrenSection: IChildrenSection[] = [];
         for (let j = 0; j < sections.length; j++) {
           if (
-            sections[j].departement_id.toString() ==
+            sections[j].department_id.toString() ==
             departments[i]._id.toString()
           ) {
             let childrenCamera: IChildrenCamera[] = [];

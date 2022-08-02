@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const server_1 = __importDefault(require("../../server"));
 const chai_1 = require("chai");
 const supertest_1 = __importDefault(require("supertest"));
-const departement_1 = __importDefault(require("../../models/departement"));
+const department_1 = __importDefault(require("../../models/department"));
 const camera_1 = __importDefault(require("../../models/camera"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const section_1 = __importDefault(require("../../models/section"));
@@ -100,7 +100,7 @@ describe("server run and api departement files", function () {
                     name: "AI",
                     departement_id: new mongoose_1.default.Types.ObjectId("628db754f014bc89f0280c3e"),
                 });
-                let department = new departement_1.default({
+                let department = new department_1.default({
                     _id: new mongoose_1.default.Types.ObjectId("628db754f014bc89f0280c3e"),
                     name: "ENG",
                 });
@@ -120,7 +120,7 @@ describe("server run and api departement files", function () {
         this.afterAll(function (done) {
             camera_1.default.deleteMany({}).exec();
             section_1.default.deleteMany().exec();
-            departement_1.default.deleteOne({ name: "ENG" }).exec();
+            department_1.default.deleteOne({ name: "ENG" }).exec();
             done();
         });
         //test route for get all departements file from DB

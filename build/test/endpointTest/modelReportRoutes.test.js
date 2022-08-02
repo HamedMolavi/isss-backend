@@ -41,7 +41,7 @@ const supertest_1 = __importDefault(require("supertest"));
 const camera_1 = __importDefault(require("../../models/camera"));
 const mongoose_1 = __importStar(require("mongoose"));
 const section_1 = __importDefault(require("../../models/section"));
-const departement_1 = __importDefault(require("../../models/departement"));
+const department_1 = __importDefault(require("../../models/department"));
 const personnel_1 = __importDefault(require("../../models/personnel"));
 const carBrand_1 = __importDefault(require("../../models/carBrand"));
 const carColor_1 = __importDefault(require("../../models/carColor"));
@@ -81,7 +81,7 @@ describe("server run and get report logs", function () {
                     name: "AI",
                     Department: new mongoose_1.default.Types.ObjectId("628db754f014bc89f0280c3e"),
                 });
-                let department = new departement_1.default({
+                let department = new department_1.default({
                     _id: new mongoose_1.default.Types.ObjectId("628db754f014bc89f0280c3e"),
                     name: "ENG",
                 });
@@ -151,7 +151,7 @@ describe("server run and get report logs", function () {
             camera_1.default.findOneAndDelete({ name: "mali" }).exec();
             camera_1.default.findOneAndDelete({ name: "mali" }).exec();
             section_1.default.findOneAndDelete({ name: "AI" }).exec();
-            departement_1.default.findOneAndDelete({ name: "ENG" }).exec();
+            department_1.default.findOneAndDelete({ name: "ENG" }).exec();
             personnel_1.default.findOneAndDelete({ first_name: "Mohsen" }).exec();
             personnel_1.default.findOneAndDelete({ first_name: "Javad" }).exec();
             personnel_1.default.findOneAndDelete({ first_name: "Zeinab" }).exec();

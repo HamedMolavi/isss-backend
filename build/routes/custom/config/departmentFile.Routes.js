@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const error_handler_1 = require("../../../error/error.handler");
 const camera_1 = __importDefault(require("../../../models/camera"));
-const departement_1 = __importDefault(require("../../../models/departement"));
+const department_1 = __importDefault(require("../../../models/department"));
 const section_1 = __importDefault(require("../../../models/section"));
 const authentication_1 = require("../../../tools/authentication");
 //create router for add to server file
@@ -40,7 +40,7 @@ router.get("", function (req, res, next) {
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get departements list
-            let departments = yield departement_1.default.find({}).exec();
+            let departments = yield department_1.default.find({}).exec();
             //query for get all section from DB
             let sections = yield section_1.default.find({}).exec();
             //query for get all camera from DB
@@ -55,7 +55,7 @@ router.get("", function (req, res, next) {
             for (let i = 0; i < departments.length; i++) {
                 let childrenSection = [];
                 for (let j = 0; j < sections.length; j++) {
-                    if (sections[j].departement_id.toString() ==
+                    if (sections[j].department_id.toString() ==
                         departments[i]._id.toString()) {
                         let childrenCamera = [];
                         for (let k = 0; k < cameras.length; k++) {
@@ -113,7 +113,7 @@ router.get("", function (req, res, next) {
                 data: response,
                 // page: page,
                 // perPage: perPage,
-                total: yield departement_1.default.countDocuments().exec(),
+                total: yield department_1.default.countDocuments().exec(),
                 // pages: Math.ceil((await Departement.countDocuments().exec()) / perPage),
             });
         }
