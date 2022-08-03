@@ -47,18 +47,10 @@ router.get(
   "",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
-      //get page from url
-      // let strPage = req.query.page as string;
-      // let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-      // //get perPage from url
-      // let strPerPage = req.query.perPage as string;
-      // let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-
       //get token from header request and verify
       let token = getTokenAndVerify(req, "user", next);
       //query for get departements list
       let departments: IDepartment[] = await Departement.find({}).exec();
-
       //query for get all section from DB
       let sections: ISection[] = await Section.find({}).exec();
 
@@ -75,13 +67,13 @@ router.get(
         let childrenSection: IChildrenSection[] = [];
         for (let j = 0; j < sections.length; j++) {
           if (
-            sections[j].department_id.toString() ==
-            departments[i]._id.toString()
+            sections[j].department_id!.toString() ==
+            departments[i]._id!.toString()
           ) {
             let childrenCamera: IChildrenCamera[] = [];
             for (let k = 0; k < cameras.length; k++) {
               if (
-                cameras[k].section_id.toString() == sections[j]._id.toString()
+                cameras[k].section_id!.toString() == sections[j]._id!.toString()
               ) {
                 childrenCamera.push({
                   _id: cameras[k]._id,

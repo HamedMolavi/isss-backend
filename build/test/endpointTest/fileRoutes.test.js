@@ -56,7 +56,7 @@ describe('test upload , dowloand , get list Image', function () {
             done();
         });
     });
-    //test route for upload image in redis
+    // //test route for upload image in redis
     it('should send back a JSON object with message Uploaded the file successfully in redis', function (done) {
         (0, supertest_1.default)(server_1.default)
             .post('/api/v1/files/redis?id=123456789')

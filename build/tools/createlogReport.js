@@ -72,7 +72,8 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
             let plateNumber2 = response.data.hits.hits[i]._source.plate_number.substr(2, 1);
             let plateNumber3 = Number(response.data.hits.hits[i]._source.plate_number.substr(3, 3)).toLocaleString('fa-IR');
             let plateNumber4 = Number(response.data.hits.hits[i]._source.plate_number.substr(6, 2)).toLocaleString('fa-IR');
-            let plateNumber = { 1: plateNumber1, 2: EnglishToPersianPlate_1.default[plateNumber2], 3: plateNumber3, 4: "ایران", 5: plateNumber4 };
+            //add plate number to json response for sort persian format in font end
+            let plateNumber = { first: plateNumber1, second: EnglishToPersianPlate_1.default[plateNumber2], third: plateNumber3, fourth: "ایران", fifth: plateNumber4 };
             //define json for add in list response data
             let result = {
                 camera_id: response.data.hits.hits[i]._source.camera_id,

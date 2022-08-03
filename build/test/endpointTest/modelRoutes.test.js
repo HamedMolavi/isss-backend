@@ -40,6 +40,7 @@ describe("server run and get model", function () {
                 return done(err);
             }
             let userResponse = res.body.data;
+            (0, chai_1.expect)(res.body.success).to.equal(true);
             (0, chai_1.expect)(userResponse.category).to.equal("fire");
             (0, chai_1.expect)(userResponse.name).to.equal("googlenet");
             (0, chai_1.expect)(userResponse.uri).to.equal("/home/mohsen/PycharmProjects/FireDetectionPackage/models/fire_exception.onnx");

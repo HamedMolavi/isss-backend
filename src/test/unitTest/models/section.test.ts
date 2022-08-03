@@ -36,14 +36,14 @@ describe("section", function () {
     it("should save section in db", function (done) {
       var section = new Section({
         name: "offece",
-        departement_id: new mongoose.Types.ObjectId("6283724be1996b883080a495"),
+        department_id: new mongoose.Types.ObjectId("6283724be1996b883080a495"),
       });
       //test this section model
       section
         .save()
         .then(() => {
           expect(section.name).to.equal("offece");
-          expect(section.departement_id.toString()).to.equal(
+          expect(section.department_id.toString()).to.equal(
             "6283724be1996b883080a495"
           );
           done();

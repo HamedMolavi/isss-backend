@@ -69,7 +69,11 @@ UserSchema.pre("save", function (done) {
 //check password
 UserSchema.methods.checkPassword = function (guess, done) {
     bcrypt_1.default.compare(guess, this.password, function (err, isMatch) {
-        done(err, isMatch);
+        //done(err, isMatch);
+        if (err) {
+            return done(err);
+        }
+        return isMatch;
     });
 };
 //get secrect key jwt token

@@ -2,14 +2,17 @@ import app from "../../server";
 import { expect } from "chai";
 import request from "supertest";
 import User, { IUser } from "./../../models/user";
+import { NextFunction } from "express";
+import { idText } from "typescript";
 
 const token = process.env.sample_token;
 let _user: IUser;
 
 describe("server run and server runnig and register user", function () {
-  this.afterAll(async () => {
-      User.findOneAndDelete({ username: "sasan"}).exec();
-  });
+  // after( (done :NextFunction) => {
+  //     User.deleteOne({ username: "sasan"}).exec();
+  //     done();
+  // });
   // describe('first test for registe new user and runnig app', function () {
   //test default rote for server is running
   it("should return a 200 response and message application works", function (done) {
@@ -61,12 +64,14 @@ describe("server run and server runnig and register user", function () {
         done();
       });
   });
-  beforeEach(function (done) {
+});
+describe("server run and server runnig and register user", function (this: any) {
+  before(function (done: NextFunction) {
     User.findOne(
       {
         username: { $in: ["sasan", "jack"] },
       },
-      (err: Error, user: IUser) => {
+      (err: Error, user: any) => {
         if (err) {
           console.log(err);
         }
@@ -85,7 +90,7 @@ describe("server run and server runnig and register user", function () {
       .set("Content-Type", "application/json")
       .send({
         username: "sasan",
-        password: "12345",
+        password: "Ariapa1401@#",
       })
       .expect("Content-Type", /json/)
       .expect(200, function (err, res) {
@@ -110,7 +115,7 @@ describe("server run and server runnig and register user", function () {
   it("should send back a JSON object for get all user", function (done) {
     //test route for get all user in DB
     request(app)
-      .get("/api/v1/users?page=1&perPage=2")
+      .get("/api/v1/users?page=1&perPage=3  ")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .expect(200, function (err, res) {
@@ -184,7 +189,7 @@ describe("server run and server runnig and register user", function () {
     let userEditJson = {
       username: "jack",
     };
-    console.log(_user);
+    console.log("user edit json : " + _user);
     request(app)
       .patch("/api/v1/users/" + _user._id)
       .set("Content-Type", "application/json")
@@ -208,7 +213,7 @@ describe("server run and server runnig and register user", function () {
       });
   });
 
-  //test route for delete user
+  // //test route for delete user
   it("should send back a JSON object for delete user", function (done) {
     request(app)
       .delete("/api/v1/users/" + _user._id)

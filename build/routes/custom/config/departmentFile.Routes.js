@@ -31,12 +31,6 @@ router.use(function (req, res, next) {
 router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            //get page from url
-            // let strPage = req.query.page as string;
-            // let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-            // //get perPage from url
-            // let strPerPage = req.query.perPage as string;
-            // let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
             //query for get departements list

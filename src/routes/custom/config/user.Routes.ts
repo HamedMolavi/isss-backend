@@ -218,7 +218,6 @@ router.delete(
 
       //get token from header request and verify
       let token = getTokenAndVerify(req, "admin", next);
-
       //query for get user by id from DB
       let user = await User.findByIdAndDelete(id).exec();
 

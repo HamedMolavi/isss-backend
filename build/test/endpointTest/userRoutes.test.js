@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -19,9 +10,10 @@ const user_1 = __importDefault(require("./../../models/user"));
 const token = process.env.sample_token;
 let _user;
 describe("server run and server runnig and register user", function () {
-    this.afterAll(() => __awaiter(this, void 0, void 0, function* () {
-        user_1.default.findOneAndDelete({ username: "sasan" }).exec();
-    }));
+    // after( (done :NextFunction) => {
+    //     User.deleteOne({ username: "sasan"}).exec();
+    //     done();
+    // });
     // describe('first test for registe new user and runnig app', function () {
     //test default rote for server is running
     it("should return a 200 response and message application works", function (done) {
@@ -73,7 +65,9 @@ describe("server run and server runnig and register user", function () {
             done();
         });
     });
-    beforeEach(function (done) {
+});
+describe("server run and server runnig and register user", function () {
+    before(function (done) {
         user_1.default.findOne({
             username: { $in: ["sasan", "jack"] },
         }, (err, user) => {
@@ -92,7 +86,7 @@ describe("server run and server runnig and register user", function () {
             .set("Content-Type", "application/json")
             .send({
             username: "sasan",
-            password: "12345",
+            password: "Ariapa1401@#",
         })
             .expect("Content-Type", /json/)
             .expect(200, function (err, res) {
@@ -116,7 +110,7 @@ describe("server run and server runnig and register user", function () {
     it("should send back a JSON object for get all user", function (done) {
         //test route for get all user in DB
         (0, supertest_1.default)(server_1.default)
-            .get("/api/v1/users?page=1&perPage=2")
+            .get("/api/v1/users?page=1&perPage=3  ")
             .set("Content-Type", "application/json")
             .set("Authorization", `Bearer ${token}`)
             .expect(200, function (err, res) {
@@ -187,7 +181,7 @@ describe("server run and server runnig and register user", function () {
         let userEditJson = {
             username: "jack",
         };
-        console.log(_user);
+        console.log("user edit json : " + _user);
         (0, supertest_1.default)(server_1.default)
             .patch("/api/v1/users/" + _user._id)
             .set("Content-Type", "application/json")
@@ -210,7 +204,7 @@ describe("server run and server runnig and register user", function () {
             done();
         });
     });
-    //test route for delete user
+    // //test route for delete user
     it("should send back a JSON object for delete user", function (done) {
         (0, supertest_1.default)(server_1.default)
             .delete("/api/v1/users/" + _user._id)

@@ -5,7 +5,7 @@ import { dbUri } from "./../../../server";
 
 //test section models
 describe("departement", function () {
-  let Departement: any;
+  let Department: any;
   //connect to DB before test
   before(function (done) {
     //connect to DB
@@ -15,9 +15,9 @@ describe("departement", function () {
       mongoose.connection.db
         .dropDatabase()
         .then(() => {
-          require("./../../../models/departement").registerModels;
+          require("./../../../models/department").registerModels;
           // This is the right model because registerModels set it up for us.
-          Departement = mongoose.model("Departement");
+          Department = mongoose.model("Department");
           done();
         })
         .catch((err: Error) => {
@@ -30,19 +30,19 @@ describe("departement", function () {
     Disconnect();
     done();
   });
-  //test departement model
-  describe("register departement", function () {
-    //create departement model
+  //test department model
+  describe("register department", function () {
+    //create department model
     it("should save user in db", function (done) {
-      var departement = new Departement({
+      var department = new Department({
         name: "offece",
         created_date: new Date(),
       });
       //test this departement model
-      departement
+      department
         .save()
         .then(() => {
-          expect(departement.name).to.equal("offece");
+          expect(department.name).to.equal("offece");
           done();
         })
         .catch((err: Error) => {

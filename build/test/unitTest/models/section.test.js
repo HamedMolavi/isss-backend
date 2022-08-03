@@ -40,14 +40,14 @@ describe("section", function () {
         it("should save section in db", function (done) {
             var section = new Section({
                 name: "offece",
-                departement_id: new mongoose_1.default.Types.ObjectId("6283724be1996b883080a495"),
+                department_id: new mongoose_1.default.Types.ObjectId("6283724be1996b883080a495"),
             });
             //test this section model
             section
                 .save()
                 .then(() => {
                 (0, chai_1.expect)(section.name).to.equal("offece");
-                (0, chai_1.expect)(section.departement_id.toString()).to.equal("6283724be1996b883080a495");
+                (0, chai_1.expect)(section.department_id.toString()).to.equal("6283724be1996b883080a495");
                 done();
             })
                 .catch((err) => {

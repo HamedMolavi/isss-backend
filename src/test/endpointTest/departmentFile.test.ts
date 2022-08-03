@@ -7,36 +7,12 @@ import mongoose from "mongoose";
 import Section from "../../models/section";
 import { NextFunction } from "express";
 
-interface IChildrenCamera {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  type: string;
-  url: string;
-  username: string;
-  password: string;
-  ip: string;
-  is_enabled: boolean;
-}
-
-interface IChildrenSection {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  type: string;
-  children: IChildrenCamera[];
-}
-
-interface IResponseJson {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  type: string;
-  children: IChildrenSection[];
-}
 
 const token = process.env.sample_token;
 
 //create testing get all departement file
-describe("server run and api departement files", async function (this:any) {
-  await this.before(async function (done: NextFunction) {
+describe("server run and api departement files",  function () {
+  before( function (done : NextFunction) {
     let camera1 = new Camera({
       _id: new mongoose.Types.ObjectId("628dc14af014bc89f0280c46"),
       section_id: new mongoose.Types.ObjectId("628db904f014bc89f0280c41"),
@@ -111,27 +87,33 @@ describe("server run and api departement files", async function (this:any) {
     let section1 = new Section({
       _id: new mongoose.Types.ObjectId("628db904f014bc89f0280c41"),
       name: "AI",
-      departement_id: new mongoose.Types.ObjectId("628db754f014bc89f0280c3e"),
+      department_id: new mongoose.Types.ObjectId("628db754f014bc89f0280c3e"),
     });
 
     let department = new Departement({
       _id: new mongoose.Types.ObjectId("628db754f014bc89f0280c3e"),
       name: "ENG",
     });
-    await camera1.save();
-    await camera2.save();
-    await camera3.save();
-    await camera4.save();
-    await camera5.save();
-    await camera6.save();
-    await camera7.save();
-    await section1.save();
-    await department.save();
+     camera1.save();
+     camera2.save();
+     camera3.save();
+     camera4.save();
+     camera5.save();
+     camera6.save();
+     camera7.save();
+     section1.save();
+     department.save();
     done();
   });
-  //delete model , camera , section , department after test
-  this.afterAll(function (done:any) {
-    Camera.deleteMany({}).exec();
+  // //delete model , camera , section , department after test
+  after(function (done:any) {
+    Camera.deleteOne({name:"eng"}).exec();
+    Camera.deleteOne({name:"door_car"}).exec();
+    Camera.deleteOne({name:"door_human"}).exec();
+    Camera.deleteOne({name:"area2"}).exec();
+    Camera.deleteOne({name:"ai"}).exec();
+    Camera.deleteOne({name:"edari"}).exec();
+    Camera.deleteOne({name:"elec_kar"}).exec();
     Section.deleteMany().exec();
     Departement.deleteOne({ name: "ENG" }).exec();
     done();
@@ -141,25 +123,21 @@ describe("server run and api departement files", async function (this:any) {
   it("should send back a JSON object for get all departement file", function (done: NextFunction) {
     //test route for get camera in DB
     request(app)
-      .get("/api/v1/departementfiles?page=1&perPage=5")
+      .get("/api/v1/departementfiles")
       .set("Content-Type", "application/json")
       .set("Authorization", `Bearer ${token}`)
       .expect(200, function (err, res) {
         if (err) {
           return done(err);
         }
-        let userResponse: any = res.body.data;
-        console.log(11);
-        console.log("respone : " + res.body.data);
+        let userResponse: any = res.body.data[0];
         expect(res.body).to.have.property("total");
-        expect(res.body).to.have.property("perPage");
-        expect(res.body).to.have.property("page");
         expect(res.body).to.have.property("data");
         expect(userResponse._id.toString()).to.equal(
           "628db754f014bc89f0280c3e"
         );
         expect(userResponse.name).to.equal("ENG");
-        expect(userResponse.type).to.equal("departement");
+        expect(userResponse.type).to.equal("department");
         expect(userResponse.children[0]._id.toString()).to.equal(
           "628db904f014bc89f0280c41"
         );
@@ -201,5 +179,5 @@ describe("server run and api departement files", async function (this:any) {
         // Done
         done();
       });
-  }).timeout(10000);
+  });
 });

@@ -29,5 +29,5 @@ describe('compareTime', () => {
         let stop3 = '10:01';
         let result3 = (0, convertTime_1.compareTime)(start3, stop3);
         (0, chai_1.expect)(result3).to.equal(false);
-    }).timeout(5000); //timeout for test
+    }); //timeout for test
 });

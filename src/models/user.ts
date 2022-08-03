@@ -81,7 +81,11 @@ UserSchema.pre("save", function (done: Function) {
 //check password
 UserSchema.methods.checkPassword = function (guess: string, done: Function) {
   bcrypt.compare(guess, this.password, function (err, isMatch) {
-    done(err, isMatch);
+    //done(err, isMatch);
+    if (err) {
+      return done(err);
+    }
+    return isMatch;
   });
 };
 
