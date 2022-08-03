@@ -43,6 +43,7 @@ describe("personnel", function () {
         job_id: "6283724be1996b883080a495",
         personnel_code: "6283724be1996b883080a495",
         section_id: "6283724be1996b883080a495",
+        image_id: "6283724be1996b883080a495",
         camera_whitelist: [
           "6283724be1996b883080a495",
           "6283724be1996b883080a495",
@@ -65,6 +66,9 @@ describe("personnel", function () {
           );
           expect(personnel.personnel_code).to.equal("6283724be1996b883080a495");
           expect(personnel.section_id.toString()).to.equal(
+            "6283724be1996b883080a495"
+          );
+          expect(personnel.image_id.toString()).to.equal(
             "6283724be1996b883080a495"
           );
           expect(personnel.camera_whitelist).to.have.lengthOf(2);

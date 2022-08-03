@@ -33,6 +33,7 @@ router.post("/:model", function (req, res, next) {
         try {
             //get model from url request
             let model = req.params.model;
+            //send error if model is not defined
             if (model !== "face" && model !== "fire" && model !== "human" && model !== "plate" && model !== "sabotage") {
                 req.flash("error", "Model not found");
                 return next(new error_handler_1.ApiError(404, "Model not found"));
@@ -48,8 +49,6 @@ router.post("/:model", function (req, res, next) {
             page = (page - 1) * perPage + 1;
             //get search from url
             let search = req.query.search || "";
-            //get searchName from url
-            //let searchName = (req.query.name as string) || "";
             let response;
             let timeEpokhStart, timeEpokhEnd = "";
             let _allowed = undefined;
@@ -70,6 +69,10 @@ router.post("/:model", function (req, res, next) {
                 _owner = owner !== null && owner !== void 0 ? owner : null;
                 if (time_start && time_end && date_start && date_end) {
                     //convert date_start to epokh
+                    if (!date_start.includes("/") || !date_end.includes("/")) {
+                        req.flash("error", "Date format is not correct");
+                        next(new error_handler_1.ApiError(400, "Date format is not correct"));
+                    }
                     timeEpokhStart = (0, convertTime_1.date2Epokh)(date_start, time_start);
                     timeEpokhEnd = (0, convertTime_1.date2Epokh)(date_end, time_end);
                 }

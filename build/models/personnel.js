@@ -35,6 +35,7 @@ const PersonnelSchema = new mongoose_1.Schema({
     personnel_code: { type: String, required: true },
     section_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Section", required: true },
     camera_whitelist: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Camera" }],
+    image_id: { type: mongoose_1.Schema.Types.ObjectId, required: true },
     is_active: { type: Boolean, default: false },
     is_employee: { type: Boolean, default: false },
     is_dismissed: { type: Boolean, default: false },
