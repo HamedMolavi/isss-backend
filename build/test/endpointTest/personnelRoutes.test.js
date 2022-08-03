@@ -25,6 +25,7 @@ describe('server run and crud personnel', function () {
             phone_number: "09122222222",
             job_id: "6283724be1996b883080a495",
             personnel_code: "6283724be1996b883080a495",
+            image_id: "6283724be1996b883080a495",
             section_id: "6283724be1996b883080a495",
             camera_whitelist: ["6283724be1996b883080a495", "6283724be1996b883080a495"],
             is_active: true,
@@ -44,12 +45,14 @@ describe('server run and crud personnel', function () {
                 (0, chai_1.expect)(response.email).to.equal("test@test.gmail.com");
                 (0, chai_1.expect)(response.phone_number).to.equal("09122222222");
                 (0, chai_1.expect)(response.job_id).to.equal("6283724be1996b883080a495");
+                (0, chai_1.expect)(response.image_id).to.equal("6283724be1996b883080a495");
                 (0, chai_1.expect)(response.personnel_code).to.equal("6283724be1996b883080a495");
                 (0, chai_1.expect)(response.section_id).to.equal("6283724be1996b883080a495");
                 (0, chai_1.expect)(response.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
                 (0, chai_1.expect)(response.is_active).to.equal(true);
                 (0, chai_1.expect)(response.is_employee).to.equal(true);
                 (0, chai_1.expect)(response.is_dismissed).to.equal(true);
+                (0, chai_1.expect)(response).to.have.property("image_url");
             }
             else {
                 let response = null;
@@ -88,6 +91,7 @@ describe('server run and crud personnel', function () {
             (0, chai_1.expect)(userResponse[0]).to.have.property('last_name');
             (0, chai_1.expect)(userResponse[0]).to.have.property('national_code');
             (0, chai_1.expect)(userResponse[0]).to.have.property('email');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('image_id');
             (0, chai_1.expect)(userResponse[0]).to.have.property('phone_number');
             (0, chai_1.expect)(userResponse[0]).to.have.property('job_id');
             (0, chai_1.expect)(userResponse[0]).to.have.property('personnel_code');
@@ -96,6 +100,7 @@ describe('server run and crud personnel', function () {
             (0, chai_1.expect)(userResponse[0]).to.have.property('is_active');
             (0, chai_1.expect)(userResponse[0]).to.have.property('is_employee');
             (0, chai_1.expect)(userResponse[0]).to.have.property('is_dismissed');
+            (0, chai_1.expect)(userResponse[0]).to.have.property("image_url");
             // Done
             done();
         });
@@ -121,9 +126,11 @@ describe('server run and crud personnel', function () {
             (0, chai_1.expect)(userResponse[0]).to.have.property('personnel_code');
             (0, chai_1.expect)(userResponse[0]).to.have.property('section_id');
             (0, chai_1.expect)(userResponse[0]).to.have.property('camera_whitelist');
+            (0, chai_1.expect)(userResponse[0]).to.have.property('image_id');
             (0, chai_1.expect)(userResponse[0]).to.have.property('is_active');
             (0, chai_1.expect)(userResponse[0]).to.have.property('is_employee');
             (0, chai_1.expect)(userResponse[0]).to.have.property('is_dismissed');
+            (0, chai_1.expect)(userResponse[0]).to.have.property("image_url");
             // Done
             done();
         });
@@ -169,11 +176,13 @@ describe('server run and crud personnel', function () {
             (0, chai_1.expect)(personnel.phone_number).to.equal("09122222222");
             (0, chai_1.expect)(personnel.job_id).to.equal("6283724be1996b883080a495");
             (0, chai_1.expect)(personnel.personnel_code).to.equal("6283724be1996b883080a495");
+            (0, chai_1.expect)(personnel.image_id).to.equal("6283724be1996b883080a495");
             (0, chai_1.expect)(personnel.section_id).to.equal("6283724be1996b883080a495");
             (0, chai_1.expect)(personnel.camera_whitelist).to.deep.equal(["6283724be1996b883080a495", "6283724be1996b883080a495"]);
             (0, chai_1.expect)(personnel.is_active).to.equal(true);
             (0, chai_1.expect)(personnel.is_employee).to.equal(true);
             (0, chai_1.expect)(personnel.is_dismissed).to.equal(true);
+            (0, chai_1.expect)(personnel).to.have.property("image_url");
             // Done
             done();
         });

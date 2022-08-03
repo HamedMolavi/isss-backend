@@ -16,6 +16,8 @@ const express_1 = require("express");
 const error_handler_1 = require("../../../error/error.handler");
 const model_1 = __importDefault(require("./../../../models/model"));
 const authentication_1 = require("./../../../tools/authentication");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to server file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -36,7 +38,10 @@ router.get("", function (req, res, next) {
             let strPerPage = req.query.PerPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get list of models
             let models = yield model_1.default.find().limit(perPage).skip(perPage * (page - 1)).exec();
             if (!models) {
@@ -69,7 +74,10 @@ router.get("/:category", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "category is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get model by id from DB
             let model = yield model_1.default.findOne({ category: category }).exec();
             //check model is exist

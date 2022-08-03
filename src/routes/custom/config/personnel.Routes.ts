@@ -3,6 +3,9 @@ import { ApiError } from "../../../error/error.handler";
 import Personnel, { IPersonnel } from "./../../../models/personnel";
 import { getTokenAndVerify } from "./../../../tools/authentication";
 
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
 //create router for add to routes file
 const router: Router = Router();
 
@@ -30,6 +33,7 @@ router.post(
         personnel_code,
         section_id,
         camera_whitelist,
+        image_id,
         is_active,
         is_employee,
         is_dismissed,
@@ -47,14 +51,18 @@ router.post(
         !camera_whitelist ||
         !is_active ||
         !is_employee ||
-        !is_dismissed
+        !is_dismissed ||
+        !image_id
       ) {
         req.flash("error", "Please fill all fields");
         return next(new ApiError(400, "Please fill all fields"));
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //query for save new personnel in DB
       let personnel = await Personnel.findOne({
         $or: [
@@ -80,6 +88,7 @@ router.post(
         personnel_code,
         section_id,
         camera_whitelist,
+        image_id,
         is_active,
         is_employee,
         is_dismissed,
@@ -91,7 +100,7 @@ router.post(
       //send response
       res.status(201).json({
         success: true,
-        data: personnel,
+        data: personnel.toJSON(),
       });
     } catch (err: any) {
       return next(new ApiError(500,"Internal server error , " + err.message));
@@ -112,7 +121,13 @@ router.get(
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let search = (req.query.search as string) || "";
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
+      if(!token){
+        return null;
+      }
       //query for get user by personnels from DB
       let personnels: IPersonnel[] = [];
       if (!(search && search.length > 0)) {
@@ -139,7 +154,7 @@ router.get(
       //send response
       return res.status(200).json({
         success: true,
-        data: personnels,
+        data: personnels.map((personnel) => {return personnel.toJSON();}),
         page: page,
         perPage: perPage,
         total: await Personnel.countDocuments().exec(),
@@ -164,7 +179,10 @@ router.get(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for get personnel by id from DB
       let personnel = await Personnel.findById(id).exec();
@@ -178,7 +196,7 @@ router.get(
       //send response
       return res.status(200).json({
         success: true,
-        data: personnel,
+        data: personnel.toJSON(),
       });
     } catch (err: any) {
       return next(new ApiError(500, "Internal server error , " + err.message));
@@ -200,7 +218,10 @@ router.patch(
 
       const personnelBody = req.body;
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //query for get personnel by id from DB
       let personnel = await Personnel.findByIdAndUpdate(id, personnelBody, {
         new: true,
@@ -215,7 +236,7 @@ router.patch(
       //send response
       return res.status(201).json({
         success: true,
-        data: personnel,
+        data: personnel.toJSON(),
       });
     } catch (err: any) {
       return next(new ApiError(500, "Internal server error , " + err.message));
@@ -236,8 +257,10 @@ router.delete(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
-
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //query for get personnel by id from DB
       let personnel = await Personnel.findByIdAndDelete(id).exec();
 
@@ -250,7 +273,7 @@ router.delete(
       //send response
       return res.status(201).json({
         success: true,
-        data: personnel,
+        data: personnel.toJSON(),
       });
     } catch (err: any) {
       return next(new ApiError(500, "Internal server error , " + err.message));

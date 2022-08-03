@@ -15,6 +15,7 @@ import passport from "passport";
 import routes from "./routes/index.Routes";
 import { createStream } from "rotating-file-stream";
 import { util } from "chai";
+import fileUpload from "express-fileupload";
 
 //initial file .env
 dotenv.config();
@@ -53,6 +54,7 @@ app.use(cors());
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(fileUpload());
 app.use(
   session({
     secret: "TKRv0IJs=HYqrvagQ#&!F!%V]Ww/4KiVs$s,<<MX",

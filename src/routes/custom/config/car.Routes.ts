@@ -4,6 +4,10 @@ import Car, { ICar } from "./../../../models/car";
 import { getTokenAndVerify } from "./../../../tools/authentication";
 
 
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
+
 //create router for add to routes file 
 const router: Router = Router();
 
@@ -26,7 +30,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
             return next(new ApiError(400, "Car is required"));
         }
         //get token from header request and verify
-        let token = getTokenAndVerify(req, "user", next);
+        let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
         //query for save new car in DB
         let car = await Car.findOne({
@@ -76,7 +83,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
         //get token from header request and verify
-        let token = getTokenAndVerify(req, "user", next);
+        let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
         //query for get car list from DB
         let cars: ICar[] = [];
@@ -119,7 +129,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         }
 
         //get token from header request and verify
-        let token = getTokenAndVerify(req, "user", next);
+        let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
         //query for get car by id from DB
         let car = await Car.findById(id).exec();
@@ -154,7 +167,10 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
         //get body request
         const carBody = req.body;
         //get token from header request and verify
-        let token = getTokenAndVerify(req, "user", next);
+        let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
         //query for get car by id from DB and update
         let car = await Car.findByIdAndUpdate(id, carBody, { new: true }).exec();
         //return response not found to client if not found car
@@ -184,7 +200,10 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         }
 
         //get token from header request and verify
-        let token = getTokenAndVerify(req, "user", next);
+        let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
         //query for get car by id from DB
         let car = await Car.findByIdAndDelete(id).exec();

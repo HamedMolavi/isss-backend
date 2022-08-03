@@ -15,6 +15,8 @@ const createlogReport_1 = require("../../../tools/createlogReport");
 const elasticsearch_1 = require("../../../db/elasticsearch");
 const convertTime_1 = require("../../../tools/convertTime");
 const error_handler_1 = require("../../../error/error.handler");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to routes file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -33,7 +35,10 @@ router.post("", function (req, res, next) {
             //get model from url request
             //let model = req.params.model;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //get page from url
             let strPage = req.query.page;
             let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;

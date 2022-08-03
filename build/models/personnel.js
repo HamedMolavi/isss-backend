@@ -22,8 +22,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
+const path_1 = __importDefault(require("path"));
 //create personnel model with schema for save in DB
 const PersonnelSchema = new mongoose_1.Schema({
     first_name: { type: String, required: true },
@@ -39,10 +43,33 @@ const PersonnelSchema = new mongoose_1.Schema({
     is_active: { type: Boolean, default: false },
     is_employee: { type: Boolean, default: false },
     is_dismissed: { type: Boolean, default: false },
-    create_date: { type: Date, default: Date.now }
+    create_date: { type: Date, default: Date.now },
 }, {
-    collection: "Personnel"
+    collection: "Personnel",
 });
+//define path for save image
+let pathSave = path_1.default.join(__dirname, "./../../assets/image/");
+//get personnel data jason for auth
+PersonnelSchema.methods.toJSON = function () {
+    return {
+        _id: this._id,
+        first_name: this.first_name,
+        last_name: this.last_name,
+        national_code: this.national_code,
+        email: this.email,
+        phone_number: this.phone_number,
+        job_id: this.job_id,
+        personnel_code: this.personnel_code,
+        section_id: this.section_id,
+        camera_whitelist: this.camera_whitelist,
+        image_id: this.image_id,
+        is_active: this.is_active,
+        is_employee: this.is_employee,
+        is_dismissed: this.is_dismissed,
+        create_date: this.create_date,
+        image_url: pathSave + this.personnel_code + "/" + "avatar.jpg",
+    };
+};
 // Compile model from schema
 const Personnel = mongoose_1.default.model("Personnel", PersonnelSchema);
 exports.default = Personnel;

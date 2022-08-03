@@ -11,6 +11,7 @@ import { date2Epokh } from "../../../tools/convertTime";
 import { ApiError } from "../../../error/error.handler";
 import { dynamicRequestToElasticSearch} from "../../../db/connectElasticSearch";
 
+
 //create router for add to routes file
 const router: Router = Router();
 
@@ -24,6 +25,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"] as string;
+const const_role = process.env.const_role || "user";
 
 //route for get sabotage list
 router.post(
@@ -38,7 +40,10 @@ router.post(
         return next(new ApiError(404,"Model not found"));
       }
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //get page from url
       let strPage = req.query.page as string;

@@ -6,6 +6,10 @@ import Departement, { IDepartment } from "../../../models/department";
 import Section, { ISection } from "../../../models/section";
 import { getTokenAndVerify } from "../../../tools/authentication";
 
+
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
 interface IChildrenCamera {
   _id: mongoose.Types.ObjectId;
   name: string;
@@ -48,7 +52,10 @@ router.get(
   async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //query for get departements list
       let departments: IDepartment[] = await Departement.find({}).exec();
       //query for get all section from DB

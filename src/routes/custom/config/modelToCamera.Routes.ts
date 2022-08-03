@@ -6,6 +6,9 @@ import ModelToCamera, { IModelToCamera } from "../../../models/modelToCamera";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import { convertToCron, convertToCronDay } from "../../../tools/convertTime";
 
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
 //create router for add to server file
 const router: Router = Router();
 
@@ -30,7 +33,10 @@ router.post(
         return next(new ApiError(400, "Departement name is required"));
       }
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //convert input time to cron format
       let start_cron: string = convertToCron(start);
@@ -89,7 +95,10 @@ router.get(
       let search = (req.query.search as string) || "";
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //query for get departements list
       let model2Cameras: IModelToCamera[] = [];
       if (!(search && search.length > 0)) {

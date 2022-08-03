@@ -17,6 +17,8 @@ const error_handler_1 = require("../../../error/error.handler");
 const user_1 = __importDefault(require("../../../models/user"));
 const authentication_1 = require("../../../tools/authentication");
 const verifyPasswordRegex_1 = require("../../../tools/verifyPasswordRegex");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to server
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -38,7 +40,10 @@ router.post("", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Please enter all fields"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "admin", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //verify password
             let resultVerifyPassword = (0, verifyPasswordRegex_1.getStrength)(password);
             if (resultVerifyPassword < 99) {
@@ -90,7 +95,11 @@ router.get("", function (req, res, next) {
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             let search = req.query.search;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "admin", next);
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get user by username from DB
             let users = [];
             if (!(search && search.length > 0)) {
@@ -138,7 +147,11 @@ router.get("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Please enter id"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "admin", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
+            ;
             //query for get user by id from DB
             let user = yield user_1.default.findById(id).exec();
             //send not found if user not found
@@ -170,7 +183,11 @@ router.patch("/:id", function (req, res, next) {
             //get jason from body request
             const userBody = req.body;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "admin", next);
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get user by username from DB
             let user = yield user_1.default.findByIdAndUpdate(id, userBody, {
                 new: true,
@@ -202,7 +219,11 @@ router.delete("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Please enter id"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "admin", next);
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get user by id from DB
             let user = yield user_1.default.findByIdAndDelete(id).exec();
             //send not found if user not found

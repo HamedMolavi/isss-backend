@@ -26,6 +26,7 @@ router.use(function (req, res, next) {
 });
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"];
+const const_role = process.env.const_role || "user";
 //route for get sabotage list
 router.post("/:model", function (req, res, next) {
     var _a;
@@ -39,7 +40,10 @@ router.post("/:model", function (req, res, next) {
                 return next(new error_handler_1.ApiError(404, "Model not found"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //get page from url
             let strPage = req.query.page;
             let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;

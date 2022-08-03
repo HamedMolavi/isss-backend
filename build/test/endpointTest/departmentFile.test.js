@@ -113,7 +113,7 @@ describe("server run and api departement files", function () {
         camera_1.default.deleteOne({ name: "ai" }).exec();
         camera_1.default.deleteOne({ name: "edari" }).exec();
         camera_1.default.deleteOne({ name: "elec_kar" }).exec();
-        section_1.default.deleteMany().exec();
+        section_1.default.deleteOne({ name: "AI" }).exec();
         department_1.default.deleteOne({ name: "ENG" }).exec();
         done();
     });

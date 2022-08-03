@@ -49,7 +49,6 @@ describe("server run and server runnig and register user", function () {
         }
         if (res.body.success !== false) {
           let user = res.body.data;
-          console.log(user);
           expect(res.body.success).to.equal(true);
           expect(user.username).to.equal("sasan");
           expect(user.phone_number).to.equal("09330371133");
@@ -171,7 +170,6 @@ describe("server run and server runnig and register user", function (this: any) 
           return done(err);
         }
         let userResponse = res.body.data;
-        console.log("user rsponse : " + userResponse);
         expect(userResponse.username).to.equal(_user.username);
         expect(userResponse.phone_number).to.equal(_user.phone_number);
         expect(userResponse.role).to.equal(_user.role);
@@ -189,7 +187,6 @@ describe("server run and server runnig and register user", function (this: any) 
     let userEditJson = {
       username: "jack",
     };
-    console.log("user edit json : " + _user);
     request(app)
       .patch("/api/v1/users/" + _user._id)
       .set("Content-Type", "application/json")

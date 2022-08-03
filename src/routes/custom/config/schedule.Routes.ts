@@ -10,6 +10,10 @@ import {
 import ModelToCamera from "./../../../models/modelToCamera";
 import { ApiError } from "../../../error/error.handler";
 
+
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
 //define type of schedule for request body
 interface IGetParams {
   _id: mongoose.Types.ObjectId;
@@ -67,7 +71,10 @@ router.post(
         return next(new ApiError(400, "Please fill all fields"));
       }
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //check for valid time
       if (!compareTime(start, stop)) {
         req.flash("error", "Invalid time");
@@ -149,7 +156,10 @@ router.get(
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for get schedule from DB
       let schedules: ISchedule[] | null = await Schedule.find({})
@@ -187,7 +197,10 @@ router.get(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //query for get schedule by id from DB
       let schedule = await Schedule.findById(id).exec();
 
@@ -220,7 +233,10 @@ router.patch(
         return next(new ApiError(400, "schedule id is required"));
       }
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //get body from request
       const scheduleBody: IGetParams = req.body;
 
@@ -291,7 +307,10 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, "user", next);
+    let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
     //query for get schedule by id from DB
     let schedule = await Schedule.findByIdAndDelete(id).exec();

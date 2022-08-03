@@ -3,6 +3,10 @@ import { ApiError } from "../../../error/error.handler";
 import JobTitle, { IJobTitle } from "./../../../models/jobTitle";
 import { getTokenAndVerify } from "./../../../tools/authentication";
 
+
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
 //create router for add to server file
 const router: Router = Router();
 
@@ -27,7 +31,10 @@ router.post(
         return next(new ApiError(400, "Please enter a jobTitle"));
       }
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for save new jobTitle in DB
       let jobTitle = await JobTitle.findOne({ name: name }).exec();
@@ -69,7 +76,10 @@ router.get(
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let search = (req.query.search as string) ?? "";
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for get jobTitle from DB
       let jobTitles: IJobTitle[] = [];
@@ -121,7 +131,10 @@ router.get(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for get jobTitle by id from DB
       let jobTitle = await JobTitle.findById(id).exec();
@@ -157,7 +170,10 @@ router.patch(
       //get body from request
       const jobTitleBody = req.body;
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //query for get jobTitle by id from DB
       let jobTitle = await JobTitle.findByIdAndUpdate(id, jobTitleBody, {
         new: true,
@@ -192,7 +208,10 @@ router.delete(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for get jobTitle by id from DB
       let jobTitle = await JobTitle.findByIdAndDelete(id).exec();

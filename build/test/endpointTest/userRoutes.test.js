@@ -49,7 +49,6 @@ describe("server run and server runnig and register user", function () {
             }
             if (res.body.success !== false) {
                 let user = res.body.data;
-                console.log(user);
                 (0, chai_1.expect)(res.body.success).to.equal(true);
                 (0, chai_1.expect)(user.username).to.equal("sasan");
                 (0, chai_1.expect)(user.phone_number).to.equal("09330371133");
@@ -164,7 +163,6 @@ describe("server run and server runnig and register user", function () {
                 return done(err);
             }
             let userResponse = res.body.data;
-            console.log("user rsponse : " + userResponse);
             (0, chai_1.expect)(userResponse.username).to.equal(_user.username);
             (0, chai_1.expect)(userResponse.phone_number).to.equal(_user.phone_number);
             (0, chai_1.expect)(userResponse.role).to.equal(_user.role);
@@ -181,7 +179,6 @@ describe("server run and server runnig and register user", function () {
         let userEditJson = {
             username: "jack",
         };
-        console.log("user edit json : " + _user);
         (0, supertest_1.default)(server_1.default)
             .patch("/api/v1/users/" + _user._id)
             .set("Content-Type", "application/json")

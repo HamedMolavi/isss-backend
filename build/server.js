@@ -21,6 +21,7 @@ const passport_1 = __importDefault(require("passport"));
 const index_Routes_1 = __importDefault(require("./routes/index.Routes"));
 const rotating_file_stream_1 = require("rotating-file-stream");
 const chai_1 = require("chai");
+const express_fileupload_1 = __importDefault(require("express-fileupload"));
 //initial file .env
 dotenv_1.default.config();
 exports.dbUri = process.env["MONGODB_URL"];
@@ -45,6 +46,7 @@ app.use((0, cors_1.default)());
 app.use((0, cookie_parser_1.default)());
 app.use(body_parser_1.default.urlencoded({ extended: false }));
 app.use(body_parser_1.default.json());
+app.use((0, express_fileupload_1.default)());
 app.use((0, express_session_1.default)({
     secret: "TKRv0IJs=HYqrvagQ#&!F!%V]Ww/4KiVs$s,<<MX",
     resave: true,

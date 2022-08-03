@@ -4,6 +4,9 @@ import { ApiError } from "../../../error/error.handler";
 import Section, { ISection } from "./../../../models/section";
 import { getTokenAndVerify } from "./../../../tools/authentication";
 
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
 //create router for add to routes file
 const router: Router = Router();
 
@@ -29,7 +32,10 @@ router.post(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for save new section in DB
       let section = await Section.findOne({ name: name }).exec();
@@ -72,7 +78,10 @@ router.get(
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let search = (req.query.search as string) || "";
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //query for get sections from DB
       let sections: ISection[] = [];
       if (!(search && search.length > 0)) {
@@ -122,7 +131,10 @@ router.get(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for get section by id from DB
       let section = await Section.findById(id).exec();
@@ -156,7 +168,10 @@ router.patch(
       //get jason from body request
       const sectionBody = req.body;
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //query for get section by id from DB
       let section = await Section.findByIdAndUpdate(id, sectionBody, {
         new: true,
@@ -190,7 +205,10 @@ router.delete(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for get section by id from DB
       let section = await Section.findByIdAndDelete(id).exec();

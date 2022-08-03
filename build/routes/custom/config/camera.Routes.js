@@ -16,6 +16,8 @@ const express_1 = require("express");
 const error_handler_1 = require("../../../error/error.handler");
 const camera_1 = __importDefault(require("./../../../models/camera"));
 const authentication_1 = require("./../../../tools/authentication");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to server
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -43,7 +45,10 @@ router.post("", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Veuillez remplir tous les champs"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for save new Camera in DB
             let camera = yield camera_1.default.findOne({
                 $or: [{ ip: ip }, { name: name }, { url: url }],
@@ -89,7 +94,10 @@ router.get("", function (req, res, next) {
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             let cameras = [];
             //query for get cameras list
             if (search !== "") {
@@ -137,7 +145,10 @@ router.get("/:id", function (req, res, next) {
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get camera by id from DB
             let camera = yield camera_1.default.findById(id).exec();
             //return error if camera not found
@@ -169,7 +180,10 @@ router.patch("/:id", function (req, res, next) {
             //get jason from body request
             const cameraBody = req.body;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get user by id from DB
             let camera = yield camera_1.default.findByIdAndUpdate(id, cameraBody, {
                 new: true,
@@ -200,7 +214,10 @@ router.delete("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Bad request id not found"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get camera by username from DB
             let camera = yield camera_1.default.findByIdAndDelete(id).exec();
             //return error if camera not found

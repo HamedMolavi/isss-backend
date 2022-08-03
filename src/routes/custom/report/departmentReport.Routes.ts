@@ -5,6 +5,10 @@ import { requestToElasticSearchEvent } from "../../../db/elasticsearch";
 import { date2Epokh } from "../../../tools/convertTime";
 import { ApiError } from "../../../error/error.handler";
 
+
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
 //create router for add to routes file
 const router: Router = Router();
 
@@ -27,7 +31,10 @@ router.post(
       //get model from url request
       //let model = req.params.model;
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //get page from url
       let strPage = req.query.page as string;
       let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;

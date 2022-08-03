@@ -3,6 +3,10 @@ import { ApiError } from "../../../error/error.handler";
 import Camera, { ICamera } from "./../../../models/camera";
 import { getTokenAndVerify } from "./../../../tools/authentication";
 
+
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
 //create router for add to server
 const router: Router = Router();
 
@@ -44,7 +48,10 @@ router.post(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for save new Camera in DB
       let camera = await Camera.findOne({
@@ -97,7 +104,10 @@ router.get(
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       let cameras: ICamera[] = [];
       //query for get cameras list
       if (search !== "") {
@@ -147,7 +157,10 @@ router.get(
         return next({ status: 400, message: "Bad request" });
       }
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for get camera by id from DB
       let camera = await Camera.findById(id).exec();
@@ -183,7 +196,10 @@ router.patch(
       //get jason from body request
       const cameraBody = req.body;
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
       //query for get user by id from DB
       let camera = await Camera.findByIdAndUpdate(id, cameraBody, {
         new: true,
@@ -216,7 +232,10 @@ router.delete(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "user", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
       //query for get camera by username from DB
       let camera = await Camera.findByIdAndDelete(id).exec();

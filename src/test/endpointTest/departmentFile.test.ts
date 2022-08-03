@@ -114,7 +114,7 @@ describe("server run and api departement files",  function () {
     Camera.deleteOne({name:"ai"}).exec();
     Camera.deleteOne({name:"edari"}).exec();
     Camera.deleteOne({name:"elec_kar"}).exec();
-    Section.deleteMany().exec();
+    Section.deleteOne({name:"AI"}).exec();
     Departement.deleteOne({ name: "ENG" }).exec();
     done();
   });

@@ -16,6 +16,8 @@ const express_1 = require("express");
 const error_handler_1 = require("../../../error/error.handler");
 const section_1 = __importDefault(require("./../../../models/section"));
 const authentication_1 = require("./../../../tools/authentication");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to routes file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -37,7 +39,10 @@ router.post("", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Please enter all fields"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for save new section in DB
             let section = yield section_1.default.findOne({ name: name }).exec();
             //check if section exist
@@ -75,7 +80,10 @@ router.get("", function (req, res, next) {
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             let search = req.query.search || "";
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get sections from DB
             let sections = [];
             if (!(search && search.length > 0)) {
@@ -123,7 +131,10 @@ router.get("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Please enter all fields"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get section by id from DB
             let section = yield section_1.default.findById(id).exec();
             //return not found if section not exist
@@ -155,7 +166,10 @@ router.patch("/:id", function (req, res, next) {
             //get jason from body request
             const sectionBody = req.body;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get section by id from DB
             let section = yield section_1.default.findByIdAndUpdate(id, sectionBody, {
                 new: true,
@@ -187,7 +201,10 @@ router.delete("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Please enter id"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get section by id from DB
             let section = yield section_1.default.findByIdAndDelete(id).exec();
             //return not found if section not exist

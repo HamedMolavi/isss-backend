@@ -306,7 +306,6 @@ describe("server run and get report logs", function () {
           return done(err);
         }
         let response = res.body;
-        console.log(response);
         expect(response.success).to.be.equal(true);
         //  expect(response.data[0]).to.have.property('camera');
         expect(response.data[0]).to.have.property("time");
@@ -700,7 +699,6 @@ describe("server run and get report logs", function () {
           return done(err);
         }
         let response = res.body;
-        console.log(response);
         expect(response.success).to.be.equal(true);
         expect(response.data[0]).to.have.property("time");
         expect(response.data[0]).to.have.property("camera_id");

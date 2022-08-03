@@ -18,6 +18,8 @@ const camera_1 = __importDefault(require("../../../models/camera"));
 const department_1 = __importDefault(require("../../../models/department"));
 const section_1 = __importDefault(require("../../../models/section"));
 const authentication_1 = require("../../../tools/authentication");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to server file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -32,7 +34,10 @@ router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get departements list
             let departments = yield department_1.default.find({}).exec();
             //query for get all section from DB

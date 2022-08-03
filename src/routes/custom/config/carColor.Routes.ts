@@ -3,6 +3,11 @@ import { ApiError } from "../../../error/error.handler";
 import CarColor, { ICarColor } from "./../../../models/carColor";
 import { getTokenAndVerify } from "./../../../tools/authentication";
 
+
+
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
 //create router for add to server file 
 const router: Router = Router();
 
@@ -26,7 +31,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
             return next(new ApiError(400, "Bad request car color name is required"));
         }
         //get token from header request and verify
-        let token = getTokenAndVerify(req, "user", next);
+        let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
         //query for save new car_color in DB
         let carColor = await CarColor.findOne({ name: name }).exec();
@@ -64,7 +72,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         let search = req.query.search as string || "";
 
         //get token from header request and verify
-        let token = getTokenAndVerify(req, "user", next);
+        let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
         //query for get car_color list
         let carColors: ICarColor[] = [];
         if (!(search && search.length > 0)) {
@@ -106,7 +117,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         }
 
         //get token from header request and verify
-        let token = getTokenAndVerify(req, "user", next);
+        let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
         //query for get car_color by id from DB
         let carColor = await CarColor.findById(id).exec();
@@ -138,7 +152,10 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         }
 
         //get token from header request and verify
-        let token = getTokenAndVerify(req, "user", next);
+        let token = getTokenAndVerify(req, const_role, next);
+      if(!token){
+        return null;
+      }
 
         //query for get car_color by id from DB
         let carColor = await CarColor.findByIdAndDelete(id).exec();

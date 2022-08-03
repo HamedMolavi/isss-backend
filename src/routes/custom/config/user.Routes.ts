@@ -4,6 +4,10 @@ import User, { IUser } from "../../../models/user";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import { getStrength } from "../../../tools/verifyPasswordRegex";
 
+
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
+
 //create router for add to server
 const router: Router = Router();
 
@@ -37,7 +41,10 @@ router.post(
         return next(new ApiError(400, "Please enter all fields"));
       }
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "admin", next);
+      let token = getTokenAndVerify(req, const_role, next);
+      if (!token) {
+        return null;
+      }
 
       //verify password
       let resultVerifyPassword = getStrength(password);
@@ -95,7 +102,11 @@ router.get(
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let search = req.query.search as string;
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "admin", next);
+       //get token from header request and verify
+       let token = getTokenAndVerify(req, const_role, next);
+       if (!token) {
+         return null;
+       }
       //query for get user by username from DB
       let users: IUser[] = [];
       if (!(search && search.length > 0)) {
@@ -144,8 +155,11 @@ router.get(
         return next(new ApiError(400, "Please enter id"));
       }
 
-      //get token from header request and verify
-      let token = getTokenAndVerify(req, "admin", next);
+       //get token from header request and verify
+       let token = getTokenAndVerify(req, const_role, next);
+       if (!token) {
+         return null;
+       };
 
       //query for get user by id from DB
       let user = await User.findById(id).exec();
@@ -181,7 +195,11 @@ router.patch(
       //get jason from body request
       const userBody = req.body;
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "admin", next);
+       //get token from header request and verify
+       let token = getTokenAndVerify(req, const_role, next);
+       if (!token) {
+         return null;
+       }
       //query for get user by username from DB
       let user = await User.findByIdAndUpdate(id, userBody, {
         new: true,
@@ -217,7 +235,11 @@ router.delete(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, "admin", next);
+       //get token from header request and verify
+       let token = getTokenAndVerify(req, const_role, next);
+       if (!token) {
+         return null;
+       }
       //query for get user by id from DB
       let user = await User.findByIdAndDelete(id).exec();
 
