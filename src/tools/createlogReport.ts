@@ -15,9 +15,7 @@ export async function sabotageLogResponse(response: any) {
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
     //get camera from mongo db by id for get camera name
-    let camera = await Camera.findById(
-      response.data.hits.hits[i]._source.camera_id
-    ).exec();
+    let camera = await Camera.findById(response.data.hits.hits[i]._source.camera_id).exec();
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
       camera: camera?.name,
@@ -33,22 +31,17 @@ export async function plateLogResponse(
   carBrand: string[] | null,
   carColor: string[] | null,
   owner: string[] | null,
-  allowed: boolean | undefined,
+  allowed: boolean | null,
   search: string | null
 ) {
   //query for get cars from mongo db with list color and list brand and list owner
   let cars: any;
   if (owner && carColor && carBrand) {
     cars = await Car.find({
-      $and: [
-        { owner: { $in: owner } },
-        { color_id: { $in: carColor } },
-        { brand_id: { $in: carBrand } },
-      ],
+      $or: [{ owner: { $in: owner } }, { color_id: { $in: carColor } }, { brand_id: { $in: carBrand } }],
     }).exec();
   } else {
     //send error if owner or color or brand is not found in DB
-    console.log("owner, carColor, carBrand is null");
     cars = await Car.find({}).exec();
   }
   //get cars with match plate_number from elastic search to cars plate_number
@@ -57,20 +50,24 @@ export async function plateLogResponse(
   for (let i = 0; i < response.data.hits.hits.length; i++) {
     //split plate_number to get first and last digit
     //change plate number format from english to persian
-    let plateNumber1 = Number(response.data.hits.hits[i]._source.plate_number.substr(0, 2)).toLocaleString('fa-IR');
+    let plateNumber1 = Number(response.data.hits.hits[i]._source.plate_number.substr(0, 2)).toLocaleString("fa-IR");
     let plateNumber2 = response.data.hits.hits[i]._source.plate_number.substr(2, 1);
-    let plateNumber3 = Number(response.data.hits.hits[i]._source.plate_number.substr(3,3)).toLocaleString('fa-IR');
-    let plateNumber4 = Number(response.data.hits.hits[i]._source.plate_number.substr(6,2)).toLocaleString('fa-IR');
+    let plateNumber3 = Number(response.data.hits.hits[i]._source.plate_number.substr(3, 3)).toLocaleString("fa-IR");
+    let plateNumber4 = Number(response.data.hits.hits[i]._source.plate_number.substr(6, 2)).toLocaleString("fa-IR");
     //add plate number to json response for sort persian format in font end
-    let plateNumber = { first : plateNumber1 , second : toPersianPlate[plateNumber2] , third :plateNumber3 , fourth : "ایران",fifth :plateNumber4 };
-    
+    let plateNumber = {
+      first: plateNumber1,
+      second: toPersianPlate[plateNumber2],
+      third: plateNumber3,
+      fourth: "ایران",
+      fifth: plateNumber4,
+    };
+
     //define json for add in list response data
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
       camera:
-        (await Camera.findById(
-          response.data.hits.hits[i]._source.camera_id
-        ).then((camera) => {
+        (await Camera.findById(response.data.hits.hits[i]._source.camera_id).then((camera) => {
           return camera?.name;
         })) ?? "null",
       time: new Date(response.data.hits.hits[i]._source.timestamp),
@@ -82,9 +79,7 @@ export async function plateLogResponse(
     };
     //get compare plate_number from elastic search to cars plate_number and get owner, color, brand fore search api
     for (let j = 0; j < cars.length; j++) {
-      if (
-        response.data.hits.hits[i]._source.plate_number === cars[j].number_plate
-      ) {
+      if (response.data.hits.hits[i]._source.plate_number === cars[j].number_plate) {
         //get owner from DB and set to result
         result.owner =
           (await Personnel.findById(cars[j].owner)
@@ -106,11 +101,16 @@ export async function plateLogResponse(
             .then((car) => {
               return car?.name;
             })) ?? "null";
-        //set allowed to result if car is allowed
-        result.allowed =
-          cars[j].camera_whitelist.includes(
-            response.data.hits.hits[i]._source.camera_id
-          ) ?? false;
+
+        //set allowed to result if car is allowed or not
+        if (allowed === null) {
+          result.allowed = cars[j].camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) ? true : false;
+        } else if (cars[j].camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) !== allowed) {
+          break;
+        } else if (cars[j].camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) === allowed) {
+          result.allowed = allowed as boolean;
+        }
+
         _data.push(result);
         break;
       }
@@ -123,10 +123,7 @@ export async function plateLogResponse(
   return _data;
 }
 //create json response humanLog report for send to client
-export async function humanLogResponse(
-  response: any,
-  allowed: boolean | undefined
-) {
+export async function humanLogResponse(response: any, allowed: boolean | null) {
   //create json response
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
@@ -139,39 +136,25 @@ export async function humanLogResponse(
       model_camera_id: model2camera?._id.toString(),
     }).exec();
     //get camera from mongo db by id for get camera name
-    let camera = await Camera.findById(
-      response.data.hits.hits[i]._source.camera_id
-    ).exec();
-    let result: any;
+    let camera = await Camera.findById(response.data.hits.hits[i]._source.camera_id).exec();
+    let result = {
+      camera_id: response.data.hits.hits[i]._source.camera_id,
+      camera: camera?.name,
+      time: new Date(response.data.hits.hits[i]._source.timestamp),
+      numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
+      allowed: false,
+    };
     if (
-      allowed !== undefined &&
-      schedule!?.config!?.max_people! >=
-        response.data.hits.hits[i].number_of_people ==
-        allowed
+      allowed === null
+      // schedule!?.config!?.max_people! >=
+      //   response.data.hits.hits[i].number_of_people ==
+      //   allowed
     ) {
-      result = {
-        camera_id: response.data.hits.hits[i]._source.camera_id,
-        camera: camera?.name,
-        time: new Date(response.data.hits.hits[i]._source.timestamp),
-        numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
-        NumberOfPeople:
-          schedule!?.config!?.max_people! >=
-          response.data.hits.hits[i].number_of_people
-            ? true
-            : false,
-      };
-    } else if (allowed === undefined) {
-      result = {
-        camera_id: response.data.hits.hits[i]._source.camera_id,
-        camera: camera?.name,
-        time: new Date(response.data.hits.hits[i]._source.timestamp),
-        numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
-        allowed:
-          schedule!?.config!?.max_people! >=
-          response.data.hits.hits[i].number_of_people
-            ? true
-            : false,
-      };
+      result.allowed = schedule?.config?.max_people! >= response.data.hits.hits[i].number_of_people ? true : false;
+    } else if (schedule?.config?.max_people! >= response.data.hits.hits[i].number_of_people === allowed) {
+      result.allowed = allowed as boolean;
+    } else if (schedule?.config?.max_people! >= response.data.hits.hits[i].number_of_people === allowed) {
+      break;
     }
     _data.push(await result);
   }
@@ -183,9 +166,7 @@ export async function fireLogResponse(response: any) {
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
     //get camera from mongo db by id for get camera name
-    let camera = await Camera.findById(
-      response.data.hits.hits[i]._source.camera_id
-    ).exec();
+    let camera = await Camera.findById(response.data.hits.hits[i]._source.camera_id).exec();
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
       camera: camera?.name,
@@ -197,34 +178,39 @@ export async function fireLogResponse(response: any) {
   return _data;
 }
 //create json response faceLog report for send to client
-export async function faceLogResponse(response: any) {
+export async function faceLogResponse(response: any, allowed: boolean | null) {
   //create json response
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
     //get personnel from mongo db by id
     let _personnel: IPersonnel | null;
+
     if (response.data.hits.hits[i]._source.personnel_id !== "-1") {
-      _personnel = await Personnel.findById(
-        response.data.hits.hits[i]._source.personnel_id
-      ).exec();
+      _personnel = await Personnel.findById(response.data.hits.hits[i]._source.personnel_id).exec();
     } else {
       _personnel = null;
     }
     //get camera from mongo db by id for get camera name
-    let camera = await Camera.findById(
-      response.data.hits.hits[i]._source.camera_id
-    ).exec();
+    let camera = await Camera.findById(response.data.hits.hits[i]._source.camera_id).exec();
     let result = {
       camera_id: response.data.hits.hits[i]._source.camera_id,
       camera: camera?.name,
       time: new Date(response.data.hits.hits[i]._source.timestamp),
-      fullName: _personnel?.first_name + " " + _personnel?.last_name,
-      Allowed: _personnel?.camera_whitelist.includes(
-        response.data.hits.hits[i]._source.camera_id
-      )
-        ? true
-        : false,
+      fullName: _personnel ? _personnel?.first_name + " " + _personnel?.last_name : "",
+      allowed: false,
+      // allowed: _personnel?.camera_whitelist.includes(
+      //   response.data.hits.hits[i]._source.camera_id
+      // )
+      //   ? true
+      //   : false,
     };
+    if (allowed === null) {
+      result.allowed = _personnel?.camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) ? true : false;
+    } else if (_personnel?.camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) === allowed) {
+      result.allowed = allowed as boolean;
+    } else if (_personnel?.camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) === allowed) {
+      break;
+    }
     _data.push(await result);
   }
   return _data;
@@ -237,29 +223,17 @@ export async function eventLogResponse(response: any) {
   let cameraIds: string[] = [];
   for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
     //get camera from mongo db by id for get camera name
-    if (
-      cameraIds.includes(
-        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
-      )
-    ) {
+    if (cameraIds.includes(response.data.hits.hits[0]._source.alerts[i].labels.camera_id)) {
       continue;
     } else {
-      cameraIds.push(
-        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
-      );
-      let camera = await Camera.findById(
-        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
-      ).exec();
+      cameraIds.push(response.data.hits.hits[0]._source.alerts[i].labels.camera_id);
+      let camera = await Camera.findById(response.data.hits.hits[0]._source.alerts[i].labels.camera_id).exec();
       let result = {
-        camera_id:
-          response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
+        camera_id: response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
         camera: camera?.name,
-        time: new Date(
-          response.data.hits.hits[0]._source.alerts[i].labels.timestamp
-        ),
+        time: new Date(response.data.hits.hits[0]._source.alerts[i].labels.timestamp),
         AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
-        description:
-          response.data.hits.hits[0]._source.alerts[i].annotations.description,
+        description: response.data.hits.hits[0]._source.alerts[i].annotations.description,
       };
       _data.push(await result);
     }
@@ -274,19 +248,11 @@ export async function eventDepartmentLogResponse(response: any) {
   let cameraIds: string[] = [];
   for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
     //get camera from mongo db by id for get camera name
-    if (
-      cameraIds.includes(
-        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
-      )
-    ) {
+    if (cameraIds.includes(response.data.hits.hits[0]._source.alerts[i].labels.camera_id)) {
       continue;
     } else {
-      cameraIds.push(
-        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
-      );
-      let camera = await Camera.findById(
-        response.data.hits.hits[0]._source.alerts[i].labels.camera_id
-      ).exec();
+      cameraIds.push(response.data.hits.hits[0]._source.alerts[i].labels.camera_id);
+      let camera = await Camera.findById(response.data.hits.hits[0]._source.alerts[i].labels.camera_id).exec();
 
       //let cameras = await Camera.find({ section_id: camera?.section_id }).exec();
 
@@ -294,19 +260,14 @@ export async function eventDepartmentLogResponse(response: any) {
         section_id: camera?.section_id,
       }).exec();
 
-      let department = await Department.findById(
-        sections[0]?.department_id
-      ).exec();
+      let department = await Department.findById(sections[0]?.department_id).exec();
 
       let result = {
         department: department?.name,
         sections: sections,
-        time: new Date(
-          response.data.hits.hits[0]._source.alerts[i].labels.timestamp
-        ),
+        time: new Date(response.data.hits.hits[0]._source.alerts[i].labels.timestamp),
         AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
-        description:
-          response.data.hits.hits[0]._source.alerts[i].annotations.description,
+        description: response.data.hits.hits[0]._source.alerts[i].annotations.description,
       };
       _data.push(await result);
     }

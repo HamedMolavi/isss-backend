@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { ApiError } from "../error/error.handler";
 
 //initial file .env
 dotenv.config();
@@ -23,13 +24,13 @@ export interface IUser {
 interface IUserDocument extends IUser, Document {
   _id: mongoose.Types.ObjectId;
   setPassword: (password: string) => Promise<void>;
-  checkPassword: (password: string) => Promise<boolean>;
+  checkPassword: (password: string, done: Function) => Promise<boolean>;
   generateJWT: () => any;
   toAuthJSON: () => any;
 }
 
 interface IUserModel extends Model<IUserDocument> {
-  checkPassword: (password: string) => Promise<boolean>;
+  checkPassword: (password: string, done: Function) => Promise<boolean>;
   setPassword: (password: string) => Promise<boolean>;
   generateJWT: () => any;
   toAuthJSON: () => any;
@@ -78,16 +79,37 @@ UserSchema.pre("save", function (done: Function) {
   });
 });
 
-//check password
-UserSchema.methods.checkPassword = function (guess: string, done: Function) {
-  bcrypt.compare(guess, this.password, function (err, isMatch) {
-    //done(err, isMatch);
-    if (err) {
-      return done(err);
-    }
-    return isMatch;
-  });
+//compare password
+UserSchema.methods.checkPassword = async function (
+  password: string,
+  done: Function
+) {
+  try {
+    let user = this;
+    let isMatch = await bcrypt.compare(password + user.username , user.password);
+    return done(null, isMatch);
+  } catch (err) {
+    return done(err);
+  }
 };
+// //check password
+// UserSchema.methods.checkPassword = async function (
+//   guess: string,
+//   done: Function
+// ) {
+//   let result = await bcrypt
+//     .compare(guess, this.password)
+//     .then((valid) => {
+//       if (!valid) {
+//         return done(new ApiError(400, "Invalid password"));
+//       }
+//       return true;
+//     })
+//     .catch((error) => {
+//       done(error);
+//     });
+//   return result;
+// };
 
 //get secrect key jwt token
 const secret = process.env["JWT_SECRET"] as string;

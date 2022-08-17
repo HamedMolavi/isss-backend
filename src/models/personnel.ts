@@ -64,7 +64,8 @@ PersonnelSchema.methods.toJSON = function () {
     is_employee: this.is_employee,
     is_dismissed: this.is_dismissed,
     create_date: this.create_date,
-    image_url : pathSave + this.personnel_code+"/" + "avatar.jpg",
+    image_url : "192.168.1.39:8000/api/v1/files/download/123456",
+   // image_url : pathSave + this.personnel_code+"/" + "avatar.jpg",
   };
 };
 

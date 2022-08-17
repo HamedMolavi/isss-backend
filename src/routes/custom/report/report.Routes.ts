@@ -58,7 +58,7 @@ router.post(
 
       let response: any;
       let timeEpokhStart,timeEpokhEnd: string = "";
-      let _allowed: boolean | undefined = undefined;
+      let _allowed: boolean | null  = null;
       let _carBrand,_carColor,_owner: string[] | null = null;
       let _cameras,_models,_personnels: string[] = [];
       let _probabilities , _humanCounts: number[] = [];
@@ -84,7 +84,7 @@ router.post(
         _cameras = cameras;
         _models = models;
         _probabilities = probabilities;
-        _allowed = Boolean(allowed) ?? undefined;
+        _allowed = Boolean(allowed) ?? null;
         _carBrand = car_brand ?? null;
         _carColor = car_color ?? null;
         _owner = owner ?? null;
@@ -143,14 +143,17 @@ router.post(
       } else if (model === "fire") {
         _data = await fireLogResponse(response);
       } else if (model === "face") {
-        _data = await faceLogResponse(response);
+        _data = await faceLogResponse(response, _allowed);
       }
       
       //return data to client
       return res.status(200).json({
         success: true,
         data: _data,
-        total : response.data.hits.total.value
+        page: page,
+        perPage: perPage,
+        total:search ? _data.length : response.data.hits.total.value,
+        pages: Math.ceil((search ? _data.length : response.data.hits.total.value) / perPage),
       });
     } catch (err: any) {
       return next(new ApiError(500, "Internal server error ," + err));

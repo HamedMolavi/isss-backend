@@ -4,7 +4,6 @@ import User, { IUser } from "../../../models/user";
 import { getTokenAndVerify } from "../../../tools/authentication";
 import { getStrength } from "../../../tools/verifyPasswordRegex";
 
-
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 
@@ -102,11 +101,11 @@ router.get(
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let search = req.query.search as string;
       //get token from header request and verify
-       //get token from header request and verify
-       let token = getTokenAndVerify(req, const_role, next);
-       if (!token) {
-         return null;
-       }
+      //get token from header request and verify
+      let token = getTokenAndVerify(req, const_role, next);
+      if (!token) {
+        return null;
+      }
       //query for get user by username from DB
       let users: IUser[] = [];
       if (!(search && search.length > 0)) {
@@ -155,11 +154,11 @@ router.get(
         return next(new ApiError(400, "Please enter id"));
       }
 
-       //get token from header request and verify
-       let token = getTokenAndVerify(req, const_role, next);
-       if (!token) {
-         return null;
-       };
+      //get token from header request and verify
+      let token = getTokenAndVerify(req, const_role, next);
+      if (!token) {
+        return null;
+      }
 
       //query for get user by id from DB
       let user = await User.findById(id).exec();
@@ -195,11 +194,11 @@ router.patch(
       //get jason from body request
       const userBody = req.body;
       //get token from header request and verify
-       //get token from header request and verify
-       let token = getTokenAndVerify(req, const_role, next);
-       if (!token) {
-         return null;
-       }
+      //get token from header request and verify
+      let token = getTokenAndVerify(req, const_role, next);
+      if (!token) {
+        return null;
+      }
       //query for get user by username from DB
       let user = await User.findByIdAndUpdate(id, userBody, {
         new: true,
@@ -235,11 +234,11 @@ router.delete(
       }
 
       //get token from header request and verify
-       //get token from header request and verify
-       let token = getTokenAndVerify(req, const_role, next);
-       if (!token) {
-         return null;
-       }
+      //get token from header request and verify
+      let token = getTokenAndVerify(req, const_role, next);
+      if (!token) {
+        return null;
+      }
       //query for get user by id from DB
       let user = await User.findByIdAndDelete(id).exec();
 
@@ -276,27 +275,25 @@ router.post(
         });
       }
       //  get user from DB
-      let user = await User.findOne({ username: username }).exec(
-        (err: any, user: any) => {
-          if (err) {
-            return next(
-              new ApiError(500, "internal server error , " + err.message)
-            );
-          }
-          if (!user) {
-            return next(new ApiError(404, "User not found"));
-          }
-          //verify password
-          if (user.checkPassword(password)) {
-            return next(new ApiError(401, "Password incorrect"));
-          }
-          //send response
-          return res.status(200).json({
-            success: true,
-            data: user.toAuthJSON(),
-          });
+      let user = await User.findOne({ username: username }).exec();
+      if (!user) {
+        return next(new ApiError(404, "User not found"));
+      }
+      //check password
+      let isMatch = await user.checkPassword(password, (err: any, isMatch :any) => {
+        if (err) {
+          return next(new ApiError(500, "internal server error , " + err.message));
         }
-      );
+        return isMatch;
+      });
+      if (!isMatch) {
+        return next(new ApiError(401, "Password is incorrect"));
+      }
+      //send response
+      return res.status(200).json({
+        success: true,
+        data: user.toAuthJSON(),
+      });
     } catch (err: any) {
       return next(new ApiError(500, "internal server error , " + err.message));
     }

@@ -23,7 +23,7 @@ export async function dynamicRequestToElasticSearch(
     //create json response for client
     let jsonResuest: any = {};
     jsonResuest.size = perPage;
-    jsonResuest.from = page;
+    jsonResuest.from = (perPage * (page - 1));
     //create json query for elastic search
     jsonResuest.query = {
       bool: {
@@ -34,7 +34,7 @@ export async function dynamicRequestToElasticSearch(
     jsonResuest.sort = [
       {
         timestamp: {
-          order: "desc",
+          order: "asc",
         },
       },
     ];
