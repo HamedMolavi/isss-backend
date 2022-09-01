@@ -5,17 +5,17 @@ import {
   getImageFromRedis,
   deleteImageInRedis,
   uploadAvatar,
-} from "./../../../tools/fileUpload";
+} from "./../../tools/fileUpload";
 import { NextFunction, Router, Request, Response } from "express";
 import fs from "fs";
-import { getTokenAndVerify } from "./../../../tools/authentication";
+import { getTokenAndVerify } from "./../../tools/authentication";
 import axios from "axios";
-import Guid from "./../../../tools/createGuid";
+import Guid from "./../../tools/createGuid";
 import path from "path";
-import PersonImage, { IPersonImage } from "./../../../models/personImage";
+import PersonImage, { IPersonImage } from "./../../models/personImage";
 import multer from "multer";
-import { hashJson } from "./../../../tools/hash";
-import { ApiError } from "../../../error/error.handler";
+import { hashJson } from "./../../tools/hash";
+import { ApiError } from "../../error/error.handler";
 
 //create router for add to server
 const router: Router = Router();
@@ -91,7 +91,7 @@ router.get(
 
       //get directory path
       const directoryPath =
-        path.join(__dirname, "./../../../../assets/image/") + fileName + "/";
+        path.join(__dirname, "./../../../assets/image/") + fileName + "/";
 
       //send image to client
       await res.download(directoryPath + "avatar.png", fileName, (err) => {
@@ -118,7 +118,7 @@ router.get(
       }
       let fileInfos: object[] = [];
       //get directory path
-      const directoryPath = path.join(__dirname, "./../../../../assets/image/");
+      const directoryPath = path.join(__dirname, "./../../../assets/image/");
       //get list directory images in directory path
       let imageFolders = await fs.promises.readdir(directoryPath);
       //loop through list directory images and get file info in each directory
@@ -291,7 +291,7 @@ router.post(
         //todo : convert BGR to RGB
 
         //define path for save image
-        let pathSave = path.join(__dirname, "./../../../../assets/uploads/");
+        let pathSave = path.join(__dirname, "./../../../assets/uploads/");
         //write image in path
         await fs.writeFile(pathSave + fileName, image, (err) => {
           if (err) {

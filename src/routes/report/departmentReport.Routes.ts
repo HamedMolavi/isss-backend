@@ -1,9 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { getTokenAndVerify } from "../../../tools/authentication";
-import { eventDepartmentLogResponse } from "../../../tools/createlogReport";
-import { requestToElasticSearchEvent } from "../../../db/elasticsearch";
-import { date2Epokh } from "../../../tools/convertTime";
-import { ApiError } from "../../../error/error.handler";
+import { getTokenAndVerify } from "../../tools/authentication";
+import { eventDepartmentLogResponse } from "../../tools/createlogReport";
+import { date2Epokh } from "../../tools/convertTime";
+import { ApiError } from "../../error/error.handler";
 
 
 //get user role from enviroment variable
@@ -66,17 +65,17 @@ router.post(
 
       let _data: object[] = [];
       //get event data from elastic search
-      response = await requestToElasticSearchEvent(
-        _cameras,
-        _models,
-        search,
-        timeEpokhStart,
-        timeEpokhEnd,
-        page,
-        perPage,
-        next,
-        searchName
-      );
+    //   response = await requestToElasticSearchEvent(
+    //     _cameras,
+    //     _models,
+    //     search,
+    //     timeEpokhStart,
+    //     timeEpokhEnd,
+    //     page,
+    //     perPage,
+    //     next,
+    //     searchName
+    //   );
       if (!response) {
         req.flash("error", "Data is null or undefined");
         return next(new ApiError(404, "Data is null or undefined"));

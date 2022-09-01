@@ -1,10 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../../error/error.handler";
-import Camera from "../../../models/camera";
-import Model from "../../../models/model";
-import ModelToCamera, { IModelToCamera } from "../../../models/modelToCamera";
-import { getTokenAndVerify } from "../../../tools/authentication";
-import { convertToCron, convertToCronDay } from "../../../tools/convertTime";
+import { ApiError } from "../../error/error.handler";
+import Camera from "../../models/camera";
+import Model from "../../models/model";
+import ModelToCamera, { IModelToCamera } from "../../models/modelToCamera";
+import { getTokenAndVerify } from "../../tools/authentication";
+import { convertToCron, convertToCronDay } from "../../tools/convertTime";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";

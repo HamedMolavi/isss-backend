@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../../error/error.handler";
-import Departement , {IDepartment} from "../../../models/department";
-import { getTokenAndVerify } from "./../../../tools/authentication";
+import { ApiError } from "../../error/error.handler";
+import Departement , {IDepartment} from "../../models/department";
+import { getTokenAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";

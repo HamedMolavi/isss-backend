@@ -1,10 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
 import mongoose, { Schema } from "mongoose";
-import { ApiError } from "../../../error/error.handler";
-import Camera, { ICamera } from "../../../models/camera";
-import Departement, { IDepartment } from "../../../models/department";
-import Section, { ISection } from "../../../models/section";
-import { getTokenAndVerify } from "../../../tools/authentication";
+import { ApiError } from "../../error/error.handler";
+import Camera, { ICamera } from "../../models/camera";
+import Departement, { IDepartment } from "../../models/department";
+import Section, { ISection } from "../../models/section";
+import { getTokenAndVerify } from "../../tools/authentication";
 
 
 //get user role from enviroment variable
@@ -60,7 +60,6 @@ router.get(
       let departments: IDepartment[] = await Departement.find({}).exec();
       //query for get all section from DB
       let sections: ISection[] = await Section.find({}).exec();
-
       //query for get all camera from DB
       let cameras: ICamera[] = await Camera.find({}).exec();
       //return response not found to client if not found departements

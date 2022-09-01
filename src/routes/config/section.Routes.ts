@@ -1,8 +1,8 @@
 import { data } from "cheerio/lib/api/attributes";
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../../error/error.handler";
-import Section, { ISection } from "./../../../models/section";
-import { getTokenAndVerify } from "./../../../tools/authentication";
+import { ApiError } from "../../error/error.handler";
+import Section, { ISection } from "./../../models/section";
+import { getTokenAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";

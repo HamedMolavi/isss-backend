@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../../error/error.handler";
-import Personnel, { IPersonnel } from "./../../../models/personnel";
-import { getTokenAndVerify } from "./../../../tools/authentication";
+import { ApiError } from "../../error/error.handler";
+import Personnel, { IPersonnel } from "./../../models/personnel";
+import { getTokenAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -66,7 +66,7 @@ router.post(
       //query for save new personnel in DB
       let personnel = await Personnel.findOne({
         $or: [
-          { national_code: personnel_code },
+          { national_code: national_code },
           { personnel_code: personnel_code },
         ],
       }).exec();

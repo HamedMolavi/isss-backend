@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../../error/error.handler";
-import CarBrand, { ICarBrand } from "./../../../models/carBrand";
-import { getTokenAndVerify } from "./../../../tools/authentication";
+import { ApiError } from "../../error/error.handler";
+import CarBrand, { ICarBrand } from "./../../models/carBrand";
+import { getTokenAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";

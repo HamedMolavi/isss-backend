@@ -1,21 +1,22 @@
 import { Router, Request, Response, NextFunction } from "express";
-import userRoutes from "./custom/config/user.Routes";
-import cameraRoutes from "./custom/config/camera.Routes";
-import fileRoutes from "./custom/config/file.Routes";
-import departementRoutes from "./custom/config/departement.Routes";
-import sectionRoutes from "./custom/config/section.Routes";
-import jobTitleRoutes from "./custom/config/jobTitle.Routes";
-import personnelRoutes from "./custom/config/personnel.Routes";
-import carRoutes from "./custom/config/car.Routes";
-import scheduleRoutes from "./custom/config/schedule.Routes";
-import modelRoutes from "./custom/config/model.Routes";
-import carColorRoutes from "./custom/config/carColor.Routes";
-import carBrandRoutes from "./custom/config/carBrand.Routes";
-import modelToCamera from "./custom/config/modelToCamera.Routes";
-import report from "./custom/report/report.Routes";
-import reportDepartments from "./custom/report/departmentReport.Routes";
+import userRoutes from "./config/user.Routes";
+import cameraRoutes from "./config/camera.Routes";
+import fileRoutes from "./config/file.Routes";
+import departementRoutes from "./config/departement.Routes";
+import sectionRoutes from "./config/section.Routes";
+import jobTitleRoutes from "./config/jobTitle.Routes";
+import personnelRoutes from "./config/personnel.Routes";
+import carRoutes from "./config/car.Routes";
+import scheduleRoutes from "./config/schedule.Routes";
+import modelRoutes from "./config/model.Routes";
+import carColorRoutes from "./config/carColor.Routes";
+import carBrandRoutes from "./config/carBrand.Routes";
+import modelToCamera from "./config/modelToCamera.Routes";
+import report from "./report/report.Routes";
+import reportDepartments from "./report/departmentReport.Routes";
 import { ApiError } from "../error/error.handler";
-import reportDepartementfiles from "./custom/config/departmentFile.Routes";
+import reportDepartementfiles from "./config/departmentFile.Routes";
+import alerts from "./alerts/alerts.Routes"
 
 //create router for add to server
 const router: Router = Router();
@@ -37,6 +38,7 @@ router.use("/modelToCameras", modelToCamera);
 router.use("/reports", report);
 router.use("/reportDepartmets", reportDepartments);
 router.use("/departementfiles", reportDepartementfiles);
+router.use("/alerts", alerts);
 
 
 ////////////////////////////////////////////////////////////////////////

@@ -23,7 +23,7 @@ export async function dynamicRequestToElasticSearch(
     //create json response for client
     let jsonResuest: any = {};
     jsonResuest.size = perPage;
-    jsonResuest.from = (perPage * (page - 1));
+    jsonResuest.from = perPage * (page - 1);
     //create json query for elastic search
     jsonResuest.query = {
       bool: {
@@ -33,14 +33,15 @@ export async function dynamicRequestToElasticSearch(
     //add filter for cameras with time roder
     jsonResuest.sort = [
       {
-        timestamp: {
+        'log.timestamp': {
           order: "asc",
         },
       },
     ];
 
     let response: any;
-
+    //create url for elastic search with model for name table in elastic search
+    let baseurl: string = "";
     if (model !== "event") {
       //add filter for cameras if model is not event and cameras is not empty
       //cameras ai array string camera id
@@ -90,7 +91,7 @@ export async function dynamicRequestToElasticSearch(
           },
         });
       }
-      
+
       //add filter for human count if human count is not empty  and human count is not event
       //human count ai array string confidence number
       if (humanCounts.length > 0) {
@@ -101,26 +102,80 @@ export async function dynamicRequestToElasticSearch(
         });
       }
 
-
       //create url for elastic search with model for name table in elastic search
-      let baseurl: string = "";
-      if (model !== "") {
-        baseurl = dbUri + "/" + model + "_log/_search";
-      }
-      //send request to elastic search for get all  data with pagination
-      response = await axios.get(baseurl, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        data: jsonResuest,
-      });
+      baseurl = dbUri + "/" + model + "_log/_search";
     } else if (model === "event") {
+      //add filter for cameras if model is not event and cameras is not empty
+      //cameras ai array string camera id
+      if (cameras.length > 0) {
+        jsonResuest.query.bool.filter.push({
+          terms: {
+            'log.camera_id': cameras,
+          },
+        });
+      }
+      //add filter for personnels if personnels is not empty and model is not event
+      //personnels ai array string personnel id
+      if (personnels.length > 0) {
+        jsonResuest.query.bool.filter.push({
+          terms:{
+            'logpersonnel_id' : personnels
+          }
+        });
+      }
+      //add time filter if timeStart and timeEnd is not empty
+      if (timeEnd !== "" && timeStart !== "") {
+        jsonResuest.query.bool.filter.push({
+          range: {
+            'log.timestamp': {
+              gte: timeStart,
+              lte: timeEnd,
+            },
+          },
+        });
+      }
+      //add filter for models if models is not empty and model is not event and model is not event
+      //models ai array string model id
+      if (models.length > 0) {
+        jsonResuest.query.bool.filter.push({
+          terms: {
+            'log.model': models,
+          },
+        });
+      }
+
+      //add filter for confidence if confidence is not empty  and model is not event
+      //confidence ai array string confidence number
+      if (probability.length > 0) {
+        jsonResuest.query.bool.filter.push({
+          terms: {
+            'log.confidence': probability,
+          },
+        });
+      }
+
+      //add filter for human count if human count is not empty  and human count is not event
+      //human count ai array string confidence number
+      if (humanCounts.length > 0) {
+        jsonResuest.query.bool.filter.push({
+          terms: {
+            'log.number_of_people': humanCounts,
+          },
+        });
+      }
+
+      baseurl = dbUri + "/alerts/_search";
     }
+    //send request to elastic search for get all  data with pagination
+    response = await axios.get(baseurl, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: jsonResuest,
+    });
+
     return response;
   } catch (err: any) {
-    return next(
-      new ApiError(500, "Error while getting data from elastic search")
-    );
+    return next(new ApiError(500, "Error while getting data from elastic search"));
   }
 }
-

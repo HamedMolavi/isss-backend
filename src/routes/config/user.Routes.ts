@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../../error/error.handler";
-import User, { IUser } from "../../../models/user";
-import { getTokenAndVerify } from "../../../tools/authentication";
-import { getStrength } from "../../../tools/verifyPasswordRegex";
+import { ApiError } from "../../error/error.handler";
+import User, { IUser } from "../../models/user";
+import { getTokenAndVerify } from "../../tools/authentication";
+import { getStrength } from "../../tools/verifyPasswordRegex";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";

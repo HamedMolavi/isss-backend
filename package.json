@@ -34,7 +34,9 @@
     "@types/passport": "^1.0.7",
     "@types/passport-local": "^1.0.34",
     "@types/redis": "^4.0.11",
+    "@types/socket.io": "^3.0.2",
     "@types/supertest": "^2.0.12",
+    "@types/winston": "^2.4.4",
     "axios": "^0.27.2",
     "bcrypt": "^5.0.1",
     "chai": "^4.3.6",
@@ -58,9 +60,12 @@
     "passport-local": "^1.0.0",
     "redis": "^4.1.0",
     "rotating-file-stream": "^3.0.3",
+    "socket.io": "^4.5.1",
     "supertest": "^6.2.3",
     "ts-node": "^10.7.0",
-    "typescript": "^4.6.4"
+    "typescript": "^4.6.4",
+    "winston": "^3.8.1",
+    "winston-loki": "^6.0.5"
   },
   "devDependencies": {
     "@types/config": "^0.0.41",

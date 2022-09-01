@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../../error/error.handler";
-import CarColor, { ICarColor } from "./../../../models/carColor";
-import { getTokenAndVerify } from "./../../../tools/authentication";
+import { ApiError } from "../../error/error.handler";
+import CarColor, { ICarColor } from "./../../models/carColor";
+import { getTokenAndVerify } from "./../../tools/authentication";
 
 
 

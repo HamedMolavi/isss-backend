@@ -1,15 +1,16 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { getTokenAndVerify } from "../../../tools/authentication";
+import { getTokenAndVerify } from "../../tools/authentication";
 import {
+  eventLogResponse,
   faceLogResponse,
   fireLogResponse,
   humanLogResponse,
   plateLogResponse,
   sabotageLogResponse,
-} from "../../../tools/createlogReport";
-import { date2Epokh } from "../../../tools/convertTime";
-import { ApiError } from "../../../error/error.handler";
-import { dynamicRequestToElasticSearch} from "../../../db/connectElasticSearch";
+} from "../../tools/createlogReport";
+import { date2Epokh } from "../../tools/convertTime";
+import { ApiError } from "../../error/error.handler";
+import { dynamicRequestToElasticSearch} from "../../db/connectElasticSearch";
 
 
 //create router for add to routes file
@@ -35,7 +36,7 @@ router.post(
       //get model from url request
       let model = req.params.model;
       //send error if model is not defined
-      if(model !== "face" && model !== "fire" && model !== "human" && model !== "plate" && model !== "sabotage"){
+      if(model !== "face" && model !== "fire" && model !== "human" && model !== "plate" && model !== "sabotage" && model !== "event"){
         req.flash("error", "Model not found");
         return next(new ApiError(404,"Model not found"));
       }
@@ -51,7 +52,7 @@ router.post(
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-      page = (page - 1) * perPage + 1;
+     // page = (page - 1) * perPage + 1;
 
       //get search from url
       let search = (req.query.search as string) || "";
@@ -144,13 +145,15 @@ router.post(
         _data = await fireLogResponse(response);
       } else if (model === "face") {
         _data = await faceLogResponse(response, _allowed);
+      } else if(model === "event"){
+        _data =  await eventLogResponse(response);
       }
       
       //return data to client
       return res.status(200).json({
         success: true,
         data: _data,
-        page: page,
+        page: strPage,
         perPage: perPage,
         total:search ? _data.length : response.data.hits.total.value,
         pages: Math.ceil((search ? _data.length : response.data.hits.total.value) / perPage),

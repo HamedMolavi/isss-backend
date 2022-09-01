@@ -1,14 +1,14 @@
 import { Router, Request, Response, NextFunction } from "express";
 import mongoose, { Model } from "mongoose";
-import Schedule, { ISchedule } from "./../../../models/schedule";
-import { getTokenAndVerify } from "./../../../tools/authentication";
+import Schedule, { ISchedule } from "./../../models/schedule";
+import { getTokenAndVerify } from "./../../tools/authentication";
 import {
   compareTime,
   convertToCron,
   convertToCronDay,
-} from "./../../../tools/convertTime";
-import ModelToCamera from "./../../../models/modelToCamera";
-import { ApiError } from "../../../error/error.handler";
+} from "./../../tools/convertTime";
+import ModelToCamera from "./../../models/modelToCamera";
+import { ApiError } from "../../error/error.handler";
 
 
 //get user role from enviroment variable
@@ -26,6 +26,7 @@ interface IGetParams {
   montionDetection: boolean;
   min_people: number;
   max_people: number;
+  timeDuplicationDiagnoses : number;
 }
 
 //create router for add to server file
@@ -56,6 +57,7 @@ router.post(
         zones,
         min_people,
         max_people,
+        timeDuplicationDiagnoses
       } = req.body;
       //verify body request
       if (
@@ -63,9 +65,7 @@ router.post(
         !stop ||
         !dayOfWeek ||
         !camera_id ||
-        !model_id ||
-        !montionDetection ||
-        !threshold
+        !model_id 
       ) {
         req.flash("error", "Please fill all fields");
         return next(new ApiError(400, "Please fill all fields"));
@@ -120,6 +120,7 @@ router.post(
         stop_cron: stop_cron,
         model_camera_id: model2camera._id,
         montionDetection: montionDetection,
+        timeDuplicationDiagnoses : timeDuplicationDiagnoses ?? 0,
         config: {
           threshold: threshold ?? 0,
           zones: zones ?? null,

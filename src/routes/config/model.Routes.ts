@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../../error/error.handler";
-import Model, { IModel } from "./../../../models/model";
-import { getTokenAndVerify } from "./../../../tools/authentication";
+import { ApiError } from "../../error/error.handler";
+import Model, { IModel } from "./../../models/model";
+import { getTokenAndVerify } from "./../../tools/authentication";
 
 
 //get user role from enviroment variable

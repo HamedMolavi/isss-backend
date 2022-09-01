@@ -221,19 +221,20 @@ export async function eventLogResponse(response: any) {
   //create json response
   let _data: object[] = [];
   let cameraIds: string[] = [];
-  for (let i = 0; i < response.data.hits.hits[0]._source.alerts.length; i++) {
+  console.log(response.data.hits.hits[0]._source.log);
+  for (let i = 0; i < response.data.hits.hits.length; i++) {
     //get camera from mongo db by id for get camera name
-    if (cameraIds.includes(response.data.hits.hits[0]._source.alerts[i].labels.camera_id)) {
+    if (cameraIds.includes(response.data.hits.hits[i]._source.log.camera_id)) {
       continue;
     } else {
-      cameraIds.push(response.data.hits.hits[0]._source.alerts[i].labels.camera_id);
-      let camera = await Camera.findById(response.data.hits.hits[0]._source.alerts[i].labels.camera_id).exec();
+      cameraIds.push(response.data.hits.hits[i]._source.log.camera_id);
+      let camera = await Camera.findById(response.data.hits.hits[i]._source.log.camera_id).exec();
       let result = {
-        camera_id: response.data.hits.hits[0]._source.alerts[i].labels.camera_id,
+        camera_id: response.data.hits.hits[i]._source.log.camera_id,
         camera: camera?.name,
-        time: new Date(response.data.hits.hits[0]._source.alerts[i].labels.timestamp),
-        AI: response.data.hits.hits[0]._source.alerts[i].labels.module,
-        description: response.data.hits.hits[0]._source.alerts[i].annotations.description,
+        time: new Date(response.data.hits.hits[i]._source.log.timestamp),
+        AI: response.data.hits.hits[i]._source.log.model_camera_id,
+        description: response.data.hits.hits[i]._source.description,
       };
       _data.push(await result);
     }

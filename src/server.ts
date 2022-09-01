@@ -16,7 +16,7 @@ import routes from "./routes/index.Routes";
 import { createStream } from "rotating-file-stream";
 import { util } from "chai";
 import fileUpload from "express-fileupload";
-
+import { Server } from "socket.io";
 //initial file .env
 dotenv.config();
 
@@ -25,14 +25,8 @@ export const dbUri = process.env["MONGODB_URL"] as string;
 //export default function server() {
 
 //read key and cert from files for certificate in https server
-const key = fs.readFileSync(
-  __dirname + "/../security/sslconfig/key.pem",
-  "utf-8"
-);
-const cert = fs.readFileSync(
-  __dirname + "/../security/sslconfig/cert.pem",
-  "utf-8"
-);
+const key = fs.readFileSync(__dirname + "/../security/sslconfig/key.pem", "utf-8");
+const cert = fs.readFileSync(__dirname + "/../security/sslconfig/cert.pem", "utf-8");
 const options = {
   key: key,
   cert: cert,
@@ -105,12 +99,18 @@ https.createServer(options, app).listen(PORT_HTTPS, () => {
 });
 
 //run http server on port 3000
-http.createServer(app).listen(PORT_HTTP, () => {
+const server = http.createServer(app).listen(PORT_HTTP, () => {
   console.log(`Server is running on http://${HOST}:${PORT_HTTP}`);
 });
 
 // app.listen(3000, () => {
 //     console.log('Application started on http://localhost:3000');
 // });
+
+export const io = new Server(server, {
+  cors: {
+    origin: "*",
+  },
+});
 
 export default app;
