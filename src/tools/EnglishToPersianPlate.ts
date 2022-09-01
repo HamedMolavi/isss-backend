@@ -22,5 +22,30 @@ let toPersianPlate :any = {
     "C": "ویلچر",
 
 }
+
+export let toEnglishPLate : any = {
+    "ع":"U",
+    "ط":"X",
+    "ص":"W",
+    "س":"S",
+    "ی":"Y",
+   "الف":"A",
+    "ه":"H",
+    "ج":"J",
+    "ق":"G",
+    "م":"M",
+    "ب":"B",
+    "و":"V",
+    "ن":"N",
+    "ل":"L",
+    "ش":"O",
+    "پ":"P",
+    "ث":"E",
+    "ت":"T",
+    "د":"D",
+    "ک":"K",
+    "ویلچر":"C"
+
+}
     
 export default toPersianPlate;

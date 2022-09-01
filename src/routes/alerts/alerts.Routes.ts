@@ -4,7 +4,6 @@ import Camera from "../../models/camera";
 import Personnel from "../../models/personnel";
 import { io } from "../../server";
 import Path from "path";
-import mongoose from "mongoose";
 import Section from "../../models/section";
 
 //get user role from enviroment variable

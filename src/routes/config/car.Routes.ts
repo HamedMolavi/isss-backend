@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Personnel from "../../models/personnel";
+import toPersianPlate, { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
 import Car, { ICar } from "./../../models/car";
 import { getTokenAndVerify } from "./../../tools/authentication";
 
@@ -32,10 +33,20 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     if (!token) {
       return null;
     }
+    //add plate number to json response for sort persian format in font end
+    let plateNumber = {
+      first: number_plate.first.toLocaleString('en-us'),
+      second: number_plate.second,
+      third: number_plate.third.toLocaleString('en-us'),
+      fourth: number_plate.third.toLocaleString('en-us'),
+      fifth: number_plate.fifth.toLocaleString('en-us'),
+    };
+
+    let plate_number_engglish = `${plateNumber.first}${toEnglishPLate[plateNumber.second]}${plateNumber.third}${plateNumber.fifth}`;
 
     //query for save new car in DB
     let car = await Car.findOne({
-      $or: [{ number_plate: number_plate }, { owner: owner }],
+      $or: [{ number_plate: plate_number_engglish }, { owner: owner }],
     }).exec();
 
     //retrun error if car already exists
@@ -47,19 +58,30 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //fill new car
     let newCar = new Car({
       owner: owner,
-      number_plate: number_plate,
+      number_plate: plate_number_engglish,
       brand_id: brand_id,
       color_id: color_id,
       camera_whitelist: camera_whitelist,
     });
-
     //query for save new car in DB
     await newCar.save();
     req.flash("info", "Car added");
     //send response to client
     return res.status(201).json({
       success: true,
-      data: newCar,
+      data: {
+        owner: newCar.owner,
+        number_plate: {
+          first: Number(newCar.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
+          second: toPersianPlate[newCar.number_plate.substr(2, 1)],
+          third: Number(newCar.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+          fourth: "ایران",
+          fifth: Number(newCar.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+        },
+        brand_id: brand_id,
+        color_id: color_id,
+        camera_whitelist: camera_whitelist,
+      },
     });
   } catch (err: any) {
     return next(new ApiError(500, "internal server error" + err.message));
@@ -111,7 +133,13 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
       let result = {
         _id: car._id,
         owner: _owner,
-        number_plate: car.plate_number,
+        number_plate: {
+          first: Number(car.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
+          second: toPersianPlate[car.number_plate.substr(2, 1)],
+          third: Number(car.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+          fourth: "ایران",
+          fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+        },
         brand_id: car.brand_id,
         color_id: car.color_id,
         camera_whitelist: car.camera_whitelist,
@@ -167,7 +195,13 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
       data: {
         _id: car._id,
         owner: _owner,
-        number_plate: car.plate_number,
+        number_plate: {
+          first: Number(car.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
+          second: toPersianPlate[car.number_plate.substr(2, 1)],
+          third: Number(car.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+          fourth: "ایران",
+          fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+        },
         brand_id: car.brand_id,
         color_id: car.color_id,
         camera_whitelist: car.camera_whitelist,
@@ -214,7 +248,13 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
       data: {
         _id: car._id,
         owner: _owner,
-        number_plate: car.plate_number,
+        number_plate: {
+          first: Number(car.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
+          second: toPersianPlate[car.number_plate.substr(2, 1)],
+          third: Number(car.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+          fourth: "ایران",
+          fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+        },
         brand_id: car.brand_id,
         color_id: car.color_id,
         camera_whitelist: car.camera_whitelist,
@@ -260,7 +300,13 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
       data: {
         _id: car._id,
         owner: _owner,
-        number_plate: car.plate_number,
+        number_plate: {
+          first: Number(car.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
+          second: toPersianPlate[car.number_plate.substr(2, 1)],
+          third: Number(car.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+          fourth: "ایران",
+          fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+        },
         brand_id: car.brand_id,
         color_id: car.color_id,
         camera_whitelist: car.camera_whitelist,
