@@ -4,6 +4,8 @@ import Personnel from "../../models/personnel";
 import toPersianPlate, { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
 import Car, { ICar } from "./../../models/car";
 import { getTokenAndVerify } from "./../../tools/authentication";
+import CarBrand from "../../models/carBrand";
+import CarColor from "../../models/carColor";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -35,11 +37,11 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     }
     //add plate number to json response for sort persian format in font end
     let plateNumber = {
-      first: number_plate.first.toLocaleString('en-us'),
+      first: number_plate.first.toLocaleString("en-us"),
       second: number_plate.second,
-      third: number_plate.third.toLocaleString('en-us'),
-      fourth: number_plate.third.toLocaleString('en-us'),
-      fifth: number_plate.fifth.toLocaleString('en-us'),
+      third: number_plate.third.toLocaleString("en-us"),
+      fourth: number_plate.third.toLocaleString("en-us"),
+      fifth: number_plate.fifth.toLocaleString("en-us"),
     };
 
     let plate_number_engglish = `${plateNumber.first}${toEnglishPLate[plateNumber.second]}${plateNumber.third}${plateNumber.fifth}`;
@@ -66,6 +68,9 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //query for save new car in DB
     await newCar.save();
     req.flash("info", "Car added");
+
+    let _brand: any = await CarBrand.findById(newCar.brand_id).exec();
+    let _color: any = await CarColor.findById(newCar.color_id).exec();
     //send response to client
     return res.status(201).json({
       success: true,
@@ -78,8 +83,8 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
           fourth: "ایران",
           fifth: Number(newCar.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
         },
-        brand_id: brand_id,
-        color_id: color_id,
+        brand: _brand.name ?? "",
+        color: _color.name ?? "",
         camera_whitelist: camera_whitelist,
       },
     });
@@ -127,27 +132,36 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
       return next(new ApiError(404, "car not found"));
     }
     let newCars: any[] = [];
-    cars.forEach(async (car) => {
-      let personnel = await Personnel.findById(car.owner).exec();
+    for (let i = 0; i < cars.length; ++i) {
+      let personnel = await Personnel.findById(cars[i].owner).exec();
+      let _brand;
+      let _color;
+      if (cars[i].brand_id) {
+        _brand = await CarBrand.findById(cars[i].brand_id).exec();
+      }
+      if (cars[i].color_id) {
+        _color = await CarColor.findById(cars[i].color_id).exec();
+      }
+
       let _owner = personnel != null ? `${personnel?.first_name} ${personnel?.last_name}` : "";
       let result = {
-        _id: car._id,
+        _id: cars[i]._id,
         owner: _owner,
         number_plate: {
-          first: Number(car.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
-          second: toPersianPlate[car.number_plate.substr(2, 1)],
-          third: Number(car.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+          first: Number(cars[i].number_plate.substr(0, 2)).toLocaleString("fa-IR"),
+          second: toPersianPlate[cars[i].number_plate.substr(2, 1)],
+          third: Number(cars[i].number_plate.substr(3, 3)).toLocaleString("fa-IR"),
           fourth: "ایران",
-          fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+          fifth: Number(cars[i].number_plate.substr(6, 2)).toLocaleString("fa-IR"),
         },
-        brand_id: car.brand_id,
-        color_id: car.color_id,
-        camera_whitelist: car.camera_whitelist,
-        create_date: car.time,
-        __v: car.__v,
+        brand: _brand != null ? _brand.name : "",
+        color: _color != null ? _color.name : "",
+        camera_whitelist: cars[i].camera_whitelist,
+        create_date: cars[i].time,
+        __v: cars[i].__v,
       };
       newCars.push(result);
-    });
+    }
     //return response to client with cars list
     return res.status(200).json({
       success: true,
@@ -189,7 +203,9 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 
     let personnel = await Personnel.findById(car.owner).exec();
     let _owner = personnel != null ? `${personnel?.first_name} ${personnel?.last_name}` : "";
-    //return response to client with departement
+    let _brand = await CarBrand.findById(car.brand_id).exec();
+    let _color = await CarColor.findById(car.color_id).exec();
+    //return response to client with departemen
     return res.status(200).json({
       success: true,
       data: {
@@ -202,8 +218,8 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
           fourth: "ایران",
           fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
         },
-        brand_id: car.brand_id,
-        color_id: car.color_id,
+        brand: _brand?.name ?? "",
+        color: _color?.name ?? "",
         camera_whitelist: car.camera_whitelist,
         create_date: car.time,
         __v: car.__v,
@@ -242,6 +258,8 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 
     let personnel = await Personnel.findById(car.owner).exec();
     let _owner = personnel != null ? `${personnel?.first_name} ${personnel?.last_name}` : "";
+    let _brand = await CarBrand.findById(car.brand_id).exec();
+    let _color = await CarColor.findById(car.color_id).exec();
     //return response to client with car
     return res.status(201).json({
       success: true,
@@ -255,8 +273,8 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
           fourth: "ایران",
           fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
         },
-        brand_id: car.brand_id,
-        color_id: car.color_id,
+        brand: _brand?.name ?? "",
+        color: _color?.name ?? "",
         camera_whitelist: car.camera_whitelist,
         create_date: car.time,
         __v: car.__v,
@@ -293,7 +311,8 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
 
     let personnel = await Personnel.findById(car.owner).exec();
     let _owner = personnel != null ? `${personnel?.first_name} ${personnel?.last_name}` : "";
-
+    let _brand = await CarBrand.findById(car.brand_id).exec();
+    let _color = await CarColor.findById(car.color_id).exec();
     //return response to client with car
     return res.status(201).json({
       success: true,
@@ -307,8 +326,8 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
           fourth: "ایران",
           fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
         },
-        brand_id: car.brand_id,
-        color_id: car.color_id,
+        brand: _brand?.name ?? "",
+        color: _color?.name ?? "",
         camera_whitelist: car.camera_whitelist,
         create_date: car.time,
         __v: car.__v,

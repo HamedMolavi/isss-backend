@@ -43,11 +43,10 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
   }
 );
 
-//define path for save image
-let pathSave = path.join(__dirname, "./../../assets/image/");
-
 //get personnel data jason for auth
 PersonnelSchema.methods.toJSON = function () {
+  //define path for save image
+  let pathSave = path.join(__dirname, `./../../assets/image/${this.personnel_code}`);
   return {
     _id: this._id,
     first_name: this.first_name,
@@ -64,8 +63,8 @@ PersonnelSchema.methods.toJSON = function () {
     is_employee: this.is_employee,
     is_dismissed: this.is_dismissed,
     create_date: this.create_date,
-    image_url : "192.168.1.39:8000/api/v1/files/download/123456",
-   // image_url : pathSave + this.personnel_code+"/" + "avatar.jpg",
+    image_url : "192.168.1.39:8000/api/v1/files/download/default",
+    //image_url: pathSave != null ? pathSave + this.personnel_code + "/" + "avatar.jpg" : "192.168.1.39:8000/api/v1/files/download/default",
   };
 };
 

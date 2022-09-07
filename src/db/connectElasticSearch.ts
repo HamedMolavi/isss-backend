@@ -23,21 +23,13 @@ export async function dynamicRequestToElasticSearch(
     //create json response for client
     let jsonResuest: any = {};
     jsonResuest.size = perPage;
-    jsonResuest.from = perPage * (page - 1);
+    jsonResuest.from = perPage * (page - 1) + 1;
     //create json query for elastic search
     jsonResuest.query = {
       bool: {
         filter: [],
       },
     };
-    //add filter for cameras with time roder
-    jsonResuest.sort = [
-      {
-        'log.timestamp': {
-          order: "asc",
-        },
-      },
-    ];
 
     let response: any;
     //create url for elastic search with model for name table in elastic search
@@ -81,13 +73,16 @@ export async function dynamicRequestToElasticSearch(
           },
         });
       }
-
+      console.log(probability)
       //add filter for confidence if confidence is not empty  and model is not event
       //confidence ai array string confidence number
       if (probability.length > 0) {
         jsonResuest.query.bool.filter.push({
-          terms: {
-            confidence: probability,
+          range: {
+            confidence: {
+              gte: probability[0],
+              lte: probability[1],
+            },
           },
         });
       }
@@ -102,6 +97,15 @@ export async function dynamicRequestToElasticSearch(
         });
       }
 
+      //add filter for cameras with time roder
+      jsonResuest.sort = [
+        {
+          timestamp: {
+            order: "asc",
+          },
+        },
+      ];
+
       //create url for elastic search with model for name table in elastic search
       baseurl = dbUri + "/" + model + "_log/_search";
     } else if (model === "event") {
@@ -110,7 +114,7 @@ export async function dynamicRequestToElasticSearch(
       if (cameras.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            'log.camera_id': cameras,
+            "log.camera_id": cameras,
           },
         });
       }
@@ -118,16 +122,16 @@ export async function dynamicRequestToElasticSearch(
       //personnels ai array string personnel id
       if (personnels.length > 0) {
         jsonResuest.query.bool.filter.push({
-          terms:{
-            'logpersonnel_id' : personnels
-          }
+          terms: {
+            logpersonnel_id: personnels,
+          },
         });
       }
       //add time filter if timeStart and timeEnd is not empty
       if (timeEnd !== "" && timeStart !== "") {
         jsonResuest.query.bool.filter.push({
           range: {
-            'log.timestamp': {
+            "log.timestamp": {
               gte: timeStart,
               lte: timeEnd,
             },
@@ -139,7 +143,7 @@ export async function dynamicRequestToElasticSearch(
       if (models.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            'log.model': models,
+            "log.model": models,
           },
         });
       }
@@ -149,7 +153,7 @@ export async function dynamicRequestToElasticSearch(
       if (probability.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            'log.confidence': probability,
+            "log.confidence": probability,
           },
         });
       }
@@ -159,10 +163,19 @@ export async function dynamicRequestToElasticSearch(
       if (humanCounts.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            'log.number_of_people': humanCounts,
+            "log.number_of_people": humanCounts,
           },
         });
       }
+
+      //add filter for cameras with time roder
+      jsonResuest.sort = [
+        {
+          "log.timestamp": {
+            order: "asc",
+          },
+        },
+      ];
 
       baseurl = dbUri + "/alerts/_search";
     }
@@ -173,7 +186,7 @@ export async function dynamicRequestToElasticSearch(
       },
       data: jsonResuest,
     });
-
+    console.log(response.data);
     return response;
   } catch (err: any) {
     return next(new ApiError(500, "Error while getting data from elastic search"));

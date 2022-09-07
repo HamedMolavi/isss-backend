@@ -36,7 +36,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
 
     //query for save new Camera in DB
     let camera = await Camera.findOne({
-      $or: [{ ip: ip }, { name: name }, { url: url }],
+      $or: [{ ip: ip }],
     }).exec();
 
     //return error if camera already exist

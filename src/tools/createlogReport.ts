@@ -8,6 +8,7 @@ import ModelToCamera from "../models/modelToCamera";
 import Section from "../models/section";
 import Department from "../models/department";
 import toPersianPlate from "./EnglishToPersianPlate";
+import Model from "../models/model";
 
 //create json response sabotageLog report for send to client
 export async function sabotageLogResponse(response: any) {
@@ -221,23 +222,25 @@ export async function eventLogResponse(response: any) {
   //create json response
   let _data: object[] = [];
   let cameraIds: string[] = [];
-  console.log(response.data.hits.hits[0]._source.log);
   for (let i = 0; i < response.data.hits.hits.length; i++) {
-    //get camera from mongo db by id for get camera name
-    if (cameraIds.includes(response.data.hits.hits[i]._source.log.camera_id)) {
-      continue;
-    } else {
-      cameraIds.push(response.data.hits.hits[i]._source.log.camera_id);
-      let camera = await Camera.findById(response.data.hits.hits[i]._source.log.camera_id).exec();
-      let result = {
-        camera_id: response.data.hits.hits[i]._source.log.camera_id,
-        camera: camera?.name,
-        time: new Date(response.data.hits.hits[i]._source.log.timestamp),
-        AI: response.data.hits.hits[i]._source.log.model_camera_id,
-        description: response.data.hits.hits[i]._source.description,
-      };
-      _data.push(await result);
+    cameraIds.push(response.data.hits.hits[i]._source.log.camera_id);
+    let camera = await Camera.findById(response.data.hits.hits[i]._source.log.camera_id).exec();
+    let schedule = await Schedule.findById(response.data.hits.hits[i]._source.log.schedule_id).exec();
+    let model ;
+    if (schedule) {
+     let modelToCamera = await ModelToCamera.findById(schedule.model_camera_id).exec();
+     if(modelToCamera){
+      model = await Model.findById(modelToCamera.model_id).exec();
+     }
     }
+    let result = {
+      camera_id: response.data.hits.hits[i]._source.log.camera_id,
+      name: camera != null ? camera.name : "",
+      time: new Date(response.data.hits.hits[i]._source.log.timestamp),
+      ai: model != null ? model.category : "",
+      description: response.data.hits.hits[i]._source.description,
+    };
+    _data.push(await result);
   }
   return _data;
 }

@@ -75,7 +75,6 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     // }
 
     // console.log(notification_text);
-
     io.emit("get alert", notification);
 
     return res.status(201).json({

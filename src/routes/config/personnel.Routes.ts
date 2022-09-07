@@ -33,7 +33,6 @@ router.post(
         personnel_code,
         section_id,
         camera_whitelist,
-        image_id,
         is_active,
         is_employee,
         is_dismissed,
@@ -51,8 +50,7 @@ router.post(
         !camera_whitelist ||
         !is_active ||
         !is_employee ||
-        !is_dismissed ||
-        !image_id
+        !is_dismissed 
       ) {
         req.flash("error", "Please fill all fields");
         return next(new ApiError(400, "Please fill all fields"));
@@ -88,7 +86,6 @@ router.post(
         personnel_code,
         section_id,
         camera_whitelist,
-        image_id,
         is_active,
         is_employee,
         is_dismissed,

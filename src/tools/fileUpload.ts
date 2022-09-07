@@ -11,6 +11,7 @@ import { ApiError } from "../error/error.handler";
 export interface IFileInRedis {
   id: string;
   full_frame: string;
+  personnel_id: string;
   face: string;
   embedding: string | number[] | null;
   has_face: number;
@@ -25,53 +26,44 @@ type resultType = {
 export let location: string;
 export let fileName: string;
 
-export async function uploadAvatar(
-  req: Request,
-  res: Response,
-  personnel_code: string,
-  next: NextFunction
-) {
+export async function uploadAvatar(image_str: string, personnel_code: string) {
   try {
-    //get file from request and change format  to json
-    let reqFile = JSON.parse(JSON.stringify(req.files));
-    //check file is small than 10MB
-    if (Number(reqFile.file.size) > 12419) {
-      req.flash("error", "File size is too large");
-      return next(new ApiError(400, "File size is too large"));
-    }
     //move file to buffer
-    let image = Buffer.from(reqFile.file.data, "base64");
+    let image = Buffer.from(image_str, "base64");
     //get path for save file
     let _path = path.join(__dirname, "./../..");
     var dir = _path + "/assets/image";
+
+    var dirPersonnelAvatar = _path + "/assets/image/" + personnel_code;
+
     //if path not exist, create path
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir);
     }
-    var dirPersonnelAvatar = _path + "/assets/image/" + personnel_code;
+    //define path for save image
     if (!fs.existsSync(dirPersonnelAvatar)) {
       fs.mkdirSync(dirPersonnelAvatar);
     }
 
     //write image in path
-    //upload image to server
-    await fs.writeFile(dirPersonnelAvatar + "/avatar.png", image, (err) => {
+    await fs.writeFile(dirPersonnelAvatar + "avatar.jpeg", image, (err) => {
       if (err) {
-        return next(new ApiError(500, "internal server error" + err.message));
+        return null;
       }
     });
+
     const result: resultType = {
-      name: "avatar.png",
-      path: dirPersonnelAvatar + personnel_code + ".png",
+      name: "avatar.jpeg",
+      path: dirPersonnelAvatar + personnel_code + ".jpeg",
     };
     return result;
   } catch (e: any) {
-    return next(new ApiError(500, "internal server error" + e.message));
+    return null;
   }
 }
 
 //set file in redis
-export async function setFileInRedis(fileBase64: string, Personnel_id: string) {
+export async function setFileInRedis(fileBase64: string, id: string, Personnel_id: string) {
   try {
     //connet to redis if not connected
     if (!redisClient.isOpen) {
@@ -79,7 +71,8 @@ export async function setFileInRedis(fileBase64: string, Personnel_id: string) {
     }
     //define object for save in redis
     let fileInRedis: IFileInRedis = {
-      id: Personnel_id,
+      id: id,
+      personnel_id: Personnel_id,
       full_frame: fileBase64,
       face: "",
       embedding: "",
@@ -119,14 +112,14 @@ export async function getImageFromRedis(id: string) {
 }
 
 //delete jason image in redis
-export async function deleteImageInRedis(Personnel_id: string) {
+export async function deleteImageInRedis(id: string) {
   try {
     //connet to redis if not connected
     if (!redisClient.isOpen) {
       await redisClient.connect();
     }
     //delete file from redis
-    let result = await redisClient.del(Personnel_id);
+    let result = await redisClient.del(id);
     //close redis connection
     redisClient.disconnect();
     //return file

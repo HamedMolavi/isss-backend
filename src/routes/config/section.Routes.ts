@@ -38,7 +38,7 @@ router.post(
       }
 
       //query for save new section in DB
-      let section = await Section.findOne({ name: name }).exec();
+      let section = await Section.findOne({ department_id: department_id }).exec();
 
       //check if section exist
       if (section) {
@@ -172,6 +172,21 @@ router.patch(
       if(!token){
         return null;
       }
+      let _section1 , _section2 ;
+      if(sectionBody.department_id)
+      {
+        _section1 = await Section.findOne({ department_id: sectionBody.department_id }).exec();
+      }
+      if(sectionBody.name)
+      {
+        _section2 = await Section.findOne({ department_id: sectionBody.name }).exec();
+      }
+
+      if(_section1 && _section2){
+        req.flash("error", "Section and department_id not defrrent");
+        return next(new ApiError(400,  "Section and department_id not defrrent"));
+      }
+
       //query for get section by id from DB
       let section = await Section.findByIdAndUpdate(id, sectionBody, {
         new: true,

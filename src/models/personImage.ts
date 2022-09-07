@@ -5,18 +5,22 @@ export interface IPersonImage extends Document {
     _id: Schema.Types.ObjectId;
     person_id: Schema.Types.ObjectId;
     guid: string;
-    vector: Array<Number>;
+    vector: [Number];
 }
 
 //create Model person_image with schema for save in DB
 const PersonImageSchema: Schema<IPersonImage> = new Schema({
     person_id: { type: Schema.Types.ObjectId, ref: "Personnel" },
-    guid: { type: String, required: true },
-    vector: { type: [Number], required: true },
+    guid: { type: String, required: false },
+    // vector: { type: Schema.Types.Array, required: true },
+    vector: [Number]
 },{
     collection: "Person_Image"
 });
 
 // Compile Model from schema
-const Model = mongoose.model("Person_Image", PersonImageSchema);
-export default Model;
+const PersonImage = mongoose.model("Person_Image", PersonImageSchema);
+export default PersonImage;
+
+
+[{type: Number}]
