@@ -17,51 +17,43 @@ const redis_1 = __importDefault(require("./../db/redis"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const console_1 = __importDefault(require("console"));
-const error_handler_1 = require("../error/error.handler");
-function uploadAvatar(req, res, personnel_code, next) {
+function uploadAvatar(image_str, personnel_code) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            //get file from request and change format  to json
-            let reqFile = JSON.parse(JSON.stringify(req.files));
-            //check file is small than 10MB
-            if (Number(reqFile.file.size) > 12419) {
-                req.flash("error", "File size is too large");
-                return next(new error_handler_1.ApiError(400, "File size is too large"));
-            }
             //move file to buffer
-            let image = Buffer.from(reqFile.file.data, "base64");
+            let image = Buffer.from(image_str, "base64");
             //get path for save file
             let _path = path_1.default.join(__dirname, "./../..");
             var dir = _path + "/assets/image";
+            var dirPersonnelAvatar = _path + "/assets/image/" + personnel_code;
             //if path not exist, create path
             if (!fs_1.default.existsSync(dir)) {
                 fs_1.default.mkdirSync(dir);
             }
-            var dirPersonnelAvatar = _path + "/assets/image/" + personnel_code;
+            //define path for save image
             if (!fs_1.default.existsSync(dirPersonnelAvatar)) {
                 fs_1.default.mkdirSync(dirPersonnelAvatar);
             }
             //write image in path
-            //upload image to server
-            yield fs_1.default.writeFile(dirPersonnelAvatar + "/avatar.png", image, (err) => {
+            yield fs_1.default.writeFile(dirPersonnelAvatar + "avatar.jpeg", image, (err) => {
                 if (err) {
-                    return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
+                    return null;
                 }
             });
             const result = {
-                name: "avatar.png",
-                path: dirPersonnelAvatar + personnel_code + ".png",
+                name: "avatar.jpeg",
+                path: dirPersonnelAvatar + personnel_code + ".jpeg",
             };
             return result;
         }
         catch (e) {
-            return next(new error_handler_1.ApiError(500, "internal server error" + e.message));
+            return null;
         }
     });
 }
 exports.uploadAvatar = uploadAvatar;
 //set file in redis
-function setFileInRedis(fileBase64, Personnel_id) {
+function setFileInRedis(fileBase64, id, Personnel_id) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //connet to redis if not connected
@@ -70,7 +62,8 @@ function setFileInRedis(fileBase64, Personnel_id) {
             }
             //define object for save in redis
             let fileInRedis = {
-                id: Personnel_id,
+                id: id,
+                personnel_id: Personnel_id,
                 full_frame: fileBase64,
                 face: "",
                 embedding: "",
@@ -114,7 +107,7 @@ function getImageFromRedis(id) {
 }
 exports.getImageFromRedis = getImageFromRedis;
 //delete jason image in redis
-function deleteImageInRedis(Personnel_id) {
+function deleteImageInRedis(id) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //connet to redis if not connected
@@ -122,7 +115,7 @@ function deleteImageInRedis(Personnel_id) {
                 yield redis_1.default.connect();
             }
             //delete file from redis
-            let result = yield redis_1.default.del(Personnel_id);
+            let result = yield redis_1.default.del(id);
             //close redis connection
             redis_1.default.disconnect();
             //return file

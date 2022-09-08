@@ -22,6 +22,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -66,16 +75,37 @@ UserSchema.pre("save", function (done) {
         });
     });
 });
-//check password
-UserSchema.methods.checkPassword = function (guess, done) {
-    bcrypt_1.default.compare(guess, this.password, function (err, isMatch) {
-        //done(err, isMatch);
-        if (err) {
+//compare password
+UserSchema.methods.checkPassword = function (password, done) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            let user = this;
+            let isMatch = yield bcrypt_1.default.compare(password + user.username, user.password);
+            return done(null, isMatch);
+        }
+        catch (err) {
             return done(err);
         }
-        return isMatch;
     });
 };
+// //check password
+// UserSchema.methods.checkPassword = async function (
+//   guess: string,
+//   done: Function
+// ) {
+//   let result = await bcrypt
+//     .compare(guess, this.password)
+//     .then((valid) => {
+//       if (!valid) {
+//         return done(new ApiError(400, "Invalid password"));
+//       }
+//       return true;
+//     })
+//     .catch((error) => {
+//       done(error);
+//     });
+//   return result;
+// };
 //get secrect key jwt token
 const secret = process.env["JWT_SECRET"];
 //generate jwt token

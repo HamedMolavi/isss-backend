@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.toEnglishPLate = void 0;
 let toPersianPlate = {
     "U": "ع",
     "X": "ط",
@@ -22,5 +23,28 @@ let toPersianPlate = {
     "D": "د",
     "K": "ک",
     "C": "ویلچر",
+};
+exports.toEnglishPLate = {
+    "ع": "U",
+    "ط": "X",
+    "ص": "W",
+    "س": "S",
+    "ی": "Y",
+    "الف": "A",
+    "ه": "H",
+    "ج": "J",
+    "ق": "G",
+    "م": "M",
+    "ب": "B",
+    "و": "V",
+    "ن": "N",
+    "ل": "L",
+    "ش": "O",
+    "پ": "P",
+    "ث": "E",
+    "ت": "T",
+    "د": "D",
+    "ک": "K",
+    "ویلچر": "C"
 };
 exports.default = toPersianPlate;

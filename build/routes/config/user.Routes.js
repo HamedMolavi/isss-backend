@@ -13,10 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const error_handler_1 = require("../../../error/error.handler");
-const user_1 = __importDefault(require("../../../models/user"));
-const authentication_1 = require("../../../tools/authentication");
-const verifyPasswordRegex_1 = require("../../../tools/verifyPasswordRegex");
+const error_handler_1 = require("../../error/error.handler");
+const user_1 = __importDefault(require("../../models/user"));
+const authentication_1 = require("../../tools/authentication");
+const verifyPasswordRegex_1 = require("../../tools/verifyPasswordRegex");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to server
@@ -151,7 +151,6 @@ router.get("/:id", function (req, res, next) {
             if (!token) {
                 return null;
             }
-            ;
             //query for get user by id from DB
             let user = yield user_1.default.findById(id).exec();
             //send not found if user not found
@@ -257,22 +256,24 @@ router.post("/login", function (req, res, next) {
                 });
             }
             //  get user from DB
-            let user = yield user_1.default.findOne({ username: username }).exec((err, user) => {
+            let user = yield user_1.default.findOne({ username: username }).exec();
+            if (!user) {
+                return next(new error_handler_1.ApiError(404, "User not found"));
+            }
+            //check password
+            let isMatch = yield user.checkPassword(password, (err, isMatch) => {
                 if (err) {
                     return next(new error_handler_1.ApiError(500, "internal server error , " + err.message));
                 }
-                if (!user) {
-                    return next(new error_handler_1.ApiError(404, "User not found"));
-                }
-                //verify password
-                if (user.checkPassword(password)) {
-                    return next(new error_handler_1.ApiError(401, "Password incorrect"));
-                }
-                //send response
-                return res.status(200).json({
-                    success: true,
-                    data: user.toAuthJSON(),
-                });
+                return isMatch;
+            });
+            if (!isMatch) {
+                return next(new error_handler_1.ApiError(401, "Password is incorrect"));
+            }
+            //send response
+            return res.status(200).json({
+                success: true,
+                data: user.toAuthJSON(),
             });
         }
         catch (err) {

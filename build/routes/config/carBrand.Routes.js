@@ -13,9 +13,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const error_handler_1 = require("../../../error/error.handler");
-const carColor_1 = __importDefault(require("./../../../models/carColor"));
-const authentication_1 = require("./../../../tools/authentication");
+const error_handler_1 = require("../../error/error.handler");
+const carBrand_1 = __importDefault(require("./../../models/carBrand"));
+const authentication_1 = require("./../../tools/authentication");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to server file 
@@ -27,7 +27,7 @@ router.use(function (req, res, next) {
     res.locals.infos = req.flash("info");
     next();
 });
-//add route for register new car_color
+//add route for register new car_brand
 router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -35,31 +35,31 @@ router.post("", function (req, res, next) {
             const { name } = req.body;
             //verify body request
             if (!name) {
-                req.flash("error", "Car Color name is required");
-                return next(new error_handler_1.ApiError(400, "Bad request car color name is required"));
+                req.flash("error", "Car brand is required");
+                return next(new error_handler_1.ApiError(400, "Bad request car brand is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
             if (!token) {
                 return null;
             }
-            //query for save new car_color in DB
-            let carColor = yield carColor_1.default.findOne({ name: name }).exec();
-            //retrun error if car_color already exists
-            if (carColor) {
-                req.flash("error", "Car Color already exists");
-                return next(new error_handler_1.ApiError(400, "Car Color already exists"));
+            //query for save new car_brand in DB
+            let carBrand = yield carBrand_1.default.findOne({ name: name }).exec();
+            //retrun error if car_brand already exists
+            if (carBrand) {
+                req.flash("error", "Car Brand already exists");
+                return next(new error_handler_1.ApiError(400, "Car Brand already exists"));
             }
-            //fill new car_color
-            let newCarColor = new carColor_1.default({
+            //fill new car_brand
+            let newCarBrand = new carBrand_1.default({
                 name: name
             });
-            //query for save new car_color in DB
-            yield newCarColor.save();
-            req.flash("info", "Car Color added");
+            //query for save new car_brand in DB
+            yield newCarBrand.save();
+            req.flash("info", "Car Brand added");
             return res.status(201).json({
                 success: true,
-                data: newCarColor
+                data: newCarBrand
             });
         }
         catch (err) {
@@ -67,7 +67,7 @@ router.post("", function (req, res, next) {
         }
     });
 });
-//route for get car_color list  
+//route for get car list  
 router.get("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -83,29 +83,29 @@ router.get("", function (req, res, next) {
             if (!token) {
                 return null;
             }
-            //query for get car_color list
-            let carColors = [];
+            //query for get car_barnd list
+            let carBrands = [];
             if (!(search && search.length > 0)) {
-                carColors = yield carColor_1.default.find({
+                carBrands = yield carBrand_1.default.find({
                     name: { $regex: search, $options: "i" }
                 }).limit(perPage).skip(perPage * (page - 1)).exec();
             }
             else {
-                carColors = yield carColor_1.default.find().limit(perPage).skip(perPage * (page - 1)).exec();
+                carBrands = yield carBrand_1.default.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
             }
-            //return response not found to client if not found car_colors
-            if (!carColors) {
-                req.flash("error", "Car Color not found");
-                return next(new error_handler_1.ApiError(404, "Car Color not found"));
+            //return response not found to client if not found car_brand
+            if (!carBrands) {
+                req.flash("error", "Car Brands not found");
+                return next(new error_handler_1.ApiError(404, "Car Brands not found"));
             }
-            //return response to client with car_color list
+            //return response to client with car_brand list
             return res.status(200).json({
                 success: true,
-                data: carColors,
+                data: carBrands,
                 page: page,
                 perPage: perPage,
-                total: yield carColor_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield carColor_1.default.countDocuments().exec()) / perPage)
+                total: yield carBrand_1.default.countDocuments().exec(),
+                pages: Math.ceil((yield carBrand_1.default.countDocuments().exec()) / perPage)
             });
         }
         catch (err) {
@@ -113,32 +113,32 @@ router.get("", function (req, res, next) {
         }
     });
 });
-//route for get car_color by id from DB 
+//route for get car_brand by id from DB 
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get id from url
             let id = req.params.id;
             if (!id) {
-                req.flash("error", "Car Color id is required");
-                return next(new error_handler_1.ApiError(400, "Bad request car color id is required"));
+                req.flash("error", "Car Brand id is required");
+                return next(new error_handler_1.ApiError(400, "Bad request car brand id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
             if (!token) {
                 return null;
             }
-            //query for get car_color by id from DB
-            let carColor = yield carColor_1.default.findById(id).exec();
-            //return response not found to client if not found car_color
-            if (!carColor) {
-                req.flash("error", "Car Color not found");
-                return next(new error_handler_1.ApiError(404, "Car Color not found"));
+            //query for get car_brand by id from DB
+            let carBrand = yield carBrand_1.default.findById(id).exec();
+            //return response not found to client if not found car_brand
+            if (!carBrand) {
+                req.flash("error", "Car Brand not found");
+                return next(new error_handler_1.ApiError(404, "Car Brand not found"));
             }
-            //return response to client with car_color
+            //return response to client with car
             return res.status(200).json({
                 success: true,
-                data: carColor
+                data: carBrand
             });
         }
         catch (err) {
@@ -146,32 +146,32 @@ router.get("/:id", function (req, res, next) {
         }
     });
 });
-//add route for delete car_color by id from DB
+//add route for delete car_brand by id from DB
 router.delete("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get id from url
             let id = req.params.id;
             if (!id) {
-                req.flash("error", "Car Color id is required");
-                return next(new error_handler_1.ApiError(400, "Bad request car color id is required"));
+                req.flash("error", "Car Brand id is required");
+                return next(new error_handler_1.ApiError(400, "Bad request car brand id is required"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
             if (!token) {
                 return null;
             }
-            //query for get car_color by id from DB
-            let carColor = yield carColor_1.default.findByIdAndDelete(id).exec();
-            //return response not found to client if not found car_color
-            if (!carColor) {
-                req.flash("error", "Car Color not found");
-                return next(new error_handler_1.ApiError(404, "Car Color not found"));
+            //query for get car_brand by id from DB
+            let carBrand = yield carBrand_1.default.findByIdAndDelete(id).exec();
+            //return response not found to client if not found car_brand
+            if (!carBrand) {
+                req.flash("error", "Car Brand not found");
+                return next(new error_handler_1.ApiError(404, "Car Brand not found"));
             }
-            //return response to client with car_color
+            //return response to client with car_brand
             return res.status(201).json({
                 success: true,
-                data: carColor
+                data: carBrand
             });
         }
         catch (err) {
