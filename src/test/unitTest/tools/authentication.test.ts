@@ -30,6 +30,6 @@ describe('Authentication', function () {
             expect(result).to.have.property('exp');
             expect(result).to.have.property('iat');
             done();
-        }).timeout(10000);//timeout for test
+        });//timeout for test
     });
 });

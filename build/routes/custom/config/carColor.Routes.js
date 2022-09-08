@@ -16,6 +16,8 @@ const express_1 = require("express");
 const error_handler_1 = require("../../../error/error.handler");
 const carColor_1 = __importDefault(require("./../../../models/carColor"));
 const authentication_1 = require("./../../../tools/authentication");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to server file 
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -37,7 +39,10 @@ router.post("", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Bad request car color name is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for save new car_color in DB
             let carColor = yield carColor_1.default.findOne({ name: name }).exec();
             //retrun error if car_color already exists
@@ -74,7 +79,10 @@ router.get("", function (req, res, next) {
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             let search = req.query.search || "";
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get car_color list
             let carColors = [];
             if (!(search && search.length > 0)) {
@@ -116,7 +124,10 @@ router.get("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Bad request car color id is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get car_color by id from DB
             let carColor = yield carColor_1.default.findById(id).exec();
             //return response not found to client if not found car_color
@@ -146,7 +157,10 @@ router.delete("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Bad request car color id is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get car_color by id from DB
             let carColor = yield carColor_1.default.findByIdAndDelete(id).exec();
             //return response not found to client if not found car_color

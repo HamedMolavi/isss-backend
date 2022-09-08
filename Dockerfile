@@ -7,7 +7,7 @@ WORKDIR /isss-backend
 COPY assets ./assets ./
 COPY tsconfig.json ./
 COPY package.json ./
-COPY src ./src
+COPY src ./src 
 
 RUN npm install
 # RUN npm run build

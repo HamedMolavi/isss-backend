@@ -14,8 +14,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const error_handler_1 = require("../../../error/error.handler");
-const departement_1 = __importDefault(require("./../../../models/departement"));
+const department_1 = __importDefault(require("../../../models/department"));
 const authentication_1 = require("./../../../tools/authentication");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to server file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -37,17 +39,20 @@ router.post("", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Departement name is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
-            let newDepartement = new departement_1.default();
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
+            let newDepartement = new department_1.default();
             //query for save new departement in DB
-            let departement = yield departement_1.default.findOne({ name: name }).exec();
+            let departement = yield department_1.default.findOne({ name: name }).exec();
             //retrun error if departement already exists
             if (departement) {
                 req.flash("error", "Departement already exists");
                 return next(new error_handler_1.ApiError(400, "Departement already exists"));
             }
             //fill new departement
-            newDepartement = new departement_1.default({
+            newDepartement = new department_1.default({
                 name: name,
                 created_date: created_date,
             });
@@ -76,11 +81,14 @@ router.get("", function (req, res, next) {
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             let search = req.query.search || "";
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get departements list
             let departements = [];
             if (!(search && search.length > 0)) {
-                departements = yield departement_1.default.find({
+                departements = yield department_1.default.find({
                     name: { $regex: search, $options: "i" },
                 })
                     .limit(perPage)
@@ -88,7 +96,7 @@ router.get("", function (req, res, next) {
                     .exec();
             }
             else {
-                departements = yield departement_1.default.find({})
+                departements = yield department_1.default.find({})
                     .limit(perPage)
                     .skip(perPage * (page - 1))
                     .exec();
@@ -104,8 +112,8 @@ router.get("", function (req, res, next) {
                 data: departements,
                 page: page,
                 perPage: perPage,
-                total: yield departement_1.default.countDocuments().exec(),
-                pages: Math.ceil((yield departement_1.default.countDocuments().exec()) / perPage),
+                total: yield department_1.default.countDocuments().exec(),
+                pages: Math.ceil((yield department_1.default.countDocuments().exec()) / perPage),
             });
         }
         catch (err) {
@@ -124,9 +132,12 @@ router.get("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Departement id is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get departement by id from DB
-            let departement = yield departement_1.default.findById(id).exec();
+            let departement = yield department_1.default.findById(id).exec();
             //return response not found to client if not found departement
             if (!departement) {
                 req.flash("error", "Departement not found");
@@ -156,9 +167,12 @@ router.patch("/:id", function (req, res, next) {
             }
             const departementBody = req.body;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get camera by id from DB and update
-            let departement = yield departement_1.default.findByIdAndUpdate(id, departementBody, { new: true }).exec();
+            let departement = yield department_1.default.findByIdAndUpdate(id, departementBody, { new: true }).exec();
             //return response not found to client if not found departement
             if (!departement) {
                 req.flash("error", "Departement not found");
@@ -186,9 +200,12 @@ router.delete("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Departement id is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get departement by id from DB
-            let departement = yield departement_1.default.findByIdAndDelete(id).exec();
+            let departement = yield department_1.default.findByIdAndDelete(id).exec();
             //return response not found to client if not found departement
             if (!departement) {
                 req.flash("error", "Departement not found");

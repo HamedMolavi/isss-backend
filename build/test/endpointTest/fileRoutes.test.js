@@ -8,30 +8,31 @@ const chai_1 = require("chai");
 const supertest_1 = __importDefault(require("supertest"));
 const token = process.env.sample_token;
 let _file;
-describe('test upload , dowloand , get list Image', function () {
+describe("test upload , dowloand , get list Image", function () {
     // beforeEach(function (done) {
     //     //done();
     // });
     //test route for upload image
-    it('should send back a JSON object with file name and location and message', function (done) {
+    it("should send back a JSON object with file name and location and message", function (done) {
         (0, supertest_1.default)(server_1.default)
-            .post('/api/v1/files/upload')
-            .set('Content-Type', 'multipart/form-data')
-            .set('Authorization', `Bearer ${token}`)
-            .attach('file', './assets/sample/test.jpg')
+            .post("/api/v1/files/upload/123456789")
+            .set("Content-Type", "multipart/form-data")
+            .set("Authorization", `Bearer ${token}`)
+            .attach("file", "./assets/sample/test.jpg")
             .then(function (res) {
             let response = res.body;
-            (0, chai_1.expect)(res.status).to.equal(200);
-            (0, chai_1.expect)(response).to.have.property('name');
-            (0, chai_1.expect)(response).to.have.property('location');
-            (0, chai_1.expect)(response).to.have.property('message');
-            done();
+            (0, chai_1.expect)(response.status).to.equal(200);
+            (0, chai_1.expect)(response.success).to.equal(true);
+            (0, chai_1.expect)(response.data).to.have.property("avatar.png");
+            (0, chai_1.expect)(response.data).to.have.property("/home/sasan/Desktop/isss-backend/assets/image/123456789123456789.png");
+            (0, chai_1.expect)(response.data).to.have.property("message");
         });
+        done();
     });
-    //test route for download image
+    // //test route for download image
     it('should send back a image picture', function (done) {
         (0, supertest_1.default)(server_1.default)
-            .get('/api/v1/files/download/test.jpg')
+            .get('/api/v1/files/download/123456789')
             .set('Content-Type', 'multipart/form-data')
             .set('Authorization', `Bearer ${token}`)
             .then(function (res) {
@@ -39,7 +40,7 @@ describe('test upload , dowloand , get list Image', function () {
             done();
         });
     });
-    //test route for get list image
+    // //test route for get list image
     it('should send back a jason with url and name image', function (done) {
         (0, supertest_1.default)(server_1.default)
             .get('/api/v1/files/list')
@@ -51,43 +52,31 @@ describe('test upload , dowloand , get list Image', function () {
             }
             let userResponse = res.body[0];
             (0, chai_1.expect)(userResponse).to.have.property('name');
-            (0, chai_1.expect)(userResponse).to.have.property('url');
+            (0, chai_1.expect)(userResponse).to.have.property('path');
+            (0, chai_1.expect)(userResponse).to.have.property('size');
             // Done
             done();
         });
     });
-    //test route for upload image in redis
-    it('should send back a JSON object with message Uploaded the file successfully in redis', function (done) {
-        (0, supertest_1.default)(server_1.default)
-            .post('/api/v1/files/redis?id=123456789')
-            .set('Content-Type', 'multipart/form-data')
-            .set('Authorization', `Bearer ${token}`)
-            .attach('file', './assets/sample/test.jpg')
-            .then(function (res) {
-            let response = res.body.message;
-            (0, chai_1.expect)(res.status).to.equal(201);
-            (0, chai_1.expect)(response).to.equal("Uploaded the file successfully");
-            done();
-        });
-    });
-    // //test route for verify image in redis
-    it('should send back a JSON object with message Verified the file successfully in redis', function (done) {
-        (0, supertest_1.default)(server_1.default)
-            .post('/api/v1/files/verify')
-            .set('Content-Type', 'application/json')
-            .send({
-            id: "4f3b1d2b5b8c0855c0cbc41be51e4cd0"
-        })
-            .expect('Content-Type', /json/)
-            .expect(406, function (err, res) {
-            if (err) {
-                return done(err);
-            }
-            let response = res.body;
-            (0, chai_1.expect)(res.status).to.equal(406);
-            (0, chai_1.expect)(response).to.have.property('message');
-            // Done
-            done();
-        });
-    });
+    // // //test route for upload image in redis
+    // it('should send back a JSON object with message Uploaded the file successfully in redis', function (done) {
+    //     request(app)
+    //         .post('/api/v1/files/redis?id=123456789')
+    //         .set('Content-Type', 'multipart/form-data')
+    //         .set('Authorization', `Bearer ${token}`)
+    //         .attach('file', './assets/sample/test.jpg')
+    //         .then(function (res) {
+    //             let response = res.body.message;
+    //             expect(res.status).to.equal(201);
+    //             expect(response).to.equal("Uploaded the file successfully");
+    //             done();
+    //         });
+    // });
+    // // //test route for verify image in redis
+    // it('should send back a JSON object with message Verified the file successfully in redis', function (done) {
+    //     request(app)
+    //         .post('/api/v1/files/verify')/api/v1/files/upload/123456789
+    //             done();
+    //         });
+    // });
 });

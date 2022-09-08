@@ -16,6 +16,8 @@ const express_1 = require("express");
 const error_handler_1 = require("../../../error/error.handler");
 const jobTitle_1 = __importDefault(require("./../../../models/jobTitle"));
 const authentication_1 = require("./../../../tools/authentication");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to server file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -37,7 +39,10 @@ router.post("", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Please enter a jobTitle"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for save new jobTitle in DB
             let jobTitle = yield jobTitle_1.default.findOne({ name: name }).exec();
             //check if jobTitle is exist
@@ -74,7 +79,10 @@ router.get("", function (req, res, next) {
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             let search = (_a = req.query.search) !== null && _a !== void 0 ? _a : "";
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get jobTitle from DB
             let jobTitles = [];
             if (search && search.length > 0) {
@@ -122,7 +130,10 @@ router.get("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "JobTitle id is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get jobTitle by id from DB
             let jobTitle = yield jobTitle_1.default.findById(id).exec();
             //return response not found to client if not found jobTitle
@@ -154,7 +165,10 @@ router.patch("/:id", function (req, res, next) {
             //get body from request
             const jobTitleBody = req.body;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get jobTitle by id from DB
             let jobTitle = yield jobTitle_1.default.findByIdAndUpdate(id, jobTitleBody, {
                 new: true,
@@ -185,7 +199,10 @@ router.delete("/:id", function (req, res, next) {
                 return next({ status: 400, message: "Bad request" });
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get jobTitle by id from DB
             let jobTitle = yield jobTitle_1.default.findByIdAndDelete(id).exec();
             //return response not found to client if not found jobTitle

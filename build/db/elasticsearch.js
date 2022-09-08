@@ -18,7 +18,7 @@ const error_handler_1 = require("../error/error.handler");
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"];
 //send request to elastic search and get data
-function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage, next) {
+function requestToElasticSearch(cameras, search, timeStart, timeEnd, model, page, perPage, next) {
     return __awaiter(this, void 0, void 0, function* () {
         //create json response for client
         try {
@@ -37,8 +37,8 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
                             'bool': {
                                 'filter': [
                                     {
-                                        'term': {
-                                            'camera_id': search
+                                        'terms': {
+                                            'camera_id': cameras
                                         }
                                     },
                                     {
@@ -89,7 +89,7 @@ function requestToElasticSearch(search, timeStart, timeEnd, model, page, perPage
     });
 }
 exports.requestToElasticSearch = requestToElasticSearch;
-function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, next, searchName) {
+function requestToElasticSearchEvent(cameras, models, search, timeStart, timeEnd, page, perPage, next, searchName) {
     return __awaiter(this, void 0, void 0, function* () {
         //create json response for client
         try {
@@ -98,8 +98,6 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                 //get data from elastic
                 //format search to elastic search
                 if (searchName === "all") {
-                    let model = search.split(" ")[0];
-                    let camera_id = search.split(" ")[1];
                     response = yield axios_1.default.get(dbUri + "/alerts/_search", {
                         headers: {
                             "Content-Type": "application/json",
@@ -112,12 +110,12 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                                     'filter': [
                                         {
                                             'term': {
-                                                "alerts.labels.camera_id": camera_id,
+                                                "alerts.labels.camera_id": cameras
                                             },
                                         },
                                         {
                                             'term': {
-                                                "alerts.labels.module": model,
+                                                "alerts.labels.module": models,
                                             },
                                         },
                                         {
@@ -151,7 +149,7 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                             'size': perPage,
                             'query': {
                                 'match': {
-                                    "alerts.labels.camera_id": search,
+                                    "alerts.labels.camera_id": cameras,
                                 },
                             },
                             'sort': [
@@ -213,8 +211,8 @@ function requestToElasticSearchEvent(search, timeStart, timeEnd, page, perPage, 
                                 'bool': {
                                     'filter': [
                                         {
-                                            'term': {
-                                                "alerts.labels.module": search,
+                                            'terms': {
+                                                "alerts.labels.module": models,
                                             },
                                         },
                                     ],

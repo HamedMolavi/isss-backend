@@ -35,6 +35,6 @@ describe('Authentication', function () {
             (0, chai_1.expect)(result).to.have.property('exp');
             (0, chai_1.expect)(result).to.have.property('iat');
             done();
-        }).timeout(10000); //timeout for test
+        }); //timeout for test
     });
 });

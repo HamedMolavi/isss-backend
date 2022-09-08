@@ -25,7 +25,6 @@ function reverseString(str: string) {
   var joinArray = reverseArray.join("-"); // var joinArray = ["o", "l", "l", "e", "h"].join("");
   // "olleh"
   //Step 4. Return the reversed string
-  console.log(joinArray);
   return joinArray; // "olleh"
 }
 

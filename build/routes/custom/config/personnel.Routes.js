@@ -16,6 +16,8 @@ const express_1 = require("express");
 const error_handler_1 = require("../../../error/error.handler");
 const personnel_1 = __importDefault(require("./../../../models/personnel"));
 const authentication_1 = require("./../../../tools/authentication");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to routes file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -30,7 +32,7 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, } = req.body;
+            const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, image_id, is_active, is_employee, is_dismissed, } = req.body;
             //verify body request
             if (!first_name ||
                 !last_name ||
@@ -43,12 +45,16 @@ router.post("", function (req, res, next) {
                 !camera_whitelist ||
                 !is_active ||
                 !is_employee ||
-                !is_dismissed) {
+                !is_dismissed ||
+                !image_id) {
                 req.flash("error", "Please fill all fields");
                 return next(new error_handler_1.ApiError(400, "Please fill all fields"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for save new personnel in DB
             let personnel = yield personnel_1.default.findOne({
                 $or: [
@@ -72,6 +78,7 @@ router.post("", function (req, res, next) {
                 personnel_code,
                 section_id,
                 camera_whitelist,
+                image_id,
                 is_active,
                 is_employee,
                 is_dismissed,
@@ -82,7 +89,7 @@ router.post("", function (req, res, next) {
             //send response
             res.status(201).json({
                 success: true,
-                data: personnel,
+                data: personnel.toJSON(),
             });
         }
         catch (err) {
@@ -102,7 +109,13 @@ router.get("", function (req, res, next) {
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             let search = req.query.search || "";
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
+            if (!token) {
+                return null;
+            }
             //query for get user by personnels from DB
             let personnels = [];
             if (!(search && search.length > 0)) {
@@ -127,7 +140,7 @@ router.get("", function (req, res, next) {
             //send response
             return res.status(200).json({
                 success: true,
-                data: personnels,
+                data: personnels.map((personnel) => { return personnel.toJSON(); }),
                 page: page,
                 perPage: perPage,
                 total: yield personnel_1.default.countDocuments().exec(),
@@ -150,7 +163,10 @@ router.get("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Please enter id"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get personnel by id from DB
             let personnel = yield personnel_1.default.findById(id).exec();
             //send not found if personnel not found
@@ -161,7 +177,7 @@ router.get("/:id", function (req, res, next) {
             //send response
             return res.status(200).json({
                 success: true,
-                data: personnel,
+                data: personnel.toJSON(),
             });
         }
         catch (err) {
@@ -181,7 +197,10 @@ router.patch("/:id", function (req, res, next) {
             }
             const personnelBody = req.body;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get personnel by id from DB
             let personnel = yield personnel_1.default.findByIdAndUpdate(id, personnelBody, {
                 new: true,
@@ -194,7 +213,7 @@ router.patch("/:id", function (req, res, next) {
             //send response
             return res.status(201).json({
                 success: true,
-                data: personnel,
+                data: personnel.toJSON(),
             });
         }
         catch (err) {
@@ -213,7 +232,10 @@ router.delete("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Please enter id"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get personnel by id from DB
             let personnel = yield personnel_1.default.findByIdAndDelete(id).exec();
             //send not found if personnel not found
@@ -224,7 +246,7 @@ router.delete("/:id", function (req, res, next) {
             //send response
             return res.status(201).json({
                 success: true,
-                data: personnel,
+                data: personnel.toJSON(),
             });
         }
         catch (err) {

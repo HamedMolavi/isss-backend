@@ -16,6 +16,6 @@ const ModelToCameraSchema: Schema<IModelToCamera> = new Schema({
 });
 
 // Compile Model from schema
-const Model = mongoose.model("ModelToCamera", ModelToCameraSchema);
+const ModelToCamera = mongoose.model("ModelToCamera", ModelToCameraSchema);
 
-export default Model;
+export default ModelToCamera;

@@ -10,6 +10,7 @@ export interface ISchedule extends Document {
 }
 //define config type
 interface IConfig {
+    timeDuplicationDiagnoses : number;
     threshold: number;
     min_people: number;
     max_people: number;
@@ -29,4 +30,5 @@ const ScheduleSchema: Schema<ISchedule> = new Schema({
 
 // Compile model from schema
 const Schedule = mongoose.model("Schedule", ScheduleSchema);
+
 export default Schedule;

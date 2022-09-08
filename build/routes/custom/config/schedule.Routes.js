@@ -18,6 +18,8 @@ const authentication_1 = require("./../../../tools/authentication");
 const convertTime_1 = require("./../../../tools/convertTime");
 const modelToCamera_1 = __importDefault(require("./../../../models/modelToCamera"));
 const error_handler_1 = require("../../../error/error.handler");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to server file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -45,7 +47,10 @@ router.post("", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Please fill all fields"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //check for valid time
             if (!(0, convertTime_1.compareTime)(start, stop)) {
                 req.flash("error", "Invalid time");
@@ -119,7 +124,10 @@ router.get("", function (req, res, next) {
             let strPerPage = req.query.PerPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get schedule from DB
             let schedules = yield schedule_1.default.find({})
                 .limit(perPage)
@@ -153,7 +161,10 @@ router.get("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Schedule id is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get schedule by id from DB
             let schedule = yield schedule_1.default.findById(id).exec();
             //return response not found to client if not found schedule
@@ -183,7 +194,10 @@ router.patch("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "schedule id is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //get body from request
             const scheduleBody = req.body;
             if (!scheduleBody.start && !scheduleBody.stop && scheduleBody.dayOfWeek) {
@@ -241,7 +255,10 @@ router.delete("/:id", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "schedule id is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get schedule by id from DB
             let schedule = yield schedule_1.default.findByIdAndDelete(id).exec();
             //return response not found to client if not found schedule

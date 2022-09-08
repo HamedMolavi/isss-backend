@@ -15,6 +15,8 @@ const createlogReport_1 = require("../../../tools/createlogReport");
 const elasticsearch_1 = require("../../../db/elasticsearch");
 const convertTime_1 = require("../../../tools/convertTime");
 const error_handler_1 = require("../../../error/error.handler");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to routes file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -33,7 +35,10 @@ router.post("", function (req, res, next) {
             //get model from url request
             //let model = req.params.model;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //get page from url
             let strPage = req.query.page;
             let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -48,9 +53,13 @@ router.post("", function (req, res, next) {
             let searchName = req.query.name || "";
             let timeEpokhStart = "";
             let timeEpokhEnd = "";
+            let _cameras = [];
+            let _models = [];
             if (search) {
                 //get body from request
-                const { time_start, time_end, date_start, date_end } = req.body;
+                const { time_start, time_end, date_start, date_end, cameras, models } = req.body;
+                _models = models !== null && models !== void 0 ? models : [];
+                _cameras = cameras !== null && cameras !== void 0 ? cameras : [];
                 if (time_start && time_end && date_start && date_end) {
                     //convet time to timeStamp
                     timeEpokhStart = (0, convertTime_1.date2Epokh)(date_start, time_start);
@@ -59,7 +68,7 @@ router.post("", function (req, res, next) {
             }
             let _data = [];
             //get event data from elastic search
-            response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(search, timeEpokhStart, timeEpokhEnd, page, perPage, next, searchName);
+            response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(_cameras, _models, search, timeEpokhStart, timeEpokhEnd, page, perPage, next, searchName);
             if (!response) {
                 req.flash("error", "Data is null or undefined");
                 return next(new error_handler_1.ApiError(404, "Data is null or undefined"));

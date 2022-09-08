@@ -1,114 +1,131 @@
-import util from 'util';
-import multer from 'multer';
-import Guid from '../tools/createGuid'
-import redisClient from './../db/redis';
+import util from "util";
+import multer from "multer";
+import Guid from "../tools/createGuid";
+import redisClient from "./../db/redis";
+import { NextFunction, Request, Response } from "express";
+import path from "path";
+import fs from "fs";
+import console from "console";
+import { ApiError } from "../error/error.handler";
 
 export interface IFileInRedis {
-    id: string;
-    full_frame: string;
-    face: string;
-    embedding: string | number[] | null;
-    has_face: number;
-    timestamp: Date;
+  id: string;
+  full_frame: string;
+  personnel_id: string;
+  face: string;
+  embedding: string | number[] | null;
+  has_face: number;
+  timestamp: Date;
 }
+
+type resultType = {
+  name: string;
+  path: string;
+};
 
 export let location: string;
 export let fileName: string;
 
-//define limits for file size
-const maxSize = 10 * 1024 * 1024;
-//define file type
-let storage = multer.diskStorage({
-    //define destination for file
-    destination: (req, file, cb) => {
-        cb(null, __dirname + "/../../assets/uploads/");
-        location = __dirname + "/../../assets/uploads/";
-    },
-    //define file name
-    filename: (req, file, cb) => {
-        fileName = `${Guid.newGuid()}.jpg`;
-        cb(null, fileName);
-    },
-});
-//save file
-let uploadFile = multer({
-    storage: storage,
-    limits: { fileSize: maxSize },
-}).single("file");
-//add upload file to promise for convert to nonBlocking
-let uploadFileMiddleware = util.promisify(uploadFile);
+export async function uploadAvatar(image_str: string, personnel_code: string) {
+  try {
+    //move file to buffer
+    let image = Buffer.from(image_str, "base64");
+    //get path for save file
+    let _path = path.join(__dirname, "./../..");
+    var dir = _path + "/assets/image";
 
+    var dirPersonnelAvatar = _path + "/assets/image/" + personnel_code;
 
-//set file in redis 
-export async function setFileInRedis(fileBase64: string, Personnel_id: string) {
-    try {
-        //connet to redis if not connected
-        if (!redisClient.isOpen) {
-            await redisClient.connect();
-        }
-        //define object for save in redis
-        let fileInRedis: IFileInRedis = {
-            id: Personnel_id,
-            full_frame: fileBase64,
-            face: "",
-            embedding: "",
-            has_face: 0,
-            timestamp: new Date()
-        }
-
-        //insert to redis
-        await redisClient.set(fileInRedis.id, JSON.stringify(fileInRedis));
-        //close redis connection
-        redisClient.disconnect();
-        //return file id
-        return fileInRedis.id.toString();
-    } catch (error: any) {
-        console.log(error);
-        throw new Error(error);
+    //if path not exist, create path
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
     }
+    //define path for save image
+    if (!fs.existsSync(dirPersonnelAvatar)) {
+      fs.mkdirSync(dirPersonnelAvatar);
+    }
+
+    //write image in path
+    await fs.writeFile(dirPersonnelAvatar + "avatar.jpeg", image, (err) => {
+      if (err) {
+        return null;
+      }
+    });
+
+    const result: resultType = {
+      name: "avatar.jpeg",
+      path: dirPersonnelAvatar + personnel_code + ".jpeg",
+    };
+    return result;
+  } catch (e: any) {
+    return null;
+  }
+}
+
+//set file in redis
+export async function setFileInRedis(fileBase64: string, id: string, Personnel_id: string) {
+  try {
+    //connet to redis if not connected
+    if (!redisClient.isOpen) {
+      await redisClient.connect();
+    }
+    //define object for save in redis
+    let fileInRedis: IFileInRedis = {
+      id: id,
+      personnel_id: Personnel_id,
+      full_frame: fileBase64,
+      face: "",
+      embedding: "",
+      has_face: 0,
+      timestamp: new Date(),
+    };
+
+    //insert to redis
+    await redisClient.set(fileInRedis.id, JSON.stringify(fileInRedis));
+    //close redis connection
+    redisClient.disconnect();
+    //return file id
+    return fileInRedis.id.toString();
+  } catch (error: any) {
+    console.log(error);
+    throw new Error(error);
+  }
 }
 
 //get image verified from redis
 export async function getImageFromRedis(id: string) {
-    try {
-        //connet to redis if not connected
-        if (!redisClient.isOpen) {
-            await redisClient.connect();
-        }
-        const result = await redisClient.get(id) as any;
-        const replaced = result?.replaceAll("'", '"');
-        let fileInRedis = JSON.parse(replaced);
-        redisClient.disconnect();
-        //return file
-        return fileInRedis;
-    } catch (error: any) {
-        console.log(error);
-        throw new Error(error);
+  try {
+    //connet to redis if not connected
+    if (!redisClient.isOpen) {
+      await redisClient.connect();
     }
+    const result = (await redisClient.get(id)) as any;
+    const replaced = result?.replaceAll("'", '"');
+    let fileInRedis = JSON.parse(replaced);
+    redisClient.disconnect();
+    //return file
+    return fileInRedis;
+  } catch (error: any) {
+    console.log(error);
+    throw new Error(error);
+  }
 }
-
 
 //delete jason image in redis
-export async function deleteImageInRedis(Personnel_id: string) {
-    try {
-        //connet to redis if not connected
-        if (!redisClient.isOpen) {
-            await redisClient.connect();
-        }
-        //delete file from redis
-        let result = await redisClient.del(Personnel_id);
-        //close redis connection
-        redisClient.disconnect();
-        //return file
-        return result;
-    } catch (error: any) {
-        console.log(error);
-        throw new Error(error);
+export async function deleteImageInRedis(id: string) {
+  try {
+    //connet to redis if not connected
+    if (!redisClient.isOpen) {
+      await redisClient.connect();
     }
+    //delete file from redis
+    let result = await redisClient.del(id);
+    //close redis connection
+    redisClient.disconnect();
+    //return file
+    return result;
+  } catch (error: any) {
+    console.log(error);
+    throw new Error(error);
+  }
 }
-
-
-export default uploadFileMiddleware;
-
-
-

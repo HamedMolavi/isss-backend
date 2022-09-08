@@ -3,14 +3,15 @@ import { expect } from "chai";
 import request from "supertest";
 import Model, { IModel } from "../../models/model";
 import mongoose from "mongoose";
+import { NextFunction } from "express";
 
 const token = process.env.sample_token;
 let _model: any;
 
 //create testing for get model
-describe("server run and get model", function () {
+describe("server run and get model",function (this: any) {
   //seve new models before test and get it
-  before(function (done) {
+  before(function (done: NextFunction) {
     let model = new Model({
       _id: new mongoose.Types.ObjectId("628dcf2df014bc89f0280c62"),
       name: "googlenet",
@@ -22,8 +23,8 @@ describe("server run and get model", function () {
   });
 
   //delete model after test
-  after(function (done) {
-    Model.deleteOne({category : "fire"}).exec();
+  after(function (done: NextFunction) {
+    Model.deleteOne({ category: "fire" }).exec();
     done();
   });
   //test route for get model by id from DB
@@ -38,6 +39,7 @@ describe("server run and get model", function () {
           return done(err);
         }
         let userResponse = res.body.data;
+        expect(res.body.success).to.equal(true);
         expect(userResponse.category).to.equal("fire");
         expect(userResponse.name).to.equal("googlenet");
         expect(userResponse.uri).to.equal(

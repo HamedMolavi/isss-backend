@@ -1,27 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -35,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const fileUpload_1 = __importStar(require("./../../../tools/fileUpload"));
+const fileUpload_1 = require("./../../../tools/fileUpload");
 const express_1 = require("express");
 const fs_1 = __importDefault(require("fs"));
 const authentication_1 = require("./../../../tools/authentication");
@@ -43,10 +20,9 @@ const axios_1 = __importDefault(require("axios"));
 const createGuid_1 = __importDefault(require("./../../../tools/createGuid"));
 const path_1 = __importDefault(require("path"));
 const personImage_1 = __importDefault(require("./../../../models/personImage"));
-const multer_1 = __importDefault(require("multer"));
 const hash_1 = require("./../../../tools/hash");
 const error_handler_1 = require("../../../error/error.handler");
-//create router for add to server 
+//create router for add to server
 const router = (0, express_1.Router)();
 //add error handler middleware
 router.use(function (req, res, next) {
@@ -55,21 +31,35 @@ router.use(function (req, res, next) {
     res.locals.infos = req.flash("info");
     next();
 });
-//create api for upload image 
-router.post('/upload', function (req, res, next) {
+const const_role = process.env.const_role || "user";
+//create api for upload image
+router.post("/upload/:personnel_code", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
-            //get file from request body and save 
-            yield (0, fileUpload_1.default)(req, res);
-            if (req.file == undefined) {
-                return next(new error_handler_1.ApiError(400, "File is required"));
+            //get personnel_code from url
+            const personnel_code = req.params.personnel_code;
+            if (!personnel_code) {
+                req.flash("error", "Please enter a personnel_code");
+                return next(new error_handler_1.ApiError(400, "Please enter a personnel_code"));
             }
-            res.status(200).send({
-                name: fileUpload_1.fileName,
-                location: fileUpload_1.location,
-                message: "Uploaded the file successfully: " + fileUpload_1.fileName,
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
+            //get file from request and change format  to json and get file name and save in server with personnel_code
+            let result = yield (0, fileUpload_1.uploadAvatar)(req, res, personnel_code, next);
+            if (!result) {
+                return null;
+            }
+            //send response to client
+            res.status(201).send({
+                success: true,
+                data: {
+                    name: result.name,
+                    location: result.path,
+                    message: "Uploaded the file successfully: " + result,
+                },
             });
         }
         catch (err) {
@@ -78,17 +68,20 @@ router.post('/upload', function (req, res, next) {
     });
 });
 //create api for download image
-router.get('/download/:fileName', function (req, res, next) {
+router.get("/download/:fileName", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //get file name from request params
             const fileName = req.params.fileName;
             //get directory path
-            const directoryPath = __dirname + "./../../../../assets/uploads/";
+            const directoryPath = path_1.default.join(__dirname, "./../../../../assets/image/") + fileName + "/";
             //send image to client
-            yield res.download(directoryPath + fileName, fileName, (err) => {
+            yield res.download(directoryPath + "avatar.png", fileName, (err) => {
                 if (err) {
                     req.flash("error", "File not found");
                     return next(new error_handler_1.ApiError(404, "File not found"));
@@ -101,53 +94,61 @@ router.get('/download/:fileName', function (req, res, next) {
     });
 });
 //create api for get list file upload
-router.get('/list', function (req, res, next) {
+router.get("/list", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
+            let fileInfos = [];
             //get directory path
-            const directoryPath = __dirname + "/../../../../assets/uploads/";
-            //get url 
-            const baseUrl = process.env["BaseUrl"];
-            //read directory for get list file
-            yield fs_1.default.readdir(directoryPath, function (err, files) {
-                if (err) {
-                    return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
-                }
-                let fileInfos = [];
-                //get file info
-                files.forEach((file) => {
+            const directoryPath = path_1.default.join(__dirname, "./../../../../assets/image/");
+            //get list directory images in directory path
+            let imageFolders = yield fs_1.default.promises.readdir(directoryPath);
+            //loop through list directory images and get file info in each directory
+            for (let i = 0; i < imageFolders.length; i++) {
+                //get file info in each directory
+                let imageFiles = yield fs_1.default.promises.readdir(directoryPath + "/" + imageFolders[i]);
+                //loop through list file in each directory and get file info
+                for (let j = 0; j < imageFiles.length; j++) {
+                    //get file info
+                    let fileInfo = yield fs_1.default.promises.stat(directoryPath + "/" + imageFolders[i] + "/" + imageFiles[j]);
+                    //push file info to array
                     fileInfos.push({
-                        name: file,
-                        url: baseUrl + '/download/' + file,
+                        name: imageFiles[j],
+                        size: fileInfo.size,
+                        path: directoryPath + imageFolders[i] + "/" + imageFiles[j],
                     });
-                });
-                res.status(200).send(fileInfos);
-            });
+                }
+            }
+            //send response to client
+            res.status(200).send(fileInfos);
+            // const baseUrl = process.env["BaseUrl"] as string;
         }
         catch (err) {
             return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
         }
     });
 });
-//add package multer for upload file
-var storage = multer_1.default.memoryStorage();
-//create multer for upload file and save in memory
-var upload = (0, multer_1.default)({ storage: storage });
-//create api for upload image to redis
-router.post('/redis', upload.single('file'), function (req, res, next) {
+//api for upload image to redis
+router.post("/redis", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             // get id from request url
             let personnel_id = req.query.id;
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
-            //get file from request body and save
-            let fileBase64;
-            let file = req.file.buffer;
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
+            //get file from request and change format  to json
+            let reqFile = JSON.parse(JSON.stringify(req.files));
+            //move file to buffer
+            let image = Buffer.from(reqFile.file.data, "base64");
             //convert file to base64
-            fileBase64 = file.toString('base64');
+            let fileBase64 = image.toString("base64");
             //create hash for redis id
             let idHashed = (0, hash_1.hashJson)(fileBase64, personnel_id);
             //set file in redis
@@ -159,28 +160,85 @@ router.post('/redis', upload.single('file'), function (req, res, next) {
             //get url AI for send request
             const dbUri = process.env["API_AI_REDIS_NAME"];
             //send request to AI api for send id_personnel
-            yield axios_1.default.post(dbUri, {
-                id: idHashed
-            }).then(function (response) {
+            yield axios_1.default
+                .post(dbUri, {
+                id: idHashed,
+            })
+                .then(function (response) {
                 console.log("Response From API AI :" + response.status);
                 req.flash("info", "Uploaded the file successfully");
                 //  send response to client
-            }).catch(function (error) {
+            })
+                .catch(function (error) {
                 console.log(error.response.data);
                 return next(new error_handler_1.ApiError(500, "internal server error" + error.message));
             });
             res.status(201).send({
-                message: "Uploaded the file successfully"
+                message: "Uploaded the file successfully",
             });
-            //send error if file is not upload
         }
-        catch (err) {
-            return next(new error_handler_1.ApiError(500, "internal server error ->" + err.message));
-        }
+        catch (err) { }
     });
 });
+// //add package multer for upload file
+// var storage = multer.memoryStorage();
+// //create multer for upload file and save in memory
+// var upload = multer({ storage: storage });
+// //create api for upload image to redis
+// router.post(
+//   "/redis",
+//   upload.single("file"),
+//   async function (req: Request, res: Response, next: NextFunction) {
+//     try {
+//       // get id from request url
+//       let personnel_id = req.query.id as string;
+//       //get token from header request and verify
+//       let token = getTokenAndVerify(req, const_role, next);
+//       if (!token) {
+//         return null;
+//       }
+//       //get file from request body and save
+//       let fileBase64: string;
+//       let file = req.file!.buffer;
+//       //convert file to base64
+//       fileBase64 = file.toString("base64");
+//       //create hash for redis id
+//       let idHashed = hashJson(fileBase64, personnel_id);
+//       //set file in redis
+//       let id = await setFileInRedis(fileBase64, idHashed);
+//       if (!id) {
+//         req.flash("error", "File not upload");
+//         return next(new ApiError(400, "File not upload"));
+//       }
+//       //get url AI for send request
+//       const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
+//       //send request to AI api for send id_personnel
+//       await axios
+//         .post(dbUri, {
+//           id: idHashed,
+//         })
+//         .then(function (response) {
+//           console.log("Response From API AI :" + response.status);
+//           req.flash("info", "Uploaded the file successfully");
+//           //  send response to client
+//         })
+//         .catch(function (error) {
+//           console.log(error.response.data);
+//           return next(
+//             new ApiError(500, "internal server error" + error.message)
+//           );
+//         });
+//       res.status(201).send({
+//         message: "Uploaded the file successfully",
+//       });
+//       //send error if file is not upload
+//     } catch (err: any) {
+//       return next(new ApiError(500, "internal server error ->" + err.message));
+//     }
+//   }
+// );
 //route for verified image in redis
-router.post('/verify', function (req, res, next) {
+router.post("/verify", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get body from request
@@ -192,9 +250,9 @@ router.post('/verify', function (req, res, next) {
             //get jason information from redis
             let redisData = yield (0, fileUpload_1.getImageFromRedis)(id);
             //convert base64 to file
-            let image = Buffer.from(redisData.face, 'base64');
+            let image = Buffer.from(redisData.face, "base64");
             //covert base64 to array buffer
-            let embeddingArray = Buffer.from(redisData.embedding, 'base64').toJSON().data;
+            let embeddingArray = Buffer.from(redisData.embedding, "base64").toJSON().data;
             //Face recognition condition
             if (redisData.has_face === 1) {
                 let guid = id + "-" + createGuid_1.default.newGuid();
@@ -202,8 +260,8 @@ router.post('/verify', function (req, res, next) {
                 let fileName = guid + ".jpg";
                 //todo : convert BGR to RGB
                 //define path for save image
-                let pathSave = path_1.default.join(__dirname, './../../../../assets/uploads/');
-                //write image in path 
+                let pathSave = path_1.default.join(__dirname, "./../../../../assets/uploads/");
+                //write image in path
                 yield fs_1.default.writeFile(pathSave + fileName, image, (err) => {
                     if (err) {
                         return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
@@ -230,14 +288,14 @@ router.post('/verify', function (req, res, next) {
                 let result = yield (0, fileUpload_1.deleteImageInRedis)(id.toString());
                 //   send response to client
                 res.status(200).send({
-                    message: "Verified the file successfully"
+                    message: "Verified the file successfully",
                 });
             }
             else if (Number(redisData.has_face) === 0) {
                 req.flash("error", "No face found");
                 //send response to client for not face recognition
                 res.status(406).send({
-                    message: "No face found"
+                    message: "No face found",
                 });
             }
         }

@@ -19,6 +19,8 @@ const model_1 = __importDefault(require("../../../models/model"));
 const modelToCamera_1 = __importDefault(require("../../../models/modelToCamera"));
 const authentication_1 = require("../../../tools/authentication");
 const convertTime_1 = require("../../../tools/convertTime");
+//get user role from enviroment variable
+const const_role = process.env.const_role || "user";
 //create router for add to server file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -40,7 +42,10 @@ router.post("", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Departement name is required"));
             }
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //convert input time to cron format
             let start_cron = (0, convertTime_1.convertToCron)(start);
             start_cron = (0, convertTime_1.convertToCronDay)(start_cron, dayOfWeek.toString());
@@ -91,7 +96,10 @@ router.get("", function (req, res, next) {
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
             let search = req.query.search || "";
             //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, "user", next);
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
             //query for get departements list
             let model2Cameras = [];
             if (!(search && search.length > 0)) {

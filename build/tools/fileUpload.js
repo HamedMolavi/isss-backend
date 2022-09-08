@@ -12,34 +12,55 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteImageInRedis = exports.getImageFromRedis = exports.setFileInRedis = exports.fileName = exports.location = void 0;
-const util_1 = __importDefault(require("util"));
-const multer_1 = __importDefault(require("multer"));
-const createGuid_1 = __importDefault(require("../tools/createGuid"));
+exports.deleteImageInRedis = exports.getImageFromRedis = exports.setFileInRedis = exports.uploadAvatar = exports.fileName = exports.location = void 0;
 const redis_1 = __importDefault(require("./../db/redis"));
-//define limits for file size
-const maxSize = 10 * 1024 * 1024;
-//define file type
-let storage = multer_1.default.diskStorage({
-    //define destination for file
-    destination: (req, file, cb) => {
-        cb(null, __dirname + "/../../assets/uploads/");
-        exports.location = __dirname + "/../../assets/uploads/";
-    },
-    //define file name
-    filename: (req, file, cb) => {
-        exports.fileName = `${createGuid_1.default.newGuid()}.jpg`;
-        cb(null, exports.fileName);
-    },
-});
-//save file
-let uploadFile = (0, multer_1.default)({
-    storage: storage,
-    limits: { fileSize: maxSize },
-}).single("file");
-//add upload file to promise for convert to nonBlocking
-let uploadFileMiddleware = util_1.default.promisify(uploadFile);
-//set file in redis 
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const console_1 = __importDefault(require("console"));
+const error_handler_1 = require("../error/error.handler");
+function uploadAvatar(req, res, personnel_code, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get file from request and change format  to json
+            let reqFile = JSON.parse(JSON.stringify(req.files));
+            //check file is small than 10MB
+            if (Number(reqFile.file.size) > 12419) {
+                req.flash("error", "File size is too large");
+                return next(new error_handler_1.ApiError(400, "File size is too large"));
+            }
+            //move file to buffer
+            let image = Buffer.from(reqFile.file.data, "base64");
+            //get path for save file
+            let _path = path_1.default.join(__dirname, "./../..");
+            var dir = _path + "/assets/image";
+            //if path not exist, create path
+            if (!fs_1.default.existsSync(dir)) {
+                fs_1.default.mkdirSync(dir);
+            }
+            var dirPersonnelAvatar = _path + "/assets/image/" + personnel_code;
+            if (!fs_1.default.existsSync(dirPersonnelAvatar)) {
+                fs_1.default.mkdirSync(dirPersonnelAvatar);
+            }
+            //write image in path
+            //upload image to server
+            yield fs_1.default.writeFile(dirPersonnelAvatar + "/avatar.png", image, (err) => {
+                if (err) {
+                    return next(new error_handler_1.ApiError(500, "internal server error" + err.message));
+                }
+            });
+            const result = {
+                name: "avatar.png",
+                path: dirPersonnelAvatar + personnel_code + ".png",
+            };
+            return result;
+        }
+        catch (e) {
+            return next(new error_handler_1.ApiError(500, "internal server error" + e.message));
+        }
+    });
+}
+exports.uploadAvatar = uploadAvatar;
+//set file in redis
 function setFileInRedis(fileBase64, Personnel_id) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -54,7 +75,7 @@ function setFileInRedis(fileBase64, Personnel_id) {
                 face: "",
                 embedding: "",
                 has_face: 0,
-                timestamp: new Date()
+                timestamp: new Date(),
             };
             //insert to redis
             yield redis_1.default.set(fileInRedis.id, JSON.stringify(fileInRedis));
@@ -64,7 +85,7 @@ function setFileInRedis(fileBase64, Personnel_id) {
             return fileInRedis.id.toString();
         }
         catch (error) {
-            console.log(error);
+            console_1.default.log(error);
             throw new Error(error);
         }
     });
@@ -78,7 +99,7 @@ function getImageFromRedis(id) {
             if (!redis_1.default.isOpen) {
                 yield redis_1.default.connect();
             }
-            const result = yield redis_1.default.get(id);
+            const result = (yield redis_1.default.get(id));
             const replaced = result === null || result === void 0 ? void 0 : result.replaceAll("'", '"');
             let fileInRedis = JSON.parse(replaced);
             redis_1.default.disconnect();
@@ -86,7 +107,7 @@ function getImageFromRedis(id) {
             return fileInRedis;
         }
         catch (error) {
-            console.log(error);
+            console_1.default.log(error);
             throw new Error(error);
         }
     });
@@ -108,10 +129,9 @@ function deleteImageInRedis(Personnel_id) {
             return result;
         }
         catch (error) {
-            console.log(error);
+            console_1.default.log(error);
             throw new Error(error);
         }
     });
 }
 exports.deleteImageInRedis = deleteImageInRedis;
-exports.default = uploadFileMiddleware;

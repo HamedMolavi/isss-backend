@@ -29,33 +29,39 @@ function getToken(req, next) {
         return bearerToken;
     }
     else {
-        next(new Error("Forbidden"));
+        next(new error_handler_1.ApiError(401, "Unauthorized"));
         return null;
     }
 }
 exports.getToken = getToken;
 //get token from header request client and verify
 function getTokenAndVerify(req, role, next) {
-    //get token from header request
-    let token = getToken(req, next);
-    //send error if token not found
-    if (!token) {
-        next(new error_handler_1.ApiError(400, "Please enter token"));
-        return null;
+    try {
+        //get token from header request
+        let token = getToken(req, next);
+        //send error if token not found
+        if (!token) {
+            next(new error_handler_1.ApiError(401, "Unauthorized"));
+            return null;
+        }
+        //verify token
+        let critential = authorize(token);
+        //check time expire token and role
+        if (critential.exp < Date.now() / 1000) {
+            req.flash("error", "Token expired");
+            return next(new error_handler_1.ApiError(401, "Token expired"));
+        }
+        else if (critential.role !== "admin" && role === "admin") {
+            req.flash("error", "You are not admin");
+            return next(new error_handler_1.ApiError(401, "You are not admin"));
+        }
+        else {
+            return token;
+        }
     }
-    //verify token
-    let critential = authorize(token);
-    //check time expire token and role
-    if (critential.exp < Date.now() / 1000) {
-        req.flash("error", "Token expired");
-        return next(new error_handler_1.ApiError(401, "Token expired"));
-    }
-    else if (critential.role !== "admin" && role === "admin") {
-        req.flash("error", "You are not admin");
-        return next(new error_handler_1.ApiError(401, "You are not admin"));
-    }
-    else {
-        return token;
+    catch (e) {
+        //return error if token not verify
+        next(new error_handler_1.ApiError(500, "Internal server error token not verify -> " + e.message));
     }
 }
 exports.getTokenAndVerify = getTokenAndVerify;

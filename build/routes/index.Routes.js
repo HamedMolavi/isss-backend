@@ -20,13 +20,14 @@ const modelToCamera_Routes_1 = __importDefault(require("./custom/config/modelToC
 const report_Routes_1 = __importDefault(require("./custom/report/report.Routes"));
 const departmentReport_Routes_1 = __importDefault(require("./custom/report/departmentReport.Routes"));
 const error_handler_1 = require("../error/error.handler");
+const departmentFile_Routes_1 = __importDefault(require("./custom/config/departmentFile.Routes"));
 //create router for add to server
 const router = (0, express_1.Router)();
 //add rotes app
 router.use("/users", user_Routes_1.default);
 router.use("/cameras", camera_Routes_1.default);
 router.use("/files", file_Routes_1.default);
-router.use("/departements", departement_Routes_1.default);
+router.use("/departments", departement_Routes_1.default);
 router.use("/sections", section_Routes_1.default);
 router.use("/jobtitles", jobTitle_Routes_1.default);
 router.use("/personnels", personnel_Routes_1.default);
@@ -38,6 +39,7 @@ router.use("/carbrands", carBrand_Routes_1.default);
 router.use("/modelToCameras", modelToCamera_Routes_1.default);
 router.use("/reports", report_Routes_1.default);
 router.use("/reportDepartmets", departmentReport_Routes_1.default);
+router.use("/departementfiles", departmentFile_Routes_1.default);
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 //add not found route handler

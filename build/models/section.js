@@ -27,8 +27,8 @@ const mongoose_1 = __importStar(require("mongoose"));
 //create section model with schema for save in DB
 const SectionSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
-    //add realational ducoment to departement
-    departement_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Departement" },
+    //add relational document to department
+    department_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Department" },
     create_date: { type: Date, default: Date.now }
 }, {
     collection: "Section"
