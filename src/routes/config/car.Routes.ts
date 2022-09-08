@@ -112,7 +112,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
     //query for get car list from DB
     let cars: any[] = [];
-    if (!(search && search.length > 0)) {
+    if ((search && search.length > 0)) {
       cars = await Car.find({
         number_plate: { $regex: search, $options: "i" },
       })
@@ -157,7 +157,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         brand: _brand != null ? _brand.name : "",
         color: _color != null ? _color.name : "",
         camera_whitelist: cars[i].camera_whitelist,
-        create_date: cars[i].time,
+        time: cars[i].time,
         __v: cars[i].__v,
       };
       newCars.push(result);
@@ -221,7 +221,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         brand: _brand?.name ?? "",
         color: _color?.name ?? "",
         camera_whitelist: car.camera_whitelist,
-        create_date: car.time,
+        time: car.time,
         __v: car.__v,
       },
     });
@@ -276,7 +276,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
         brand: _brand?.name ?? "",
         color: _color?.name ?? "",
         camera_whitelist: car.camera_whitelist,
-        create_date: car.time,
+        time: car.time,
         __v: car.__v,
       },
     });
@@ -329,7 +329,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         brand: _brand?.name ?? "",
         color: _color?.name ?? "",
         camera_whitelist: car.camera_whitelist,
-        create_date: car.time,
+        time: car.time,
         __v: car.__v,
       },
     });

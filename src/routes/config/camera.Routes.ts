@@ -21,9 +21,9 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get jason from body request
-    const { section_id, url, ip, name, username, password, is_enabled }: ICamera = req.body;
+    const { section_id, url, ip, name, username, password,network ,is_enabled }: ICamera = req.body;
     //verify body request
-    if (!section_id || !url || !ip || !name || !username || !password || !is_enabled) {
+    if (!section_id || !url || !ip || !name || !username || !password || !is_enabled || !network) {
       req.flash("error", "please complete all fields");
       return next(new ApiError(400, "please complete all fields"));
     }
@@ -50,6 +50,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       section_id: section_id,
       url: url,
       ip: ip,
+      network:network,
       name: name,
       username: username,
       password: password,

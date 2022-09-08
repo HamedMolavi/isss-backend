@@ -191,7 +191,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     //loop for get sort departments and section in json response
     for (let i = 0; i < cameras.length; i++) {
       let childrenModel: IChildrenModel[] = [];
-      if (cameras[i]._id!.toString() == id) {
+      if (cameras[i]._id!.toString() === id) {
         for (let j = 0; j < modelToCamera.length; j++) {
           let childrenSchedule: IChildrenSchedule[] = [];
           if (cameras[i]._id!.toString() == modelToCamera[j].camera_id!.toString()) {
@@ -237,31 +237,30 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
             return 0;
           });
         }
+        response.push({
+          _id: cameras[i]._id,
+          type: "camera",
+          name: cameras[i].name,
+          children: childrenModel,
+          section_id: cameras[i].section_id,
+          url: cameras[i].url,
+          username: cameras[i].username,
+          password: cameras[i].password,
+          ip: cameras[i].ip,
+          is_enabled: cameras[i].is_enabled,
+        });
+        //sort departement by name
+        response.sort((a, b) => {
+          if (a.name < b.name) {
+            return -1;
+          }
+          if (a.name > b.name) {
+            return 1;
+          }
+          return 0;
+        });
       }
-
-      response.push({
-        _id: cameras[i]._id,
-        type: "camera",
-        name: cameras[i].name,
-        children: childrenModel,
-        section_id: cameras[i].section_id,
-        url: cameras[i].url,
-        username: cameras[i].username,
-        password: cameras[i].password,
-        ip: cameras[i].ip,
-        is_enabled: cameras[i].is_enabled,
-      });
     }
-    //sort departement by name
-    response.sort((a, b) => {
-      if (a.name < b.name) {
-        return -1;
-      }
-      if (a.name > b.name) {
-        return 1;
-      }
-      return 0;
-    });
 
     //return response to client with departements file list
     return res.status(200).json({
