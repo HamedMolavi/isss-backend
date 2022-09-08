@@ -32,5 +32,5 @@ const ModelToCameraSchema = new mongoose_1.Schema({
     collection: "Model_Camera"
 });
 // Compile Model from schema
-const Model = mongoose_1.default.model("ModelToCamera", ModelToCameraSchema);
-exports.default = Model;
+const ModelToCamera = mongoose_1.default.model("ModelToCamera", ModelToCameraSchema);
+exports.default = ModelToCamera;

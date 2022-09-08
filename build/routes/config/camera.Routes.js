@@ -13,9 +13,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const error_handler_1 = require("../../../error/error.handler");
-const camera_1 = __importDefault(require("./../../../models/camera"));
-const authentication_1 = require("./../../../tools/authentication");
+const error_handler_1 = require("../../error/error.handler");
+const camera_1 = __importDefault(require("./../../models/camera"));
+const authentication_1 = require("./../../tools/authentication");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to server
@@ -32,17 +32,11 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { section_id, url, ip, name, username, password, is_enabled, } = req.body;
+            const { section_id, url, ip, name, username, password, network, is_enabled } = req.body;
             //verify body request
-            if (!section_id ||
-                !url ||
-                !ip ||
-                !name ||
-                !username ||
-                !password ||
-                !is_enabled) {
-                req.flash("error", "Veuillez remplir tous les champs");
-                return next(new error_handler_1.ApiError(400, "Veuillez remplir tous les champs"));
+            if (!section_id || !url || !ip || !name || !username || !password || !network) {
+                req.flash("error", "please complete all fields");
+                return next(new error_handler_1.ApiError(400, "please complete all fields"));
             }
             //get token from header request and verify
             let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
@@ -51,7 +45,7 @@ router.post("", function (req, res, next) {
             }
             //query for save new Camera in DB
             let camera = yield camera_1.default.findOne({
-                $or: [{ ip: ip }, { name: name }, { url: url }],
+                $or: [{ ip: ip }],
             }).exec();
             //return error if camera already exist
             if (camera) {
@@ -63,6 +57,7 @@ router.post("", function (req, res, next) {
                 section_id: section_id,
                 url: url,
                 ip: ip,
+                network: network,
                 name: name,
                 username: username,
                 password: password,

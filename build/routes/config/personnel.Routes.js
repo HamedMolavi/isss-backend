@@ -13,9 +13,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const error_handler_1 = require("../../../error/error.handler");
-const personnel_1 = __importDefault(require("./../../../models/personnel"));
-const authentication_1 = require("./../../../tools/authentication");
+const error_handler_1 = require("../../error/error.handler");
+const personnel_1 = __importDefault(require("./../../models/personnel"));
+const authentication_1 = require("./../../tools/authentication");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to routes file
@@ -32,7 +32,7 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, image_id, is_active, is_employee, is_dismissed, } = req.body;
+            const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, } = req.body;
             //verify body request
             if (!first_name ||
                 !last_name ||
@@ -45,8 +45,7 @@ router.post("", function (req, res, next) {
                 !camera_whitelist ||
                 !is_active ||
                 !is_employee ||
-                !is_dismissed ||
-                !image_id) {
+                !is_dismissed) {
                 req.flash("error", "Please fill all fields");
                 return next(new error_handler_1.ApiError(400, "Please fill all fields"));
             }
@@ -58,7 +57,7 @@ router.post("", function (req, res, next) {
             //query for save new personnel in DB
             let personnel = yield personnel_1.default.findOne({
                 $or: [
-                    { national_code: personnel_code },
+                    { national_code: national_code },
                     { personnel_code: personnel_code },
                 ],
             }).exec();
@@ -78,7 +77,6 @@ router.post("", function (req, res, next) {
                 personnel_code,
                 section_id,
                 camera_whitelist,
-                image_id,
                 is_active,
                 is_employee,
                 is_dismissed,

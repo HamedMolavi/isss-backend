@@ -13,12 +13,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const error_handler_1 = require("../../../error/error.handler");
-const camera_1 = __importDefault(require("../../../models/camera"));
-const model_1 = __importDefault(require("../../../models/model"));
-const modelToCamera_1 = __importDefault(require("../../../models/modelToCamera"));
-const authentication_1 = require("../../../tools/authentication");
-const convertTime_1 = require("../../../tools/convertTime");
+const error_handler_1 = require("../../error/error.handler");
+const camera_1 = __importDefault(require("../../models/camera"));
+const model_1 = __importDefault(require("../../models/model"));
+const modelToCamera_1 = __importDefault(require("../../models/modelToCamera"));
+const authentication_1 = require("../../tools/authentication");
+const convertTime_1 = require("../../tools/convertTime");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to server file

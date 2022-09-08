@@ -10,11 +10,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const authentication_1 = require("../../../tools/authentication");
-const createlogReport_1 = require("../../../tools/createlogReport");
-const convertTime_1 = require("../../../tools/convertTime");
-const error_handler_1 = require("../../../error/error.handler");
-const connectElasticSearch_1 = require("../../../db/connectElasticSearch");
+const authentication_1 = require("../../tools/authentication");
+const createlogReport_1 = require("../../tools/createlogReport");
+const convertTime_1 = require("../../tools/convertTime");
+const error_handler_1 = require("../../error/error.handler");
+const connectElasticSearch_1 = require("../../db/connectElasticSearch");
 //create router for add to routes file
 const router = (0, express_1.Router)();
 //add error handler middleware
@@ -35,7 +35,7 @@ router.post("/:model", function (req, res, next) {
             //get model from url request
             let model = req.params.model;
             //send error if model is not defined
-            if (model !== "face" && model !== "fire" && model !== "human" && model !== "plate" && model !== "sabotage") {
+            if (model !== "face" && model !== "fire" && model !== "human" && model !== "plate" && model !== "sabotage" && model !== "event") {
                 req.flash("error", "Model not found");
                 return next(new error_handler_1.ApiError(404, "Model not found"));
             }
@@ -50,12 +50,12 @@ router.post("/:model", function (req, res, next) {
             //get perPage from url
             let strPerPage = req.query.perPage;
             let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-            page = (page - 1) * perPage + 1;
+            // page = (page - 1) * perPage + 1;
             //get search from url
             let search = req.query.search || "";
             let response;
             let timeEpokhStart, timeEpokhEnd = "";
-            let _allowed = undefined;
+            let _allowed = null;
             let _carBrand, _carColor, _owner = null;
             let _cameras, _models, _personnels = [];
             let _probabilities, _humanCounts = [];
@@ -67,7 +67,7 @@ router.post("/:model", function (req, res, next) {
                 _cameras = cameras;
                 _models = models;
                 _probabilities = probabilities;
-                _allowed = (_a = Boolean(allowed)) !== null && _a !== void 0 ? _a : undefined;
+                _allowed = (_a = Boolean(allowed)) !== null && _a !== void 0 ? _a : null;
                 _carBrand = car_brand !== null && car_brand !== void 0 ? car_brand : null;
                 _carColor = car_color !== null && car_color !== void 0 ? car_color : null;
                 _owner = owner !== null && owner !== void 0 ? owner : null;
@@ -93,8 +93,7 @@ router.post("/:model", function (req, res, next) {
                 _data = yield (0, createlogReport_1.sabotageLogResponse)(response);
             }
             else if (model === "plate") {
-                if ((_carBrand === null || _carColor === null || _owner === null) &&
-                    search) {
+                if ((_carBrand === null || _carColor === null || _owner === null) && search) {
                     return next(new error_handler_1.ApiError(400, `car_brand, car_color, owner is required`));
                 }
                 _data = yield (0, createlogReport_1.plateLogResponse)(response, _carBrand, _carColor, _owner, _allowed, search);
@@ -106,13 +105,19 @@ router.post("/:model", function (req, res, next) {
                 _data = yield (0, createlogReport_1.fireLogResponse)(response);
             }
             else if (model === "face") {
-                _data = yield (0, createlogReport_1.faceLogResponse)(response);
+                _data = yield (0, createlogReport_1.faceLogResponse)(response, _allowed);
+            }
+            else if (model === "event") {
+                _data = yield (0, createlogReport_1.eventLogResponse)(response);
             }
             //return data to client
             return res.status(200).json({
                 success: true,
                 data: _data,
-                total: response.data.hits.total.value
+                page: strPage,
+                perPage: perPage,
+                total: search ? _data.length : response.data.hits.total.value,
+                pages: Math.ceil((search ? _data.length : response.data.hits.total.value) / perPage),
             });
         }
         catch (err) {

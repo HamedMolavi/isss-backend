@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dbUri = void 0;
+exports.io = exports.dbUri = void 0;
 const express_1 = __importDefault(require("express"));
 const fs_1 = __importDefault(require("fs"));
 const http_1 = __importDefault(require("http"));
@@ -22,6 +22,7 @@ const index_Routes_1 = __importDefault(require("./routes/index.Routes"));
 const rotating_file_stream_1 = require("rotating-file-stream");
 const chai_1 = require("chai");
 const express_fileupload_1 = __importDefault(require("express-fileupload"));
+const socket_io_1 = require("socket.io");
 //initial file .env
 dotenv_1.default.config();
 exports.dbUri = process.env["MONGODB_URL"];
@@ -44,8 +45,9 @@ const app = (0, express_1.default)();
 //config server
 app.use((0, cors_1.default)());
 app.use((0, cookie_parser_1.default)());
-app.use(body_parser_1.default.urlencoded({ extended: false }));
-app.use(body_parser_1.default.json());
+app.use(body_parser_1.default.json({ limit: '50mb' }));
+app.use(body_parser_1.default.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 }));
+app.use(body_parser_1.default.text({ limit: "200mb" }));
 app.use((0, express_fileupload_1.default)());
 app.use((0, express_session_1.default)({
     secret: "TKRv0IJs=HYqrvagQ#&!F!%V]Ww/4KiVs$s,<<MX",
@@ -55,7 +57,7 @@ app.use((0, express_session_1.default)({
 app.use(passport_1.default.session());
 app.use((0, connect_flash_1.default)());
 //add logger
-//app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
+app.use((0, morgan_1.default)(process.env.REQUEST_LOG_FORMAT));
 //add logger in file
 app.use((0, morgan_1.default)(process.env.REQUEST_LOG_FORMAT || "dev", {
     stream: process.env.REQUEST_LOG_FILE
@@ -87,10 +89,15 @@ https_1.default.createServer(options, app).listen(PORT_HTTPS, () => {
     console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);
 });
 //run http server on port 3000
-http_1.default.createServer(app).listen(PORT_HTTP, () => {
+const server = http_1.default.createServer(app).listen(PORT_HTTP, () => {
     console.log(`Server is running on http://${HOST}:${PORT_HTTP}`);
 });
 // app.listen(3000, () => {
 //     console.log('Application started on http://localhost:3000');
 // });
+exports.io = new socket_io_1.Server(server, {
+    cors: {
+        origin: "*",
+    },
+});
 exports.default = app;

@@ -10,11 +10,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const authentication_1 = require("../../../tools/authentication");
-const createlogReport_1 = require("../../../tools/createlogReport");
-const elasticsearch_1 = require("../../../db/elasticsearch");
-const convertTime_1 = require("../../../tools/convertTime");
-const error_handler_1 = require("../../../error/error.handler");
+const authentication_1 = require("../../tools/authentication");
+const createlogReport_1 = require("../../tools/createlogReport");
+const convertTime_1 = require("../../tools/convertTime");
+const error_handler_1 = require("../../error/error.handler");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to routes file
@@ -68,7 +67,17 @@ router.post("", function (req, res, next) {
             }
             let _data = [];
             //get event data from elastic search
-            response = yield (0, elasticsearch_1.requestToElasticSearchEvent)(_cameras, _models, search, timeEpokhStart, timeEpokhEnd, page, perPage, next, searchName);
+            //   response = await requestToElasticSearchEvent(
+            //     _cameras,
+            //     _models,
+            //     search,
+            //     timeEpokhStart,
+            //     timeEpokhEnd,
+            //     page,
+            //     perPage,
+            //     next,
+            //     searchName
+            //   );
             if (!response) {
                 req.flash("error", "Data is null or undefined");
                 return next(new error_handler_1.ApiError(404, "Data is null or undefined"));

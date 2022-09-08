@@ -4,23 +4,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const user_Routes_1 = __importDefault(require("./custom/config/user.Routes"));
-const camera_Routes_1 = __importDefault(require("./custom/config/camera.Routes"));
-const file_Routes_1 = __importDefault(require("./custom/config/file.Routes"));
-const departement_Routes_1 = __importDefault(require("./custom/config/departement.Routes"));
-const section_Routes_1 = __importDefault(require("./custom/config/section.Routes"));
-const jobTitle_Routes_1 = __importDefault(require("./custom/config/jobTitle.Routes"));
-const personnel_Routes_1 = __importDefault(require("./custom/config/personnel.Routes"));
-const car_Routes_1 = __importDefault(require("./custom/config/car.Routes"));
-const schedule_Routes_1 = __importDefault(require("./custom/config/schedule.Routes"));
-const model_Routes_1 = __importDefault(require("./custom/config/model.Routes"));
-const carColor_Routes_1 = __importDefault(require("./custom/config/carColor.Routes"));
-const carBrand_Routes_1 = __importDefault(require("./custom/config/carBrand.Routes"));
-const modelToCamera_Routes_1 = __importDefault(require("./custom/config/modelToCamera.Routes"));
-const report_Routes_1 = __importDefault(require("./custom/report/report.Routes"));
-const departmentReport_Routes_1 = __importDefault(require("./custom/report/departmentReport.Routes"));
+const user_Routes_1 = __importDefault(require("./config/user.Routes"));
+const camera_Routes_1 = __importDefault(require("./config/camera.Routes"));
+const file_Routes_1 = __importDefault(require("./config/file.Routes"));
+const departement_Routes_1 = __importDefault(require("./config/departement.Routes"));
+const section_Routes_1 = __importDefault(require("./config/section.Routes"));
+const jobTitle_Routes_1 = __importDefault(require("./config/jobTitle.Routes"));
+const personnel_Routes_1 = __importDefault(require("./config/personnel.Routes"));
+const car_Routes_1 = __importDefault(require("./config/car.Routes"));
+const schedule_Routes_1 = __importDefault(require("./config/schedule.Routes"));
+const model_Routes_1 = __importDefault(require("./config/model.Routes"));
+const carColor_Routes_1 = __importDefault(require("./config/carColor.Routes"));
+const carBrand_Routes_1 = __importDefault(require("./config/carBrand.Routes"));
+const modelToCamera_Routes_1 = __importDefault(require("./config/modelToCamera.Routes"));
+const report_Routes_1 = __importDefault(require("./report/report.Routes"));
+const departmentReport_Routes_1 = __importDefault(require("./report/departmentReport.Routes"));
 const error_handler_1 = require("../error/error.handler");
-const departmentFile_Routes_1 = __importDefault(require("./custom/config/departmentFile.Routes"));
+const departmentFile_Routes_1 = __importDefault(require("./config/departmentFile.Routes"));
+const alerts_Routes_1 = __importDefault(require("./alerts/alerts.Routes"));
+const schedulesReport_Routes_1 = __importDefault(require("./report/schedulesReport.Routes"));
 //create router for add to server
 const router = (0, express_1.Router)();
 //add rotes app
@@ -40,6 +42,8 @@ router.use("/modelToCameras", modelToCamera_Routes_1.default);
 router.use("/reports", report_Routes_1.default);
 router.use("/reportDepartmets", departmentReport_Routes_1.default);
 router.use("/departementfiles", departmentFile_Routes_1.default);
+router.use("/alerts", alerts_Routes_1.default);
+router.use("/schedulesreport", schedulesReport_Routes_1.default);
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 //add not found route handler

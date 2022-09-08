@@ -13,11 +13,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const schedule_1 = __importDefault(require("./../../../models/schedule"));
-const authentication_1 = require("./../../../tools/authentication");
-const convertTime_1 = require("./../../../tools/convertTime");
-const modelToCamera_1 = __importDefault(require("./../../../models/modelToCamera"));
-const error_handler_1 = require("../../../error/error.handler");
+const schedule_1 = __importDefault(require("./../../models/schedule"));
+const authentication_1 = require("./../../tools/authentication");
+const convertTime_1 = require("./../../tools/convertTime");
+const modelToCamera_1 = __importDefault(require("./../../models/modelToCamera"));
+const error_handler_1 = require("../../error/error.handler");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to server file
@@ -34,15 +34,13 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { start, stop, dayOfWeek, camera_id, model_id, montionDetection, threshold, zones, min_people, max_people, } = req.body;
+            const { start, stop, dayOfWeek, camera_id, model_id, montionDetection, threshold, zones, min_people, max_people, timeDuplicationDiagnoses } = req.body;
             //verify body request
             if (!start ||
                 !stop ||
                 !dayOfWeek ||
                 !camera_id ||
-                !model_id ||
-                !montionDetection ||
-                !threshold) {
+                !model_id) {
                 req.flash("error", "Please fill all fields");
                 return next(new error_handler_1.ApiError(400, "Please fill all fields"));
             }
@@ -92,6 +90,7 @@ router.post("", function (req, res, next) {
                 stop_cron: stop_cron,
                 model_camera_id: model2camera._id,
                 montionDetection: montionDetection,
+                timeDuplicationDiagnoses: timeDuplicationDiagnoses !== null && timeDuplicationDiagnoses !== void 0 ? timeDuplicationDiagnoses : 0,
                 config: {
                     threshold: threshold !== null && threshold !== void 0 ? threshold : 0,
                     zones: zones !== null && zones !== void 0 ? zones : null,

@@ -9,12 +9,11 @@ const md5_1 = __importDefault(require("md5"));
 function hashJson(data, personnel_id) {
     //define object for save in redis
     let fileInRedis = {
-        id: personnel_id,
+        Personnel_id: personnel_id,
         full_frame: data,
         face: "",
         embedding: "",
-        has_face: 0,
-        timestamp: new Date()
+        has_face: 0
     };
     const secretKey = process.env["KEY_HASH_OBJECT"];
     //return hash object for id in redis
