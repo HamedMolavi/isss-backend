@@ -157,7 +157,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         brand: _brand != null ? _brand.name : "",
         color: _color != null ? _color.name : "",
         camera_whitelist: cars[i].camera_whitelist,
-        time: cars[i].time,
+        time: cars[i].create_date,
         __v: cars[i].__v,
       };
       newCars.push(result);
@@ -221,7 +221,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         brand: _brand?.name ?? "",
         color: _color?.name ?? "",
         camera_whitelist: car.camera_whitelist,
-        time: car.time,
+        time: car.create_date,
         __v: car.__v,
       },
     });
@@ -276,7 +276,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
         brand: _brand?.name ?? "",
         color: _color?.name ?? "",
         camera_whitelist: car.camera_whitelist,
-        time: car.time,
+        time: car.create_date,
         __v: car.__v,
       },
     });
@@ -329,7 +329,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         brand: _brand?.name ?? "",
         color: _color?.name ?? "",
         camera_whitelist: car.camera_whitelist,
-        time: car.time,
+        time: car.create_date,
         __v: car.__v,
       },
     });

@@ -23,7 +23,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //get jason from body request
     const { section_id, url, ip, name, username, password,network ,is_enabled }: ICamera = req.body;
     //verify body request
-    if (!section_id || !url || !ip || !name || !username || !password || !is_enabled || !network) {
+    if (!section_id || !url || !ip || !name || !username || !password  || !network) {
       req.flash("error", "please complete all fields");
       return next(new ApiError(400, "please complete all fields"));
     }
