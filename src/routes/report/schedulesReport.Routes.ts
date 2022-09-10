@@ -9,6 +9,7 @@ import Section, { ISection } from "../../models/section";
 import { getTokenAndVerify } from "../../tools/authentication";
 import Schedule, { ISchedule } from "../../models/schedule";
 import ModelToCamera, { IModelToCamera } from "../../models/modelToCamera";
+import cronConverter from "cron-converter";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -31,6 +32,7 @@ interface IChildrenModel {
   type: string;
   name: string;
   category: string;
+  is_enabled:boolean;
   uri: string;
   children: IChildrenSchedule[];
 }
@@ -38,8 +40,8 @@ interface IChildrenModel {
 interface IChildrenSchedule {
   _id: mongoose.Types.ObjectId;
   type: string;
-  start_cron: string;
-  stop_cron: string;
+  start_cron: any;
+  stop_cron: any;
   model_camera_id: mongoose.Types.ObjectId;
   config: {
     threshold: number;
@@ -90,11 +92,21 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         if (cameras[i]._id!.toString() == modelToCamera[j].camera_id!.toString()) {
           for (let k = 0; k < schedules.length; k++) {
             if (schedules[k].model_camera_id!.toString() == modelToCamera[j]._id!.toString()) {
+              let time_start_json = schedules[k].start_cron.split(" ");
+              let time_stop_json = schedules[k].stop_cron.split(" ");
               childrenSchedule.push({
                 _id: schedules[k]._id,
                 type: "schedule",
-                start_cron: schedules[k].start_cron,
-                stop_cron: schedules[k].stop_cron,
+                start_cron: {
+                  min:time_start_json[0],
+                  hover:time_start_json[1],
+                  dausOfWeak:[time_start_json[4]]
+                },
+                stop_cron: {
+                  min:time_stop_json[0],
+                  hover:time_stop_json[1],
+                  dausOfWeak:[time_stop_json[4]]
+                },
                 model_camera_id: schedules[k].model_camera_id,
                 config: {
                   threshold: schedules[k].config.threshold,
@@ -106,12 +118,13 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
             }
           }
           for (let p = 0; p < models.length; ++p) {
-            if (models[p]._id!.toString() == modelToCamera[j].model_id!.toString()) {
+            if (models[p]._id!.toString() == modelToCamera[j].model_id!.toString()&& modelToCamera[j].is_enabled == true) {
               childrenModel.push({
                 _id: models[p]._id,
                 name: models[p].name,
                 type: "model",
                 category: models[p].category,
+                is_enabled:modelToCamera[j].is_enabled,
                 uri: models[p].uri,
                 children: childrenSchedule,
               });
@@ -174,6 +187,11 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     if (!token) {
       return null;
     }
+    // var cronInstance = new cronConverter();
+    // cronInstance.fromString("*/5 * * * *");
+    // // Get the iterator, initialised to now
+    // var schedule = cronInstance.schedule();
+
     //query for get departements list
     let models: IModel[] = await Model.find({}).exec();
     //query for get all section from DB
@@ -196,12 +214,22 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
           let childrenSchedule: IChildrenSchedule[] = [];
           if (cameras[i]._id!.toString() == modelToCamera[j].camera_id!.toString()) {
             for (let k = 0; k < schedules.length; k++) {
+              let time_start_json = schedules[k].start_cron.split(" ");
+              let time_stop_json = schedules[k].stop_cron.split(" ");
               if (schedules[k].model_camera_id!.toString() == modelToCamera[j]._id!.toString()) {
                 childrenSchedule.push({
                   _id: schedules[k]._id,
                   type: "schedule",
-                  start_cron: schedules[k].start_cron,
-                  stop_cron: schedules[k].stop_cron,
+                  start_cron: {
+                    min:time_start_json[0],
+                    hover:time_start_json[1],
+                    dausOfWeak:[time_start_json[4]]
+                  },
+                  stop_cron: {
+                    min:time_stop_json[0],
+                    hover:time_stop_json[1],
+                    dausOfWeak:[time_stop_json[4]]
+                  },
                   model_camera_id: schedules[k].model_camera_id,
                   config: {
                     threshold: schedules[k].config.threshold,
@@ -213,12 +241,13 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
               }
             }
             for (let p = 0; p < models.length; ++p) {
-              if (models[p]._id!.toString() == modelToCamera[j].model_id!.toString()) {
+              if (models[p]._id!.toString() == modelToCamera[j].model_id!.toString() && modelToCamera[j].is_enabled == true) {
                 childrenModel.push({
                   _id: models[p]._id,
                   name: models[p].name,
                   type: "model",
                   category: models[p].category,
+                  is_enabled : modelToCamera[j].is_enabled ,
                   uri: models[p].uri,
                   children: childrenSchedule,
                 });
