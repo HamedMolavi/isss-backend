@@ -26,7 +26,6 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 router.get("/", function (req: Request, res: Response, next: NextFunction) {
   let path = Path.join(__dirname, "./../../../index.html");
-  console.log(path);
   res.sendFile(path);
 });
 
@@ -35,7 +34,6 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
   try {
     //get jason from body request
     const bodyRequest = req.body;
-    console.log(req.body);
     let _camera = await Camera.findById(bodyRequest.log.camera_id).exec();
     let _section;
     if (_camera) {
@@ -52,23 +50,18 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         _owner = await Personnel.findById(ownerWithId._id).exec();
       }
     }
-    let s = Number(bodyRequest.log.personnel_id);
     let _personnel;
-    if (bodyRequest.log.personnel_id != null && bodyRequest.log.personnel_id.split()[0] != "-") {
+    if (bodyRequest.log.personnel_id != null && (bodyRequest.log.personnel_id > 0 || bodyRequest.log.personnel_id.toString().split("")[0] != "-")) {
       _personnel = await Personnel.findById(bodyRequest.log.personnel_id).exec();
     }
 
     let is_muted_list: boolean = false;
-    if (bodyRequest.log.personnel_id && Number(bodyRequest.log.personnel_id) > 0) {
+    if (bodyRequest.log.model_camera_id) {
       let model_camera_id = await ModelToCamera.findById(bodyRequest.log.model_camera_id).exec();
       if (model_camera_id) {
         is_muted_list = _camera?.muted.includes(model_camera_id.model_id) ?? false;
       }
     }
-    // if(_owner_id )
-    // {
-    //    _owner_id = await Personnel.findById(_owner_id?._id).exec();
-    // }
 
     let result = {
       title: _personnel != null ? "Alerting" : "Warnings",
@@ -85,22 +78,8 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       plate_number: bodyRequest.log.plate_number,
       owner: _owner?.first_name + " " + _owner?.last_name,
     };
-    // console.log(result);
     let notification = result;
-    // if (bodyRequest.type === "face") {
-    //   notification = `${result.personnel?.first_name} ${result.personnel?.last_name} with personnel code: ${result.personnel?.personnel_code} ditected in camera: ${result.camera}, section:${result.section}, department:${result.departement}`;
-    // } else if (bodyRequest.type === "fire") {
-    //   notification_text = `fire ditected in camera: ${result.camera}, section: ${result.section}, department: ${result.departement}`;
-    // } else if (bodyRequest.type === "human") {
-    //   notification_text = `#${result.peopleCounting} human(s) ditected in camera: ${result.camera}, section: ${result.section}, department: ${result.departement}`;
-    // } else if (bodyRequest.type === "sabotage") {
-    //   notification_text = `sabotage ditected in camera: ${result.camera}, section: ${result.section}, department: ${result.departement}`;
-    // } else if (bodyRequest.type === "plate") {
-    //   notification_text = `car plate: ${result.plate_number} with owner: ${result.owner} ditected in camera: ${result.camera}, section: ${result.section}, department:${result.departement}, owner: `;
-    // }
-    console.log(result);
-    // console.log(notification_text)
-    if (is_muted_list == false) {
+    if (is_muted_list === false && result.title === "Alerting") {
       io.emit("get alert", notification);
     }
 

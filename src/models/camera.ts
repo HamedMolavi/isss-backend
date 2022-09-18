@@ -25,7 +25,7 @@ const CameraSchema: Schema<ICamera> = new Schema(
     name: { type: String, required: true },
     username: { type: String, required: true },
     password: { type: String, required: true },
-    muted: { type: [Schema.Types.ObjectId], required: false },
+    muted: [Schema.Types.ObjectId],
     is_enabled: { type: Boolean, required: true },
     create_date: { type: Date, default: Date.now },
   },

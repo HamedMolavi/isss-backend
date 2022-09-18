@@ -141,7 +141,6 @@ router.post("/redis/:id", async function (req: Request, res: Response, next: Nex
 
     // // //move file to buffer
     let image = Buffer.from(reqFile.file.data, "base64");
-    // // console.log(image);
     // // //convert file to base64
     let fileBase64 = image.toString("base64");
     // //  let fileName: string =  "test.jpg";
@@ -221,12 +220,10 @@ router.post("/verify", async function (req: Request, res: Response, next: NextFu
       //define path for save image
 
       let pathSave = path.join(__dirname, `./../../../assets/image/${redisData.personnel_id}`);
-      console.log(pathSave);
       if (!fs.existsSync(pathSave)) {
         fs.mkdirSync(pathSave);
       }
       pathSave = path.join(__dirname, `./../../../assets/image/${redisData.personnel_id}/${redisData.personnel_id}-`);
-      console.log(pathSave);
       //write image in path
       await fs.writeFile(pathSave + fileName, image, (err) => {
         if (err) {
