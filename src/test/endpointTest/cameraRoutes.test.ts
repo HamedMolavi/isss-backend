@@ -78,7 +78,6 @@ describe("server run and server runnig and crud camera", function () {
           return done(err);
         }
         let userResponse = res.body.data;
-        console.log(_camera.muted);
         expect(userResponse.name).to.equal(_camera.name);
         expect(userResponse.network).to.equal(_camera.network);
         expect(userResponse.section_id.toString()).to.equal(_camera.section_id.toString());

@@ -73,7 +73,7 @@ export async function dynamicRequestToElasticSearch(
           },
         });
       }
-      console.log(probability)
+
       //add filter for confidence if confidence is not empty  and model is not event
       //confidence ai array string confidence number
       if (probability.length > 0) {
@@ -186,7 +186,6 @@ export async function dynamicRequestToElasticSearch(
       },
       data: jsonResuest,
     });
-    console.log(response.data);
     return response;
   } catch (err: any) {
     return next(new ApiError(500, "Error while getting data from elastic search"));
