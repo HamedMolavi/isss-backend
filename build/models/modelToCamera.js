@@ -27,9 +27,10 @@ const mongoose_1 = __importStar(require("mongoose"));
 //create Model ModelToCamera with schema for save in DB
 const ModelToCameraSchema = new mongoose_1.Schema({
     model_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Model" },
-    camera_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Camera" }
+    camera_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Camera" },
+    is_enabled: { type: Boolean, default: false },
 }, {
-    collection: "Model_Camera"
+    collection: "Model_Camera",
 });
 // Compile Model from schema
 const ModelToCamera = mongoose_1.default.model("ModelToCamera", ModelToCameraSchema);

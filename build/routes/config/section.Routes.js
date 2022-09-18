@@ -44,7 +44,9 @@ router.post("", function (req, res, next) {
                 return null;
             }
             //query for save new section in DB
-            let section = yield section_1.default.findOne({ department_id: department_id }).exec();
+            let section = yield section_1.default.findOne({
+                $and: [{ name: name }, { department_id: department_id }],
+            }).exec();
             //check if section exist
             if (section) {
                 req.flash("error", "Section already exist");

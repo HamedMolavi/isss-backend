@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dataTime2TimeStamp = exports.date2Epokh = exports.compareTime = exports.convertToCronDay = exports.convertToCron = void 0;
+exports.dataTime2TimeStamp = exports.date2Epokh = exports.compareTime = exports.convertToCronDay = exports.convertCronToDate = exports.convertToCron = void 0;
 const reverseString_1 = __importDefault(require("./reverseString"));
 //for convert time to cron format
 const convertToCron = (time) => {
@@ -11,6 +11,10 @@ const convertToCron = (time) => {
     return timeArray[1] + " " + timeArray[0] + " * * ";
 };
 exports.convertToCron = convertToCron;
+//for convert time to cron format
+const convertCronToDate = (time) => {
+};
+exports.convertCronToDate = convertCronToDate;
 //for add day of week to cron format
 const convertToCronDay = (time_cron, dayOfWeek) => {
     return time_cron + dayOfWeek;

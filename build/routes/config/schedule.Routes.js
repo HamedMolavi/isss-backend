@@ -36,11 +36,7 @@ router.post("", function (req, res, next) {
             //get jason from body request
             const { start, stop, dayOfWeek, camera_id, model_id, montionDetection, threshold, zones, min_people, max_people, timeDuplicationDiagnoses } = req.body;
             //verify body request
-            if (!start ||
-                !stop ||
-                !dayOfWeek ||
-                !camera_id ||
-                !model_id) {
+            if (!start || !stop || !dayOfWeek || !camera_id || !model_id) {
                 req.flash("error", "Please fill all fields");
                 return next(new error_handler_1.ApiError(400, "Please fill all fields"));
             }
@@ -55,40 +51,41 @@ router.post("", function (req, res, next) {
                 return next(new error_handler_1.ApiError(400, "Invalid time"));
             }
             //search for model in DB
-            let model2Camera = yield modelToCamera_1.default.findOne({
-                $or: [{ model_id: model_id }, { camera_id: camera_id }],
-            }).exec();
+            let model2Camera = yield modelToCamera_1.default.findOneAndUpdate({
+                $and: [{ model_id: model_id }, { camera_id: camera_id }],
+            }, { is_enabled: true }, { new: true }).exec();
             //convert input time to cron format
             let start_cron = (0, convertTime_1.convertToCron)(start);
             start_cron = (0, convertTime_1.convertToCronDay)(start_cron, dayOfWeek.toString());
             let stop_cron = (0, convertTime_1.convertToCron)(stop);
             stop_cron = (0, convertTime_1.convertToCronDay)(stop_cron, dayOfWeek.toString());
             //query for save new schedule in DB
-            if (model2Camera) {
-                let schedule = yield schedule_1.default.findOneAndDelete({
-                    $or: [
-                        { start_cron: start_cron },
-                        { stop_cron: stop_cron },
-                        { model_camera_id: model2Camera._id },
-                    ],
-                }).exec();
-                if (schedule) {
-                    model2Camera = yield modelToCamera_1.default.findOneAndDelete({
-                        $or: [{ model_id: model_id }, { camera_id: camera_id }],
-                    }).exec();
-                }
-            }
+            // if (model2Camera) {
+            //   let schedule = await Schedule.findOneAndDelete({
+            //     $and: [
+            //       { start_cron: start_cron },
+            //       { stop_cron: stop_cron },
+            //       { model_camera_id: model2Camera._id },
+            //     ],
+            //   }).exec();
+            // if (schedule) {
+            //   model2Camera = await ModelToCamera.findOneAndDelete({
+            //     $and: [{ model_id: model_id }, { camera_id: camera_id }],
+            //   }).exec();
+            // }
+            // }
             //save model to camera
-            let model2CameraSave = new modelToCamera_1.default({
-                model_id: model_id,
-                camera_id: camera_id,
-            });
-            let model2camera = yield model2CameraSave.save();
+            // let model2CameraSave = new ModelToCamera({
+            //   _id : model2Camera?._id,
+            //   model_id: model_id,
+            //   camera_id: camera_id,
+            // });
+            //let model2camera = await model2CameraSave.save();
             //fil new schedule
             let schedule = new schedule_1.default({
                 start_cron: start_cron,
                 stop_cron: stop_cron,
-                model_camera_id: model2camera._id,
+                model_camera_id: model2Camera === null || model2Camera === void 0 ? void 0 : model2Camera._id,
                 montionDetection: montionDetection,
                 timeDuplicationDiagnoses: timeDuplicationDiagnoses !== null && timeDuplicationDiagnoses !== void 0 ? timeDuplicationDiagnoses : 0,
                 config: {
@@ -265,6 +262,7 @@ router.delete("/:id", function (req, res, next) {
                 req.flash("error", "schedule not found");
                 return next(new error_handler_1.ApiError(404, "schedule not found"));
             }
+            // let model2Camera = await ModelToCamera.findOneAndDelete({sche})
             //return response to client with schedule
             return res.status(201).json({
                 message: "Success",

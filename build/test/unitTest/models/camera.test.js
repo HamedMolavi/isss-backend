@@ -40,23 +40,29 @@ describe("camera", function () {
         it("should save camera in db", function (done) {
             var camera = new Camera({
                 name: "office",
+                network: "172.10.10.0",
                 section_id: new mongoose_1.default.Types.ObjectId("6283724be1996b883080a495"),
                 url: "rtsp://192.168.1.111:554/media/video1",
                 ip: "172.10.10.1",
                 username: "test",
                 password: "12345",
+                muted: ["628dc28ef014bc89f0280c4a", "62f341a1bd0e4b98100bf973"],
                 is_enabled: true,
             });
             //test this camera model
             camera
                 .save()
                 .then(() => {
+                var _a, _b;
                 (0, chai_1.expect)(camera.name).to.equal("office");
+                (0, chai_1.expect)(camera.network).to.equal("172.10.10.0");
                 (0, chai_1.expect)(camera.section_id.toString()).to.equal("6283724be1996b883080a495");
                 (0, chai_1.expect)(camera.url).to.equal("rtsp://192.168.1.111:554/media/video1");
                 (0, chai_1.expect)(camera.ip).to.equal("172.10.10.1");
                 (0, chai_1.expect)(camera.username).to.equal("test");
                 (0, chai_1.expect)(camera.password).to.equal("12345");
+                (0, chai_1.expect)((_a = camera.muted[0]) === null || _a === void 0 ? void 0 : _a.toString()).to.equal("628dc28ef014bc89f0280c4a");
+                (0, chai_1.expect)((_b = camera.muted[1]) === null || _b === void 0 ? void 0 : _b.toString()).to.equal("62f341a1bd0e4b98100bf973");
                 (0, chai_1.expect)(camera.is_enabled).to.equal(true);
                 done();
             })

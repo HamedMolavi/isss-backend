@@ -62,11 +62,21 @@ router.get("", function (req, res, next) {
                     if (cameras[i]._id.toString() == modelToCamera[j].camera_id.toString()) {
                         for (let k = 0; k < schedules.length; k++) {
                             if (schedules[k].model_camera_id.toString() == modelToCamera[j]._id.toString()) {
+                                let time_start_json = schedules[k].start_cron.split(" ");
+                                let time_stop_json = schedules[k].stop_cron.split(" ");
                                 childrenSchedule.push({
                                     _id: schedules[k]._id,
                                     type: "schedule",
-                                    start_cron: schedules[k].start_cron,
-                                    stop_cron: schedules[k].stop_cron,
+                                    start_cron: {
+                                        min: time_start_json[0],
+                                        hour: time_start_json[1],
+                                        dow: time_start_json[4].split(",")
+                                    },
+                                    stop_cron: {
+                                        min: time_stop_json[0],
+                                        hour: time_stop_json[1],
+                                        dow: time_stop_json[4].split(",")
+                                    },
                                     model_camera_id: schedules[k].model_camera_id,
                                     config: {
                                         threshold: schedules[k].config.threshold,
@@ -78,12 +88,13 @@ router.get("", function (req, res, next) {
                             }
                         }
                         for (let p = 0; p < models.length; ++p) {
-                            if (models[p]._id.toString() == modelToCamera[j].model_id.toString()) {
+                            if (models[p]._id.toString() == modelToCamera[j].model_id.toString() && modelToCamera[j].is_enabled == true) {
                                 childrenModel.push({
                                     _id: models[p]._id,
                                     name: models[p].name,
                                     type: "model",
                                     category: models[p].category,
+                                    is_enabled: modelToCamera[j].is_enabled,
                                     uri: models[p].uri,
                                     children: childrenSchedule,
                                 });
@@ -146,6 +157,10 @@ router.get("/:id", function (req, res, next) {
             if (!token) {
                 return null;
             }
+            // var cronInstance = new cronConverter();
+            // cronInstance.fromString("*/5 * * * *");
+            // // Get the iterator, initialised to now
+            // var schedule = cronInstance.schedule();
             //query for get departements list
             let models = yield model_1.default.find({}).exec();
             //query for get all section from DB
@@ -168,12 +183,22 @@ router.get("/:id", function (req, res, next) {
                         let childrenSchedule = [];
                         if (cameras[i]._id.toString() == modelToCamera[j].camera_id.toString()) {
                             for (let k = 0; k < schedules.length; k++) {
+                                let time_start_json = schedules[k].start_cron.split(" ");
+                                let time_stop_json = schedules[k].stop_cron.split(" ");
                                 if (schedules[k].model_camera_id.toString() == modelToCamera[j]._id.toString()) {
                                     childrenSchedule.push({
                                         _id: schedules[k]._id,
                                         type: "schedule",
-                                        start_cron: schedules[k].start_cron,
-                                        stop_cron: schedules[k].stop_cron,
+                                        start_cron: {
+                                            min: time_start_json[0],
+                                            hour: time_start_json[1],
+                                            dow: time_start_json[4].split(",")
+                                        },
+                                        stop_cron: {
+                                            min: time_stop_json[0],
+                                            hour: time_stop_json[1],
+                                            dow: time_stop_json[4].split(",")
+                                        },
                                         model_camera_id: schedules[k].model_camera_id,
                                         config: {
                                             threshold: schedules[k].config.threshold,
@@ -185,12 +210,13 @@ router.get("/:id", function (req, res, next) {
                                 }
                             }
                             for (let p = 0; p < models.length; ++p) {
-                                if (models[p]._id.toString() == modelToCamera[j].model_id.toString()) {
+                                if (models[p]._id.toString() == modelToCamera[j].model_id.toString() && modelToCamera[j].is_enabled == true) {
                                     childrenModel.push({
                                         _id: models[p]._id,
                                         name: models[p].name,
                                         type: "model",
                                         category: models[p].category,
+                                        is_enabled: modelToCamera[j].is_enabled,
                                         uri: models[p].uri,
                                         children: childrenSchedule,
                                     });

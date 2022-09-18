@@ -12,7 +12,7 @@
     "dev": "nodemon ./src/server.ts",
     "test:unit": "mocha ./build/test/unitTest/models ",
     "test:tools": "mocha ./build/test/unitTest/tools ",
-    "test:api": "mocha --timeout 10000 ./build/test/endpointTest/ ",
+    "test:api": "mocha --timeout 10000 ./build/test/endpointTest/cameraRoutes.test.js",
     "docker:build": "docker build -t isss-backend .",
     "docker:run": "docker run -e .env -p 8000:3000 -d isss-backend"
   },

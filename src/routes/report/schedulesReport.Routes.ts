@@ -99,13 +99,13 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 type: "schedule",
                 start_cron: {
                   min:time_start_json[0],
-                  hover:time_start_json[1],
-                  dausOfWeak:[time_start_json[4]]
+                  hour:time_start_json[1],
+                  dow:time_start_json[4].split(",")?? ["*"]
                 },
                 stop_cron: {
                   min:time_stop_json[0],
-                  hover:time_stop_json[1],
-                  dausOfWeak:[time_stop_json[4]]
+                  hour:time_stop_json[1],
+                  dow:time_stop_json[4].split(",")?? ["*"]
                 },
                 model_camera_id: schedules[k].model_camera_id,
                 config: {
@@ -126,7 +126,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 category: models[p].category,
                 is_enabled:modelToCamera[j].is_enabled,
                 uri: models[p].uri,
-                children: childrenSchedule,
+                children: childrenSchedule.length > 0 ?  childrenSchedule : [],
               });
             }
           }
@@ -222,13 +222,13 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
                   type: "schedule",
                   start_cron: {
                     min:time_start_json[0],
-                    hover:time_start_json[1],
-                    dausOfWeak:[time_start_json[4]]
+                    hour:time_start_json[1],
+                    dow:time_start_json[4].split(",")?? ["*"]
                   },
                   stop_cron: {
                     min:time_stop_json[0],
-                    hover:time_stop_json[1],
-                    dausOfWeak:[time_stop_json[4]]
+                    hour:time_stop_json[1],
+                    dow:time_stop_json[4].split(",")?? ["*"]
                   },
                   model_camera_id: schedules[k].model_camera_id,
                   config: {
@@ -249,7 +249,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
                   category: models[p].category,
                   is_enabled : modelToCamera[j].is_enabled ,
                   uri: models[p].uri,
-                  children: childrenSchedule,
+                  children:  childrenSchedule.length > 0 ?  childrenSchedule : [],
                 });
               }
             }

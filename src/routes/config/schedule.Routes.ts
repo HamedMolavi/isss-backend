@@ -100,8 +100,8 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       stop_cron: stop_cron,
       model_camera_id: model2Camera?._id,
       montionDetection: montionDetection,
-      timeDuplicationDiagnoses: timeDuplicationDiagnoses ?? 0,
       config: {
+        timeDuplicationDiagnoses: timeDuplicationDiagnoses ?? 0,
         threshold: threshold ?? 0,
         zones: zones ?? null,
         min_people: min_people ?? 0,
@@ -116,7 +116,26 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     req.flash("info", "schedule added");
     return res.status(201).json({
       success: true,
-      data: schedule,
+      data: {
+        start_cron: {
+          min: schedule.start_cron.split(" ")[0],
+          hour: schedule.start_cron.split(" ")[1],
+          dow: schedule.start_cron.split(" ")[4].split(",") ?? ["*"],
+        },
+        stop_cron: {
+          min: schedule.stop_cron.split(" ")[0],
+          hour: schedule.stop_cron.split(" ")[1],
+          dow: schedule.stop_cron.split(" ")[4].split(",") ?? ["*"],
+        },
+        model_camera_id: schedule.model_camera_id._id,
+        config: {
+          timeDuplicationDiagnoses: schedule.config.timeDuplicationDiagnoses ?? 0,
+          threshold: schedule.config?.threshold ?? 0,
+          zones: schedule.config.zones ?? null,
+          min_people: schedule.config.min_people ?? 0,
+          max_people: schedule.config.max_people ?? 0,
+        },
+      },
     });
   } catch (err: any) {
     return next(new ApiError(500, "Internal server error , " + err.message));
@@ -145,12 +164,36 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
       .skip(perPage * (page - 1))
       .exec();
 
+    let response_list = schedules.map((_schedule) => {
+      let data = {
+        _id: _schedule._id,
+        start_cron: {
+          min: _schedule.start_cron.split(" ")[0],
+          hour: _schedule.start_cron.split(" ")[1],
+          dow: _schedule.start_cron.split(" ")[4].split(",") ?? ["*"],
+        },
+        stop_cron: {
+          min: _schedule.stop_cron.split(" ")[0],
+          hour: _schedule.stop_cron.split(" ")[1],
+          dow: _schedule.stop_cron.split(" ")[4].split(",") ?? ["*"],
+        },
+        model_camera_id: _schedule.model_camera_id._id,
+        config: {
+          timeDuplicationDiagnoses: _schedule.config.timeDuplicationDiagnoses ?? 0,
+          threshold: _schedule.config?.threshold ?? 0,
+          zones: _schedule.config.zones ?? null,
+          min_people: _schedule.config.min_people ?? 0,
+          max_people: _schedule.config.max_people ?? 0,
+        },
+      };
+      return data;
+    });
     //return success
     req.flash("info", "schedule list");
     //send response to client with schedules
     return res.status(200).json({
       success: true,
-      data: schedules,
+      data: response_list,
       page: page,
       perPage: perPage,
       total: await Schedule.countDocuments().exec(),
@@ -188,7 +231,26 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     //return response to client with schedule
     return res.status(200).json({
       message: "Success",
-      schedule: schedule,
+      schedule: {
+        start_cron: {
+          min: schedule.start_cron.split(" ")[0],
+          hour: schedule.start_cron.split(" ")[1],
+          dow: schedule.start_cron.split(" ")[4].split(",") ?? ["*"],
+        },
+        stop_cron: {
+          min: schedule.stop_cron.split(" ")[0],
+          hour: schedule.stop_cron.split(" ")[1],
+          dow: schedule.stop_cron.split(" ")[4].split(",") ?? ["*"],
+        },
+        model_camera_id: schedule.model_camera_id._id,
+        config: {
+          timeDuplicationDiagnoses: schedule.config.timeDuplicationDiagnoses ?? 0,
+          threshold: schedule.config?.threshold ?? 0,
+          zones: schedule.config.zones ?? null,
+          min_people: schedule.config.min_people ?? 0,
+          max_people: schedule.config.max_people ?? 0,
+        },
+      },
     });
   } catch (err: any) {
     return next(new ApiError(500, "Internal server error , " + err.message));
@@ -226,7 +288,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
       req.flash("error", "start and stop is required");
       return next(new ApiError(400, "start and stop is required"));
     }
-
+    let start_cron="",stop_cron="";
     if (scheduleBody.start && scheduleBody.stop) {
       //check for valid time
       if (!compareTime(scheduleBody.start, scheduleBody.stop)) {
@@ -235,13 +297,30 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
       }
 
       //convert input time to cron format
-      let start_cron: string = convertToCron(scheduleBody.start);
+      start_cron = convertToCron(scheduleBody.start);
       start_cron = convertToCronDay(start_cron, scheduleBody.dayOfWeek.toString());
-      let stop_cron: string = convertToCron(scheduleBody.stop);
+      stop_cron = convertToCron(scheduleBody.stop);
       stop_cron = convertToCronDay(stop_cron, scheduleBody.dayOfWeek.toString());
     }
+
+    let old_schedule = await Schedule.findById(id).exec();
+
+    let update_schedule= {
+      start_cron: start_cron != "" ? start_cron :(old_schedule!.start_cron),
+      stop_cron: stop_cron != "" ? stop_cron : (old_schedule!.stop_cron),
+      model_camera_id:scheduleBody.model_camera_id ?? old_schedule?.model_camera_id._id,
+      config: {
+        timeDuplicationDiagnoses: scheduleBody.timeDuplicationDiagnoses ?? old_schedule?.config.timeDuplicationDiagnoses,
+        threshold:scheduleBody.threshold ??  old_schedule?.config?.threshold,
+        zones:scheduleBody.zones ?? old_schedule?.config?.zones,
+        min_people:scheduleBody.min_people ?? old_schedule?.config?.min_people,
+        max_people:scheduleBody.max_people ?? old_schedule?.config?.max_people ,
+      },
+    };
+
+
     //query for get schedule by id from DB and update
-    let schedule = await Schedule.findByIdAndUpdate(id, scheduleBody, {
+    let schedule = await Schedule.findByIdAndUpdate(id, update_schedule, {
       new: true,
     }).exec();
 
@@ -254,7 +333,26 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     //return response to client with schedule
     return res.status(201).json({
       message: "Success",
-      schedule: schedule,
+      schedule: {
+        start_cron: {
+          min: schedule.start_cron.split(" ")[0],
+          hour: schedule.start_cron.split(" ")[1],
+          dow: schedule.start_cron.split(" ")[4].split(",") ?? ["*"],
+        },
+        stop_cron: {
+          min: schedule.stop_cron.split(" ")[0],
+          hour: schedule.stop_cron.split(" ")[1],
+          dow: schedule.stop_cron.split(" ")[4].split(",") ?? ["*"],
+        },
+        model_camera_id: schedule.model_camera_id._id,
+        config: {
+          timeDuplicationDiagnoses: schedule.config.timeDuplicationDiagnoses ?? 0,
+          threshold: schedule.config?.threshold ?? 0,
+          zones: schedule.config.zones ?? null,
+          min_people: schedule.config.min_people ?? 0,
+          max_people: schedule.config.max_people ?? 0,
+        },
+      },
     });
   } catch (err: any) {
     return next(new ApiError(500, "Internal server error , " + err.message));
