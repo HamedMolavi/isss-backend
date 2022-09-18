@@ -6,6 +6,11 @@ export const convertToCron = (time: string) => {
   return timeArray[1] + " " + timeArray[0] + " * * ";
 };
 
+//for convert time to cron format
+export const convertCronToDate = (time: string) => {
+    
+};
+
 //for add day of week to cron format
 export const convertToCronDay = (time_cron: string, dayOfWeek: string) => {
   return time_cron + dayOfWeek;

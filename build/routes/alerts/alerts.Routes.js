@@ -19,6 +19,8 @@ const personnel_1 = __importDefault(require("../../models/personnel"));
 const server_1 = require("../../server");
 const path_1 = __importDefault(require("path"));
 const section_1 = __importDefault(require("../../models/section"));
+const department_1 = __importDefault(require("../../models/department"));
+const car_1 = __importDefault(require("../../models/car"));
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to server
@@ -37,37 +39,44 @@ router.get("/", function (req, res, next) {
 });
 //get alerts from back
 router.post("", function (req, res, next) {
-    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
             const bodyRequest = req.body;
-            console.log(bodyRequest);
+            console.log(req.body);
             let _camera = yield camera_1.default.findById(bodyRequest.log.camera_id).exec();
-            let section;
+            let _section;
             if (_camera) {
-                section = yield section_1.default.findOne({ section_id: _camera.section_id }).exec();
+                _section = yield section_1.default.findById(_camera.section_id).exec();
             }
-            let departement;
-            if (section) {
-                departement = yield section_1.default.findOne({ departement_id: section.department_id }).exec();
+            let _departement;
+            if (_section) {
+                _departement = yield department_1.default.findById(_section.department_id).exec();
             }
-            let owner_id;
+            let _owner;
             if (bodyRequest.log.plate_number) {
-                owner_id = yield camera_1.default.findOne({ number_plate: bodyRequest.log.plate_number });
+                _owner = yield car_1.default.findOne({ number_plate: bodyRequest.log.plate_number }).exec();
             }
+            let _personnel;
+            if ((bodyRequest.log.personnel_id) && (bodyRequest.log.personnel_id !== -1)) {
+                _personnel = yield personnel_1.default.findById(bodyRequest.log.personnel_id).exec();
+            }
+            // if(_owner_id )
+            // {
+            //    _owner_id = await Personnel.findById(_owner_id?._id).exec();
+            // }
             let result = {
                 type: bodyRequest.type,
                 confidence: bodyRequest.log.confidence,
                 camera: _camera === null || _camera === void 0 ? void 0 : _camera.name,
-                section: section === null || section === void 0 ? void 0 : section.name,
-                departement: departement === null || departement === void 0 ? void 0 : departement.name,
-                personnel: (_a = bodyRequest.log.personnel_id) !== null && _a !== void 0 ? _a : (yield personnel_1.default.findById(bodyRequest.log.personnel_id).exec()),
+                section: _section === null || _section === void 0 ? void 0 : _section.name,
+                departement: _departement === null || _departement === void 0 ? void 0 : _departement.name,
+                personnel: (_personnel === null || _personnel === void 0 ? void 0 : _personnel.first_name) + " " + (_personnel === null || _personnel === void 0 ? void 0 : _personnel.last_name),
                 description: bodyRequest.description,
                 time: new Date(bodyRequest.log.timestamp),
                 peopleCounting: bodyRequest.log.number_of_people,
                 plate_number: bodyRequest.log.plate_number,
-                owner: (_b = owner_id === null || owner_id === void 0 ? void 0 : owner_id._id) !== null && _b !== void 0 ? _b : (yield personnel_1.default.findById(owner_id === null || owner_id === void 0 ? void 0 : owner_id._id).exec()),
+                owner: "_owner_id?._id",
             };
             // console.log(result);
             let notification = result;
@@ -82,6 +91,7 @@ router.post("", function (req, res, next) {
             // } else if (bodyRequest.type === "plate") {
             //   notification_text = `car plate: ${result.plate_number} with owner: ${result.owner} ditected in camera: ${result.camera}, section: ${result.section}, department:${result.departement}, owner: `;
             // }
+            console.log(result);
             // console.log(notification_text);
             server_1.io.emit("get alert", notification);
             return res.status(201).json({

@@ -13,7 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const mongoose_1 = __importDefault(require("mongoose"));
 const error_handler_1 = require("../../error/error.handler");
+const model_1 = __importDefault(require("../../models/model"));
+const modelToCamera_1 = __importDefault(require("../../models/modelToCamera"));
 const camera_1 = __importDefault(require("./../../models/camera"));
 const authentication_1 = require("./../../tools/authentication");
 //get user role from enviroment variable
@@ -32,7 +35,7 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { section_id, url, ip, name, username, password, network, is_enabled } = req.body;
+            const { section_id, url, ip, name, username, password, network, is_enabled, muted } = req.body;
             //verify body request
             if (!section_id || !url || !ip || !name || !username || !password || !network) {
                 req.flash("error", "please complete all fields");
@@ -61,10 +64,21 @@ router.post("", function (req, res, next) {
                 name: name,
                 username: username,
                 password: password,
+                muted: muted,
                 is_enabled: is_enabled,
             });
             //save camera in DB
             yield camera.save();
+            let models = yield model_1.default.find({}).exec();
+            for (let i = 0; i < models.length; ++i) {
+                let _model2CameraSave = new modelToCamera_1.default({
+                    _id: new mongoose_1.default.Types.ObjectId(),
+                    model_id: models[i]._id,
+                    camera_id: camera._id,
+                    is_enabled: false,
+                });
+                yield _model2CameraSave.save();
+            }
             //return success
             req.flash("info", "camera added");
             return res.status(201).json({

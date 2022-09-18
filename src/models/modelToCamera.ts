@@ -2,18 +2,23 @@ import mongoose, { Schema, Document } from "mongoose";
 
 //define ModelToCamera type
 export interface IModelToCamera extends Document {
-    _id: Schema.Types.ObjectId;
-    model_id: Schema.Types.ObjectId;
-    camera_id: Schema.Types.ObjectId;
+  _id: Schema.Types.ObjectId;
+  model_id: Schema.Types.ObjectId;
+  camera_id: Schema.Types.ObjectId;
+  is_enabled: boolean;
 }
 
 //create Model ModelToCamera with schema for save in DB
-const ModelToCameraSchema: Schema<IModelToCamera> = new Schema({
+const ModelToCameraSchema: Schema<IModelToCamera> = new Schema(
+  {
     model_id: { type: Schema.Types.ObjectId, ref: "Model" },
-    camera_id: { type: Schema.Types.ObjectId, ref: "Camera" }
-},{
-    collection: "Model_Camera"
-});
+    camera_id: { type: Schema.Types.ObjectId, ref: "Camera" },
+    is_enabled: { type: Boolean, default: false },
+  },
+  {
+    collection: "Model_Camera",
+  }
+);
 
 // Compile Model from schema
 const ModelToCamera = mongoose.model("ModelToCamera", ModelToCameraSchema);

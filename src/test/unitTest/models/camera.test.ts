@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { Disconnect } from "../../../db/connectMongo";
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { dbUri } from "../../../server";
 
 //test camera models
@@ -36,11 +36,13 @@ describe("camera", function () {
     it("should save camera in db", function (done) {
       var camera = new Camera({
         name: "office",
+        network : "172.10.10.0",
         section_id: new mongoose.Types.ObjectId("6283724be1996b883080a495"),
         url: "rtsp://192.168.1.111:554/media/video1",
         ip: "172.10.10.1",
         username: "test",
         password: "12345",
+        muted :["628dc28ef014bc89f0280c4a", "62f341a1bd0e4b98100bf973"],
         is_enabled: true,
       });
       //test this camera model
@@ -48,6 +50,7 @@ describe("camera", function () {
         .save()
         .then(() => {
           expect(camera.name).to.equal("office");
+          expect(camera.network).to.equal("172.10.10.0");
           expect(camera.section_id.toString()).to.equal(
             "6283724be1996b883080a495"
           );
@@ -55,6 +58,8 @@ describe("camera", function () {
           expect(camera.ip).to.equal("172.10.10.1");
           expect(camera.username).to.equal("test");
           expect(camera.password).to.equal("12345");
+          expect(camera.muted[0]?.toString()).to.equal("628dc28ef014bc89f0280c4a");
+          expect(camera.muted[1]?.toString()).to.equal("62f341a1bd0e4b98100bf973");
           expect(camera.is_enabled).to.equal(true);
 
           done();

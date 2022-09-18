@@ -1,5 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
 import { ApiError } from "../../error/error.handler";
+import Model from "../../models/model";
+import ModelToCamera from "../../models/modelToCamera";
 import Camera, { ICamera } from "./../../models/camera";
 import { getTokenAndVerify } from "./../../tools/authentication";
 
@@ -21,9 +24,9 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get jason from body request
-    const { section_id, url, ip, name, username, password,network ,is_enabled }: ICamera = req.body;
+    const { section_id, url, ip, name, username, password, network, is_enabled , muted }: ICamera = req.body;
     //verify body request
-    if (!section_id || !url || !ip || !name || !username || !password  || !network) {
+    if (!section_id || !url || !ip || !name || !username || !password || !network) {
       req.flash("error", "please complete all fields");
       return next(new ApiError(400, "please complete all fields"));
     }
@@ -50,16 +53,28 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       section_id: section_id,
       url: url,
       ip: ip,
-      network:network,
+      network: network,
       name: name,
       username: username,
       password: password,
+      muted : muted,
       is_enabled: is_enabled,
     });
 
     //save camera in DB
     await camera.save();
 
+    let models = await Model.find({}).exec();
+
+    for (let i = 0; i < models.length; ++i) {
+      let _model2CameraSave = new ModelToCamera({
+        _id: new mongoose.Types.ObjectId(),
+        model_id: models[i]._id,
+        camera_id: camera._id,
+        is_enabled: false,
+      });
+      await _model2CameraSave.save();
+    }
     //return success
     req.flash("info", "camera added");
     return res.status(201).json({
@@ -102,7 +117,6 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         .skip(perPage * (page - 1))
         .exec();
     }
-
     //return response not found to client if not found cameras
     if (!cameras) {
       req.flash("error", "Cameras not found");

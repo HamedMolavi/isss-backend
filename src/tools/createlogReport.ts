@@ -217,6 +217,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null) {
   return _data;
 }
 
+
 //create json response eventLog report for send to client
 export async function eventLogResponse(response: any) {
   //create json response
@@ -226,12 +227,12 @@ export async function eventLogResponse(response: any) {
     cameraIds.push(response.data.hits.hits[i]._source.log.camera_id);
     let camera = await Camera.findById(response.data.hits.hits[i]._source.log.camera_id).exec();
     let schedule = await Schedule.findById(response.data.hits.hits[i]._source.log.schedule_id).exec();
-    let model ;
+    let model;
     if (schedule) {
-     let modelToCamera = await ModelToCamera.findById(schedule.model_camera_id).exec();
-     if(modelToCamera){
-      model = await Model.findById(modelToCamera.model_id).exec();
-     }
+      let modelToCamera = await ModelToCamera.findById(schedule.model_camera_id).exec();
+      if (modelToCamera) {
+        model = await Model.findById(modelToCamera.model_id).exec();
+      }
     }
     let result = {
       camera_id: response.data.hits.hits[i]._source.log.camera_id,
