@@ -185,8 +185,9 @@ export async function faceLogResponse(response: any, allowed: boolean | null) {
   for (let i = 0; i < response.data.hits.hits.length; i++) {
     //get personnel from mongo db by id
     let _personnel: IPersonnel | null;
-
-    if (response.data.hits.hits[i]._source.personnel_id !== "-1") {
+    //if (response.data.hits.hits[i]._source.personnel_id !== "-1" || Number(response.data.hits.hits[i]._source.personnel_id) > 0) {
+    if (isNaN(Number(response.data.hits.hits[i]._source.personnel_id))) {
+      let s = Number(response.data.hits.hits[i]._source.personnel_id);
       _personnel = await Personnel.findById(response.data.hits.hits[i]._source.personnel_id).exec();
     } else {
       _personnel = null;
@@ -216,7 +217,6 @@ export async function faceLogResponse(response: any, allowed: boolean | null) {
   }
   return _data;
 }
-
 
 //create json response eventLog report for send to client
 export async function eventLogResponse(response: any) {

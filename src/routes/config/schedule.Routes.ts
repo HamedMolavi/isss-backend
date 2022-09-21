@@ -70,30 +70,6 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     let stop_cron: string = convertToCron(stop);
     stop_cron = convertToCronDay(stop_cron, dayOfWeek.toString());
 
-    //query for save new schedule in DB
-    // if (model2Camera) {
-    //   let schedule = await Schedule.findOneAndDelete({
-    //     $and: [
-    //       { start_cron: start_cron },
-    //       { stop_cron: stop_cron },
-    //       { model_camera_id: model2Camera._id },
-    //     ],
-    //   }).exec();
-    // if (schedule) {
-    //   model2Camera = await ModelToCamera.findOneAndDelete({
-    //     $and: [{ model_id: model_id }, { camera_id: camera_id }],
-    //   }).exec();
-    // }
-    // }
-
-    //save model to camera
-    // let model2CameraSave = new ModelToCamera({
-    //   _id : model2Camera?._id,
-    //   model_id: model_id,
-    //   camera_id: camera_id,
-    // });
-    //let model2camera = await model2CameraSave.save();
-
     //fil new schedule
     let schedule = new Schedule({
       start_cron: start_cron,
