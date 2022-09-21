@@ -51,7 +51,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       }
     }
     let _personnel;
-    if (bodyRequest.log.personnel_id != null && (bodyRequest.log.personnel_id > 0 || bodyRequest.log.personnel_id.toString().split("")[0] != "-")) {
+    if (bodyRequest.log.personnel_id != null && isNaN(Number(bodyRequest.log.personnel_id))) {
       _personnel = await Personnel.findById(bodyRequest.log.personnel_id).exec();
     }
 

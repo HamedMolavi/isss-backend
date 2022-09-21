@@ -101,7 +101,7 @@ export async function dynamicRequestToElasticSearch(
       jsonResuest.sort = [
         {
           timestamp: {
-            order: "asc",
+            order: "desc",
           },
         },
       ];
@@ -172,7 +172,7 @@ export async function dynamicRequestToElasticSearch(
       jsonResuest.sort = [
         {
           "log.timestamp": {
-            order: "asc",
+            order: "desc",
           },
         },
       ];
