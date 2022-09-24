@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Personnel from "../../models/personnel";
 import toPersianPlate, { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
-import Car, { ICar } from "./../../models/car";
+import Car from "./../../models/car";
 import { getTokenAndVerify } from "./../../tools/authentication";
 import CarBrand from "../../models/carBrand";
 import CarColor from "../../models/carColor";
@@ -148,11 +148,11 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         _id: cars[i]._id,
         owner: _owner,
         number_plate: {
-          first: Number(cars[i].number_plate.substr(0, 2)).toLocaleString("fa-IR"),
-          second: toPersianPlate[cars[i].number_plate.substr(2, 1)],
-          third: Number(cars[i].number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+          first:cars[i].number_plate != null ? Number(cars[i].number_plate.substr(0, 2)).toLocaleString("fa-IR"):"",
+          second:cars[i].number_plate != null ? toPersianPlate[cars[i].number_plate.substr(2, 1)]:"",
+          third:cars[i].number_plate != null ? Number(cars[i].number_plate.substr(3, 3)).toLocaleString("fa-IR"):"",
           fourth: "ایران",
-          fifth: Number(cars[i].number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+          fifth:cars[i].number_plate != null ? Number(cars[i].number_plate.substr(6, 2)).toLocaleString("fa-IR"):"",
         },
         brand: _brand != null ? _brand.name : "",
         color: _color != null ? _color.name : "",

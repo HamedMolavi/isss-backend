@@ -8,7 +8,6 @@ import Section from "../../models/section";
 import Department from "../../models/department";
 import Car from "../../models/car";
 import ModelToCamera from "../../models/modelToCamera";
-import mongoose, { Schema } from "mongoose";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";

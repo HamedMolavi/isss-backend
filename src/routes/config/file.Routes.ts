@@ -1,13 +1,12 @@
-import { fileName, location, setFileInRedis, getImageFromRedis, deleteImageInRedis, uploadAvatar } from "./../../tools/fileUpload";
+import { setFileInRedis, getImageFromRedis, deleteImageInRedis, uploadAvatar } from "./../../tools/fileUpload";
 import { NextFunction, Router, Request, Response } from "express";
 import fs from "fs";
 import { getTokenAndVerify } from "./../../tools/authentication";
 import axios from "axios";
 import path from "path";
-import PersonImage, { IPersonImage } from "./../../models/personImage";
+import PersonImage from "./../../models/personImage";
 import { hashJson } from "./../../tools/hash";
 import { ApiError } from "../../error/error.handler";
-import mongoose, { Mongoose } from "mongoose";
 
 //create router for add to server
 const router: Router = Router();
@@ -125,11 +124,11 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
 });
 
 //api for upload image to redis
-router.post("/redis/:id", async function (req: Request, res: Response, next: NextFunction) {
+router.post("/redis", async function (req: Request, res: Response, next: NextFunction) {
   try {
     // get id from request url
-    // const { personnel_id, image_str } = req.body;
-    const personnel_id = req.params.id;
+     const { personnel_id, image_str } = req.body;
+   // const personnel_id = req.params.id;
     //get token from header request and verify
     let token = getTokenAndVerify(req, const_role, next);
     if (!token) {
@@ -146,9 +145,9 @@ router.post("/redis/:id", async function (req: Request, res: Response, next: Nex
     // //  let fileName: string =  "test.jpg";
 
     //create hash for redis id
-    let idHashed = hashJson(fileBase64, personnel_id);
+    let idHashed = hashJson(image_str, personnel_id);
     //set file in redis
-    let id = await setFileInRedis(fileBase64, idHashed, personnel_id);
+    let id = await setFileInRedis(image_str, idHashed, personnel_id);
     if (!id) {
       req.flash("error", "File not upload");
       return next(new ApiError(400, "File not upload"));
