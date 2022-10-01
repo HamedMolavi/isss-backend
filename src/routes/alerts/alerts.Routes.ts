@@ -46,7 +46,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     if (bodyRequest.log.plate_number) {
       let ownerWithId = await Car.findOne({ number_plate: bodyRequest.log.plate_number }).exec();
       if (ownerWithId) {
-        _owner = await Personnel.findById(ownerWithId._id).exec();
+        _owner = await Personnel.findById(ownerWithId.owner).exec();
       }
     }
     let _personnel;
@@ -78,7 +78,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       owner: _owner?.first_name + " " + _owner?.last_name,
     };
     let notification = result;
-    if (is_muted_list === false && result.title === "Alerting") {
+    if ((is_muted_list === false && result.title === "Alerting")||(result.type === "plate")) {
       io.emit("get alert", notification);
     }
 

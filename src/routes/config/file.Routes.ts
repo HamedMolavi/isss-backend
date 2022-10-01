@@ -127,27 +127,28 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
 router.post("/redis", async function (req: Request, res: Response, next: NextFunction) {
   try {
     // get id from request url
-     const { personnel_id, image_str } = req.body;
-   // const personnel_id = req.params.id;
-    //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+    const { personnel_id, image_str } = req.body;
+    const image_str_base46 = String(image_str.split(",")[1]);
+    //  const personnel_id = req.params.id;
+    // //get token from header request and verify
+    // let token = getTokenAndVerify(req, const_role, next);
+    // if (!token) {
+    //   return null;
+    // }
 
-    // // //get file from request and change format  to json
-    let reqFile = JSON.parse(JSON.stringify(req.files));
+    // // // //get file from request and change format  to json
+    // let reqFile = JSON.parse(JSON.stringify(req.files));
 
-    // // //move file to buffer
-    let image = Buffer.from(reqFile.file.data, "base64");
-    // // //convert file to base64
-    let fileBase64 = image.toString("base64");
+    // // // //move file to buffer
+    // let image = Buffer.from(reqFile.file.data, "base64");
+    // // // //convert file to base64
+    // let fileBase64 = image.toString("base64");
     // //  let fileName: string =  "test.jpg";
 
     //create hash for redis id
-    let idHashed = hashJson(image_str, personnel_id);
+    let idHashed = hashJson(image_str_base46, personnel_id);
     //set file in redis
-    let id = await setFileInRedis(image_str, idHashed, personnel_id);
+    let id = await setFileInRedis(image_str_base46, idHashed, personnel_id);
     if (!id) {
       req.flash("error", "File not upload");
       return next(new ApiError(400, "File not upload"));
@@ -199,7 +200,7 @@ router.post("/verify", async function (req: Request, res: Response, next: NextFu
     let redisData: any = await getImageFromRedis(requestBody.id);
     //convert base64 to file
     let image = Buffer.from(redisData.face, "base64");
-   // let embedding = Buffer.from(redisData.embedding, "base64");
+    // let embedding = Buffer.from(redisData.embedding, "base64");
     //covert base64 to array buffer
     //let embeddingArray: Number[] = Buffer.from(redisData.embedding, "base64").toJSON().data;
     // let embeddingArray =  Uint8Array.from(atob(redisData.embedding), c => c.charCodeAt(0))
@@ -207,7 +208,7 @@ router.post("/verify", async function (req: Request, res: Response, next: NextFu
     //   var output = bytes.buffer; // Get the ArrayBuffer from the Uint8Array.
     //   return new Float32Array(output); // Convert the ArrayBuffer to floats.
     // }
-   // let embeddingArray = bytesToFloatArray(embedding);
+    // let embeddingArray = bytesToFloatArray(embedding);
     //Face recognition condition
     if (redisData.has_face === 1) {
       let guid: string = requestBody.id;
@@ -231,18 +232,22 @@ router.post("/verify", async function (req: Request, res: Response, next: NextFu
       });
       let embedding = redisData.embedding;
       //create new personimage
-     // if (!personImage) {
-        let personImage = new PersonImage();
-        personImage.person_id = redisData.personnel_id;
-        personImage.vector= embedding;
-        //  save personimage in database
-        await personImage.save();
-     // }
+      // if (!personImage) {
+      let personImage = new PersonImage();
+      personImage.person_id = redisData.personnel_id;
+      personImage.vector = embedding;
+      //  save personimage in database
+      await personImage.save();
+      // }
       //  delete jason image in redis
       let result = await deleteImageInRedis(requestBody.id.toString());
       //   send response to client
       return res.status(200).send({
-        message: "Verified the file successfully",
+        success: true,
+        data: {
+          message: "Verified the file successfully",
+          face: redisData.face,
+        },
       });
     } else if (Number(redisData.has_face) === 0) {
       req.flash("error", "No face found");

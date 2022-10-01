@@ -201,16 +201,16 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
       return next(new ApiError(404, "Car not found"));
     }
 
-    let personnel = await Personnel.findById(car.owner).exec();
-    let _owner = personnel != null ? `${personnel?.first_name} ${personnel?.last_name}` : "";
-    let _brand = await CarBrand.findById(car.brand_id).exec();
-    let _color = await CarColor.findById(car.color_id).exec();
+    // let personnel = await Personnel.findById(car.owner).exec();
+    // let _owner = personnel != null ? `${personnel?.first_name} ${personnel?.last_name}` : "";
+    // let _brand = await CarBrand.findById(car.brand_id).exec();
+    // let _color = await CarColor.findById(car.color_id).exec();
     //return response to client with departemen
     return res.status(200).json({
       success: true,
       data: {
         _id: car._id,
-        owner: _owner,
+        owner: car.owner,
         number_plate: {
           first: Number(car.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
           second: toPersianPlate[car.number_plate.substr(2, 1)],
@@ -218,8 +218,8 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
           fourth: "ایران",
           fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
         },
-        brand: _brand?.name ?? "",
-        color: _color?.name ?? "",
+        brand: car.brand_id,
+        color: car.color_id,
         camera_whitelist: car.camera_whitelist,
         time: car.create_date,
         __v: car.__v,
