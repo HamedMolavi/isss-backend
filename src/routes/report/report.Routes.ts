@@ -56,7 +56,7 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       _owner: string[] | null = null;
     let _cameras,
       _models,
-      _personnels: string[] = [];
+      _personnels: string[] | null = [];
     let _probabilities,
       _humanCounts: number[] = [];
     if (search) {
@@ -103,7 +103,7 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
     } else if (model === "fire") {
       _data = await fireLogResponse(response);
     } else if (model === "face") {
-      _data = await faceLogResponse(response, _allowed);
+      _data = await faceLogResponse(response, _allowed,Boolean(search));
     } else if (model === "event") {
       _data = await eventLogResponse(response);
     }

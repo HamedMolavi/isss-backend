@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 import { ApiError } from "../../error/error.handler";
 import Camera, { ICamera } from "../../models/camera";
 import Departement, { IDepartment } from "../../models/department";

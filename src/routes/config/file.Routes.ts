@@ -1,13 +1,12 @@
-import { fileName, location, setFileInRedis, getImageFromRedis, deleteImageInRedis, uploadAvatar } from "./../../tools/fileUpload";
+import { setFileInRedis, getImageFromRedis, deleteImageInRedis, uploadAvatar } from "./../../tools/fileUpload";
 import { NextFunction, Router, Request, Response } from "express";
 import fs from "fs";
 import { getTokenAndVerify } from "./../../tools/authentication";
 import axios from "axios";
 import path from "path";
-import PersonImage, { IPersonImage } from "./../../models/personImage";
+import PersonImage from "./../../models/personImage";
 import { hashJson } from "./../../tools/hash";
 import { ApiError } from "../../error/error.handler";
-import mongoose, { Mongoose } from "mongoose";
 
 //create router for add to server
 const router: Router = Router();
@@ -125,30 +124,31 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
 });
 
 //api for upload image to redis
-router.post("/redis/:id", async function (req: Request, res: Response, next: NextFunction) {
+router.post("/redis", async function (req: Request, res: Response, next: NextFunction) {
   try {
     // get id from request url
-    // const { personnel_id, image_str } = req.body;
-    const personnel_id = req.params.id;
-    //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+    const { personnel_id, image_str } = req.body;
+    const image_str_base46 = String(image_str.split(",")[1]);
+    //  const personnel_id = req.params.id;
+    // //get token from header request and verify
+    // let token = getTokenAndVerify(req, const_role, next);
+    // if (!token) {
+    //   return null;
+    // }
 
-    // // //get file from request and change format  to json
-    let reqFile = JSON.parse(JSON.stringify(req.files));
+    // // // //get file from request and change format  to json
+    // let reqFile = JSON.parse(JSON.stringify(req.files));
 
-    // // //move file to buffer
-    let image = Buffer.from(reqFile.file.data, "base64");
-    // // //convert file to base64
-    let fileBase64 = image.toString("base64");
+    // // // //move file to buffer
+    // let image = Buffer.from(reqFile.file.data, "base64");
+    // // // //convert file to base64
+    // let fileBase64 = image.toString("base64");
     // //  let fileName: string =  "test.jpg";
 
     //create hash for redis id
-    let idHashed = hashJson(fileBase64, personnel_id);
+    let idHashed = hashJson(image_str_base46, personnel_id);
     //set file in redis
-    let id = await setFileInRedis(fileBase64, idHashed, personnel_id);
+    let id = await setFileInRedis(image_str_base46, idHashed, personnel_id);
     if (!id) {
       req.flash("error", "File not upload");
       return next(new ApiError(400, "File not upload"));
@@ -161,7 +161,7 @@ router.post("/redis/:id", async function (req: Request, res: Response, next: Nex
     });
     var config = {
       method: "post",
-      url: "http://192.168.1.20:23581/redis/face",
+      url: dbUri + "/redis/face",
       headers: {
         "Content-Type": "application/json",
       },
@@ -200,7 +200,7 @@ router.post("/verify", async function (req: Request, res: Response, next: NextFu
     let redisData: any = await getImageFromRedis(requestBody.id);
     //convert base64 to file
     let image = Buffer.from(redisData.face, "base64");
-   // let embedding = Buffer.from(redisData.embedding, "base64");
+    // let embedding = Buffer.from(redisData.embedding, "base64");
     //covert base64 to array buffer
     //let embeddingArray: Number[] = Buffer.from(redisData.embedding, "base64").toJSON().data;
     // let embeddingArray =  Uint8Array.from(atob(redisData.embedding), c => c.charCodeAt(0))
@@ -208,7 +208,7 @@ router.post("/verify", async function (req: Request, res: Response, next: NextFu
     //   var output = bytes.buffer; // Get the ArrayBuffer from the Uint8Array.
     //   return new Float32Array(output); // Convert the ArrayBuffer to floats.
     // }
-   // let embeddingArray = bytesToFloatArray(embedding);
+    // let embeddingArray = bytesToFloatArray(embedding);
     //Face recognition condition
     if (redisData.has_face === 1) {
       let guid: string = requestBody.id;
@@ -232,18 +232,38 @@ router.post("/verify", async function (req: Request, res: Response, next: NextFu
       });
       let embedding = redisData.embedding;
       //create new personimage
-     // if (!personImage) {
-        let personImage = new PersonImage();
-        personImage.person_id = redisData.personnel_id;
-        personImage.vector= embedding;
-        //  save personimage in database
-        await personImage.save();
-     // }
+      // if (!personImage) {
+      let personImage = new PersonImage();
+      personImage.person_id = redisData.personnel_id;
+      personImage.vector = embedding;
+      personImage.hash_id = guid;
+      //  save personimage in database
+      await personImage.save();
+      // }
       //  delete jason image in redis
       let result = await deleteImageInRedis(requestBody.id.toString());
       //   send response to client
+
+      //get url AI for send request
+      const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
+      //send request to AI api for send id_personnel
+      var config = {
+        method: "get",
+        url: dbUri + "/embed",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+
+      let response = await axios(config);
+  
       return res.status(200).send({
-        message: "Verified the file successfully",
+        success: true,
+        data: {
+          message: "Verified the file successfully",
+          face: redisData.face,
+          hash_id: guid,
+        },
       });
     } else if (Number(redisData.has_face) === 0) {
       req.flash("error", "No face found");
