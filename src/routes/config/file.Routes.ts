@@ -161,7 +161,7 @@ router.post("/redis", async function (req: Request, res: Response, next: NextFun
     });
     var config = {
       method: "post",
-      url: dbUri,
+      url: dbUri + "/redis/face",
       headers: {
         "Content-Type": "application/json",
       },
@@ -243,11 +243,26 @@ router.post("/verify", async function (req: Request, res: Response, next: NextFu
       //  delete jason image in redis
       let result = await deleteImageInRedis(requestBody.id.toString());
       //   send response to client
+
+      //get url AI for send request
+      const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
+      //send request to AI api for send id_personnel
+      var config = {
+        method: "get",
+        url: dbUri + "/embed",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+
+      let response = await axios(config);
+  
       return res.status(200).send({
         success: true,
         data: {
           message: "Verified the file successfully",
           face: redisData.face,
+          hash_id: guid,
         },
       });
     } else if (Number(redisData.has_face) === 0) {

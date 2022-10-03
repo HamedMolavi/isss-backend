@@ -130,23 +130,26 @@ export async function deleteImageInRedis(id: string) {
   }
 }
 //function for read all image in assets and convert to base64 and return list base64
-export async function readFiles(dirname: string): Promise<string[] | null> {
+export async function readFiles(dirname: string): Promise<object[] | null> {
   //check for exist path
   if (!fs.existsSync(dirname)) {
     return null;
   }
   //read all file in dirname
   let filenames = await fs.promises.readdir(dirname);
-  let faces_base64: string[] = [];
+  let response: object[] = [];
   //read file and convert to base 64 and return list base64
   for (let i = 0; i < filenames.length; i++) {
-    //read file
-    let content = await fs.promises.readFile(dirname + filenames[i], "utf-8");
-    let image = Buffer.from(content, "base64"); //move all content to buffer
-    let fileBase64 = image.toString("base64"); //convert to dase64
-    faces_base64.push(fileBase64); //add to list
+    //read file and convert to base64
+    let hash_id = (filenames[i]?.split("-")[1]).split(".")[0]
+    let content = await fs.promises.readFile(dirname + filenames[i], "base64");
+    let result = {
+      hash_id : hash_id,
+      faces_base64 : content
+    }
+    response.push(result); //add to list
   }
-  return faces_base64;
+  return response;
 }
 //function for delete image in assets
 export async function deleteFiles(fileName: string, dirname: string): Promise<Boolean | null> {

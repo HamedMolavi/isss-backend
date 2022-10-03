@@ -46,7 +46,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
     //define path folder fo read files
     let pathRead = path.join(__dirname, `./../../../assets/image/${id}/`);
-    let faces_base64: string[] | null = [];
+    let faces_base64: Object[] | null = [];
     //check for exist path
     faces_base64 = await readFiles(pathRead); //read all file in directory path an convert to base62 and get list base64
     if (faces_base64 == null) {
