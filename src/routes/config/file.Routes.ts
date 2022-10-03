@@ -161,7 +161,7 @@ router.post("/redis", async function (req: Request, res: Response, next: NextFun
     });
     var config = {
       method: "post",
-      url: "http://192.168.1.20:23581/redis/face",
+      url: dbUri,
       headers: {
         "Content-Type": "application/json",
       },
@@ -236,6 +236,7 @@ router.post("/verify", async function (req: Request, res: Response, next: NextFu
       let personImage = new PersonImage();
       personImage.person_id = redisData.personnel_id;
       personImage.vector = embedding;
+      personImage.hash_id = guid;
       //  save personimage in database
       await personImage.save();
       // }

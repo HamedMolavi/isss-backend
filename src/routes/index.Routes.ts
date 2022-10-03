@@ -18,6 +18,7 @@ import { ApiError } from "../error/error.handler";
 import reportDepartementfiles from "./config/departmentFile.Routes";
 import alerts from "./alerts/alerts.Routes"
 import schedulesreport from "./report/schedulesReport.Routes"
+import PersonImage from "../routes/config/personImage.Routes";
 
 //create router for add to server
 const router: Router = Router();
@@ -41,6 +42,7 @@ router.use("/reportDepartmets", reportDepartments);
 router.use("/departementfiles", reportDepartementfiles);
 router.use("/alerts", alerts);
 router.use("/schedulesreport",schedulesreport );
+router.use("/personImage",PersonImage );
 
 
 ////////////////////////////////////////////////////////////////////////

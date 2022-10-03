@@ -60,20 +60,20 @@ app.use(
 app.use(passport.session());
 app.use(flash());
 
-//add logger
-app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
-//add logger in file
-app.use(
-  logger(process.env.REQUEST_LOG_FORMAT || "dev", {
-    stream: process.env.REQUEST_LOG_FILE
-      ? createStream(process.env.REQUEST_LOG_FILE, {
-          size: "10M", // rotate every 10 MegaBytes written
-          interval: "1d", // rotate daily
-          compress: "gzip", // compress rotated files
-        })
-      : process.stdout,
-  })
-);
+// //add logger
+// app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
+// //add logger in file
+// app.use(
+//   logger(process.env.REQUEST_LOG_FORMAT || "dev", {
+//     stream: process.env.REQUEST_LOG_FILE
+//       ? createStream(process.env.REQUEST_LOG_FILE, {
+//           size: "10M", // rotate every 10 MegaBytes written
+//           interval: "1d", // rotate daily
+//           compress: "gzip", // compress rotated files
+//         })
+//       : process.stdout,
+//   })
+// );
 
 //create route for test
 app.get("/", (req: Request, res: Response, next: NextFunction) => {
