@@ -241,7 +241,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
               }
             }
             for (let p = 0; p < models.length; ++p) {
-              if (models[p]._id!.toString() == modelToCamera[j].model_id!.toString() && modelToCamera[j].is_enabled == true) {
+              if (models[p]._id!.toString() == modelToCamera[j].model_id!.toString()) {
                 childrenModel.push({
                   _id: models[p]._id,
                   name: models[p].name,
