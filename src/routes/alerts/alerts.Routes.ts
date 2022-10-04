@@ -8,7 +8,6 @@ import Section from "../../models/section";
 import Department from "../../models/department";
 import Car from "../../models/car";
 import ModelToCamera from "../../models/modelToCamera";
-import mongoose, { Schema } from "mongoose";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -47,7 +46,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     if (bodyRequest.log.plate_number) {
       let ownerWithId = await Car.findOne({ number_plate: bodyRequest.log.plate_number }).exec();
       if (ownerWithId) {
-        _owner = await Personnel.findById(ownerWithId._id).exec();
+        _owner = await Personnel.findById(ownerWithId.owner).exec();
       }
     }
     let _personnel;
@@ -79,6 +78,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       owner: _owner?.first_name + " " + _owner?.last_name,
     };
     let notification = result;
+    
     if (is_muted_list === false) {
       io.emit("get alert", notification);
     }

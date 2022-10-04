@@ -4,15 +4,14 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IPersonImage extends Document {
     _id: Schema.Types.ObjectId;
     person_id: Schema.Types.ObjectId;
-    guid: string;
+    hash_id:string;
     vector: [Number];
 }
 
 //create Model person_image with schema for save in DB
 const PersonImageSchema: Schema<IPersonImage> = new Schema({
     person_id: { type: Schema.Types.ObjectId, ref: "Personnel" },
-    guid: { type: String, required: false },
-    // vector: { type: Schema.Types.Array, required: true },
+    hash_id : {type:String, required:true},
     vector: [Number]
 },{
     collection: "Person_Image"

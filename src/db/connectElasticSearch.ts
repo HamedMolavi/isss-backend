@@ -8,7 +8,7 @@ const dbUri = process.env["ELASTIC_SEARCH"] as string;
 //function for send request to elastic search and get data
 export async function dynamicRequestToElasticSearch(
   cameras: string[] = [],
-  personnels: string[] = [],
+  personnels: string[] | null = [],
   models: string[] = [],
   probability: number[] = [],
   humanCounts: number[] = [],
@@ -46,7 +46,7 @@ export async function dynamicRequestToElasticSearch(
       }
       //add filter for personnels if personnels is not empty and model is not event
       //personnels ai array string personnel id
-      if (personnels.length > 0) {
+      if (personnels && personnels!.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
             personnel_id: personnels,
@@ -120,7 +120,7 @@ export async function dynamicRequestToElasticSearch(
       }
       //add filter for personnels if personnels is not empty and model is not event
       //personnels ai array string personnel id
-      if (personnels.length > 0) {
+      if (personnels && personnels.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
             logpersonnel_id: personnels,

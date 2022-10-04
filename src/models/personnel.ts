@@ -13,7 +13,6 @@ export interface IPersonnel extends Document {
   personnel_code: string;
   section_id: mongoose.Types.ObjectId;
   camera_whitelist: mongoose.Types.ObjectId[];
-  image_id: mongoose.Types.ObjectId;
   is_active: boolean;
   is_employee: boolean;
   is_dismissed: boolean;
@@ -32,7 +31,6 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
     personnel_code: { type: String, required: true },
     section_id: { type: Schema.Types.ObjectId, ref: "Section", required: true },
     camera_whitelist: [{ type: Schema.Types.ObjectId, ref: "Camera" }],
-    image_id: { type: Schema.Types.ObjectId, required: true },
     is_active: { type: Boolean, default: false },
     is_employee: { type: Boolean, default: false },
     is_dismissed: { type: Boolean, default: false },

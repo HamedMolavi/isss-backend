@@ -1,3 +1,4 @@
+import axios from "axios";
 import { Router, Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import { ApiError } from "../../error/error.handler";
@@ -24,7 +25,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get jason from body request
-    const { section_id, url, ip, name, username, password, network, is_enabled , muted }: ICamera = req.body;
+    const { section_id, url, ip, name, username, password, network, is_enabled, muted }: ICamera = req.body;
     //verify body request
     if (!section_id || !url || !ip || !name || !username || !password || !network) {
       req.flash("error", "please complete all fields");
@@ -57,7 +58,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       name: name,
       username: username,
       password: password,
-      muted : muted,
+      muted: muted,
       is_enabled: is_enabled,
     });
 
@@ -106,7 +107,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     //query for get cameras list
     if (search !== "") {
       cameras = await Camera.find({
-        name: { $regex: search, $options: "i" },
+        ip: { $regex: search, $options: "i" },
       })
         .skip((page - 1) * perPage)
         .limit(perPage)
@@ -132,6 +133,52 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
       total: await Camera.countDocuments().exec(),
       pages: Math.ceil((await Camera.countDocuments().exec()) / perPage),
     });
+  } catch (err: any) {
+    return next(new ApiError(500, "internal server error , " + err.message));
+  }
+});
+
+//route for get id camera with ip from back RTSPtoWEBRTC
+router.get("/getIdStream/:ip", async function (req: Request, res: Response, next: NextFunction) {
+  try {
+    //get id from params in url
+    let ip: string = req.params.ip;
+    if (!ip) {
+      req.flash("error", "ip not found");
+      return next({ status: 400, message: "Bad request" });
+    }
+    //get token from header request and verify
+    let token = getTokenAndVerify(req, const_role, next);
+    if (!token) {
+      return null;
+    }
+
+    //get url AI for send request
+    const rtsp_to_webrtc: string = process.env["WEB_STREAM"] as string;
+    //send request to back RTSPtoWEBRTC api for send ip and get id
+    var config = {
+      method: "get",
+      url: rtsp_to_webrtc + ip,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+
+    let response = await axios(config);
+    console.log(response);
+    if (response.status === 200 && response.data != "") {
+      //send response to client with camera
+      return res.status(200).json({
+        success: true,
+        data: response.data,
+      });
+    }else {
+       //send response to client with camera
+       return res.status(response.status).json({
+        success: false,
+        data: "Not Found",
+      });
+    }
   } catch (err: any) {
     return next(new ApiError(500, "internal server error , " + err.message));
   }

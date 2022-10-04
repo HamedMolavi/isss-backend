@@ -3,7 +3,7 @@ import multer from "multer";
 import Guid from "../tools/createGuid";
 import redisClient from "./../db/redis";
 import { NextFunction, Request, Response } from "express";
-import path from "path";
+import path, { basename } from "path";
 import fs from "fs";
 import console from "console";
 import { ApiError } from "../error/error.handler";
@@ -128,4 +128,44 @@ export async function deleteImageInRedis(id: string) {
     console.log(error);
     throw new Error(error);
   }
+}
+//function for read all image in assets and convert to base64 and return list base64
+export async function readFiles(dirname: string): Promise<object[] | null> {
+  //check for exist path
+  if (!fs.existsSync(dirname)) {
+    return null;
+  }
+  //read all file in dirname
+  let filenames = await fs.promises.readdir(dirname);
+  let response: object[] = [];
+  //read file and convert to base 64 and return list base64
+  for (let i = 0; i < filenames.length; i++) {
+    //read file and convert to base64
+    let hash_id = (filenames[i]?.split("-")[1]).split(".")[0]
+    let content = await fs.promises.readFile(dirname + filenames[i], "base64");
+    let result = {
+      hash_id : hash_id,
+      faces_base64 : content
+    }
+    response.push(result); //add to list
+  }
+  return response;
+}
+//function for delete image in assets
+export async function deleteFiles(fileName: string, dirname: string): Promise<Boolean | null> {
+  //check for exist path
+  if (!fs.existsSync(dirname)) {
+    return null;
+  }
+  let result: Boolean = false;
+  //read all file in dirname
+  let filenames = await fs.promises.readdir(dirname);
+  //delete file if exist
+  for (let i = 0; i < filenames.length; i++) {
+    if (fileName == filenames[i]) {
+      await fs.promises.unlink(dirname + filenames[i]);//delete file if exist
+      result = true;
+    }
+  }
+  return result;
 }

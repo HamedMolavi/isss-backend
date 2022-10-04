@@ -9,6 +9,7 @@ import Section from "../models/section";
 import Department from "../models/department";
 import toPersianPlate from "./EnglishToPersianPlate";
 import Model from "../models/model";
+import { data } from "cheerio/lib/api/attributes";
 
 //create json response sabotageLog report for send to client
 export async function sabotageLogResponse(response: any) {
@@ -179,7 +180,7 @@ export async function fireLogResponse(response: any) {
   return _data;
 }
 //create json response faceLog report for send to client
-export async function faceLogResponse(response: any, allowed: boolean | null) {
+export async function faceLogResponse(response: any, allowed: boolean | null, search: boolean | null) {
   //create json response
   let _data: object[] = [];
   for (let i = 0; i < response.data.hits.hits.length; i++) {
@@ -187,7 +188,6 @@ export async function faceLogResponse(response: any, allowed: boolean | null) {
     let _personnel: IPersonnel | null;
     //if (response.data.hits.hits[i]._source.personnel_id !== "-1" || Number(response.data.hits.hits[i]._source.personnel_id) > 0) {
     if (isNaN(Number(response.data.hits.hits[i]._source.personnel_id))) {
-      let s = Number(response.data.hits.hits[i]._source.personnel_id);
       _personnel = await Personnel.findById(response.data.hits.hits[i]._source.personnel_id).exec();
     } else {
       _personnel = null;
