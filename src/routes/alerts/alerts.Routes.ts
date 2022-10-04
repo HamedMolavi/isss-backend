@@ -79,7 +79,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       owner: _owner?.first_name + " " + _owner?.last_name,
     };
     let notification = result;
-    if (is_muted_list === false && result.title === "Alerting") {
+    if (is_muted_list === false) {
       io.emit("get alert", notification);
     }
 
