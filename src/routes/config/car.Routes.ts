@@ -40,7 +40,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       first: number_plate.first.toLocaleString("en-us"),
       second: number_plate.second,
       third: number_plate.third.toLocaleString("en-us"),
-      fourth: number_plate.third.toLocaleString("en-us"),
+      fourth: number_plate.fourth.toLocaleString("en-us"),
       fifth: number_plate.fifth.toLocaleString("en-us"),
     };
 

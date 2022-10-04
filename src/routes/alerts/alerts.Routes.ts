@@ -72,13 +72,14 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       personnel: _personnel?.first_name + " " + _personnel?.last_name,
       personnel_code: _personnel?.personnel_code,
       description: bodyRequest.description,
-      time: new Date(bodyRequest.log.timestamp),
+      time: bodyRequest.log.timestamp,
       peopleCounting: bodyRequest.log.number_of_people,
       plate_number: bodyRequest.log.plate_number,
       owner: _owner?.first_name + " " + _owner?.last_name,
     };
     let notification = result;
-    if ((is_muted_list === false && result.title === "Alerting")||(result.type === "plate")) {
+    
+    if (is_muted_list === false) {
       io.emit("get alert", notification);
     }
 
