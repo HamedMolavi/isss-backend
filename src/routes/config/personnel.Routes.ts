@@ -239,7 +239,7 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
       req.flash("error", "Personnel not found");
       return next(new ApiError(404, "Personnel not found"));
     }
-
+    //delete image vector
     let personImages = await PersonImage.deleteMany({ person_id: personnel._id }).exec();
 
     //define path folder fo read files
