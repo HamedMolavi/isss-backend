@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { ApiError } from "../../error/error.handler";
 import Model from "../../models/model";
 import ModelToCamera from "../../models/modelToCamera";
+import Schedule from "../../models/schedule";
 import Camera, { ICamera } from "./../../models/camera";
 import { getTokenAndVerify } from "./../../tools/authentication";
 
@@ -172,9 +173,9 @@ router.get("/getIdStream/:ip", async function (req: Request, res: Response, next
         success: true,
         data: response.data,
       });
-    }else {
-       //send response to client with camera
-       return res.status(response.status).json({
+    } else {
+      //send response to client with camera
+      return res.status(response.status).json({
         success: false,
         data: "Not Found",
       });
@@ -274,6 +275,13 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
     if (!camera) {
       req.flash("error", "camera not found");
       return next(new ApiError(404, "camera not found"));
+    }
+    let model_to_camera = await ModelToCamera.find({ camera_id: camera._id }).exec();
+    if (model_to_camera) {
+      for (let model of model_to_camera) {
+        let schedule = await Schedule.findOneAndDelete({ model_camera_id: model._id }).exec();
+      }
+      let model_to_camera_deleted = await ModelToCamera.deleteMany({ camera_id: camera._id }).exec();
     }
     //send response to client with camera
     return res.status(201).json({

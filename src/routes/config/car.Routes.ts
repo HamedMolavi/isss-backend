@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
 import { ApiError } from "../../error/error.handler";
 import CarBrand from "../../models/carBrand";
 import CarColor from "../../models/carColor";
@@ -61,7 +62,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       number_plate: plate_number_engglish,
       brand: brand,
       color: color,
-      camera_whitelist: camera_whitelist,
+      camera_whitelist: camera_whitelist
     });
     //query for save new car in DB
     await newCar.save();

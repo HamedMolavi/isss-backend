@@ -1,12 +1,7 @@
-import util from "util";
-import multer from "multer";
-import Guid from "../tools/createGuid";
 import redisClient from "./../db/redis";
-import { NextFunction, Request, Response } from "express";
 import path, { basename } from "path";
 import fs from "fs";
 import console from "console";
-import { ApiError } from "../error/error.handler";
 
 export interface IFileInRedis {
   id: string;
@@ -141,12 +136,12 @@ export async function readFiles(dirname: string): Promise<object[] | null> {
   //read file and convert to base 64 and return list base64
   for (let i = 0; i < filenames.length; i++) {
     //read file and convert to base64
-    let hash_id = (filenames[i]?.split("-")[1]).split(".")[0]
+    let hash_id = (filenames[i]?.split("-")[1]).split(".")[0];
     let content = await fs.promises.readFile(dirname + filenames[i], "base64");
     let result = {
-      hash_id : hash_id,
-      faces_base64 : content
-    }
+      hash_id: hash_id,
+      faces_base64: content,
+    };
     response.push(result); //add to list
   }
   return response;
@@ -163,9 +158,25 @@ export async function deleteFiles(fileName: string, dirname: string): Promise<Bo
   //delete file if exist
   for (let i = 0; i < filenames.length; i++) {
     if (fileName == filenames[i]) {
-      await fs.promises.unlink(dirname + filenames[i]);//delete file if exist
+      await fs.promises.unlink(dirname + filenames[i]); //delete file if exist
       result = true;
     }
   }
+  await deleteDirectory(dirname,false);
+  return result;
+}
+
+export async function deleteDirectory(dirname: string, force : boolean): Promise<Boolean | null> {
+  //check for exist path
+  if (!fs.existsSync(dirname)) {
+    return null;
+  }
+  let result: boolean = false;
+  let filenames = await fs.promises.readdir(dirname);
+  if (filenames.length > 0 && !force) {
+    return false;
+  }
+  await fs.promises.rm(dirname,{ recursive: true, force: true }); //delete file if exist
+  result = true;
   return result;
 }
