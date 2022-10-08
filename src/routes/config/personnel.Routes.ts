@@ -244,6 +244,7 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
 
     //define path folder fo read files
     let pathDelete = path.join(__dirname, `./../../../assets/image/${id}`);
+    //delete face image directory
     deleteDirectory(pathDelete, true);
     //send response
     return res.status(201).json({
