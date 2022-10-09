@@ -28,7 +28,7 @@ interface IResponseJson {
 }
 
 interface IChildrenModel {
-  _id: mongoose.Types.ObjectId;
+  _id: Schema.Types.ObjectId;
   type: string;
   name: string;
   category: string;
@@ -38,11 +38,11 @@ interface IChildrenModel {
 }
 
 interface IChildrenSchedule {
-  _id: mongoose.Types.ObjectId;
+  _id: Schema.Types.ObjectId;
   type: string;
   start_cron: any;
   stop_cron: any;
-  model_camera_id: mongoose.Types.ObjectId;
+  model_camera_id: Schema.Types.ObjectId;
   config: {
     threshold: number;
     zones: [number[]];
