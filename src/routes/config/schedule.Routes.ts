@@ -104,7 +104,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
           hour: schedule.stop_cron.split(" ")[1],
           dow: schedule.stop_cron.split(" ")[4].split(",") ?? ["*"],
         },
-        model_camera_id: schedule.model_camera_id._id,
+        model_camera_id: schedule.model_camera_id,
         config: {
           timeDuplicationDiagnoses: schedule.config.timeDuplicationDiagnoses ?? 0,
           threshold: schedule.config?.threshold != 0 ? (schedule.config?.threshold * 100) : 0,
@@ -154,7 +154,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
           hour: _schedule.stop_cron.split(" ")[1],
           dow: _schedule.stop_cron.split(" ")[4].split(",") ?? ["*"],
         },
-        model_camera_id: _schedule.model_camera_id._id,
+        model_camera_id: _schedule.model_camera_id,
         config: {
           timeDuplicationDiagnoses: _schedule.config.timeDuplicationDiagnoses ?? 0,
           threshold:  _schedule.config?.threshold != 0 ? (_schedule.config?.threshold * 100) : 0,
@@ -220,7 +220,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
           hour: schedule.stop_cron.split(" ")[1],
           dow: schedule.stop_cron.split(" ")[4].split(",") ?? ["*"],
         },
-        model_camera_id: schedule.model_camera_id._id,
+        model_camera_id: schedule.model_camera_id,
         config: {
           timeDuplicationDiagnoses: schedule.config?.timeDuplicationDiagnoses ?? 0,
           threshold: schedule.config?.threshold != 0 ? (schedule.config?.threshold * 100) : 0,
@@ -287,7 +287,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     let update_schedule = {
       start_cron: start_cron != "" ? start_cron : old_schedule!.start_cron,
       stop_cron: stop_cron != "" ? stop_cron : old_schedule!.stop_cron,
-      model_camera_id: scheduleBody.model_camera_id ?? old_schedule?.model_camera_id._id,
+      model_camera_id: scheduleBody.model_camera_id ?? old_schedule?.model_camera_id,
       config: {
         timeDuplicationDiagnoses: scheduleBody.timeDuplicationDiagnoses ?? old_schedule?.config.timeDuplicationDiagnoses,
         threshold: (scheduleBody?.threshold/100) ?? old_schedule?.config?.threshold,
@@ -323,7 +323,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
           hour: schedule.stop_cron.split(" ")[1],
           dow: schedule.stop_cron.split(" ")[4].split(",") ?? ["*"],
         },
-        model_camera_id: schedule.model_camera_id._id,
+        model_camera_id: schedule.model_camera_id,
         config: {
           timeDuplicationDiagnoses: schedule.config.timeDuplicationDiagnoses ?? 0,
           threshold:schedule.config?.threshold != 0 ? (schedule.config?.threshold * 100) : 0,

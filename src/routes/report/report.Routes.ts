@@ -97,9 +97,9 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       if ((_carBrand === null || _carColor === null || _owner === null) && search) {
         return next(new ApiError(400, `car_brand, car_color, owner is required`));
       }
-      _data = await plateLogResponse(response, _carBrand, _carColor, _owner, _allowed, search);
+      _data = await plateLogResponse(response, _carBrand, _carColor, _owner, _allowed, Boolean(search));
     } else if (model === "human") {
-      _data = await humanLogResponse(response, _allowed);
+      _data = await humanLogResponse(response, _allowed,Boolean(search));
     } else if (model === "fire") {
       _data = await fireLogResponse(response);
     } else if (model === "face") {
