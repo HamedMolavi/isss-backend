@@ -8,6 +8,7 @@ import Section from "../../models/section";
 import Department from "../../models/department";
 import Car from "../../models/car";
 import ModelToCamera from "../../models/modelToCamera";
+import Schedule from "../../models/schedule";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -55,8 +56,12 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     }
 
     let is_muted_list: boolean = false;
-    if (bodyRequest.log.model_camera_id) {
-      let model_camera_id = await ModelToCamera.findById(bodyRequest.log.model_camera_id).exec();
+    if (bodyRequest.log.schedule_id) {
+      let schedule = await Schedule.findById(bodyRequest.log.schedule_id).exec();
+      let model_camera_id;
+      if (schedule) {
+        model_camera_id = await ModelToCamera.findById(schedule.model_camera_id).exec();
+      }
       if (model_camera_id) {
         is_muted_list = _camera?.muted.includes(model_camera_id.model_id) ?? false;
       }
@@ -78,7 +83,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       owner: _owner?.first_name + " " + _owner?.last_name,
     };
     let notification = result;
-    
+
     if (is_muted_list === false) {
       io.emit("get alert", notification);
     }
