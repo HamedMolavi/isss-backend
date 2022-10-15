@@ -74,7 +74,7 @@ router.get("/download/:fileName", async function (req: Request, res: Response, n
     const directoryPath = path.join(__dirname, "./../../../assets/image/") + fileName + "/";
 
     //send image to client
-    await res.download(directoryPath + "avatar.jpg", fileName, (err) => {
+    await res.download(directoryPath + "avatar.jpeg", fileName, (err) => {
       if (err) {
         req.flash("error", "File not found");
         return next(new ApiError(404, "File not found"));

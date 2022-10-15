@@ -78,8 +78,8 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       montionDetection: montionDetection,
       config: {
         timeDuplicationDiagnoses: timeDuplicationDiagnoses ?? 0,
-        threshold: threshold != undefined ? (threshold / 100) : 0,
-        zones: (zones && zones.length !=0) ? zones : [[0, 0, 1, 1]],
+        threshold: threshold != undefined ? threshold / 100 : 0,
+        zones: zones && zones.length != 0 ? zones : [[0, 0, 1, 1]],
         min_people: min_people ?? 0,
         max_people: max_people ?? 0,
       },
@@ -93,7 +93,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     return res.status(201).json({
       success: true,
       data: {
-        _id : schedule._id,
+        _id: schedule._id,
         start_cron: {
           min: schedule.start_cron.split(" ")[0],
           hour: schedule.start_cron.split(" ")[1],
@@ -107,7 +107,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         model_camera_id: schedule.model_camera_id,
         config: {
           timeDuplicationDiagnoses: schedule.config.timeDuplicationDiagnoses ?? 0,
-          threshold: schedule.config?.threshold != 0 ? (schedule.config?.threshold * 100) : 0,
+          threshold: schedule.config?.threshold != 0 ? schedule.config?.threshold * 100 : 0,
           zones: schedule.config.zones ?? null,
           min_people: schedule.config.min_people ?? 0,
           max_people: schedule.config.max_people ?? 0,
@@ -157,7 +157,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         model_camera_id: _schedule.model_camera_id,
         config: {
           timeDuplicationDiagnoses: _schedule.config.timeDuplicationDiagnoses ?? 0,
-          threshold:  _schedule.config?.threshold != 0 ? (_schedule.config?.threshold * 100) : 0,
+          threshold: _schedule.config?.threshold != 0 ? _schedule.config?.threshold * 100 : 0,
           zones: _schedule.config.zones ?? null,
           min_people: _schedule.config.min_people ?? 0,
           max_people: _schedule.config.max_people ?? 0,
@@ -209,7 +209,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     return res.status(200).json({
       message: "Success",
       schedule: {
-        _id : schedule._id,
+        _id: schedule._id,
         start_cron: {
           min: schedule.start_cron.split(" ")[0],
           hour: schedule.start_cron.split(" ")[1],
@@ -223,7 +223,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         model_camera_id: schedule.model_camera_id,
         config: {
           timeDuplicationDiagnoses: schedule.config?.timeDuplicationDiagnoses ?? 0,
-          threshold: schedule.config?.threshold != 0 ? (schedule.config?.threshold * 100) : 0,
+          threshold: schedule.config?.threshold != 0 ? schedule.config?.threshold * 100 : 0,
           zones: schedule.config.zones ?? null,
           min_people: schedule.config.min_people ?? 0,
           max_people: schedule.config.max_people ?? 0,
@@ -290,7 +290,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
       model_camera_id: scheduleBody.model_camera_id ?? old_schedule?.model_camera_id,
       config: {
         timeDuplicationDiagnoses: scheduleBody.timeDuplicationDiagnoses ?? old_schedule?.config.timeDuplicationDiagnoses,
-        threshold: (scheduleBody?.threshold/100) ?? old_schedule?.config?.threshold,
+        threshold: scheduleBody?.threshold / 100 ?? old_schedule?.config?.threshold,
         zones: scheduleBody.zones ?? old_schedule?.config?.zones,
         min_people: scheduleBody.min_people ?? old_schedule?.config?.min_people,
         max_people: scheduleBody.max_people ?? old_schedule?.config?.max_people,
@@ -312,7 +312,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     return res.status(201).json({
       message: "Success",
       schedule: {
-        _id : schedule._id,
+        _id: schedule._id,
         start_cron: {
           min: schedule.start_cron.split(" ")[0],
           hour: schedule.start_cron.split(" ")[1],
@@ -326,7 +326,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
         model_camera_id: schedule.model_camera_id,
         config: {
           timeDuplicationDiagnoses: schedule.config.timeDuplicationDiagnoses ?? 0,
-          threshold:schedule.config?.threshold != 0 ? (schedule.config?.threshold * 100) : 0,
+          threshold: schedule.config?.threshold != 0 ? schedule.config?.threshold * 100 : 0,
           zones: schedule.config.zones ?? null,
           min_people: schedule.config.min_people ?? 0,
           max_people: schedule.config.max_people ?? 0,
@@ -361,6 +361,9 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
       req.flash("error", "schedule not found");
       return next(new ApiError(404, "schedule not found"));
     }
+
+    let model2Camera = await ModelToCamera.findByIdAndUpdate(schedule.model_camera_id, { is_enabled: false }, { new: true }).exec();
+
     // let model2Camera = await ModelToCamera.findOneAndDelete({sche})
     //return response to client with schedule
     return res.status(201).json({

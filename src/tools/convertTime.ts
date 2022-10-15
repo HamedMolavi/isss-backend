@@ -40,6 +40,7 @@ export function date2Epokh(date: string, time: string): string {
   //convert date to epokh
   //let timeDateEpokhStart: number = new Date(timeDateStart).getTime();
   //const timeDateEpokhStart : number = new Date(Number(dates[2]), Number(dates[0]), Number(dates[1]), Number(times[0]), Number(times[1]), 0).getTime();
+  const t = new Date()
   const timeDateEpokhStart : number = new Date(Number(dates[0]), Number(dates[1]), Number(dates[2]), Number(times[0]), Number(times[1]), 0).getTime();
   //delete last 3 digits from epokh for delete milisecond
  // timeDateEpokhStart = timeDateEpokhStart / 1000;
