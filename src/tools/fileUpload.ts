@@ -41,7 +41,7 @@ export async function uploadAvatar(image_str: string, personnel_code: string) {
     }
 
     //write image in path
-    await fs.writeFile(dirPersonnelAvatar + "avatar.jpeg", image, (err) => {
+    await fs.writeFile(dirPersonnelAvatar + "/avatar.jpeg", image, (err) => {
       if (err) {
         return null;
       }

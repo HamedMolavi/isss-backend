@@ -1,18 +1,19 @@
 import mongoose, { Schema, Document } from "mongoose";
 import path from "path";
+import fs from "fs";
 
 //define personnel type
 export interface IPersonnel extends Document {
-  _id: mongoose.Types.ObjectId;
+  _id: Schema.Types.ObjectId;
   first_name: string;
   last_name: string;
   national_code: string;
   email: string;
   phone_number: string;
-  job_id: mongoose.Types.ObjectId;
+  job_id: Schema.Types.ObjectId;
   personnel_code: string;
-  section_id: mongoose.Types.ObjectId;
-  camera_whitelist: mongoose.Types.ObjectId[];
+  section_id: Schema.Types.ObjectId;
+  camera_whitelist: Schema.Types.ObjectId[];
   is_active: boolean;
   is_employee: boolean;
   is_dismissed: boolean;
@@ -43,8 +44,17 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
 
 //get personnel data jason for auth
 PersonnelSchema.methods.toJSON = function () {
+
+   //get url AI for send request
+   const BASE_URL: string = process.env["BASE_URL"] as string;
+
   //define path for save image
-  let pathSave = path.join(__dirname, `./../../assets/image/${this.personnel_code}`);
+  let pathSave = path.join(__dirname, `./../../assets/image/${this._id}/avatar.jpeg`);
+  let have_avatar : Boolean = false; 
+  //if path not exist, create path
+  if (fs.existsSync(pathSave)) {
+    have_avatar = true ;
+  }
   return {
     _id: this._id,
     first_name: this.first_name,
@@ -61,8 +71,7 @@ PersonnelSchema.methods.toJSON = function () {
     is_employee: this.is_employee,
     is_dismissed: this.is_dismissed,
     create_date: this.create_date,
-    image_url : "192.168.1.39:8000/api/v1/files/download/default",
-    //image_url: pathSave != null ? pathSave + this.personnel_code + "/" + "avatar.jpg" : "192.168.1.39:8000/api/v1/files/download/default",
+    image_url: have_avatar === true ? BASE_URL+"/files/download/"+this._id  : BASE_URL+"/files/download/default",
   };
 };
 

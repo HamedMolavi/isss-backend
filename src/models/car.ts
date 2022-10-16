@@ -2,11 +2,11 @@ import mongoose, { Schema, Document } from "mongoose";
 
 //define car type
 export interface ICar extends Document {
-    _id: mongoose.Types.ObjectId;
-    owner: mongoose.Types.ObjectId;
+    _id: Schema.Types.ObjectId;
+    owner: Schema.Types.ObjectId;
     number_plate: string;
-    brand: mongoose.Types.ObjectId;
-    color: mongoose.Types.ObjectId;
+    brand: Schema.Types.ObjectId;
+    color: Schema.Types.ObjectId;
     camera_whitelist: Schema.Types.ObjectId[];
     create_date: Date;
 }

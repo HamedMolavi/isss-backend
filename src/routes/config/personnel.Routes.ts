@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
 import { ApiError } from "../../error/error.handler";
 import PersonImage from "../../models/personImage";
-import { deleteDirectory } from "../../tools/fileUpload";
+import { deleteDirectory, uploadAvatar } from "../../tools/fileUpload";
 import Personnel, { IPersonnel } from "./../../models/personnel";
 import { getTokenAndVerify } from "./../../tools/authentication";
 
@@ -24,22 +24,10 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get jason from body request
-    const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed } = req.body;
+    const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, avatar_str } =
+      req.body;
     //verify body request
-    if (
-      !first_name ||
-      !last_name ||
-      !national_code ||
-      !email ||
-      !phone_number ||
-      !job_id ||
-      !personnel_code ||
-      !section_id ||
-      !camera_whitelist ||
-      !is_active ||
-      !is_employee ||
-      !is_dismissed
-    ) {
+    if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code || !section_id || !camera_whitelist) {
       req.flash("error", "Please fill all fields");
       return next(new ApiError(400, "Please fill all fields"));
     }
@@ -77,12 +65,17 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     });
 
     //save personnel in DB
-    await personnel.save();
+    let _personnnel = await personnel.save();
     req.flash("info", "Personnel has been registered");
+
+    //save personnel avatar in hardDisk
+    let avatarStr = avatar_str.split(",")[1];
+    let result = await uploadAvatar(avatarStr, _personnnel._id.toString());
+
     //send response
     res.status(201).json({
       success: true,
-      data: personnel.toJSON(),
+      data: _personnnel.toJSON(),
     });
   } catch (err: any) {
     return next(new ApiError(500, "Internal server error , " + err.message));
@@ -204,6 +197,11 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     if (!personnel) {
       req.flash("error", "Personnel not found");
       return next(new ApiError(404, "Personnel not found"));
+    }
+    if (personnelBody.avatar_str) {
+      //save personnel avatar in hardDisk
+      let avatarStr = personnelBody.avatar_str.split(",")[1];
+      let result = await uploadAvatar(avatarStr, personnel._id.toString());
     }
 
     //send response
