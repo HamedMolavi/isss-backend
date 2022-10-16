@@ -62,7 +62,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       number_plate: plate_number_engglish,
       brand: brand,
       color: color,
-      camera_whitelist: camera_whitelist
+      camera_whitelist: camera_whitelist,
     });
     //query for save new car in DB
     await newCar.save();
@@ -187,7 +187,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     if (!token) {
       return null;
     }
+    // let s;
 
+    // let test = await Car.find().populate("owner").populate("brand").populate("color");
+    // console.log(test);
     //query for get car by id from DB
     let car: any = await Car.findById(id).exec();
 
