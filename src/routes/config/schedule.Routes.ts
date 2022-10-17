@@ -291,7 +291,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
       config: {
         timeDuplicationDiagnoses: scheduleBody.timeDuplicationDiagnoses ?? old_schedule?.config.timeDuplicationDiagnoses,
         threshold: scheduleBody?.threshold / 100 ?? old_schedule?.config?.threshold,
-        zones: scheduleBody.zones ?? old_schedule?.config?.zones,
+        zones: scheduleBody.zones.length > 0 ? scheduleBody.zones : old_schedule?.config?.zones,
         min_people: scheduleBody.min_people ?? old_schedule?.config?.min_people,
         max_people: scheduleBody.max_people ?? old_schedule?.config?.max_people,
       },
