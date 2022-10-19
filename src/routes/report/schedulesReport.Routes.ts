@@ -32,7 +32,7 @@ interface IChildrenModel {
   type: string;
   name: string;
   category: string;
-  is_enabled:boolean;
+  is_enabled: boolean;
   uri: string;
   children: IChildrenSchedule[];
 }
@@ -98,18 +98,18 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 _id: schedules[k]._id,
                 type: "schedule",
                 start_cron: {
-                  min:time_start_json[0],
-                  hour:time_start_json[1],
-                  dow:time_start_json[4].split(",")?? ["*"]
+                  min: time_start_json[0],
+                  hour: time_start_json[1],
+                  dow: time_start_json[4].split(",") ?? ["*"],
                 },
                 stop_cron: {
-                  min:time_stop_json[0],
-                  hour:time_stop_json[1],
-                  dow:time_stop_json[4].split(",")?? ["*"]
+                  min: time_stop_json[0],
+                  hour: time_stop_json[1],
+                  dow: time_stop_json[4].split(",") ?? ["*"],
                 },
                 model_camera_id: schedules[k].model_camera_id,
                 config: {
-                  threshold: schedules[k].config.threshold,
+                  threshold: schedules[k].config.threshold > 0 ? schedules[k].config.threshold * 100 : schedules[k].config.threshold,
                   zones: schedules[k].config.zones,
                   min_people: schedules[k].config.min_people,
                   max_people: schedules[k].config.max_people,
@@ -118,15 +118,15 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
             }
           }
           for (let p = 0; p < models.length; ++p) {
-            if (models[p]._id!.toString() == modelToCamera[j].model_id!.toString()&& modelToCamera[j].is_enabled == true) {
+            if (models[p]._id!.toString() == modelToCamera[j].model_id!.toString() && modelToCamera[j].is_enabled == true) {
               childrenModel.push({
                 _id: models[p]._id,
                 name: models[p].name,
                 type: "model",
                 category: models[p].category,
-                is_enabled:modelToCamera[j].is_enabled,
+                is_enabled: modelToCamera[j].is_enabled,
                 uri: models[p].uri,
-                children: childrenSchedule.length > 0 ?  childrenSchedule : [],
+                children: childrenSchedule.length > 0 ? childrenSchedule : [],
               });
             }
           }
@@ -221,18 +221,18 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
                   _id: schedules[k]._id,
                   type: "schedule",
                   start_cron: {
-                    min:time_start_json[0],
-                    hour:time_start_json[1],
-                    dow:time_start_json[4].split(",")?? ["*"]
+                    min: time_start_json[0],
+                    hour: time_start_json[1],
+                    dow: time_start_json[4].split(",") ?? ["*"],
                   },
                   stop_cron: {
-                    min:time_stop_json[0],
-                    hour:time_stop_json[1],
-                    dow:time_stop_json[4].split(",")?? ["*"]
+                    min: time_stop_json[0],
+                    hour: time_stop_json[1],
+                    dow: time_stop_json[4].split(",") ?? ["*"],
                   },
                   model_camera_id: schedules[k].model_camera_id,
                   config: {
-                    threshold: schedules[k].config.threshold,
+                    threshold: schedules[k].config.threshold > 0 ? schedules[k].config.threshold * 100 : schedules[k].config.threshold,
                     zones: schedules[k].config.zones,
                     min_people: schedules[k].config.min_people,
                     max_people: schedules[k].config.max_people,
@@ -247,9 +247,9 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
                   name: models[p].name,
                   type: "model",
                   category: models[p].category,
-                  is_enabled : modelToCamera[j].is_enabled ,
+                  is_enabled: modelToCamera[j].is_enabled,
                   uri: models[p].uri,
-                  children:  childrenSchedule.length > 0 ?  childrenSchedule : [],
+                  children: childrenSchedule.length > 0 ? childrenSchedule : [],
                 });
               }
             }
