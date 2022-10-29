@@ -2708,6 +2708,11 @@ rotating-file-stream@^3.0.3:
   resolved "https://registry.npmjs.org/rotating-file-stream/-/rotating-file-stream-3.0.4.tgz"
   integrity sha512-Zd+IA5soqBUKtCa7KfMRnF7GKEaRav/dJFU7UHc+r1FMd8VvMLUFE0q1HX5s6XJO1cZ6jAqtTa/ZFnjc7IqlJA==
 
+rtsp-video-recorder@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/rtsp-video-recorder/-/rtsp-video-recorder-2.2.0.tgz#6ef36954bb676acbdfa75b2904d3c137244f6f1a"
+  integrity sha512-46zMKmeSf9MCXPXMyhIPd5fZk7HsrMhuKLh/upxOu+lPS/NpeOxd4m5cLT7FY0hAM2d1CE27amkytmV7TM8CYw==
+
 rxjs@^7.0.0:
   version "7.5.5"
   resolved "https://registry.npmjs.org/rxjs/-/rxjs-7.5.5.tgz"
