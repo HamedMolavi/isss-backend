@@ -13,7 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const path_1 = __importDefault(require("path"));
 const error_handler_1 = require("../../error/error.handler");
+const personImage_1 = __importDefault(require("../../models/personImage"));
+const fileUpload_1 = require("../../tools/fileUpload");
 const personnel_1 = __importDefault(require("./../../models/personnel"));
 const authentication_1 = require("./../../tools/authentication");
 //get user role from enviroment variable
@@ -32,20 +35,9 @@ router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, } = req.body;
+            const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, avatar_str } = req.body;
             //verify body request
-            if (!first_name ||
-                !last_name ||
-                !national_code ||
-                !email ||
-                !phone_number ||
-                !job_id ||
-                !personnel_code ||
-                !section_id ||
-                !camera_whitelist ||
-                !is_active ||
-                !is_employee ||
-                !is_dismissed) {
+            if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code || !section_id || !camera_whitelist) {
                 req.flash("error", "Please fill all fields");
                 return next(new error_handler_1.ApiError(400, "Please fill all fields"));
             }
@@ -56,10 +48,7 @@ router.post("", function (req, res, next) {
             }
             //query for save new personnel in DB
             let personnel = yield personnel_1.default.findOne({
-                $or: [
-                    { national_code: national_code },
-                    { personnel_code: personnel_code },
-                ],
+                $or: [{ national_code: national_code }, { personnel_code: personnel_code }],
             }).exec();
             //check personnel in DB
             if (personnel) {
@@ -82,12 +71,15 @@ router.post("", function (req, res, next) {
                 is_dismissed,
             });
             //save personnel in DB
-            yield personnel.save();
+            let _personnnel = yield personnel.save();
             req.flash("info", "Personnel has been registered");
+            //save personnel avatar in hardDisk
+            let avatarStr = avatar_str.split(",")[1];
+            let result = yield (0, fileUpload_1.uploadAvatar)(avatarStr, _personnnel._id.toString());
             //send response
             res.status(201).json({
                 success: true,
-                data: personnel.toJSON(),
+                data: _personnnel.toJSON(),
             });
         }
         catch (err) {
@@ -138,7 +130,9 @@ router.get("", function (req, res, next) {
             //send response
             return res.status(200).json({
                 success: true,
-                data: personnels.map((personnel) => { return personnel.toJSON(); }),
+                data: personnels.map((personnel) => {
+                    return personnel.toJSON();
+                }),
                 page: page,
                 perPage: perPage,
                 total: yield personnel_1.default.countDocuments().exec(),
@@ -208,6 +202,11 @@ router.patch("/:id", function (req, res, next) {
                 req.flash("error", "Personnel not found");
                 return next(new error_handler_1.ApiError(404, "Personnel not found"));
             }
+            if (personnelBody.avatar_str) {
+                //save personnel avatar in hardDisk
+                let avatarStr = personnelBody.avatar_str.split(",")[1];
+                let result = yield (0, fileUpload_1.uploadAvatar)(avatarStr, personnel._id.toString());
+            }
             //send response
             return res.status(201).json({
                 success: true,
@@ -241,10 +240,16 @@ router.delete("/:id", function (req, res, next) {
                 req.flash("error", "Personnel not found");
                 return next(new error_handler_1.ApiError(404, "Personnel not found"));
             }
+            //delete image vector
+            let personImages = yield personImage_1.default.deleteMany({ person_id: personnel._id }).exec();
+            //define path folder fo read files
+            let pathDelete = path_1.default.join(__dirname, `./../../../assets/image/${id}`);
+            //delete face image directory
+            (0, fileUpload_1.deleteDirectory)(pathDelete, true);
             //send response
             return res.status(201).json({
                 success: true,
-                data: personnel.toJSON(),
+                // data: personnel.toJSON(),
             });
         }
         catch (err) {

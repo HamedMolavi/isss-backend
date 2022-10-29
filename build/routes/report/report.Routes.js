@@ -96,16 +96,16 @@ router.post("/:model", function (req, res, next) {
                 if ((_carBrand === null || _carColor === null || _owner === null) && search) {
                     return next(new error_handler_1.ApiError(400, `car_brand, car_color, owner is required`));
                 }
-                _data = yield (0, createlogReport_1.plateLogResponse)(response, _carBrand, _carColor, _owner, _allowed, search);
+                _data = yield (0, createlogReport_1.plateLogResponse)(response, _carBrand, _carColor, _owner, _allowed, Boolean(search));
             }
             else if (model === "human") {
-                _data = yield (0, createlogReport_1.humanLogResponse)(response, _allowed);
+                _data = yield (0, createlogReport_1.humanLogResponse)(response, _allowed, Boolean(search));
             }
             else if (model === "fire") {
                 _data = yield (0, createlogReport_1.fireLogResponse)(response);
             }
             else if (model === "face") {
-                _data = yield (0, createlogReport_1.faceLogResponse)(response, _allowed);
+                _data = yield (0, createlogReport_1.faceLogResponse)(response, _allowed, Boolean(search));
             }
             else if (model === "event") {
                 _data = yield (0, createlogReport_1.eventLogResponse)(response);

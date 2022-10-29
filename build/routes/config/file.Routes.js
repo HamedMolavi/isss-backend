@@ -80,7 +80,7 @@ router.get("/download/:fileName", function (req, res, next) {
             //get directory path
             const directoryPath = path_1.default.join(__dirname, "./../../../assets/image/") + fileName + "/";
             //send image to client
-            yield res.download(directoryPath + "avatar.jpg", fileName, (err) => {
+            yield res.download(directoryPath + "avatar.jpeg", fileName, (err) => {
                 if (err) {
                     req.flash("error", "File not found");
                     return next(new error_handler_1.ApiError(404, "File not found"));
@@ -132,29 +132,29 @@ router.get("/list", function (req, res, next) {
     });
 });
 //api for upload image to redis
-router.post("/redis/:id", function (req, res, next) {
+router.post("/redis", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             // get id from request url
-            // const { personnel_id, image_str } = req.body;
-            const personnel_id = req.params.id;
-            //get token from header request and verify
-            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
-            if (!token) {
-                return null;
-            }
-            // // //get file from request and change format  to json
-            let reqFile = JSON.parse(JSON.stringify(req.files));
-            // // //move file to buffer
-            let image = Buffer.from(reqFile.file.data, "base64");
-            // // console.log(image);
-            // // //convert file to base64
-            let fileBase64 = image.toString("base64");
+            const { personnel_id, image_str } = req.body;
+            const image_str_base46 = String(image_str.split(",")[1]);
+            //  const personnel_id = req.params.id;
+            // //get token from header request and verify
+            // let token = getTokenAndVerify(req, const_role, next);
+            // if (!token) {
+            //   return null;
+            // }
+            // // // //get file from request and change format  to json
+            // let reqFile = JSON.parse(JSON.stringify(req.files));
+            // // // //move file to buffer
+            // let image = Buffer.from(reqFile.file.data, "base64");
+            // // // //convert file to base64
+            // let fileBase64 = image.toString("base64");
             // //  let fileName: string =  "test.jpg";
             //create hash for redis id
-            let idHashed = (0, hash_1.hashJson)(fileBase64, personnel_id);
+            let idHashed = (0, hash_1.hashJson)(image_str_base46, personnel_id);
             //set file in redis
-            let id = yield (0, fileUpload_1.setFileInRedis)(fileBase64, idHashed, personnel_id);
+            let id = yield (0, fileUpload_1.setFileInRedis)(image_str_base46, idHashed, personnel_id);
             if (!id) {
                 req.flash("error", "File not upload");
                 return next(new error_handler_1.ApiError(400, "File not upload"));
@@ -167,7 +167,7 @@ router.post("/redis/:id", function (req, res, next) {
             });
             var config = {
                 method: "post",
-                url: "http://192.168.1.20:23581/redis/face",
+                url: dbUri + "/redis/face",
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -224,12 +224,10 @@ router.post("/verify", function (req, res, next) {
                 //todo : convert BGR to RGB
                 //define path for save image
                 let pathSave = path_1.default.join(__dirname, `./../../../assets/image/${redisData.personnel_id}`);
-                console.log(pathSave);
                 if (!fs_1.default.existsSync(pathSave)) {
                     fs_1.default.mkdirSync(pathSave);
                 }
                 pathSave = path_1.default.join(__dirname, `./../../../assets/image/${redisData.personnel_id}/${redisData.personnel_id}-`);
-                console.log(pathSave);
                 //write image in path
                 yield fs_1.default.writeFile(pathSave + fileName, image, (err) => {
                     if (err) {
@@ -242,14 +240,31 @@ router.post("/verify", function (req, res, next) {
                 let personImage = new personImage_1.default();
                 personImage.person_id = redisData.personnel_id;
                 personImage.vector = embedding;
+                personImage.hash_id = guid;
                 //  save personimage in database
                 yield personImage.save();
                 // }
                 //  delete jason image in redis
                 let result = yield (0, fileUpload_1.deleteImageInRedis)(requestBody.id.toString());
                 //   send response to client
+                //get url AI for send request
+                const dbUri = process.env["API_AI_REDIS_NAME"];
+                //send request to AI api for send id_personnel
+                var config = {
+                    method: "get",
+                    url: dbUri + "/embed",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                };
+                let response = yield (0, axios_1.default)(config);
                 return res.status(200).send({
-                    message: "Verified the file successfully",
+                    success: true,
+                    data: {
+                        message: "Verified the file successfully",
+                        face: redisData.face,
+                        hash_id: guid,
+                    },
                 });
             }
             else if (Number(redisData.has_face) === 0) {

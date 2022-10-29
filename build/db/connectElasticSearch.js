@@ -46,7 +46,7 @@ function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [
                 }
                 //add filter for personnels if personnels is not empty and model is not event
                 //personnels ai array string personnel id
-                if (personnels.length > 0) {
+                if (personnels && personnels.length > 0) {
                     jsonResuest.query.bool.filter.push({
                         terms: {
                             personnel_id: personnels,
@@ -73,7 +73,6 @@ function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [
                         },
                     });
                 }
-                console.log(probability);
                 //add filter for confidence if confidence is not empty  and model is not event
                 //confidence ai array string confidence number
                 if (probability.length > 0) {
@@ -99,7 +98,7 @@ function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [
                 jsonResuest.sort = [
                     {
                         timestamp: {
-                            order: "asc",
+                            order: "desc",
                         },
                     },
                 ];
@@ -118,7 +117,7 @@ function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [
                 }
                 //add filter for personnels if personnels is not empty and model is not event
                 //personnels ai array string personnel id
-                if (personnels.length > 0) {
+                if (personnels && personnels.length > 0) {
                     jsonResuest.query.bool.filter.push({
                         terms: {
                             logpersonnel_id: personnels,
@@ -167,7 +166,7 @@ function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [
                 jsonResuest.sort = [
                     {
                         "log.timestamp": {
-                            order: "asc",
+                            order: "desc",
                         },
                     },
                 ];
@@ -180,7 +179,6 @@ function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [
                 },
                 data: jsonResuest,
             });
-            console.log(response.data);
             return response;
         }
         catch (err) {

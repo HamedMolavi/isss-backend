@@ -91,13 +91,15 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     let recorder: any = recordStream(rtsp_link, _camera?._id.toString());
     if (is_muted_list === false) {
       io.emit("get alert", notification);
-      recorder.start();
-      console.log("Recording has started.");
+      if (notification.title == "Alerting") {
+        recorder.start();
+        console.log("Recording has started.");
 
-      setTimeout(() => {
-        recorder.stop();
-        console.log("Recording has stopped.");
-      }, time_record_stream);
+        setTimeout(() => {
+          recorder.stop();
+          console.log("Recording has stopped.");
+        }, time_record_stream);
+      }
     }
 
     return res.status(201).json({

@@ -28,9 +28,9 @@ const mongoose_1 = __importStar(require("mongoose"));
 const CarSchema = new mongoose_1.Schema({
     owner: { type: mongoose_1.Schema.Types.ObjectId, ref: "Personnel" },
     number_plate: { type: String, required: true },
-    brand_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Car_Brand" },
-    color_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Car_Color" },
-    camera_whitelist: { type: [String] },
+    brand: { type: mongoose_1.Schema.Types.ObjectId, ref: "Car_Brand" },
+    color: { type: mongoose_1.Schema.Types.ObjectId, ref: "Car_Color" },
+    camera_whitelist: [mongoose_1.Schema.Types.ObjectId],
     create_date: { type: Date, default: Date.now }
 }, {
     collection: "Car"

@@ -21,6 +21,9 @@ const path_1 = __importDefault(require("path"));
 const section_1 = __importDefault(require("../../models/section"));
 const department_1 = __importDefault(require("../../models/department"));
 const car_1 = __importDefault(require("../../models/car"));
+const modelToCamera_1 = __importDefault(require("../../models/modelToCamera"));
+const schedule_1 = __importDefault(require("../../models/schedule"));
+const recordStream_1 = __importDefault(require("../../tools/recordStream"));
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to server
@@ -34,16 +37,15 @@ router.use(function (req, res, next) {
 });
 router.get("/", function (req, res, next) {
     let path = path_1.default.join(__dirname, "./../../../index.html");
-    console.log(path);
     res.sendFile(path);
 });
 //get alerts from back
 router.post("", function (req, res, next) {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
             const bodyRequest = req.body;
-            console.log(req.body);
             let _camera = yield camera_1.default.findById(bodyRequest.log.camera_id).exec();
             let _section;
             if (_camera) {
@@ -55,45 +57,57 @@ router.post("", function (req, res, next) {
             }
             let _owner;
             if (bodyRequest.log.plate_number) {
-                _owner = yield car_1.default.findOne({ number_plate: bodyRequest.log.plate_number }).exec();
+                let ownerWithId = yield car_1.default.findOne({ number_plate: bodyRequest.log.plate_number }).exec();
+                if (ownerWithId) {
+                    _owner = yield personnel_1.default.findById(ownerWithId.owner).exec();
+                }
             }
             let _personnel;
-            if ((bodyRequest.log.personnel_id) && (bodyRequest.log.personnel_id !== -1)) {
+            if (bodyRequest.log.personnel_id != null && isNaN(Number(bodyRequest.log.personnel_id))) {
                 _personnel = yield personnel_1.default.findById(bodyRequest.log.personnel_id).exec();
             }
-            // if(_owner_id )
-            // {
-            //    _owner_id = await Personnel.findById(_owner_id?._id).exec();
-            // }
+            let is_muted_list = false;
+            if (bodyRequest.log.schedule_id) {
+                let schedule = yield schedule_1.default.findById(bodyRequest.log.schedule_id).exec();
+                let model_camera_id;
+                if (schedule) {
+                    model_camera_id = yield modelToCamera_1.default.findById(schedule.model_camera_id).exec();
+                }
+                if (model_camera_id) {
+                    is_muted_list = (_a = _camera === null || _camera === void 0 ? void 0 : _camera.muted.includes(model_camera_id.model_id)) !== null && _a !== void 0 ? _a : false;
+                }
+            }
             let result = {
+                title: _personnel != null ? "Alerting" : "Warnings",
                 type: bodyRequest.type,
                 confidence: bodyRequest.log.confidence,
                 camera: _camera === null || _camera === void 0 ? void 0 : _camera.name,
                 section: _section === null || _section === void 0 ? void 0 : _section.name,
                 departement: _departement === null || _departement === void 0 ? void 0 : _departement.name,
                 personnel: (_personnel === null || _personnel === void 0 ? void 0 : _personnel.first_name) + " " + (_personnel === null || _personnel === void 0 ? void 0 : _personnel.last_name),
+                personnel_code: _personnel === null || _personnel === void 0 ? void 0 : _personnel.personnel_code,
                 description: bodyRequest.description,
-                time: new Date(bodyRequest.log.timestamp),
+                time: bodyRequest.log.timestamp,
                 peopleCounting: bodyRequest.log.number_of_people,
                 plate_number: bodyRequest.log.plate_number,
-                owner: "_owner_id?._id",
+                owner: (_owner === null || _owner === void 0 ? void 0 : _owner.first_name) + " " + (_owner === null || _owner === void 0 ? void 0 : _owner.last_name),
             };
-            // console.log(result);
             let notification = result;
-            // if (bodyRequest.type === "face") {
-            //   notification = `${result.personnel?.first_name} ${result.personnel?.last_name} with personnel code: ${result.personnel?.personnel_code} ditected in camera: ${result.camera}, section:${result.section}, department:${result.departement}`;
-            // } else if (bodyRequest.type === "fire") {
-            //   notification_text = `fire ditected in camera: ${result.camera}, section: ${result.section}, department: ${result.departement}`;
-            // } else if (bodyRequest.type === "human") {
-            //   notification_text = `#${result.peopleCounting} human(s) ditected in camera: ${result.camera}, section: ${result.section}, department: ${result.departement}`;
-            // } else if (bodyRequest.type === "sabotage") {
-            //   notification_text = `sabotage ditected in camera: ${result.camera}, section: ${result.section}, department: ${result.departement}`;
-            // } else if (bodyRequest.type === "plate") {
-            //   notification_text = `car plate: ${result.plate_number} with owner: ${result.owner} ditected in camera: ${result.camera}, section: ${result.section}, department:${result.departement}, owner: `;
-            // }
-            console.log(result);
-            // console.log(notification_text);
-            server_1.io.emit("get alert", notification);
+            const time_record_stream = Number(process.env["RECORD_STREAM_TIME"]);
+            let rtsp_link_aray = _camera === null || _camera === void 0 ? void 0 : _camera.url.split(":");
+            let rtsp_link = rtsp_link_aray ? rtsp_link_aray[0] + "://" + (_camera === null || _camera === void 0 ? void 0 : _camera.username) + ":" + (_camera === null || _camera === void 0 ? void 0 : _camera.password) + "@" + (_camera === null || _camera === void 0 ? void 0 : _camera.ip) + ":" + rtsp_link_aray[3] : "";
+            let recorder = (0, recordStream_1.default)(rtsp_link, _camera === null || _camera === void 0 ? void 0 : _camera._id.toString());
+            if (is_muted_list === false) {
+                server_1.io.emit("get alert", notification);
+                if (notification.title == "Alerting") {
+                    recorder.start();
+                    console.log("Recording has started.");
+                    setTimeout(() => {
+                        recorder.stop();
+                        console.log("Recording has stopped.");
+                    }, time_record_stream);
+                }
+            }
             return res.status(201).json({
                 success: true,
             });

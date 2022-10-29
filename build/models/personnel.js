@@ -28,6 +28,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 //create personnel model with schema for save in DB
 const PersonnelSchema = new mongoose_1.Schema({
     first_name: { type: String, required: true },
@@ -38,8 +39,7 @@ const PersonnelSchema = new mongoose_1.Schema({
     job_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "JobTitle", required: true },
     personnel_code: { type: String, required: true },
     section_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Section", required: true },
-    camera_whitelist: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Camera" }],
-    image_id: { type: mongoose_1.Schema.Types.ObjectId, required: true },
+    camera_whitelist: [mongoose_1.Schema.Types.ObjectId],
     is_active: { type: Boolean, default: false },
     is_employee: { type: Boolean, default: false },
     is_dismissed: { type: Boolean, default: false },
@@ -49,8 +49,15 @@ const PersonnelSchema = new mongoose_1.Schema({
 });
 //get personnel data jason for auth
 PersonnelSchema.methods.toJSON = function () {
+    //get url AI for send request
+    const BASE_URL = process.env["BASE_URL"];
     //define path for save image
-    let pathSave = path_1.default.join(__dirname, `./../../assets/image/${this.personnel_code}`);
+    let pathSave = path_1.default.join(__dirname, `./../../assets/image/${this._id}/avatar.jpeg`);
+    let have_avatar = false;
+    //if path not exist, create path
+    if (fs_1.default.existsSync(pathSave)) {
+        have_avatar = true;
+    }
     return {
         _id: this._id,
         first_name: this.first_name,
@@ -67,8 +74,7 @@ PersonnelSchema.methods.toJSON = function () {
         is_employee: this.is_employee,
         is_dismissed: this.is_dismissed,
         create_date: this.create_date,
-        image_url: "192.168.1.39:8000/api/v1/files/download/default",
-        //image_url: pathSave != null ? pathSave + this.personnel_code + "/" + "avatar.jpg" : "192.168.1.39:8000/api/v1/files/download/default",
+        image_url: have_avatar === true ? BASE_URL + "/files/download/" + this._id : BASE_URL + "/files/download/default",
     };
 };
 // Compile model from schema

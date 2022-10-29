@@ -12,11 +12,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const axios_1 = __importDefault(require("axios"));
 const express_1 = require("express");
 const mongoose_1 = __importDefault(require("mongoose"));
 const error_handler_1 = require("../../error/error.handler");
 const model_1 = __importDefault(require("../../models/model"));
 const modelToCamera_1 = __importDefault(require("../../models/modelToCamera"));
+const schedule_1 = __importDefault(require("../../models/schedule"));
 const camera_1 = __importDefault(require("./../../models/camera"));
 const authentication_1 = require("./../../tools/authentication");
 //get user role from enviroment variable
@@ -111,7 +113,7 @@ router.get("", function (req, res, next) {
             //query for get cameras list
             if (search !== "") {
                 cameras = yield camera_1.default.find({
-                    name: { $regex: search, $options: "i" },
+                    ip: { $regex: search, $options: "i" },
                 })
                     .skip((page - 1) * perPage)
                     .limit(perPage)
@@ -137,6 +139,53 @@ router.get("", function (req, res, next) {
                 total: yield camera_1.default.countDocuments().exec(),
                 pages: Math.ceil((yield camera_1.default.countDocuments().exec()) / perPage),
             });
+        }
+        catch (err) {
+            return next(new error_handler_1.ApiError(500, "internal server error , " + err.message));
+        }
+    });
+});
+//route for get id camera with ip from back RTSPtoWEBRTC
+router.get("/getIdStream/:ip", function (req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            //get id from params in url
+            let ip = req.params.ip;
+            if (!ip) {
+                req.flash("error", "ip not found");
+                return next({ status: 400, message: "Bad request" });
+            }
+            //get token from header request and verify
+            let token = (0, authentication_1.getTokenAndVerify)(req, const_role, next);
+            if (!token) {
+                return null;
+            }
+            //get url AI for send request
+            const rtsp_to_webrtc = process.env["WEB_STREAM"];
+            //send request to back RTSPtoWEBRTC api for send ip and get id
+            var config = {
+                method: "get",
+                url: rtsp_to_webrtc + ip,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            };
+            let response = yield (0, axios_1.default)(config);
+            console.log(response);
+            if (response.status === 200 && response.data != "") {
+                //send response to client with camera
+                return res.status(200).json({
+                    success: true,
+                    data: response.data,
+                });
+            }
+            else {
+                //send response to client with camera
+                return res.status(response.status).json({
+                    success: false,
+                    data: "Not Found",
+                });
+            }
         }
         catch (err) {
             return next(new error_handler_1.ApiError(500, "internal server error , " + err.message));
@@ -233,6 +282,13 @@ router.delete("/:id", function (req, res, next) {
             if (!camera) {
                 req.flash("error", "camera not found");
                 return next(new error_handler_1.ApiError(404, "camera not found"));
+            }
+            let model_to_camera = yield modelToCamera_1.default.find({ camera_id: camera._id }).exec();
+            if (model_to_camera) {
+                for (let model of model_to_camera) {
+                    let schedule = yield schedule_1.default.findOneAndDelete({ model_camera_id: model._id }).exec();
+                }
+                let model_to_camera_deleted = yield modelToCamera_1.default.deleteMany({ camera_id: camera._id }).exec();
             }
             //send response to client with camera
             return res.status(201).json({

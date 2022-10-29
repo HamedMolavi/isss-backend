@@ -12,8 +12,7 @@ const convertToCron = (time) => {
 };
 exports.convertToCron = convertToCron;
 //for convert time to cron format
-const convertCronToDate = (time) => {
-};
+const convertCronToDate = (time) => { };
 exports.convertCronToDate = convertCronToDate;
 //for add day of week to cron format
 const convertToCronDay = (time_cron, dayOfWeek) => {
@@ -27,8 +26,7 @@ const compareTime = (start, stop) => {
     if (parseInt(startTime[0]) > parseInt(stopTime[0])) {
         return false;
     }
-    else if (parseInt(startTime[0]) === parseInt(stopTime[0]) &&
-        parseInt(startTime[1]) >= parseInt(stopTime[1])) {
+    else if (parseInt(startTime[0]) === parseInt(stopTime[0]) && parseInt(startTime[1]) >= parseInt(stopTime[1])) {
         return false;
     }
     return true;
@@ -43,7 +41,12 @@ function date2Epokh(date, time) {
     //convert date to epokh
     //let timeDateEpokhStart: number = new Date(timeDateStart).getTime();
     //const timeDateEpokhStart : number = new Date(Number(dates[2]), Number(dates[0]), Number(dates[1]), Number(times[0]), Number(times[1]), 0).getTime();
-    const timeDateEpokhStart = new Date(Number(dates[0]), Number(dates[1]), Number(dates[2]), Number(times[0]), Number(times[1]), 0).getTime();
+    const d = dates.join("-");
+    const t = times.join(":");
+    const dt = d + " " + t;
+    //const timeDateEpokhStart : number = new Date(Number(dates[0]), Number(dates[1]), Number(dates[2]), Number(times[0]), Number(times[1]), 0,0).getTime();
+    // const timeDateEpokhStart : number = new Date(Number(dates[0]), Number(dates[1]), Number(dates[2]), Number(times[0]), Number(times[1]), 0,0).getTime();
+    const timeDateEpokhStart = new Date(dt.replace(/-/g, "/")).getTime();
     //delete last 3 digits from epokh for delete milisecond
     // timeDateEpokhStart = timeDateEpokhStart / 1000;
     //convert epokh to Scientific Symbol

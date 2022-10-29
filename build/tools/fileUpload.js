@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteImageInRedis = exports.getImageFromRedis = exports.setFileInRedis = exports.uploadAvatar = exports.fileName = exports.location = void 0;
+exports.deleteDirectory = exports.deleteFiles = exports.readFiles = exports.deleteImageInRedis = exports.getImageFromRedis = exports.setFileInRedis = exports.uploadAvatar = exports.fileName = exports.location = void 0;
 const redis_1 = __importDefault(require("./../db/redis"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
@@ -35,7 +35,7 @@ function uploadAvatar(image_str, personnel_code) {
                 fs_1.default.mkdirSync(dirPersonnelAvatar);
             }
             //write image in path
-            yield fs_1.default.writeFile(dirPersonnelAvatar + "avatar.jpeg", image, (err) => {
+            yield fs_1.default.writeFile(dirPersonnelAvatar + "/avatar.jpeg", image, (err) => {
                 if (err) {
                     return null;
                 }
@@ -128,3 +128,68 @@ function deleteImageInRedis(id) {
     });
 }
 exports.deleteImageInRedis = deleteImageInRedis;
+//function for read all image in assets and convert to base64 and return list base64
+function readFiles(dirname) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        //check for exist path
+        if (!fs_1.default.existsSync(dirname)) {
+            return null;
+        }
+        //read all file in dirname
+        let filenames = yield fs_1.default.promises.readdir(dirname);
+        let response = [];
+        //read file and convert to base 64 and return list base64
+        for (let i = 0; i < filenames.length; i++) {
+            //read file and convert to base64
+            let hash_id = ((_a = filenames[i]) === null || _a === void 0 ? void 0 : _a.split("-")[1]).split(".")[0];
+            let content = yield fs_1.default.promises.readFile(dirname + filenames[i], "base64");
+            let result = {
+                hash_id: hash_id,
+                faces_base64: content,
+            };
+            response.push(result); //add to list
+        }
+        return response;
+    });
+}
+exports.readFiles = readFiles;
+//function for delete image in assets
+function deleteFiles(fileName, dirname) {
+    return __awaiter(this, void 0, void 0, function* () {
+        //check for exist path
+        if (!fs_1.default.existsSync(dirname)) {
+            return null;
+        }
+        let result = false;
+        //read all file in dirname
+        let filenames = yield fs_1.default.promises.readdir(dirname);
+        //delete file if exist
+        for (let i = 0; i < filenames.length; i++) {
+            if (fileName == filenames[i]) {
+                yield fs_1.default.promises.unlink(dirname + filenames[i]); //delete file if exist
+                result = true;
+            }
+        }
+        yield deleteDirectory(dirname, false);
+        return result;
+    });
+}
+exports.deleteFiles = deleteFiles;
+function deleteDirectory(dirname, force) {
+    return __awaiter(this, void 0, void 0, function* () {
+        //check for exist path
+        if (!fs_1.default.existsSync(dirname)) {
+            return null;
+        }
+        let result = false;
+        let filenames = yield fs_1.default.promises.readdir(dirname);
+        if (filenames.length > 0 && !force) {
+            return false;
+        }
+        yield fs_1.default.promises.rm(dirname, { recursive: true, force: true }); //delete file if exist
+        result = true;
+        return result;
+    });
+}
+exports.deleteDirectory = deleteDirectory;
