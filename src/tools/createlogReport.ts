@@ -195,23 +195,51 @@ export async function eventLogResponse(response: any) {
   let schedules = await Schedule.find().exec();
   let models = await Model.find().exec();
   let modelToCameras = await ModelToCamera.find().exec();
+  let sections = await Section.find().exec();
+  let departments = await Department.find().exec();
   for (let log of response.data.hits.hits) {
-    let schedule = schedules.find((sche)=>{
-      if(log._source.log.schedule_id == sche._id)return sche
+    let schedule = schedules.find((sche) => {
+      if (log._source.log.schedule_id.toString() == sche._id.toString()) return sche;
     });
-    let modelToCamera = modelToCameras.find((mod2cam)=>{
-      if(schedule?.model_camera_id == mod2cam._id)return mod2cam
+    let modelToCamera = modelToCameras.find((mod2cam) => {
+      if (schedule?.model_camera_id.toString() == mod2cam._id.toString()) {
+        return mod2cam;
+      }
     });
-    let _model = models.find((mod)=>{
-      if(modelToCamera?.model_id == mod._id)return mod
+    let _model = models.find((mod) => {
+      if (modelToCamera?.model_id.toString() == mod._id.toString()) return mod;
     });
     let result = {
+      type: log._source.type,
+      cause: log._source.cause,
       camera_id: log._source.log.camera_id,
-      name: cameras.find((cam) => {
-        if (cam._id == log._source.log.camera_id) return cam;
-      })?.name ?? "",
+      name:
+        cameras.find((cam) => {
+          if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
+        })?.name ?? "",
       time: new Date(log._source.log.timestamp),
       ai: _model != undefined ? _model.category : "",
+      section:
+        sections.find((sec) => {
+          let camera = cameras.find((cam) => {
+            if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
+          });
+          if (camera?.section_id.toString() == sec._id.toString()) {
+            return sec;
+          }
+        })?.name ?? "",
+      department:
+        departments.find((dep) => {
+          let _camera = cameras.find((cam) => {
+            if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
+          });
+          let _section = sections.find((sec) => {
+            if (sec._id.toString() == _camera?.section_id.toString()) return sec;
+          });
+          if (_section?.department_id.toString() == dep._id.toString()) {
+            return dep;
+          }
+        })?.name ?? "",
       description: log._source.description,
     };
     _data.push(result);
