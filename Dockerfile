@@ -4,6 +4,9 @@ COPY package.json .
 COPY package-lock.json* .
 RUN npm install
 RUN npm install -g typescript ts-node 
+RUN apk update
+RUN apk add
+RUN apk add ffmpeg
 
 
 FROM builder
