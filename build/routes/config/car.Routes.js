@@ -37,12 +37,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const error_handler_1 = require("../../error/error.handler");
+const carBrand_1 = __importDefault(require("../../models/carBrand"));
+const carColor_1 = __importDefault(require("../../models/carColor"));
 const personnel_1 = __importDefault(require("../../models/personnel"));
 const EnglishToPersianPlate_1 = __importStar(require("../../tools/EnglishToPersianPlate"));
 const car_1 = __importDefault(require("./../../models/car"));
 const authentication_1 = require("./../../tools/authentication");
-const carBrand_1 = __importDefault(require("../../models/carBrand"));
-const carColor_1 = __importDefault(require("../../models/carColor"));
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to routes file
@@ -56,12 +56,11 @@ router.use(function (req, res, next) {
 });
 //add route for register new car
 router.post("", function (req, res, next) {
-    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get jason from body request
-            const { owner, number_plate, brand_id, color_id, camera_whitelist } = req.body;
-            if (!owner || !number_plate || !brand_id || !color_id || !camera_whitelist) {
+            const { owner, number_plate, brand, color, camera_whitelist } = req.body;
+            if (!owner || !number_plate || !brand || !color || !camera_whitelist) {
                 req.flash("error", "Car is required");
                 return next(new error_handler_1.ApiError(400, "Car is required"));
             }
@@ -72,17 +71,15 @@ router.post("", function (req, res, next) {
             }
             //add plate number to json response for sort persian format in font end
             let plateNumber = {
-                first: number_plate.first.toLocaleString("en-us"),
+                first: number_plate.first,
                 second: number_plate.second,
-                third: number_plate.third.toLocaleString("en-us"),
-                fourth: number_plate.third.toLocaleString("en-us"),
-                fifth: number_plate.fifth.toLocaleString("en-us"),
+                third: number_plate.third,
+                fourth: number_plate.fourth,
+                fifth: number_plate.fifth,
             };
             let plate_number_engglish = `${plateNumber.first}${EnglishToPersianPlate_1.toEnglishPLate[plateNumber.second]}${plateNumber.third}${plateNumber.fifth}`;
             //query for save new car in DB
-            let car = yield car_1.default.findOne({
-                $or: [{ number_plate: plate_number_engglish }, { owner: owner }],
-            }).exec();
+            let car = yield car_1.default.findOne({ number_plate: plate_number_engglish }).exec();
             //retrun error if car already exists
             if (car) {
                 req.flash("error", "Car already exists");
@@ -92,29 +89,27 @@ router.post("", function (req, res, next) {
             let newCar = new car_1.default({
                 owner: owner,
                 number_plate: plate_number_engglish,
-                brand_id: brand_id,
-                color_id: color_id,
+                brand: brand,
+                color: color,
                 camera_whitelist: camera_whitelist,
             });
             //query for save new car in DB
             yield newCar.save();
             req.flash("info", "Car added");
-            let _brand = yield carBrand_1.default.findById(newCar.brand_id).exec();
-            let _color = yield carColor_1.default.findById(newCar.color_id).exec();
             //send response to client
             return res.status(201).json({
                 success: true,
                 data: {
                     owner: newCar.owner,
                     number_plate: {
-                        first: Number(newCar.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
+                        first: Number(newCar.number_plate.substr(0, 2)),
                         second: EnglishToPersianPlate_1.default[newCar.number_plate.substr(2, 1)],
-                        third: Number(newCar.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+                        third: Number(newCar.number_plate.substr(3, 3)),
                         fourth: "ایران",
-                        fifth: Number(newCar.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+                        fifth: Number(newCar.number_plate.substr(6, 2)),
                     },
-                    brand: (_a = _brand.name) !== null && _a !== void 0 ? _a : "",
-                    color: (_b = _color.name) !== null && _b !== void 0 ? _b : "",
+                    brand: newCar.brand,
+                    color: newCar.color,
                     camera_whitelist: camera_whitelist,
                 },
             });
@@ -142,7 +137,7 @@ router.get("", function (req, res, next) {
             }
             //query for get car list from DB
             let cars = [];
-            if ((search && search.length > 0)) {
+            if (search && search.length > 0) {
                 cars = yield car_1.default.find({
                     number_plate: { $regex: search, $options: "i" },
                 })
@@ -166,22 +161,22 @@ router.get("", function (req, res, next) {
                 let personnel = yield personnel_1.default.findById(cars[i].owner).exec();
                 let _brand;
                 let _color;
-                if (cars[i].brand_id) {
-                    _brand = yield carBrand_1.default.findById(cars[i].brand_id).exec();
+                if (cars[i].brand) {
+                    _brand = yield carBrand_1.default.findById(cars[i].brand).exec();
                 }
-                if (cars[i].color_id) {
-                    _color = yield carColor_1.default.findById(cars[i].color_id).exec();
+                if (cars[i].color) {
+                    _color = yield carColor_1.default.findById(cars[i].color).exec();
                 }
                 let _owner = personnel != null ? `${personnel === null || personnel === void 0 ? void 0 : personnel.first_name} ${personnel === null || personnel === void 0 ? void 0 : personnel.last_name}` : "";
                 let result = {
                     _id: cars[i]._id,
                     owner: _owner,
                     number_plate: {
-                        first: Number(cars[i].number_plate.substr(0, 2)).toLocaleString("fa-IR"),
-                        second: EnglishToPersianPlate_1.default[cars[i].number_plate.substr(2, 1)],
-                        third: Number(cars[i].number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+                        first: cars[i].number_plate != null ? Number(cars[i].number_plate.substr(0, 2)) : "",
+                        second: cars[i].number_plate != null ? EnglishToPersianPlate_1.default[cars[i].number_plate.substr(2, 1)] : "",
+                        third: cars[i].number_plate != null ? Number(cars[i].number_plate.substr(3, 3)) : "",
                         fourth: "ایران",
-                        fifth: Number(cars[i].number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+                        fifth: cars[i].number_plate != null ? Number(cars[i].number_plate.substr(6, 2)) : "",
                     },
                     brand: _brand != null ? _brand.name : "",
                     color: _color != null ? _color.name : "",
@@ -208,7 +203,6 @@ router.get("", function (req, res, next) {
 });
 //route for get car by id from DB
 router.get("/:id", function (req, res, next) {
-    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get id from url
@@ -222,6 +216,9 @@ router.get("/:id", function (req, res, next) {
             if (!token) {
                 return null;
             }
+            // let s;
+            // let test = await Car.find().populate("owner").populate("brand").populate("color");
+            // console.log(test);
             //query for get car by id from DB
             let car = yield car_1.default.findById(id).exec();
             //return response not found to client if not found car
@@ -229,25 +226,21 @@ router.get("/:id", function (req, res, next) {
                 req.flash("error", "Car not found");
                 return next(new error_handler_1.ApiError(404, "Car not found"));
             }
-            let personnel = yield personnel_1.default.findById(car.owner).exec();
-            let _owner = personnel != null ? `${personnel === null || personnel === void 0 ? void 0 : personnel.first_name} ${personnel === null || personnel === void 0 ? void 0 : personnel.last_name}` : "";
-            let _brand = yield carBrand_1.default.findById(car.brand_id).exec();
-            let _color = yield carColor_1.default.findById(car.color_id).exec();
             //return response to client with departemen
             return res.status(200).json({
                 success: true,
                 data: {
                     _id: car._id,
-                    owner: _owner,
+                    owner: car.owner,
                     number_plate: {
-                        first: Number(car.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
+                        first: Number(car.number_plate.substr(0, 2)),
                         second: EnglishToPersianPlate_1.default[car.number_plate.substr(2, 1)],
-                        third: Number(car.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+                        third: Number(car.number_plate.substr(3, 3)),
                         fourth: "ایران",
-                        fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+                        fifth: Number(car.number_plate.substr(6, 2)),
                     },
-                    brand: (_a = _brand === null || _brand === void 0 ? void 0 : _brand.name) !== null && _a !== void 0 ? _a : "",
-                    color: (_b = _color === null || _color === void 0 ? void 0 : _color.name) !== null && _b !== void 0 ? _b : "",
+                    brand: car.brand,
+                    color: car.color,
                     camera_whitelist: car.camera_whitelist,
                     time: car.create_date,
                     __v: car.__v,
@@ -261,7 +254,6 @@ router.get("/:id", function (req, res, next) {
 });
 //add route for edit car
 router.patch("/:id", function (req, res, next) {
-    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get id from url
@@ -278,6 +270,19 @@ router.patch("/:id", function (req, res, next) {
             if (!token) {
                 return null;
             }
+            let plateNumber = {};
+            if (carBody.number_plate) {
+                //add plate number to json response for sort persian format in font end
+                plateNumber = {
+                    first: carBody.number_plate.first,
+                    second: carBody.number_plate.second,
+                    third: carBody.number_plate.third,
+                    fourth: carBody.number_plate.fourth,
+                    fifth: carBody.number_plate.fifth,
+                };
+                let plate_number_engglish = `${plateNumber.first}${EnglishToPersianPlate_1.toEnglishPLate[plateNumber.second]}${plateNumber.third}${plateNumber.fifth}`;
+                carBody.number_plate = plate_number_engglish;
+            }
             //query for get car by id from DB and update
             let car = yield car_1.default.findByIdAndUpdate(id, carBody, { new: true }).exec();
             //return response not found to client if not found car
@@ -285,25 +290,21 @@ router.patch("/:id", function (req, res, next) {
                 req.flash("error", "Car not found");
                 return next(new error_handler_1.ApiError(404, "Car not found"));
             }
-            let personnel = yield personnel_1.default.findById(car.owner).exec();
-            let _owner = personnel != null ? `${personnel === null || personnel === void 0 ? void 0 : personnel.first_name} ${personnel === null || personnel === void 0 ? void 0 : personnel.last_name}` : "";
-            let _brand = yield carBrand_1.default.findById(car.brand_id).exec();
-            let _color = yield carColor_1.default.findById(car.color_id).exec();
             //return response to client with car
             return res.status(201).json({
                 success: true,
                 data: {
                     _id: car._id,
-                    owner: _owner,
+                    owner: car.owner,
                     number_plate: {
-                        first: Number(car.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
+                        first: Number(car.number_plate.substr(0, 2)),
                         second: EnglishToPersianPlate_1.default[car.number_plate.substr(2, 1)],
-                        third: Number(car.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+                        third: Number(car.number_plate.substr(3, 3)),
                         fourth: "ایران",
-                        fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+                        fifth: Number(car.number_plate.substr(6, 2)),
                     },
-                    brand: (_a = _brand === null || _brand === void 0 ? void 0 : _brand.name) !== null && _a !== void 0 ? _a : "",
-                    color: (_b = _color === null || _color === void 0 ? void 0 : _color.name) !== null && _b !== void 0 ? _b : "",
+                    brand: car.brand,
+                    color: car.color,
                     camera_whitelist: car.camera_whitelist,
                     time: car.create_date,
                     __v: car.__v,
@@ -317,7 +318,6 @@ router.patch("/:id", function (req, res, next) {
 });
 //add route for delete car
 router.delete("/:id", function (req, res, next) {
-    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let id = req.params.id;
@@ -338,25 +338,21 @@ router.delete("/:id", function (req, res, next) {
                 req.flash("error", "Car not found");
                 return next(new error_handler_1.ApiError(404, "Car not found"));
             }
-            let personnel = yield personnel_1.default.findById(car.owner).exec();
-            let _owner = personnel != null ? `${personnel === null || personnel === void 0 ? void 0 : personnel.first_name} ${personnel === null || personnel === void 0 ? void 0 : personnel.last_name}` : "";
-            let _brand = yield carBrand_1.default.findById(car.brand_id).exec();
-            let _color = yield carColor_1.default.findById(car.color_id).exec();
             //return response to client with car
             return res.status(201).json({
                 success: true,
                 data: {
                     _id: car._id,
-                    owner: _owner,
+                    owner: car.owner,
                     number_plate: {
-                        first: Number(car.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
+                        first: Number(car.number_plate.substr(0, 2)),
                         second: EnglishToPersianPlate_1.default[car.number_plate.substr(2, 1)],
-                        third: Number(car.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
+                        third: Number(car.number_plate.substr(3, 3)),
                         fourth: "ایران",
-                        fifth: Number(car.number_plate.substr(6, 2)).toLocaleString("fa-IR"),
+                        fifth: Number(car.number_plate.substr(6, 2)),
                     },
-                    brand: (_a = _brand === null || _brand === void 0 ? void 0 : _brand.name) !== null && _a !== void 0 ? _a : "",
-                    color: (_b = _color === null || _color === void 0 ? void 0 : _color.name) !== null && _b !== void 0 ? _b : "",
+                    brand: car.brand,
+                    color: car.color,
                     camera_whitelist: car.camera_whitelist,
                     time: car.create_date,
                     __v: car.__v,

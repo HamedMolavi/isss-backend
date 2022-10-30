@@ -27,8 +27,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 //create Model person_image with schema for save in DB
 const PersonImageSchema = new mongoose_1.Schema({
     person_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Personnel" },
-    guid: { type: String, required: false },
-    // vector: { type: Schema.Types.Array, required: true },
+    hash_id: { type: String, required: true },
     vector: [Number]
 }, {
     collection: "Person_Image"

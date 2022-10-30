@@ -33,6 +33,7 @@ router.use(function (req, res, next) {
 });
 //route for get departementfile list
 router.get("", function (req, res, next) {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get token from header request and verify
@@ -70,16 +71,16 @@ router.get("", function (req, res, next) {
                                     start_cron: {
                                         min: time_start_json[0],
                                         hour: time_start_json[1],
-                                        dow: time_start_json[4].split(",")
+                                        dow: (_a = time_start_json[4].split(",")) !== null && _a !== void 0 ? _a : ["*"],
                                     },
                                     stop_cron: {
                                         min: time_stop_json[0],
                                         hour: time_stop_json[1],
-                                        dow: time_stop_json[4].split(",")
+                                        dow: (_b = time_stop_json[4].split(",")) !== null && _b !== void 0 ? _b : ["*"],
                                     },
                                     model_camera_id: schedules[k].model_camera_id,
                                     config: {
-                                        threshold: schedules[k].config.threshold,
+                                        threshold: schedules[k].config.threshold > 0 ? schedules[k].config.threshold * 100 : schedules[k].config.threshold,
                                         zones: schedules[k].config.zones,
                                         min_people: schedules[k].config.min_people,
                                         max_people: schedules[k].config.max_people,
@@ -96,7 +97,7 @@ router.get("", function (req, res, next) {
                                     category: models[p].category,
                                     is_enabled: modelToCamera[j].is_enabled,
                                     uri: models[p].uri,
-                                    children: childrenSchedule,
+                                    children: childrenSchedule.length > 0 ? childrenSchedule : [],
                                 });
                             }
                         }
@@ -149,6 +150,7 @@ router.get("", function (req, res, next) {
 });
 //route for get departementfile list
 router.get("/:id", function (req, res, next) {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let id = req.params.id;
@@ -192,16 +194,16 @@ router.get("/:id", function (req, res, next) {
                                         start_cron: {
                                             min: time_start_json[0],
                                             hour: time_start_json[1],
-                                            dow: time_start_json[4].split(",")
+                                            dow: (_a = time_start_json[4].split(",")) !== null && _a !== void 0 ? _a : ["*"],
                                         },
                                         stop_cron: {
                                             min: time_stop_json[0],
                                             hour: time_stop_json[1],
-                                            dow: time_stop_json[4].split(",")
+                                            dow: (_b = time_stop_json[4].split(",")) !== null && _b !== void 0 ? _b : ["*"],
                                         },
                                         model_camera_id: schedules[k].model_camera_id,
                                         config: {
-                                            threshold: schedules[k].config.threshold,
+                                            threshold: schedules[k].config.threshold > 0 ? schedules[k].config.threshold * 100 : schedules[k].config.threshold,
                                             zones: schedules[k].config.zones,
                                             min_people: schedules[k].config.min_people,
                                             max_people: schedules[k].config.max_people,
@@ -210,7 +212,7 @@ router.get("/:id", function (req, res, next) {
                                 }
                             }
                             for (let p = 0; p < models.length; ++p) {
-                                if (models[p]._id.toString() == modelToCamera[j].model_id.toString() && modelToCamera[j].is_enabled == true) {
+                                if (models[p]._id.toString() == modelToCamera[j].model_id.toString()) {
                                     childrenModel.push({
                                         _id: models[p]._id,
                                         name: models[p].name,
@@ -218,7 +220,7 @@ router.get("/:id", function (req, res, next) {
                                         category: models[p].category,
                                         is_enabled: modelToCamera[j].is_enabled,
                                         uri: models[p].uri,
-                                        children: childrenSchedule,
+                                        children: childrenSchedule.length > 0 ? childrenSchedule : [],
                                     });
                                 }
                             }

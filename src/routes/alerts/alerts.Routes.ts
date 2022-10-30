@@ -9,6 +9,7 @@ import Department from "../../models/department";
 import Car from "../../models/car";
 import ModelToCamera from "../../models/modelToCamera";
 import Schedule from "../../models/schedule";
+import recordStream from "../../tools/recordStream";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -82,10 +83,23 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       plate_number: bodyRequest.log.plate_number,
       owner: _owner?.first_name + " " + _owner?.last_name,
     };
-    let notification = result;
 
+    let notification = result;
+    const time_record_stream = Number(process.env["RECORD_STREAM_TIME"] as string);
+    let rtsp_link_aray: string[] | undefined = _camera?.url.split(":");
+    let rtsp_link: string = rtsp_link_aray ? rtsp_link_aray[0] + "://" + _camera?.username + ":" + _camera?.password + "@" + _camera?.ip + ":" + rtsp_link_aray[3] : "";
+    let recorder: any = recordStream(rtsp_link, _camera?._id.toString());
     if (is_muted_list === false) {
       io.emit("get alert", notification);
+      if (notification.title == "Alerting") {
+        recorder.start();
+        console.log("Recording has started.");
+
+        setTimeout(() => {
+          recorder.stop();
+          console.log("Recording has stopped.");
+        }, time_record_stream);
+      }
     }
 
     return res.status(201).json({

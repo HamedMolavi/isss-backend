@@ -43,6 +43,7 @@ build/Release
 node_modules/
 jspm_packages/
 assets/image
+assets/video
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/

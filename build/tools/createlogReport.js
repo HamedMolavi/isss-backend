@@ -26,18 +26,21 @@ const EnglishToPersianPlate_1 = __importDefault(require("./EnglishToPersianPlate
 const model_1 = __importDefault(require("../models/model"));
 //create json response sabotageLog report for send to client
 function sabotageLogResponse(response) {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         //create json response
         let _data = [];
-        for (let i = 0; i < response.data.hits.hits.length; i++) {
-            //get camera from mongo db by id for get camera name
-            let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
+        let cameras = yield camera_1.default.find().exec();
+        for (let log of response.data.hits.hits) {
             let result = {
-                camera_id: response.data.hits.hits[i]._source.camera_id,
-                camera: camera === null || camera === void 0 ? void 0 : camera.name,
-                time: new Date(response.data.hits.hits[i]._source.timestamp),
+                camera_id: log._source.camera_id,
+                camera: (_b = (_a = cameras.find((cam) => {
+                    if (cam._id == log._source.camera_id)
+                        return cam.name;
+                })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
+                time: new Date(log._source.timestamp),
             };
-            _data.push(yield result);
+            _data.push(result);
         }
         return _data;
     });
@@ -45,9 +48,8 @@ function sabotageLogResponse(response) {
 exports.sabotageLogResponse = sabotageLogResponse;
 //create json response plateLog report for send to client
 function plateLogResponse(response, carBrand, carColor, owner, allowed, search) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
-        //query for get cars from mongo db with list color and list brand and list owner
         let cars;
         if (owner && carColor && carBrand) {
             cars = yield car_1.default.find({
@@ -58,16 +60,20 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
             //send error if owner or color or brand is not found in DB
             cars = yield car_1.default.find({}).exec();
         }
+        let cameras = yield camera_1.default.find().exec();
+        let personnels = yield personnel_1.default.find().exec();
+        let colors = yield carColor_1.default.find().exec();
+        let brands = yield carBrand_1.default.find().exec();
         //get cars with match plate_number from elastic search to cars plate_number
         let _data = [];
         //create json response
-        for (let i = 0; i < response.data.hits.hits.length; i++) {
+        for (let log of response.data.hits.hits) {
             //split plate_number to get first and last digit
             //change plate number format from english to persian
-            let plateNumber1 = Number(response.data.hits.hits[i]._source.plate_number.substr(0, 2)).toLocaleString("fa-IR");
-            let plateNumber2 = response.data.hits.hits[i]._source.plate_number.substr(2, 1);
-            let plateNumber3 = Number(response.data.hits.hits[i]._source.plate_number.substr(3, 3)).toLocaleString("fa-IR");
-            let plateNumber4 = Number(response.data.hits.hits[i]._source.plate_number.substr(6, 2)).toLocaleString("fa-IR");
+            let plateNumber1 = Number(log._source.plate_number.substr(0, 2)).toLocaleString("fa-IR");
+            let plateNumber2 = log._source.plate_number.substr(2, 1);
+            let plateNumber3 = Number(log._source.plate_number.substr(3, 3)).toLocaleString("fa-IR");
+            let plateNumber4 = Number(log._source.plate_number.substr(6, 2)).toLocaleString("fa-IR");
             //add plate number to json response for sort persian format in font end
             let plateNumber = {
                 first: plateNumber1,
@@ -78,11 +84,12 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
             };
             //define json for add in list response data
             let result = {
-                camera_id: response.data.hits.hits[i]._source.camera_id,
-                camera: (_a = (yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).then((camera) => {
-                    return camera === null || camera === void 0 ? void 0 : camera.name;
-                }))) !== null && _a !== void 0 ? _a : "null",
-                time: new Date(response.data.hits.hits[i]._source.timestamp),
+                camera_id: log._source.camera_id,
+                camera: (_b = (_a = cameras.find((cam) => {
+                    if (cam._id == log._source.camera_id)
+                        return cam.name;
+                })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
+                time: new Date(log._source.timestamp),
                 plate_number: plateNumber,
                 owner: "",
                 color: "",
@@ -90,45 +97,34 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
                 allowed: false,
             };
             //get compare plate_number from elastic search to cars plate_number and get owner, color, brand fore search api
-            for (let j = 0; j < cars.length; j++) {
-                if (response.data.hits.hits[i]._source.plate_number === cars[j].number_plate) {
+            for (let car of cars) {
+                if (log._source.plate_number === car.number_plate) {
                     //get owner from DB and set to result
-                    result.owner =
-                        (_b = (yield personnel_1.default.findById(cars[j].owner)
-                            .exec()
-                            .then((personnel) => {
-                            return (personnel === null || personnel === void 0 ? void 0 : personnel.first_name) + " " + (personnel === null || personnel === void 0 ? void 0 : personnel.last_name);
-                        }))) !== null && _b !== void 0 ? _b : "null";
+                    let _personnel = personnels.find((person) => {
+                        if (person._id == car.owner)
+                            return person;
+                    });
+                    result.owner = _personnel != null ? (_personnel === null || _personnel === void 0 ? void 0 : _personnel.first_name) + " " + (_personnel === null || _personnel === void 0 ? void 0 : _personnel.last_name) : "null";
                     //get color from DB and set to result
-                    result.color =
-                        (_c = (yield carColor_1.default.findById(cars[j].color_id)
-                            .exec()
-                            .then((carColor) => {
-                            return carColor === null || carColor === void 0 ? void 0 : carColor.name;
-                        }))) !== null && _c !== void 0 ? _c : "null";
-                    //get brand from DB and set to result
-                    result.brand =
-                        (_d = (yield carBrand_1.default.findById(cars[j].brand_id)
-                            .exec()
-                            .then((car) => {
-                            return car === null || car === void 0 ? void 0 : car.name;
-                        }))) !== null && _d !== void 0 ? _d : "null";
-                    //set allowed to result if car is allowed or not
-                    if (allowed === null) {
-                        result.allowed = cars[j].camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) ? true : false;
-                    }
-                    else if (cars[j].camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) !== allowed) {
-                        break;
-                    }
-                    else if (cars[j].camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id) === allowed) {
-                        result.allowed = allowed;
-                    }
-                    _data.push(result);
-                    break;
+                    (result.color =
+                        (_d = (_c = colors.find((col) => {
+                            if (col._id == car.color)
+                                return col.name;
+                        })) === null || _c === void 0 ? void 0 : _c.name) !== null && _d !== void 0 ? _d : "null"),
+                        //get brand from DB and set to result
+                        (result.brand =
+                            (_f = (_e = brands.find((bra) => {
+                                if (bra._id == car.brand)
+                                    return bra.name;
+                            })) === null || _e === void 0 ? void 0 : _e.name) !== null && _f !== void 0 ? _f : "null"),
+                        (result.allowed = car.camera_whitelist.includes(log._source.camera_id) ? true : false);
                 }
             }
             //if car not found in DB and request for all log report then add plate without owner
-            if (!search) {
+            if (search && result.allowed == allowed) {
+                _data.push(result);
+            }
+            else if (search == false) {
                 _data.push(result);
             }
         }
@@ -137,43 +133,35 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
 }
 exports.plateLogResponse = plateLogResponse;
 //create json response humanLog report for send to client
-function humanLogResponse(response, allowed) {
+function humanLogResponse(response, allowed, search) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         //create json response
         let _data = [];
-        for (let i = 0; i < response.data.hits.hits.length; i++) {
-            //get modelToCamera from mongo db by id
-            let model2camera = yield modelToCamera_1.default.findOne({
-                camera_id: response.data.hits.hits[i]._source.camera_id,
-            }).exec();
-            //get schedule from mongo db by model_camera_id for compare with max_people
-            let schedule = yield schedule_1.default.findOne({
-                model_camera_id: model2camera === null || model2camera === void 0 ? void 0 : model2camera._id.toString(),
-            }).exec();
-            //get camera from mongo db by id for get camera name
-            let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
+        //let modelToCameras = await ModelToCamera.find().exec();
+        let schedules = yield schedule_1.default.find().exec();
+        let cameras = yield camera_1.default.find().exec();
+        for (let log of response.data.hits.hits) {
+            let _schedule = schedules.find((item) => {
+                if (item._id == log.schedule_id)
+                    return item;
+            });
             let result = {
-                camera_id: response.data.hits.hits[i]._source.camera_id,
-                camera: camera === null || camera === void 0 ? void 0 : camera.name,
-                time: new Date(response.data.hits.hits[i]._source.timestamp),
-                numberOfPeople: response.data.hits.hits[i]._source.number_of_people,
-                allowed: false,
+                camera_id: log._source.camera_id,
+                camera: (_b = (_a = cameras.find((cam) => {
+                    if (cam._id == log._source.camera_id)
+                        return cam.name;
+                })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
+                time: new Date(log._source.timestamp),
+                numberOfPeople: log._source.number_of_people,
+                allowed: (_c = (_schedule && _schedule.config.max_people >= log._source.number_of_people && _schedule.config.min_people <= log._source.number_of_people)) !== null && _c !== void 0 ? _c : false,
             };
-            if (allowed === null
-            // schedule!?.config!?.max_people! >=
-            //   response.data.hits.hits[i].number_of_people ==
-            //   allowed
-            ) {
-                result.allowed = ((_a = schedule === null || schedule === void 0 ? void 0 : schedule.config) === null || _a === void 0 ? void 0 : _a.max_people) >= response.data.hits.hits[i].number_of_people ? true : false;
+            if (search && result.allowed == allowed) {
+                _data.push(result);
             }
-            else if (((_b = schedule === null || schedule === void 0 ? void 0 : schedule.config) === null || _b === void 0 ? void 0 : _b.max_people) >= response.data.hits.hits[i].number_of_people === allowed) {
-                result.allowed = allowed;
+            else if (search == false) {
+                _data.push(result);
             }
-            else if (((_c = schedule === null || schedule === void 0 ? void 0 : schedule.config) === null || _c === void 0 ? void 0 : _c.max_people) >= response.data.hits.hits[i].number_of_people === allowed) {
-                break;
-            }
-            _data.push(yield result);
         }
         return _data;
     });
@@ -181,62 +169,57 @@ function humanLogResponse(response, allowed) {
 exports.humanLogResponse = humanLogResponse;
 //create json response fireLog report for send to client
 function fireLogResponse(response) {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         //create json response
         let _data = [];
-        for (let i = 0; i < response.data.hits.hits.length; i++) {
-            //get camera from mongo db by id for get camera name
-            let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
+        let cameras = yield camera_1.default.find().exec();
+        for (let log of response.data.hits.hits) {
             let result = {
-                camera_id: response.data.hits.hits[i]._source.camera_id,
-                camera: camera === null || camera === void 0 ? void 0 : camera.name,
-                time: new Date(response.data.hits.hits[i]._source.timestamp),
-                probability: response.data.hits.hits[i]._source.confidence,
+                camera_id: log._source.camera_id,
+                camera: (_b = (_a = cameras.find((cam) => {
+                    if (cam._id == log._source.camera_id)
+                        return cam.name;
+                })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
+                time: new Date(log._source.timestamp),
+                probability: log._source.confidence,
             };
-            _data.push(yield result);
+            _data.push(result);
         }
         return _data;
     });
 }
 exports.fireLogResponse = fireLogResponse;
 //create json response faceLog report for send to client
-function faceLogResponse(response, allowed) {
+function faceLogResponse(response, allowed, search) {
+    var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         //create json response
         let _data = [];
-        for (let i = 0; i < response.data.hits.hits.length; i++) {
-            //get personnel from mongo db by id
-            let _personnel;
-            if (response.data.hits.hits[i]._source.personnel_id !== "-1") {
-                _personnel = yield personnel_1.default.findById(response.data.hits.hits[i]._source.personnel_id).exec();
-            }
-            else {
-                _personnel = null;
-            }
-            //get camera from mongo db by id for get camera name
-            let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.camera_id).exec();
+        let cameras = yield camera_1.default.find().exec();
+        let personnels = yield personnel_1.default.find().exec();
+        for (let log of response.data.hits.hits) {
+            let _personnel = personnels.find((person) => {
+                if (log._source.personnel_id == person._id) {
+                    return person.first_name + " " + person.last_name;
+                }
+            });
             let result = {
-                camera_id: response.data.hits.hits[i]._source.camera_id,
-                camera: camera === null || camera === void 0 ? void 0 : camera.name,
-                time: new Date(response.data.hits.hits[i]._source.timestamp),
-                fullName: _personnel ? (_personnel === null || _personnel === void 0 ? void 0 : _personnel.first_name) + " " + (_personnel === null || _personnel === void 0 ? void 0 : _personnel.last_name) : "",
-                allowed: false,
-                // allowed: _personnel?.camera_whitelist.includes(
-                //   response.data.hits.hits[i]._source.camera_id
-                // )
-                //   ? true
-                //   : false,
+                camera_id: log._source.camera_id,
+                camera: (_b = (_a = cameras.find((cam) => {
+                    if (cam._id == log._source.camera_id)
+                        return cam.name;
+                })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
+                fullName: _personnel != null ? (_personnel === null || _personnel === void 0 ? void 0 : _personnel.first_name) + " " + (_personnel === null || _personnel === void 0 ? void 0 : _personnel.last_name) : "",
+                time: new Date(log._source.timestamp),
+                allowed: (_c = _personnel === null || _personnel === void 0 ? void 0 : _personnel.camera_whitelist.includes(log._source.camera_id)) !== null && _c !== void 0 ? _c : false,
             };
-            if (allowed === null) {
-                result.allowed = (_personnel === null || _personnel === void 0 ? void 0 : _personnel.camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id)) ? true : false;
+            if (search && result.allowed == allowed) {
+                _data.push(result);
             }
-            else if ((_personnel === null || _personnel === void 0 ? void 0 : _personnel.camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id)) === allowed) {
-                result.allowed = allowed;
+            else if (search == false) {
+                _data.push(result);
             }
-            else if ((_personnel === null || _personnel === void 0 ? void 0 : _personnel.camera_whitelist.includes(response.data.hits.hits[i]._source.camera_id)) === allowed) {
-                break;
-            }
-            _data.push(yield result);
         }
         return _data;
     });
@@ -244,29 +227,65 @@ function faceLogResponse(response, allowed) {
 exports.faceLogResponse = faceLogResponse;
 //create json response eventLog report for send to client
 function eventLogResponse(response) {
+    var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
         //create json response
         let _data = [];
-        let cameraIds = [];
-        for (let i = 0; i < response.data.hits.hits.length; i++) {
-            cameraIds.push(response.data.hits.hits[i]._source.log.camera_id);
-            let camera = yield camera_1.default.findById(response.data.hits.hits[i]._source.log.camera_id).exec();
-            let schedule = yield schedule_1.default.findById(response.data.hits.hits[i]._source.log.schedule_id).exec();
-            let model;
-            if (schedule) {
-                let modelToCamera = yield modelToCamera_1.default.findById(schedule.model_camera_id).exec();
-                if (modelToCamera) {
-                    model = yield model_1.default.findById(modelToCamera.model_id).exec();
+        let cameras = yield camera_1.default.find().exec();
+        let schedules = yield schedule_1.default.find().exec();
+        let models = yield model_1.default.find().exec();
+        let modelToCameras = yield modelToCamera_1.default.find().exec();
+        let sections = yield section_1.default.find().exec();
+        let departments = yield department_1.default.find().exec();
+        for (let log of response.data.hits.hits) {
+            let schedule = schedules.find((sche) => {
+                if (log._source.log.schedule_id.toString() == sche._id.toString())
+                    return sche;
+            });
+            let modelToCamera = modelToCameras.find((mod2cam) => {
+                if ((schedule === null || schedule === void 0 ? void 0 : schedule.model_camera_id.toString()) == mod2cam._id.toString()) {
+                    return mod2cam;
                 }
-            }
+            });
+            let _model = models.find((mod) => {
+                if ((modelToCamera === null || modelToCamera === void 0 ? void 0 : modelToCamera.model_id.toString()) == mod._id.toString())
+                    return mod;
+            });
             let result = {
-                camera_id: response.data.hits.hits[i]._source.log.camera_id,
-                name: camera != null ? camera.name : "",
-                time: new Date(response.data.hits.hits[i]._source.log.timestamp),
-                ai: model != null ? model.category : "",
-                description: response.data.hits.hits[i]._source.description,
+                type: log._source.type,
+                cause: log._source.cause,
+                camera_id: log._source.log.camera_id,
+                name: (_b = (_a = cameras.find((cam) => {
+                    if (cam._id.toString() == log._source.log.camera_id.toString())
+                        return cam;
+                })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
+                time: new Date(log._source.log.timestamp),
+                ai: _model != undefined ? _model.category : "",
+                section: (_d = (_c = sections.find((sec) => {
+                    let camera = cameras.find((cam) => {
+                        if (cam._id.toString() == log._source.log.camera_id.toString())
+                            return cam;
+                    });
+                    if ((camera === null || camera === void 0 ? void 0 : camera.section_id.toString()) == sec._id.toString()) {
+                        return sec;
+                    }
+                })) === null || _c === void 0 ? void 0 : _c.name) !== null && _d !== void 0 ? _d : "",
+                department: (_f = (_e = departments.find((dep) => {
+                    let _camera = cameras.find((cam) => {
+                        if (cam._id.toString() == log._source.log.camera_id.toString())
+                            return cam;
+                    });
+                    let _section = sections.find((sec) => {
+                        if (sec._id.toString() == (_camera === null || _camera === void 0 ? void 0 : _camera.section_id.toString()))
+                            return sec;
+                    });
+                    if ((_section === null || _section === void 0 ? void 0 : _section.department_id.toString()) == dep._id.toString()) {
+                        return dep;
+                    }
+                })) === null || _e === void 0 ? void 0 : _e.name) !== null && _f !== void 0 ? _f : "",
+                description: log._source.description,
             };
-            _data.push(yield result);
+            _data.push(result);
         }
         return _data;
     });
