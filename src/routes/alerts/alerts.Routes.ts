@@ -17,6 +17,7 @@ const const_role = process.env.const_role || "user";
 //create router for add to server
 const router: Router = Router();
 
+
 //add error handler middleware
 router.use(function (req: Request, res: Response, next: NextFunction) {
   res.locals.currentUser = req.user;
