@@ -74,6 +74,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       type: bodyRequest.type,
       confidence: bodyRequest.log.confidence,
       camera: _camera?.name,
+      camera_id : _camera?._id.toString(),
       section: _section?.name,
       departement: _departement?.name,
       personnel: _personnel?.first_name + " " + _personnel?.last_name,
