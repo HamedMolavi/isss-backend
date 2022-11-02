@@ -1,6 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
+import { requestForGetPersonnel } from "../../db/connectElasticSearch";
 import { ApiError } from "../../error/error.handler";
+import Camera from "../../models/camera";
 import PersonImage from "../../models/personImage";
 import { deleteDirectory, uploadAvatar } from "../../tools/fileUpload";
 import Personnel, { IPersonnel } from "./../../models/personnel";
@@ -121,12 +123,29 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
       req.flash("error", "Personnels not found");
       return next(new ApiError(404, "Personnels not found"));
     }
+    let data: object[] = [];
+    for (let _personnel of personnels) {
+      // data =personnels.map(async(person) => {
+      let per = _personnel.toJSON();
+
+      let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
+
+      let _camera;
+      if (logPersonnel.data.hits.hits.length > 0) {
+        _camera = await Camera.findById(logPersonnel.data.hits.hits[0]._source.camera_id).populate("section_id").exec();
+      } else {
+        continue;
+      }
+
+      (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
+      per.lastTimeSeen = new Date(logPersonnel.data.hits.hits[0]._source.timestamp);
+      data.push(per);
+    }
+
     //send response
     return res.status(200).json({
       success: true,
-      data: personnels.map((personnel) => {
-        return personnel.toJSON();
-      }),
+      data: data,
       page: page,
       perPage: perPage,
       total: await Personnel.countDocuments().exec(),

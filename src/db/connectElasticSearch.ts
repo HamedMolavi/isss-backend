@@ -191,3 +191,28 @@ export async function dynamicRequestToElasticSearch(
     return next(new ApiError(500, "Error while getting data from elastic search"));
   }
 }
+
+export async function requestForGetPersonnel(personnelId: string) {
+  const response = await axios.get("http://192.168.10.20:9200/face_log/_search", {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    // data: '\n{\n  "size": 1,\n  "query": {\n    "match": {\n      "personnel_id": "631731b4d2f90a9d4a49e661"\n    }\n  }, \n  "sort": [\n    {\n      "timestamp": {\n        "order": "desc"\n      }\n    }\n  ]\n}',
+    data: {
+      size: 1,
+      query: {
+        match: {
+          personnel_id: personnelId,
+        },
+      },
+      sort: [
+        {
+          timestamp: {
+            order: "desc",
+          },
+        },
+      ],
+    },
+  });
+  return response;
+}
