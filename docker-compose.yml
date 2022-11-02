@@ -22,6 +22,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+       https_proxy: socks5h://192.168.10.20:1080
+       http_proxy: socks5h://192.168.10.20:1080
+
     #image: isss-backend
     env_file: .env
     # environment:

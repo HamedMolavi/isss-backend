@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import fs from "fs";
 import path from "path";
 import { ApiError } from "../../error/error.handler";
+import { getPathFromIdTime } from "../../tools/getPathFromIdTiem";
 var ffmpeg = require("fluent-ffmpeg");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -22,35 +23,13 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     //get parameter from url
     const dataVideo: string = req.params.id;
     const dataVideoList: string[] = dataVideo?.split(".");
-
-    //convert time from epoch to date for get path video
-    const dateVideo: string = new Date(Number(dataVideoList[1])).toLocaleDateString();
-    const dateVideList: string[] = dateVideo.split("/");
-    let dateVideListMaped = dateVideList.map((element) => {
-      if (element.length == 1) {
-        return "0" + element;
-      }
-      return element;
-    });
-    const nameFolderVideo: string = `${dateVideListMaped[2]}.${dateVideListMaped[0]}.${dateVideListMaped[1]}`;
-    var options = { hour12: false };
-    const timeVideo: string = new Date(Number(dataVideoList[1])).toLocaleTimeString("en-GB", options);
-    const timeVideList: string[] = timeVideo.split(":");
-    let timeVideListMaped = timeVideList.map((element) => {
-      if (element.length == 1) {
-        return "0" + element;
-      }
-      return element;
-    });
-    let nameFileVideo: string = `${timeVideListMaped[0]}.${timeVideListMaped[1]}.${timeVideListMaped[2]?.split(" ")[0]}.mp4`;
-    let _path = path.join(__dirname, "./../../../assets/video");
-    const videoPath = `${_path}/${dataVideoList[0]}/${nameFolderVideo}/${nameFileVideo}`;
+    const videoPath = getPathFromIdTime(Number(dataVideoList[1]), dataVideoList[0].toString());
     await convertVideo(videoPath, "mp4");
-    await fs.unlinkSync(videoPath);
-    let nameFileVideo2 = `${timeVideListMaped[0]}.${timeVideListMaped[1]}.${timeVideListMaped[2]?.split(" ")[0]}_new.mp4`;
-    const newVideoPath = `${_path}/${dataVideoList[0]}/${nameFolderVideo}/${nameFileVideo2}`;
+    let videoName = videoPath.split("/");
+    videoName = videoName[videoName.length - 1]?.split(".");
+    let nameFileVideo2 = `${videoName[0]}.${videoName[1]}.${videoName[2]}_new.mp4`;
+    let newVideoPath = path.join(videoPath, "./../") + nameFileVideo2;
     const videoStat = fs.statSync(newVideoPath);
-
     const fileSize = videoStat.size;
     const videoRange = req.headers.range;
     if (videoRange) {

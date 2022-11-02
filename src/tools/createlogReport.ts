@@ -9,6 +9,9 @@ import Section from "../models/section";
 import Department from "../models/department";
 import toPersianPlate from "./EnglishToPersianPlate";
 import Model, { IModel } from "../models/model";
+import path from "path";
+import fs from "fs";
+import { getPathFromIdTime } from "./getPathFromIdTiem";
 
 //create json response sabotageLog report for send to client
 export async function sabotageLogResponse(response: any) {
@@ -198,6 +201,13 @@ export async function eventLogResponse(response: any) {
   let sections = await Section.find().exec();
   let departments = await Department.find().exec();
   for (let log of response.data.hits.hits) {
+    //convert time from epoch to date for get path video
+
+    const videoPath = getPathFromIdTime(log._source.log.timestamp, log._source.log.camera_id.toString());
+    let existVideo: boolean = false;
+    if (videoPath !== "" && fs.existsSync(videoPath)) {
+      existVideo = true;
+    }
     let schedule = schedules.find((sche) => {
       if (log._source.log.schedule_id.toString() == sche._id.toString()) return sche;
     });
@@ -241,6 +251,9 @@ export async function eventLogResponse(response: any) {
           }
         })?.name ?? "",
       description: log._source.description,
+      video: existVideo ? "http://192.168.1.39:5000/api/v1/downloadVideo/" + log._source.log.camera_id + "." + log._source.log.timestamp : "",
+      // video: "http://192.168.1.39:5000/api/v1/downloadVideo/" + log._source.log.camera_id + "." + log._source.log.timestamp,
+      //video : "http://192.168.1.39:5000/api/v1/downloadVideo/628dc28ef014bc89f0280c4a.1667315336000"
     };
     _data.push(result);
   }

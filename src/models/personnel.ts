@@ -43,18 +43,17 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
 );
 
 //get personnel data jason for auth
-PersonnelSchema.methods.toJSON = function () {
-
-   //get url AI for send request
-   const BASE_URL: string = process.env["BASE_URL"] as string;
-
+PersonnelSchema.methods.toJSON =function () {
+  //get url AI for send request
+  const BASE_URL: string = process.env["BASE_URL"] as string;
   //define path for save image
   let pathSave = path.join(__dirname, `./../../assets/image/${this._id}/avatar.jpeg`);
-  let have_avatar : Boolean = false; 
+  let have_avatar: Boolean = false;
   //if path not exist, create path
   if (fs.existsSync(pathSave)) {
-    have_avatar = true ;
+    have_avatar = true;
   }
+
   return {
     _id: this._id,
     first_name: this.first_name,
@@ -71,7 +70,7 @@ PersonnelSchema.methods.toJSON = function () {
     is_employee: this.is_employee,
     is_dismissed: this.is_dismissed,
     create_date: this.create_date,
-    image_url: have_avatar === true ? BASE_URL+"/files/download/"+this._id  : BASE_URL+"/files/download/default",
+    image_url: have_avatar === true ? BASE_URL + "/files/download/" + this._id : BASE_URL + "/files/download/default"
   };
 };
 
