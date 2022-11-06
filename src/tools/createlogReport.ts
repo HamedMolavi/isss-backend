@@ -192,6 +192,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
 
 //create json response eventLog report for send to client
 export async function eventLogResponse(response: any) {
+  const dbUri = process.env["BASE_URL"] as string;
   //create json response
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
@@ -251,9 +252,7 @@ export async function eventLogResponse(response: any) {
           }
         })?.name ?? "",
       description: log._source.description,
-      video: existVideo ? "http://192.168.1.39:5000/api/v1/downloadVideo/" + log._source.log.camera_id + "." + log._source.log.timestamp : "",
-      // video: "http://192.168.1.39:5000/api/v1/downloadVideo/" + log._source.log.camera_id + "." + log._source.log.timestamp,
-      //video : "http://192.168.1.39:5000/api/v1/downloadVideo/628dc28ef014bc89f0280c4a.1667315336000"
+      video: existVideo ? "http://" + dbUri + "/downloadVideo/" + log._source.log.camera_id + "." + log._source.log.timestamp : "",
     };
     _data.push(result);
   }
