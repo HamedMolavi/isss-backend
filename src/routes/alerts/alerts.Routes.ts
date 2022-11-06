@@ -11,6 +11,7 @@ import ModelToCamera from "../../models/modelToCamera";
 import Schedule from "../../models/schedule";
 import recordStream from "../../tools/recordStream";
 
+
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 
