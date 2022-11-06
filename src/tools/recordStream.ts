@@ -2,6 +2,7 @@ import path from "path";
 import Recorder, { RecorderEvents } from "rtsp-video-recorder";
 import fs from "fs";
 
+
 function recordStream(rtsp_link: string, camera_id: string | undefined) {
   if (rtsp_link === "") {
     return "";
