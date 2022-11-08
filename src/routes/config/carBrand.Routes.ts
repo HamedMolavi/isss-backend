@@ -18,6 +18,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
     next();
 });
 
+//define global 
 
 //add route for register new car_brand
 router.post("", async function (req: Request, res: Response, next: NextFunction) {

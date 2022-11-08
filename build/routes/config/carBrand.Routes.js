@@ -27,6 +27,7 @@ router.use(function (req, res, next) {
     res.locals.infos = req.flash("info");
     next();
 });
+//define global 
 //add route for register new car_brand
 router.post("", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {

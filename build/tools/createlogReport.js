@@ -24,6 +24,8 @@ const section_1 = __importDefault(require("../models/section"));
 const department_1 = __importDefault(require("../models/department"));
 const EnglishToPersianPlate_1 = __importDefault(require("./EnglishToPersianPlate"));
 const model_1 = __importDefault(require("../models/model"));
+const fs_1 = __importDefault(require("fs"));
+const getPathFromIdTiem_1 = require("./getPathFromIdTiem");
 //create json response sabotageLog report for send to client
 function sabotageLogResponse(response) {
     var _a, _b;
@@ -229,6 +231,7 @@ exports.faceLogResponse = faceLogResponse;
 function eventLogResponse(response) {
     var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
+        const dbUri = process.env["BASE_URL"];
         //create json response
         let _data = [];
         let cameras = yield camera_1.default.find().exec();
@@ -238,6 +241,12 @@ function eventLogResponse(response) {
         let sections = yield section_1.default.find().exec();
         let departments = yield department_1.default.find().exec();
         for (let log of response.data.hits.hits) {
+            //convert time from epoch to date for get path video
+            const videoPath = (0, getPathFromIdTiem_1.getPathFromIdTime)(log._source.log.timestamp, log._source.log.camera_id.toString());
+            let existVideo = false;
+            if (videoPath !== "" && fs_1.default.existsSync(videoPath)) {
+                existVideo = true;
+            }
             let schedule = schedules.find((sche) => {
                 if (log._source.log.schedule_id.toString() == sche._id.toString())
                     return sche;
@@ -284,6 +293,7 @@ function eventLogResponse(response) {
                     }
                 })) === null || _e === void 0 ? void 0 : _e.name) !== null && _f !== void 0 ? _f : "",
                 description: log._source.description,
+                video: existVideo ? "http://" + dbUri + "/downloadVideo/" + log._source.log.camera_id + "." + log._source.log.timestamp : "",
             };
             _data.push(result);
         }
