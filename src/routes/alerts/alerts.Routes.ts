@@ -117,7 +117,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     let recorder: any = recordStream(rtsp_link, _camera?._id.toString());
     if (is_muted_list === false && send_notif == true) {
       io.emit("get alert", notification);
-      if (notification.title == "Alerting" && !Camera_Is_Record.includes(notification.camera_id)) {
+      if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !Camera_Is_Record.includes(notification.camera_id)) {
         //recorder.start();
         console.log("Recording has started.");
         Camera_Is_Record.push([notification.camera_id, bodyRequest.log.schedule_id]);
@@ -125,7 +125,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
           // recorder.stop();
           console.log("Recording has stopped.");
           let temp3 = Camera_Is_Record.filter((item: any) => {
-            if (notification.camera_id != item[1] && bodyRequest.log.schedule_id != item[2]) {
+            if (notification.camera_id != item[1]) {
               return item;
             }
           });
