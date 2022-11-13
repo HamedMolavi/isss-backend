@@ -40,6 +40,9 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
   try {
     //get jason from body request
     const bodyRequest = req.body;
+    if(!bodyRequest?.log?.camera_id){
+      return next(new ApiError(500, "not found camrea_id"));
+    }
     let _camera: any = await Camera.findById(bodyRequest.log.camera_id).populate("section_id").exec();
     // let _camera = await Camera.findById(bodyRequest.log.camera_id).exec();
     // let _section;
@@ -64,14 +67,14 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
 
     let is_muted_list: boolean = false;
     if (bodyRequest.log.schedule_id) {
-      // let schedule: any = await Schedule.findById(bodyRequest.log.schedule_id).populate("model_camera_id").exec();
-      let schedule: any = await Schedule.findById(bodyRequest.log.schedule_id).exec();
-      let model_camera_id;
-      if (schedule) {
-        model_camera_id = await ModelToCamera.findById(schedule.model_camera_id).exec();
-      }
+       let schedule: any = await Schedule.findById(bodyRequest.log.schedule_id).populate("model_camera_id").exec();
+      // let schedule: any = await Schedule.findById(bodyRequest.log.schedule_id).exec();
+      // let model_camera_id;
+      // if (schedule) {
+      //   model_camera_id = await ModelToCamera.findById(schedule.model_camera_id).exec();
+      // }
       if (schedule?.model_camera_id) {
-        is_muted_list = _camera?.muted.includes(schedule?.model_camera_id.model_id) ?? false;
+        is_muted_list = _camera?.muted.includes(schedule?.model_camera_id?.model_id) ?? false;
       }
     }
 
