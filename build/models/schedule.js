@@ -28,7 +28,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 const ScheduleSchema = new mongoose_1.Schema({
     start_cron: { type: String, required: true },
     stop_cron: { type: String, required: true },
-    model_camera_id: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Model_Camera', required: true },
+    model_camera_id: { type: mongoose_1.Schema.Types.ObjectId, ref: 'ModelToCamera', required: true },
     config: { type: Object }
 }, {
     collection: "Schedule"

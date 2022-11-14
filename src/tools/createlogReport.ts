@@ -14,25 +14,39 @@ import fs from "fs";
 import { getPathFromIdTime } from "./getPathFromIdTiem";
 
 //create json response sabotageLog report for send to client
-export async function sabotageLogResponse(response: any) {
+export async function sabotageLogResponse(response: any, time_start: string, time_end: string) {
   //create json response
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
   for (let log of response.data.hits.hits) {
+    let time = new Date(log._source.timestamp);
+    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+      continue;
+    }
+
     let result = {
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: new Date(log._source.timestamp),
+      time: time.toLocaleString(),
     };
     _data.push(result);
   }
   return _data;
 }
 //create json response plateLog report for send to client
-export async function plateLogResponse(response: any, carBrand: string[] | null, carColor: string[] | null, owner: string[] | null, allowed: boolean | null, search: boolean) {
+export async function plateLogResponse(
+  response: any,
+  carBrand: string[] | null,
+  carColor: string[] | null,
+  owner: string[] | null,
+  allowed: boolean | null,
+  search: boolean,
+  time_start: string,
+  time_end: string
+) {
   let cars: any;
   if (owner && carColor && carBrand) {
     cars = await Car.find({
@@ -51,6 +65,11 @@ export async function plateLogResponse(response: any, carBrand: string[] | null,
   let _data: object[] = [];
   //create json response
   for (let log of response.data.hits.hits) {
+    let time = new Date(log._source.timestamp);
+    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+      continue;
+    }
+
     //split plate_number to get first and last digit
     //change plate number format from english to persian
     let plateNumber1 = Number(log._source.plate_number.substr(0, 2)).toLocaleString("fa-IR");
@@ -73,7 +92,7 @@ export async function plateLogResponse(response: any, carBrand: string[] | null,
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: new Date(log._source.timestamp),
+      time: time.toLocaleString(),
       plate_number: plateNumber,
       owner: "",
       color: "",
@@ -111,13 +130,18 @@ export async function plateLogResponse(response: any, carBrand: string[] | null,
   return _data;
 }
 //create json response humanLog report for send to client
-export async function humanLogResponse(response: any, allowed: boolean | null, search: boolean | null) {
+export async function humanLogResponse(response: any, allowed: boolean | null, search: boolean | null, time_start: string, time_end: string) {
   //create json response
   let _data: object[] = [];
   //let modelToCameras = await ModelToCamera.find().exec();
   let schedules = await Schedule.find().exec();
   let cameras = await Camera.find().exec();
   for (let log of response.data.hits.hits) {
+    let time = new Date(log._source.timestamp);
+    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+      continue;
+    }
+
     let _schedule = schedules.find((item) => {
       if (item._id == log.schedule_id) return item;
     });
@@ -127,7 +151,7 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: new Date(log._source.timestamp),
+      time: time.toLocaleString(),
       numberOfPeople: log._source.number_of_people,
       allowed: (_schedule && _schedule.config.max_people >= log._source.number_of_people && _schedule!.config!.min_people <= log._source.number_of_people) ?? false,
     };
@@ -140,18 +164,23 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
   return _data;
 }
 //create json response fireLog report for send to client
-export async function fireLogResponse(response: any) {
+export async function fireLogResponse(response: any, time_start: string, time_end: string) {
   //create json response
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
   for (let log of response.data.hits.hits) {
+    let time = new Date(log._source.timestamp);
+    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+      continue;
+    }
+
     let result = {
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: new Date(log._source.timestamp),
+      time: time.toLocaleString(),
       probability: log._source.confidence,
     };
     _data.push(result);
@@ -159,12 +188,17 @@ export async function fireLogResponse(response: any) {
   return _data;
 }
 //create json response faceLog report for send to client
-export async function faceLogResponse(response: any, allowed: boolean | null, search: boolean | null) {
+export async function faceLogResponse(response: any, allowed: boolean | null, search: boolean | null, time_start: string, time_end: string) {
   //create json response
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
   let personnels = await Personnel.find().exec();
   for (let log of response.data.hits.hits) {
+    let time = new Date(log._source.timestamp);
+    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+      continue;
+    }
+
     let _personnel = personnels.find((person) => {
       if (log._source.personnel_id == person._id) {
         return person.first_name + " " + person.last_name;
@@ -178,7 +212,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
       fullName: _personnel != null ? _personnel?.first_name + " " + _personnel?.last_name : "",
-      time: new Date(log._source.timestamp),
+      time: time.toLocaleString(),
       allowed: _personnel?.camera_whitelist.includes(log._source.camera_id) ?? false,
     };
     if (search && result.allowed == allowed) {
@@ -191,7 +225,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
 }
 
 //create json response eventLog report for send to client
-export async function eventLogResponse(response: any) {
+export async function eventLogResponse(response: any, time_start: string, time_end: string) {
   const dbUri = process.env["BASE_URL"] as string;
   //create json response
   let _data: object[] = [];
@@ -203,6 +237,10 @@ export async function eventLogResponse(response: any) {
   let departments = await Department.find().exec();
   for (let log of response.data.hits.hits) {
     //convert time from epoch to date for get path video
+    let time = new Date(log._source.timestamp);
+    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+      continue;
+    }
 
     const videoPath = getPathFromIdTime(log._source.log.timestamp, log._source.log.camera_id.toString());
     let existVideo: boolean = false;
@@ -228,7 +266,7 @@ export async function eventLogResponse(response: any) {
         cameras.find((cam) => {
           if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
         })?.name ?? "",
-      time: new Date(log._source.log.timestamp),
+      time: time.toLocaleString(),
       ai: _model != undefined ? _model.category : "",
       section:
         sections.find((sec) => {
