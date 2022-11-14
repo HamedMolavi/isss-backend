@@ -27,20 +27,24 @@ const model_1 = __importDefault(require("../models/model"));
 const fs_1 = __importDefault(require("fs"));
 const getPathFromIdTiem_1 = require("./getPathFromIdTiem");
 //create json response sabotageLog report for send to client
-function sabotageLogResponse(response) {
+function sabotageLogResponse(response, time_start, time_end) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         //create json response
         let _data = [];
         let cameras = yield camera_1.default.find().exec();
         for (let log of response.data.hits.hits) {
+            let time = new Date(log._source.timestamp);
+            if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+                continue;
+            }
             let result = {
                 camera_id: log._source.camera_id,
                 camera: (_b = (_a = cameras.find((cam) => {
                     if (cam._id == log._source.camera_id)
                         return cam.name;
                 })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
-                time: new Date(log._source.timestamp),
+                time: time.toLocaleString(),
             };
             _data.push(result);
         }
@@ -49,7 +53,7 @@ function sabotageLogResponse(response) {
 }
 exports.sabotageLogResponse = sabotageLogResponse;
 //create json response plateLog report for send to client
-function plateLogResponse(response, carBrand, carColor, owner, allowed, search) {
+function plateLogResponse(response, carBrand, carColor, owner, allowed, search, time_start, time_end) {
     var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
         let cars;
@@ -70,6 +74,10 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
         let _data = [];
         //create json response
         for (let log of response.data.hits.hits) {
+            let time = new Date(log._source.timestamp);
+            if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+                continue;
+            }
             //split plate_number to get first and last digit
             //change plate number format from english to persian
             let plateNumber1 = Number(log._source.plate_number.substr(0, 2)).toLocaleString("fa-IR");
@@ -91,7 +99,7 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
                     if (cam._id == log._source.camera_id)
                         return cam.name;
                 })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
-                time: new Date(log._source.timestamp),
+                time: time.toLocaleString(),
                 plate_number: plateNumber,
                 owner: "",
                 color: "",
@@ -135,7 +143,7 @@ function plateLogResponse(response, carBrand, carColor, owner, allowed, search) 
 }
 exports.plateLogResponse = plateLogResponse;
 //create json response humanLog report for send to client
-function humanLogResponse(response, allowed, search) {
+function humanLogResponse(response, allowed, search, time_start, time_end) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         //create json response
@@ -144,6 +152,10 @@ function humanLogResponse(response, allowed, search) {
         let schedules = yield schedule_1.default.find().exec();
         let cameras = yield camera_1.default.find().exec();
         for (let log of response.data.hits.hits) {
+            let time = new Date(log._source.timestamp);
+            if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+                continue;
+            }
             let _schedule = schedules.find((item) => {
                 if (item._id == log.schedule_id)
                     return item;
@@ -154,7 +166,7 @@ function humanLogResponse(response, allowed, search) {
                     if (cam._id == log._source.camera_id)
                         return cam.name;
                 })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
-                time: new Date(log._source.timestamp),
+                time: time.toLocaleString(),
                 numberOfPeople: log._source.number_of_people,
                 allowed: (_c = (_schedule && _schedule.config.max_people >= log._source.number_of_people && _schedule.config.min_people <= log._source.number_of_people)) !== null && _c !== void 0 ? _c : false,
             };
@@ -170,20 +182,24 @@ function humanLogResponse(response, allowed, search) {
 }
 exports.humanLogResponse = humanLogResponse;
 //create json response fireLog report for send to client
-function fireLogResponse(response) {
+function fireLogResponse(response, time_start, time_end) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         //create json response
         let _data = [];
         let cameras = yield camera_1.default.find().exec();
         for (let log of response.data.hits.hits) {
+            let time = new Date(log._source.timestamp);
+            if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+                continue;
+            }
             let result = {
                 camera_id: log._source.camera_id,
                 camera: (_b = (_a = cameras.find((cam) => {
                     if (cam._id == log._source.camera_id)
                         return cam.name;
                 })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
-                time: new Date(log._source.timestamp),
+                time: time.toLocaleString(),
                 probability: log._source.confidence,
             };
             _data.push(result);
@@ -193,7 +209,7 @@ function fireLogResponse(response) {
 }
 exports.fireLogResponse = fireLogResponse;
 //create json response faceLog report for send to client
-function faceLogResponse(response, allowed, search) {
+function faceLogResponse(response, allowed, search, time_start, time_end) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         //create json response
@@ -201,6 +217,10 @@ function faceLogResponse(response, allowed, search) {
         let cameras = yield camera_1.default.find().exec();
         let personnels = yield personnel_1.default.find().exec();
         for (let log of response.data.hits.hits) {
+            let time = new Date(log._source.timestamp);
+            if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+                continue;
+            }
             let _personnel = personnels.find((person) => {
                 if (log._source.personnel_id == person._id) {
                     return person.first_name + " " + person.last_name;
@@ -213,7 +233,7 @@ function faceLogResponse(response, allowed, search) {
                         return cam.name;
                 })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
                 fullName: _personnel != null ? (_personnel === null || _personnel === void 0 ? void 0 : _personnel.first_name) + " " + (_personnel === null || _personnel === void 0 ? void 0 : _personnel.last_name) : "",
-                time: new Date(log._source.timestamp),
+                time: time.toLocaleString(),
                 allowed: (_c = _personnel === null || _personnel === void 0 ? void 0 : _personnel.camera_whitelist.includes(log._source.camera_id)) !== null && _c !== void 0 ? _c : false,
             };
             if (search && result.allowed == allowed) {
@@ -228,7 +248,7 @@ function faceLogResponse(response, allowed, search) {
 }
 exports.faceLogResponse = faceLogResponse;
 //create json response eventLog report for send to client
-function eventLogResponse(response) {
+function eventLogResponse(response, time_start, time_end) {
     var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
         const dbUri = process.env["BASE_URL"];
@@ -242,6 +262,10 @@ function eventLogResponse(response) {
         let departments = yield department_1.default.find().exec();
         for (let log of response.data.hits.hits) {
             //convert time from epoch to date for get path video
+            let time = new Date(log._source.timestamp);
+            if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
+                continue;
+            }
             const videoPath = (0, getPathFromIdTiem_1.getPathFromIdTime)(log._source.log.timestamp, log._source.log.camera_id.toString());
             let existVideo = false;
             if (videoPath !== "" && fs_1.default.existsSync(videoPath)) {
@@ -268,7 +292,7 @@ function eventLogResponse(response) {
                     if (cam._id.toString() == log._source.log.camera_id.toString())
                         return cam;
                 })) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "",
-                time: new Date(log._source.log.timestamp),
+                time: time.toLocaleString(),
                 ai: _model != undefined ? _model.category : "",
                 section: (_d = (_c = sections.find((sec) => {
                     let camera = cameras.find((cam) => {
