@@ -55,6 +55,7 @@ router.post("/:model", function (req, res, next) {
             let search = req.query.search || "";
             let response;
             let timeEpokhStart, timeEpokhEnd = "";
+            let _timeStart, _timeEnd = "";
             let _allowed = null;
             let _carBrand, _carColor, _owner = null;
             let _cameras, _models, _personnels = [];
@@ -71,6 +72,8 @@ router.post("/:model", function (req, res, next) {
                 _carBrand = car_brand !== null && car_brand !== void 0 ? car_brand : null;
                 _carColor = car_color !== null && car_color !== void 0 ? car_color : null;
                 _owner = owner !== null && owner !== void 0 ? owner : null;
+                _timeStart = time_start !== null && time_start !== void 0 ? time_start : "";
+                _timeEnd = time_end !== null && time_end !== void 0 ? time_end : "";
                 if (time_start && time_end && date_start && date_end) {
                     //convert date_start to epokh
                     if (!date_start.includes("/") || !date_end.includes("/")) {
@@ -90,25 +93,25 @@ router.post("/:model", function (req, res, next) {
             }
             //create json response for client
             if (model === "sabotage") {
-                _data = yield (0, createlogReport_1.sabotageLogResponse)(response);
+                _data = yield (0, createlogReport_1.sabotageLogResponse)(response, _timeStart, _timeEnd);
             }
             else if (model === "plate") {
                 if ((_carBrand === null || _carColor === null || _owner === null) && search) {
                     return next(new error_handler_1.ApiError(400, `car_brand, car_color, owner is required`));
                 }
-                _data = yield (0, createlogReport_1.plateLogResponse)(response, _carBrand, _carColor, _owner, _allowed, Boolean(search));
+                _data = yield (0, createlogReport_1.plateLogResponse)(response, _carBrand, _carColor, _owner, _allowed, Boolean(search), _timeStart, _timeEnd);
             }
             else if (model === "human") {
-                _data = yield (0, createlogReport_1.humanLogResponse)(response, _allowed, Boolean(search));
+                _data = yield (0, createlogReport_1.humanLogResponse)(response, _allowed, Boolean(search), _timeStart, _timeEnd);
             }
             else if (model === "fire") {
-                _data = yield (0, createlogReport_1.fireLogResponse)(response);
+                _data = yield (0, createlogReport_1.fireLogResponse)(response, _timeStart, _timeEnd);
             }
             else if (model === "face") {
-                _data = yield (0, createlogReport_1.faceLogResponse)(response, _allowed, Boolean(search));
+                _data = yield (0, createlogReport_1.faceLogResponse)(response, _allowed, Boolean(search), _timeStart, _timeEnd);
             }
             else if (model === "event") {
-                _data = yield (0, createlogReport_1.eventLogResponse)(response);
+                _data = yield (0, createlogReport_1.eventLogResponse)(response, _timeStart, _timeEnd);
             }
             //return data to client
             return res.status(200).json({
