@@ -24,6 +24,7 @@ const departmentFile_Routes_1 = __importDefault(require("./config/departmentFile
 const alerts_Routes_1 = __importDefault(require("./alerts/alerts.Routes"));
 const schedulesReport_Routes_1 = __importDefault(require("./report/schedulesReport.Routes"));
 const personImage_Routes_1 = __importDefault(require("../routes/config/personImage.Routes"));
+const videoDownload_Routes_1 = __importDefault(require("../routes/report/videoDownload.Routes"));
 //create router for add to server
 const router = (0, express_1.Router)();
 //add rotes app
@@ -46,6 +47,7 @@ router.use("/departementfiles", departmentFile_Routes_1.default);
 router.use("/alerts", alerts_Routes_1.default);
 router.use("/schedulesreport", schedulesReport_Routes_1.default);
 router.use("/personImage", personImage_Routes_1.default);
+router.use("/downloadVideo", videoDownload_Routes_1.default);
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 //add not found route handler

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dynamicRequestToElasticSearch = void 0;
+exports.requestForGetPersonnel = exports.dynamicRequestToElasticSearch = void 0;
 const axios_1 = __importDefault(require("axios"));
 const error_handler_1 = require("../error/error.handler");
 //get connection string from enviroment variable
@@ -187,3 +187,30 @@ function dynamicRequestToElasticSearch(cameras = [], personnels = [], models = [
     });
 }
 exports.dynamicRequestToElasticSearch = dynamicRequestToElasticSearch;
+function requestForGetPersonnel(personnelId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const response = yield axios_1.default.get("http://192.168.10.20:9200/face_log/_search", {
+            headers: {
+                "Content-Type": "application/json",
+            },
+            // data: '\n{\n  "size": 1,\n  "query": {\n    "match": {\n      "personnel_id": "631731b4d2f90a9d4a49e661"\n    }\n  }, \n  "sort": [\n    {\n      "timestamp": {\n        "order": "desc"\n      }\n    }\n  ]\n}',
+            data: {
+                size: 1,
+                query: {
+                    match: {
+                        personnel_id: personnelId,
+                    },
+                },
+                sort: [
+                    {
+                        timestamp: {
+                            order: "desc",
+                        },
+                    },
+                ],
+            },
+        });
+        return response;
+    });
+}
+exports.requestForGetPersonnel = requestForGetPersonnel;

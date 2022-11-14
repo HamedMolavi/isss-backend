@@ -14,7 +14,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const path_1 = __importDefault(require("path"));
+const connectElasticSearch_1 = require("../../db/connectElasticSearch");
 const error_handler_1 = require("../../error/error.handler");
+const camera_1 = __importDefault(require("../../models/camera"));
 const personImage_1 = __importDefault(require("../../models/personImage"));
 const fileUpload_1 = require("../../tools/fileUpload");
 const personnel_1 = __importDefault(require("./../../models/personnel"));
@@ -127,12 +129,26 @@ router.get("", function (req, res, next) {
                 req.flash("error", "Personnels not found");
                 return next(new error_handler_1.ApiError(404, "Personnels not found"));
             }
+            let data = [];
+            for (let _personnel of personnels) {
+                // data =personnels.map(async(person) => {
+                let per = _personnel.toJSON();
+                let logPersonnel = yield (0, connectElasticSearch_1.requestForGetPersonnel)(_personnel._id.toString());
+                let _camera;
+                if (logPersonnel.data.hits.hits.length > 0) {
+                    _camera = yield camera_1.default.findById(logPersonnel.data.hits.hits[0]._source.camera_id).populate("section_id").exec();
+                }
+                else {
+                    continue;
+                }
+                (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
+                per.lastTimeSeen = new Date(logPersonnel.data.hits.hits[0]._source.timestamp);
+                data.push(per);
+            }
             //send response
             return res.status(200).json({
                 success: true,
-                data: personnels.map((personnel) => {
-                    return personnel.toJSON();
-                }),
+                data: data,
                 page: page,
                 perPage: perPage,
                 total: yield personnel_1.default.countDocuments().exec(),

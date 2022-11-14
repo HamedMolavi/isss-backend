@@ -22,7 +22,7 @@ interface IConfig {
 const ScheduleSchema: Schema<ISchedule> = new Schema({
     start_cron: { type: String, required: true },
     stop_cron: { type: String, required: true },
-    model_camera_id: { type: Schema.Types.ObjectId, ref: 'ModelCamera', required: true },
+    model_camera_id: { type: Schema.Types.ObjectId, ref: 'ModelToCamera', required: true },
     config: { type: Object }
 },{
     collection: "Schedule"

@@ -74,7 +74,7 @@ PersonnelSchema.methods.toJSON = function () {
         is_employee: this.is_employee,
         is_dismissed: this.is_dismissed,
         create_date: this.create_date,
-        image_url: have_avatar === true ? BASE_URL + "/files/download/" + this._id : BASE_URL + "/files/download/default",
+        image_url: have_avatar === true ? BASE_URL + "/files/download/" + this._id : BASE_URL + "/files/download/default"
     };
 };
 // Compile model from schema
