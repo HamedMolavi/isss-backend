@@ -139,9 +139,9 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
       (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
       per.lastTimeSeen = new Date(logPersonnel.data.hits.hits[0]._source.timestamp);
+      // per.lastTimeSeen = randomDate('02/13/2020', '01/01/2022');
       data.push(per);
     }
-
     //send response
     return res.status(200).json({
       success: true,
@@ -155,6 +155,32 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     return next(new ApiError(500, "Internal server error , " + err.message));
   }
 });
+
+
+// function randomDate(date1: any, date2: any) {
+//   function randomValueBetween(min: any, max: any) {
+//     return Math.random() * (max - min) + min;
+//   }
+//   var date1 = date1 || "01-01-1970";
+//   var date2 = date2 || new Date().toLocaleDateString();
+//   date1 = new Date(date1).getTime();
+//   date2 = new Date(date2).getTime();
+//   if (date1 > date2) {
+//     return new Date(randomValueBetween(date2, date1)).toLocaleDateString();
+//   } else {
+//     return new Date(randomValueBetween(date1, date2)).toLocaleDateString();
+//   }
+// }
+
+// function randomDate(start, end, startHour, endHour) {
+//   var date = new Date(+start + Math.random() * (end - start));
+//   var hour = startHour + Math.random() * (endHour - startHour) | 0;
+//   date.setHours(hour);
+//   return date;
+// }
+
+
+
 
 //route for get personnel by id from DB
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {

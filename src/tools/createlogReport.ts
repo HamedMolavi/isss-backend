@@ -237,7 +237,7 @@ export async function eventLogResponse(response: any, time_start: string, time_e
   let departments = await Department.find().exec();
   for (let log of response.data.hits.hits) {
     //convert time from epoch to date for get path video
-    let time = new Date(log._source.timestamp);
+    let time = new Date(log._source.log.timestamp);
     if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
       continue;
     }
