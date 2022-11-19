@@ -160,13 +160,13 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       io.emit("get alert", notification); //send notif to client with socket.io
       //check for limit record camera to 3 and camera in not recording
       if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !Camera_Is_Record.includes(notification.camera_id)) {
-        // recorder.start(); //start recording
+        recorder.start(); //start recording
         console.log("Recording has started.");
         let temp_record: string[] = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
         Camera_Is_Record.push([temp_record]); //add camera_id to global list for limiting record
         //stop record and delete item from global list limit record ==> Camera_Is_Record
         setTimeout(() => {
-          // recorder.stop();
+          recorder.stop();
           console.log("Recording has stopped.");
           Camera_Is_Record = Camera_Is_Record.filter((item: any) => {
             if (bodyRequest.log.schedule_id != item[0][1]) {
