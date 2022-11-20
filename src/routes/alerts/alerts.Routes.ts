@@ -36,6 +36,8 @@ var Camera_Is_Record: any = [];
 //get alerts from back
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    console.log(Log_Alert);
+    console.log(Camera_Is_Record);
     //get jason from body request
     const bodyRequest = req.body;
     if (!bodyRequest?.log?.camera_id) {
@@ -159,10 +161,18 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     if (is_muted_list === false && send_notif == true) {
       io.emit("get alert", notification); //send notif to client with socket.io
       //check for limit record camera to 3 and camera in not recording
-      if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !Camera_Is_Record.includes(notification.camera_id)) {
+      let temp_record: string[] = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
+      let isOpenForRecord = false;
+      for(let cam of Camera_Is_Record){
+        if(cam[0].includes(result.camera_id) ){
+          isOpenForRecord = true;
+          break
+        }
+      }
+      if (notification.title == "Alerting" && Camera_Is_Record.length < 2 && !isOpenForRecord) {
         recorder.start(); //start recording
         console.log("Recording has started.");
-        let temp_record: string[] = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
+        
         Camera_Is_Record.push([temp_record]); //add camera_id to global list for limiting record
         //stop record and delete item from global list limit record ==> Camera_Is_Record
         setTimeout(() => {
@@ -173,7 +183,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
               return item;
             }
           });
-        }, time_record_stream);
+        }, 120000);
       }
 
       setTimeout(() => {
@@ -192,7 +202,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
             return item[0];
           }
         });
-      }, 20000);
+      }, 120000);
     }
 
     //send response to client
