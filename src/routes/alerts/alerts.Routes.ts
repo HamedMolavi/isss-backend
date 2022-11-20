@@ -3,11 +3,8 @@ import { ApiError } from "../../error/error.handler";
 import Camera from "../../models/camera";
 import Personnel from "../../models/personnel";
 import { io } from "../../server";
-import Path from "path";
-import Section from "../../models/section";
 import Department from "../../models/department";
 import Car from "../../models/car";
-import ModelToCamera from "../../models/modelToCamera";
 import Schedule from "../../models/schedule";
 import recordStream from "../../tools/recordStream";
 
@@ -39,6 +36,8 @@ var Camera_Is_Record: any = [];
 //get alerts from back
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    console.log(Log_Alert);
+    console.log(Camera_Is_Record);
     //get jason from body request
     const bodyRequest = req.body;
     if (!bodyRequest?.log?.camera_id) {
@@ -87,36 +86,69 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
 
     //add to global list alerting for not send more then one notif
     //and filter old list to new alert
-    let x = bodyRequest.log.personnel_id || bodyRequest.log.plate_number || bodyRequest.log.number_of_people || "";
-    let temp: string[] = [result.time, bodyRequest.log.schedule_id, bodyRequest.type, x];
+    // let x = bodyRequest.log.personnel_id || bodyRequest.log.plate_number || bodyRequest.log.number_of_people || "";
+    let temp: string[] = [
+      result.type ?? "",
+      bodyRequest.log.schedule_id ?? "",
+      result.confidence ?? "",
+      result.camera_id ?? "",
+      result.personnel ?? "",
+      result.description ?? "",
+      result.peopleCounting ?? "",
+      result.plate_number ?? "",
+    ];
+
     let send_notif: boolean = false;
-    let new_notif: boolean = false;
+    // let new_notif: boolean = false;
+    // let i = 0;
+
     if (Log_Alert.length == 0) {
       Log_Alert.push([temp]);
       send_notif = true;
-    } else if (Log_Alert.length > 0) {
-      let i = 0;
+    } else {
       for (let item of Log_Alert) {
-        i++;
-        let some_schedule = item[0].includes(bodyRequest.log.schedule_id);
-        let some_type = item[0].includes(bodyRequest.type);
-        let some_detail = item[0].includes(x);
-        if (some_schedule && some_type && some_detail) {
-          if (result.time - item[0][0] > 10000) {
-            send_notif = true;
-            break;
-          } else {
-            break;
-          }
+        let is_log_before =
+          temp.length === item[0].length &&
+          temp.every(function (value, index) {
+            return value === item[0][index];
+          });
+        if (is_log_before) {
+          send_notif = false;
+          break;
         }
-        if (Log_Alert.length == i) {
-          new_notif = true;
-        }
-      }
-      if (new_notif) {
         send_notif = true;
       }
+      if (send_notif) {
+        Log_Alert.push([temp]);
+      }
     }
+
+    // if (Log_Alert.length == 0) {
+    //   Log_Alert.push([temp]);
+    //   send_notif = true;
+    // } else if (Log_Alert.length > 0) {
+    //   let i = 0;
+    //   for (let item of Log_Alert) {
+    //     i++;
+    //     let some_schedule = item[0].includes(bodyRequest.log.schedule_id);
+    //     let some_type = item[0].includes(bodyRequest.type);
+    //     let some_detail = item[0].includes(x);
+    //     if (some_schedule && some_type && some_detail) {
+    //       if (result.time - item[0][0] > 10000) {
+    //         send_notif = true;
+    //         break;
+    //       } else {
+    //         break;
+    //       }
+    //     }
+    //     if (Log_Alert.length == i) {
+    //       new_notif = true;
+    //     }
+    //   }
+    //   if (new_notif) {
+    //     send_notif = true;
+    //   }
+    // }
 
     let notification = result;
     //get time for record from .env
@@ -129,10 +161,18 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     if (is_muted_list === false && send_notif == true) {
       io.emit("get alert", notification); //send notif to client with socket.io
       //check for limit record camera to 3 and camera in not recording
-      if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !Camera_Is_Record.includes(notification.camera_id)) {
+      let temp_record: string[] = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
+      let isOpenForRecord = false;
+      for(let cam of Camera_Is_Record){
+        if(cam[0].includes(result.camera_id) ){
+          isOpenForRecord = true;
+          break
+        }
+      }
+      if (notification.title == "Alerting" && Camera_Is_Record.length < 2 && !isOpenForRecord) {
         recorder.start(); //start recording
         console.log("Recording has started.");
-        let temp_record : string[] =  [bodyRequest.log.camera_id, bodyRequest.log.schedule_id]
+        
         Camera_Is_Record.push([temp_record]); //add camera_id to global list for limiting record
         //stop record and delete item from global list limit record ==> Camera_Is_Record
         setTimeout(() => {
@@ -145,18 +185,25 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
           });
         }, time_record_stream);
       }
+
+      setTimeout(() => {
+        if (Log_Alert.length > 250) {
+          //ckeck for empety memory
+          Log_Alert = [];
+        }
+        //update global list alerting
+        Log_Alert = Log_Alert.filter((item: any) => {
+          let is_log_before =
+            temp.length === item[0].length &&
+            temp.every(function (value, index) {
+              return value === item[0][index];
+            });
+          if (!is_log_before) {
+            return item[0];
+          }
+        });
+      }, 20000);
     }
-    if (Log_Alert.length > 250) {
-      //ckeck for empety memory
-      Log_Alert = [];
-    }
-    //update global list alerting
-    Log_Alert = Log_Alert.filter((item: any) => {
-      if (bodyRequest.log.schedule_id != item[0][1]) {
-        return item;
-      }
-    });
-    Log_Alert.push([temp]);
 
     //send response to client
     return res.status(201).json({
