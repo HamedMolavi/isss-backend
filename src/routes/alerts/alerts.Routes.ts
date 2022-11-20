@@ -183,7 +183,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
               return item;
             }
           });
-        }, 120000);
+        }, time_record_stream);
       }
 
       setTimeout(() => {
@@ -202,7 +202,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
             return item[0];
           }
         });
-      }, 120000);
+      }, 20000);
     }
 
     //send response to client
