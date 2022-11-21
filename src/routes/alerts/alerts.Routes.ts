@@ -29,15 +29,13 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 // });
 
 //define variable for filter log and block log
-var Log_Alert: any = [];
+var Log_Alert: any = [["test", "schedule_id", "confidence", "camera_id", "personnel", "description", "peopleCounting", "plate_number"]];
 //for limit record stream
 var Camera_Is_Record: any = [];
 
 //get alerts from back
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    console.log(Log_Alert);
-    console.log(Camera_Is_Record);
     //get jason from body request
     const bodyRequest = req.body;
     if (!bodyRequest?.log?.camera_id) {
@@ -102,25 +100,20 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     // let new_notif: boolean = false;
     // let i = 0;
 
-    if (Log_Alert.length == 0) {
-      Log_Alert.push([temp]);
+    for (let item of Log_Alert) {
+      let is_log_before =
+        temp.length === item[0].length &&
+        temp.every(function (value, index) {
+          return value === item[0][index];
+        });
+      if (is_log_before) {
+        send_notif = false;
+        break;
+      }
       send_notif = true;
-    } else {
-      for (let item of Log_Alert) {
-        let is_log_before =
-          temp.length === item[0].length &&
-          temp.every(function (value, index) {
-            return value === item[0][index];
-          });
-        if (is_log_before) {
-          send_notif = false;
-          break;
-        }
-        send_notif = true;
-      }
-      if (send_notif) {
-        Log_Alert.push([temp]);
-      }
+    }
+    if (send_notif) {
+      Log_Alert.push([temp]);
     }
 
     // if (Log_Alert.length == 0) {
@@ -163,16 +156,16 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       //check for limit record camera to 3 and camera in not recording
       let temp_record: string[] = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
       let isOpenForRecord = false;
-      for(let cam of Camera_Is_Record){
-        if(cam[0].includes(result.camera_id) ){
+      for (let cam of Camera_Is_Record) {
+        if (cam[0].includes(result.camera_id)) {
           isOpenForRecord = true;
-          break
+          break;
         }
       }
       if (notification.title == "Alerting" && Camera_Is_Record.length < 2 && !isOpenForRecord) {
         recorder.start(); //start recording
         console.log("Recording has started.");
-        
+
         Camera_Is_Record.push([temp_record]); //add camera_id to global list for limiting record
         //stop record and delete item from global list limit record ==> Camera_Is_Record
         setTimeout(() => {
@@ -189,7 +182,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       setTimeout(() => {
         if (Log_Alert.length > 250) {
           //ckeck for empety memory
-          Log_Alert = [];
+          Log_Alert = [["test", "schedule_id", "confidence", "camera_id", "personnel", "description", "peopleCounting", "plate_number"]];
         }
         //update global list alerting
         Log_Alert = Log_Alert.filter((item: any) => {
