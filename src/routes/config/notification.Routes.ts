@@ -85,6 +85,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     }
     //query for get notifications from DB
     let notifications: INotification[] = await Notification.find({})
+      .populate("cameras")
+      .populate("departments")
+      .populate("sections")
+      .populate("types")
       .limit(perPage)
       .skip(perPage * (page - 1))
       .exec();
@@ -125,7 +129,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 
     //query for get notification by id from DB
-    let notification = await Notification.findById(id).exec();
+    let notification = await Notification.findById(id).populate("cameras").populate("departments").populate("sections").populate("types").exec();
     //return not found if notification not exist
     if (!notification) {
       req.flash("error", "Notification not found");
