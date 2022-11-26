@@ -13,8 +13,8 @@ export interface INotification extends Document {
   bypass_time: boolean;
   has_video: boolean;
   enable: boolean;
-  phone_number: string;
-  email: string;
+  phone_numbers: string[];
+  emails: string[];
   sms_enable: boolean;
   email_enable: boolean;
 }
@@ -23,17 +23,17 @@ export interface INotification extends Document {
 const NotificationSchema: Schema<INotification> = new Schema(
   {
     create_date: { type: Date, default: Date.now },
-    cameras: { type: [Schema.Types.ObjectId], required: false },
-    departments: { type: [Schema.Types.ObjectId], required: false },
-    sections: { type: [Schema.Types.ObjectId], required: false },
-    types: { type: [Schema.Types.ObjectId], required: false },
+    cameras: { type: [Schema.Types.ObjectId], ref: "Camera", required: false },
+    departments: { type: [Schema.Types.ObjectId], ref: "Department", required: false },
+    sections: { type: [Schema.Types.ObjectId], ref: "Section", required: false },
+    types: { type: [Schema.Types.ObjectId],ref: "Model" ,required: false },
     time_start: { type: String, required: false },
     time_end: { type: String, required: false },
     bypass_time: { type: Boolean, required: false },
     has_video: { type: Boolean, required: false },
     enable: { type: Boolean, required: false },
-    phone_number: { type: String, required: false },
-    email: { type: String, required: false },
+    phone_numbers: { type: [String], required: false },
+    emails: { type: [String], required: false },
     sms_enable: { type: Boolean, required: false },
     email_enable: { type: Boolean, required: false },
   },
