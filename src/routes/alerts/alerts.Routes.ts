@@ -162,7 +162,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
           break;
         }
       }
-      if (notification.title == "Alerting" && Camera_Is_Record.length < 2 && !isOpenForRecord) {
+      if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !isOpenForRecord) {
         recorder.start(); //start recording
         console.log("Recording has started.");
 

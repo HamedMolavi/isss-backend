@@ -29,7 +29,7 @@ services:
     #   - PORT=${PORT_http}
     #   - MONGO_URL=${MONGODB_URL}
     ports:
-      - 8000:5000
+      - 9000:5000
     volumes:
       - ./logs:/isss-backend/logs
       - ./assets:/isss-backend/assets
