@@ -69,7 +69,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
   }
 });
 
-//route for get sections list
+//route for get notifications list
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get page from url
@@ -78,55 +78,44 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     //get perPage from url
     let strPerPage = req.query.perPage as string;
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-    let search = (req.query.search as string) || "";
     //get token from header request and verify
     let token = getTokenAndVerify(req, const_role, next);
     if (!token) {
       return null;
     }
-    //query for get sections from DB
-    let sections: ISection[] = [];
-    if (!(search && search.length > 0)) {
-      sections = await Section.find({
-        name: { $regex: search, $options: "i" },
-      })
-        .limit(perPage)
-        .skip(perPage * (page - 1))
-        .exec();
-    } else {
-      sections = await Section.find({})
-        .limit(perPage)
-        .skip(perPage * (page - 1))
-        .exec();
-    }
+    //query for get notifications from DB
+    let notifications: INotification[] = await Notification.find({})
+      .limit(perPage)
+      .skip(perPage * (page - 1))
+      .exec();
 
-    //return not found if sections not exist
-    if (!sections) {
-      req.flash("error", "Section not found");
-      return next(new ApiError(404, "Section not found"));
+    //return not found if notifications not exist
+    if (!notifications) {
+      req.flash("error", "Notifications not found");
+      return next(new ApiError(404, "Notifications not found"));
     }
     //send response
     return res.status(200).json({
       success: true,
-      data: sections,
+      data: notifications,
       page: page,
       perPage: perPage,
-      total: await Section.countDocuments().exec(),
-      pages: Math.ceil((await Section.countDocuments().exec()) / perPage),
+      total: await Notification.countDocuments().exec(),
+      pages: Math.ceil((await Notification.countDocuments().exec()) / perPage),
     });
   } catch (err: any) {
     return next(new ApiError(500, "internal server error , " + err.message));
   }
 });
 
-//route for get section by id from DB
+//route for get notification by id from DB
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get id from url
     let id: string = req.params.id;
     if (!id) {
-      req.flash("error", "Please enter all fields");
-      return next(new ApiError(400, "Please enter all fields"));
+      req.flash("error", "Please enter specifies notification id");
+      return next(new ApiError(400, "Please enter specifies notification id"));
     }
 
     //get token from header request and verify
@@ -135,72 +124,60 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
       return null;
     }
 
-    //query for get section by id from DB
-    let section = await Section.findById(id).exec();
-    //return not found if section not exist
-    if (!section) {
-      req.flash("error", "Section not found");
-      return next(new ApiError(404, "Section not found"));
+    //query for get notification by id from DB
+    let notification = await Notification.findById(id).exec();
+    //return not found if notification not exist
+    if (!notification) {
+      req.flash("error", "Notification not found");
+      return next(new ApiError(404, "Notification not found"));
     }
     //send response
     return res.status(200).json({
       success: true,
-      data: section,
+      data: notification,
     });
   } catch (err: any) {
     return next(new ApiError(500, "internal server error , " + err.message));
   }
 });
 
-//add route for edit section
+//add route for edit notification
 router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get id from url
     let id = req.params.id as Object;
     if (!id) {
-      req.flash("error", "Please enter all fields");
-      return next(new ApiError(400, "Please enter all fields"));
+      req.flash("error", "Please enter specifies notification id");
+      return next(new ApiError(400, "Please enter specifies notification id"));
     }
     //get jason from body request
-    const sectionBody = req.body;
+    const notificationBody = req.body;
     //get token from header request and verify
     let token = getTokenAndVerify(req, const_role, next);
     if (!token) {
       return null;
     }
-    let _section1, _section2;
-    if (sectionBody.department_id) {
-      _section1 = await Section.findOne({ department_id: sectionBody.department_id }).exec();
-    }
-    if (sectionBody.name) {
-      _section2 = await Section.findOne({ department_id: sectionBody.name }).exec();
-    }
 
-    if (_section1 && _section2) {
-      req.flash("error", "Section and department_id not defrrent");
-      return next(new ApiError(400, "Section and department_id not defrrent"));
-    }
-
-    //query for get section by id from DB
-    let section = await Section.findByIdAndUpdate(id, sectionBody, {
+    //query for get notification by id from DB
+    let notification = await Notification.findByIdAndUpdate(id, notificationBody, {
       new: true,
     }).exec();
-    //return not found if section not exist
-    if (!section) {
-      req.flash("error", "Section not found");
-      return next(new ApiError(404, "Section not found"));
+    //return not found if notification not exist
+    if (!notification) {
+      req.flash("error", "Notification not found");
+      return next(new ApiError(404, "Notification not found"));
     }
     //send response
     return res.status(201).json({
       message: "Success",
-      section: section,
+      section: notification,
     });
   } catch (err: any) {
     return next(new ApiError(500, "internal server error , " + err.message));
   }
 });
 
-//add route for delete section
+//add route for delete notification
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get id from url
@@ -216,17 +193,17 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
       return null;
     }
 
-    //query for get section by id from DB
-    let section = await Section.findByIdAndDelete(id).exec();
-    //return not found if section not exist
-    if (!section) {
-      req.flash("error", "Section not found");
-      return next(new ApiError(404, "Section not found"));
+    //query for get notification by id from DB
+    let notification = await Notification.findByIdAndDelete(id).exec();
+    //return not found if notification not exist
+    if (!notification) {
+      req.flash("error", "Notification not found");
+      return next(new ApiError(404, "Notification not found"));
     }
     //send response
     return res.status(201).json({
       message: "Success",
-      section: section,
+      section: notification,
     });
   } catch (err: any) {
     return next(new ApiError(500, "internal server error , " + err.message));
