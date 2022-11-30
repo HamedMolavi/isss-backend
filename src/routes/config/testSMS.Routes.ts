@@ -37,13 +37,13 @@ router.get("/:phone_number", async function (req: Request, res: Response, next: 
       return null;
     }
 
-    // if (limit_send_sms.includes(phone_number)) {
-    //   //send response
-    //   return res.status(400).json({
-    //     success: false,
-    //     data: "sms already send",
-    //   });
-    // }
+    if (limit_send_sms.includes(phone_number)) {
+      //send response
+      return res.status(400).json({
+        success: false,
+        data: "sms already send",
+      });
+    }
 
     //send sms test
     let result = send_sms(phone_number, "تست ارسال اس ام اس");
