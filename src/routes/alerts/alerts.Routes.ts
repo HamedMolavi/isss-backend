@@ -9,6 +9,7 @@ import Schedule from "../../models/schedule";
 import recordStream from "../../tools/recordStream";
 import { send_sms } from "../../tools/sendSms";
 import Notification from "../../models/notification";
+import { send_email } from "../../tools/sendEmail";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -188,7 +189,12 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       }
       if (notif.cameras.includes(result.camera_id)) {
         //send sms
-        send_sms(notif.phone_number, result.description);
+        if (notif.phone_number) {
+          send_sms(notif.phone_number, result.description);
+        }
+        if (notif.email) {
+          send_email(notif.email, result.description);
+        }
       }
     }
 

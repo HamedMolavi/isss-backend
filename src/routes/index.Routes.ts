@@ -21,6 +21,7 @@ import schedulesreport from "./report/schedulesReport.Routes";
 import PersonImage from "../routes/config/personImage.Routes";
 import downloadVideo from "../routes/report/videoDownload.Routes";
 import notification from "../routes/config/notification.Routes";
+import testSMS from "../routes/config/testSMS.Routes";
 
 //create router for add to server
 const router: Router = Router();
@@ -47,7 +48,7 @@ router.use("/schedulesreport", schedulesreport);
 router.use("/personImage", PersonImage);
 router.use("/downloadVideo", downloadVideo);
 router.use("/notifications", notification);
-
+router.use("/testsms",testSMS);
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 //add not found route handler
