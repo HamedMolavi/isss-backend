@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Notification, { INotification } from "../../models/notification";
-import Section, { ISection } from "./../../models/section";
 import { getTokenAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
@@ -24,9 +23,9 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //get jason from body request
     const newNotif: INotification = req.body;
     //verify body request
-    if (!newNotif.phone_numbers && !newNotif.emails) {
+    if (!newNotif.phone_number && !newNotif.email) {
       req.flash("error", "Please enter phone number or email");
-      return next(new ApiError(400, "Please enter phone numbers or emails"));
+      return next(new ApiError(400, "Please enter phone number or email"));
     }
 
     //get token from header request and verify
@@ -39,9 +38,9 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //check if notification exist
     let notification = await Notification.findOne({
       $and: [
-        { cameras: { $in: newNotif.cameras } },
+        { cameras: newNotif.cameras },
         {
-          $or: [{ phone_number: { $in: newNotif.phone_numbers } }, { emails: { $in: newNotif.phone_numbers } }],
+          $or: [{ phone_number: { $in: newNotif.phone_number } }, { emails: { $in: newNotif.phone_number } }],
         },
       ],
     }).exec();
@@ -86,8 +85,6 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     //query for get notifications from DB
     let notifications: INotification[] = await Notification.find({})
       .populate("cameras")
-      .populate("departments")
-      .populate("sections")
       .populate("types")
       .limit(perPage)
       .skip(perPage * (page - 1))
@@ -129,7 +126,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 
     //query for get notification by id from DB
-    let notification = await Notification.findById(id).populate("cameras").populate("departments").populate("sections").populate("types").exec();
+    let notification = await Notification.findById(id).populate("cameras").populate("types").exec();
     //return not found if notification not exist
     if (!notification) {
       req.flash("error", "Notification not found");
