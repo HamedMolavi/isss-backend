@@ -52,7 +52,7 @@ router.get("/:email", async function (req: Request, res: Response, next: NextFun
       limit_send_email.push(email);
     }
     setTimeout(() => {
-      limit_send_email.filter((item) => {
+      limit_send_email = limit_send_email.filter((item) => {
         if (item != email) {
           return item;
         }

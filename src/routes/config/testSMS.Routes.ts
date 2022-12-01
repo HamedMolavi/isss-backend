@@ -41,7 +41,7 @@ router.get("/:phone_number", async function (req: Request, res: Response, next: 
       //send response
       return res.status(400).json({
         success: false,
-        data: "sms already send",
+        data: "sms already sent",
       });
     }
 
@@ -49,18 +49,18 @@ router.get("/:phone_number", async function (req: Request, res: Response, next: 
     let result = send_sms(phone_number, "تست ارسال اس ام اس");
     if (result) {
       limit_send_sms.push(phone_number);
+      setTimeout(() => {
+        limit_send_sms = limit_send_sms.filter((item) => {
+          if (item != phone_number) {
+            return item;
+          }
+        });
+      }, 120000);
     }
-    setTimeout(() => {
-      limit_send_sms.filter((item) => {
-        if (item != phone_number) {
-          return item;
-        }
-      });
-    }, 120000);
     //send response
     return res.status(200).json({
       success: true,
-      data: "sms sended",
+      data: "sms sent",
     });
   } catch (err: any) {
     return next(new ApiError(500, "internal server error , " + err.message));
