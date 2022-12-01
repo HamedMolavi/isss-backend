@@ -91,7 +91,6 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     let temp: string[] = [
       result.type ?? "",
       bodyRequest.log.schedule_id ?? "",
-      result.confidence ?? "",
       result.camera_id ?? "",
       result.personnel ?? "",
       result.description ?? "",
