@@ -22,4 +22,4 @@ const PersonImage = mongoose.model("Person_Image", PersonImageSchema);
 export default PersonImage;
 
 
-[{type: Number}]
+//[{type: Number}]

@@ -7,6 +7,9 @@ import Department from "../../models/department";
 import Car from "../../models/car";
 import Schedule from "../../models/schedule";
 import recordStream from "../../tools/recordStream";
+import { send_sms } from "../../tools/sendSms";
+import Notification from "../../models/notification";
+import { send_email } from "../../tools/sendEmail";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -116,33 +119,6 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       Log_Alert.push([temp]);
     }
 
-    // if (Log_Alert.length == 0) {
-    //   Log_Alert.push([temp]);
-    //   send_notif = true;
-    // } else if (Log_Alert.length > 0) {
-    //   let i = 0;
-    //   for (let item of Log_Alert) {
-    //     i++;
-    //     let some_schedule = item[0].includes(bodyRequest.log.schedule_id);
-    //     let some_type = item[0].includes(bodyRequest.type);
-    //     let some_detail = item[0].includes(x);
-    //     if (some_schedule && some_type && some_detail) {
-    //       if (result.time - item[0][0] > 10000) {
-    //         send_notif = true;
-    //         break;
-    //       } else {
-    //         break;
-    //       }
-    //     }
-    //     if (Log_Alert.length == i) {
-    //       new_notif = true;
-    //     }
-    //   }
-    //   if (new_notif) {
-    //     send_notif = true;
-    //   }
-    // }
-
     let notification = result;
     //get time for record from .env
     const time_record_stream = Number(process.env["RECORD_STREAM_TIME"] as string);
@@ -162,7 +138,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
           break;
         }
       }
-      if (notification.title == "Alerting" && Camera_Is_Record.length < 2 && !isOpenForRecord) {
+      if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !isOpenForRecord) {
         recorder.start(); //start recording
         console.log("Recording has started.");
 
@@ -196,6 +172,30 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
           }
         });
       }, 20000);
+    }
+    //get all notification for send email or sms
+    let notifications = await Notification.find().exec(); //query for get all notification
+    for (let notif of notifications) {
+      if (!notif.sms_enable) {
+        continue;
+      }
+      if (!notif.bypass_time) {
+        continue;
+      }
+      let time = new Date(Date.now());
+      let time_is = time.getHours() + ":" + time.getMinutes();
+      if (notif.time_start < time_is && notif.time_end > time_is) {
+        continue;
+      }
+      if (notif.cameras.includes(result.camera_id)) {
+        //send sms
+        if (notif.phone_number) {
+          send_sms(notif.phone_number, result.description);
+        }
+        if (notif.email) {
+          send_email(notif.email, result.description);
+        }
+      }
     }
 
     //send response to client
