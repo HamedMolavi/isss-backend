@@ -131,14 +131,16 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
       let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
 
       let _camera;
-      if (logPersonnel.data.hits.hits.length > 0) {
-        _camera = await Camera.findById(logPersonnel.data.hits.hits[0]._source.camera_id).populate("section_id").exec();
-      } else {
-        continue;
-      }
+      if (logPersonnel?.data?.hits?.hits?.length > 0) {
+        _camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate("section_id").exec();
+      } 
+      // else {
+      //   data.push(per);
+      //   continue;
+      // }
 
       (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
-      per.lastTimeSeen = new Date(logPersonnel.data.hits.hits[0]._source.timestamp);
+      per.lastTimeSeen = new Date(logPersonnel.data?.hits?.hits[0]?._source?.timestamp);
       // per.lastTimeSeen = randomDate('02/13/2020', '01/01/2022');
       data.push(per);
     }

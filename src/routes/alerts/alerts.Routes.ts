@@ -32,7 +32,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 // });
 
 //define variable for filter log and block log
-var Log_Alert: any = [["test", "schedule_id", "confidence", "camera_id", "personnel", "description", "peopleCounting", "plate_number"]];
+//var Log_Alert: any = [["test", "schedule_id", "confidence", "camera_id", "personnel", "description", "peopleCounting", "plate_number"]];
 //for limit record stream
 var Camera_Is_Record: any = [];
 
@@ -88,35 +88,35 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //add to global list alerting for not send more then one notif
     //and filter old list to new alert
     // let x = bodyRequest.log.personnel_id || bodyRequest.log.plate_number || bodyRequest.log.number_of_people || "";
-    let temp: string[] = [
-      result.type ?? "",
-      bodyRequest.log.schedule_id ?? "",
-      result.camera_id ?? "",
-      result.personnel ?? "",
-      result.description ?? "",
-      result.peopleCounting ?? "",
-      result.plate_number ?? "",
-    ];
+    // let temp: string[] = [
+    //   result.type ?? "",
+    //   bodyRequest.log.schedule_id ?? "",
+    //   result.camera_id ?? "",
+    //   result.personnel ?? "",
+    //   result.description ?? "",
+    //   result.peopleCounting ?? "",
+    //   result.plate_number ?? "",
+    // ];
 
-    let send_notif: boolean = false;
+   // let send_notif: boolean = false;
     // let new_notif: boolean = false;
     // let i = 0;
 
-    for (let item of Log_Alert) {
-      let is_log_before =
-        temp.length === item[0].length &&
-        temp.every(function (value, index) {
-          return value === item[0][index];
-        });
-      if (is_log_before) {
-        send_notif = false;
-        break;
-      }
-      send_notif = true;
-    }
-    if (send_notif) {
-      Log_Alert.push([temp]);
-    }
+    // for (let item of Log_Alert) {
+    //   let is_log_before =
+    //     temp.length === item[0].length &&
+    //     temp.every(function (value, index) {
+    //       return value === item[0][index];
+    //     });
+    //   if (is_log_before) {
+    //     send_notif = false;
+    //     break;
+    //   }
+    //   send_notif = true;
+    // }
+    // if (send_notif) {
+    //   Log_Alert.push([temp]);
+    // }
 
     let notification = result;
     //get time for record from .env
@@ -126,7 +126,8 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     let rtsp_link: string = rtsp_link_aray ? rtsp_link_aray[0] + "://" + _camera?.username + ":" + _camera?.password + "@" + _camera?.ip + ":" + rtsp_link_aray[3] : "";
     //create new recorder
     let recorder: any = recordStream(rtsp_link, _camera?._id.toString());
-    if (is_muted_list === false && send_notif == true) {
+    //if (is_muted_list === false && send_notif == true) {
+    if (is_muted_list === false ) {
       io.emit("get alert", notification); //send notif to client with socket.io
       //check for limit record camera to 3 and camera in not recording
       let temp_record: string[] = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
@@ -138,13 +139,13 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         }
       }
       if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !isOpenForRecord) {
-        recorder.start(); //start recording
+        //recorder.start(); //start recording
         console.log("Recording has started.");
 
         Camera_Is_Record.push([temp_record]); //add camera_id to global list for limiting record
         //stop record and delete item from global list limit record ==> Camera_Is_Record
         setTimeout(() => {
-          recorder.stop();
+          //recorder.stop();
           console.log("Recording has stopped.");
           Camera_Is_Record = Camera_Is_Record.filter((item: any) => {
             if (bodyRequest.log.schedule_id != item[0][1]) {
@@ -154,23 +155,23 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         }, time_record_stream);
       }
 
-      setTimeout(() => {
-        if (Log_Alert.length > 250) {
-          //ckeck for empety memory
-          Log_Alert = [["test", "schedule_id", "confidence", "camera_id", "personnel", "description", "peopleCounting", "plate_number"]];
-        }
-        //update global list alerting
-        Log_Alert = Log_Alert.filter((item: any) => {
-          let is_log_before =
-            temp.length === item[0].length &&
-            temp.every(function (value, index) {
-              return value === item[0][index];
-            });
-          if (!is_log_before) {
-            return item[0];
-          }
-        });
-      }, 20000);
+      // setTimeout(() => {
+      //   if (Log_Alert.length > 250) {
+      //     //ckeck for empety memory
+      //     Log_Alert = [["test", "schedule_id", "confidence", "camera_id", "personnel", "description", "peopleCounting", "plate_number"]];
+      //   }
+      //   //update global list alerting
+      //   Log_Alert = Log_Alert.filter((item: any) => {
+      //     let is_log_before =
+      //       temp.length === item[0].length &&
+      //       temp.every(function (value, index) {
+      //         return value === item[0][index];
+      //       });
+      //     if (!is_log_before) {
+      //       return item[0];
+      //     }
+      //   });
+      // }, 20000);
     }
     //get all notification for send email or sms
     let notifications = await Notification.find().exec(); //query for get all notification
