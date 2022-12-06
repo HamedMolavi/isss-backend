@@ -1,5 +1,6 @@
 import axios from "axios";
 import { NextFunction } from "express";
+import Model from "./../models/model";
 import { ApiError } from "../error/error.handler";
 
 //get connection string from enviroment variable
@@ -141,9 +142,20 @@ export async function dynamicRequestToElasticSearch(
       //add filter for models if models is not empty and model is not event and model is not event
       //models ai array string model id
       if (models.length > 0) {
+        let model_name: string[] = [];
+        for (let modl of models) {
+          let _mod =await Model.findById(modl).exec();
+          if (_mod) {
+            if(_mod.category=="identification"){
+              model_name.push("face");
+            }else{
+              model_name.push(_mod.category);
+            }
+          }
+        }
         jsonResuest.query.bool.filter.push({
           terms: {
-            "log.model": models,
+            type: model_name,
           },
         });
       }
