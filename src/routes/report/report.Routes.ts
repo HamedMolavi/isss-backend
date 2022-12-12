@@ -63,7 +63,8 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       _humanCounts: number[] = [];
     if (search) {
       //get body from request
-      const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
+      const { time_start, time_end, date_start, date_end, car_brand, car_color, 
+              owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
       _humanCounts = humanCounts;
       _personnels = personnels;
       _cameras = cameras;
