@@ -23,6 +23,7 @@ import downloadVideo from "../routes/report/videoDownload.Routes";
 import notification from "../routes/config/notification.Routes";
 import testSMS from "../routes/config/testSMS.Routes";
 import testEmail from "../routes/config/testEmailSend.Routes";
+import snapshot from "../routes/config/snapshot.Routes";
 
 //create router for add to server
 const router: Router = Router();
@@ -49,8 +50,9 @@ router.use("/schedulesreport", schedulesreport);
 router.use("/personImage", PersonImage);
 router.use("/downloadVideo", downloadVideo);
 router.use("/notifications", notification);
-router.use("/testsms",testSMS);
-router.use("/testemail",testEmail);
+router.use("/testsms", testSMS);
+router.use("/testemail", testEmail);
+router.use("/snapshot", snapshot);
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 //add not found route handler
