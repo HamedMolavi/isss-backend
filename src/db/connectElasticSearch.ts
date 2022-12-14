@@ -5,6 +5,7 @@ import { ApiError } from "../error/error.handler";
 
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"] as string;
+const trackerURL = process.env["TREACKER_SEARCH_URL"] as string;
 
 //function for send request to elastic search and get data
 export async function dynamicRequestToElasticSearch(
@@ -21,6 +22,14 @@ export async function dynamicRequestToElasticSearch(
   next: NextFunction
 ) {
   try {
+    //get hours from epoch time
+    let start_hour: number = -1,
+      end_hour: number = -1;
+    if (timeStart) {
+      start_hour = new Date(timeStart).getUTCHours();
+      end_hour = new Date(timeEnd).getUTCHours();
+    }
+
     //create json response for client
     let jsonResuest: any = {};
     jsonResuest.size = perPage;
@@ -54,17 +63,7 @@ export async function dynamicRequestToElasticSearch(
           },
         });
       }
-      //add time filter if timeStart and timeEnd is not empty
-      if (timeEnd !== "" && timeStart !== "") {
-        jsonResuest.query.bool.filter.push({
-          range: {
-            timestamp: {
-              gte: timeStart,
-              lte: timeEnd,
-            },
-          },
-        });
-      }
+
       //add filter for models if models is not empty and model is not event and model is not event
       //models ai array string model id
       if (models.length > 0) {
@@ -94,6 +93,35 @@ export async function dynamicRequestToElasticSearch(
         jsonResuest.query.bool.filter.push({
           terms: {
             number_of_people: humanCounts,
+          },
+        });
+      }
+
+      //add time filter if timeStart and timeEnd is not empty
+      if (timeEnd !== "" && timeStart !== "") {
+        jsonResuest.query.bool.filter.push({
+          range: {
+            timestamp: {
+              gte: timeStart,
+              lte: timeEnd,
+            },
+          },
+        });
+      }
+
+      //add time filter if timeStart and timeEnd is not empty
+      //and add script for filter time between two hours
+      if (end_hour > -1 && start_hour > -1) {
+        jsonResuest.query.bool.filter.push({
+          script: {
+            script: {
+              source:
+                "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['timestamp'].value),ZoneId.of('Z')).getHour() >= params.min && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['timestamp'].value),ZoneId.of('Z')).getHour() <= params.max",
+              params: {
+                min: start_hour,
+                max: end_hour,
+              },
+            },
           },
         });
       }
@@ -128,27 +156,16 @@ export async function dynamicRequestToElasticSearch(
           },
         });
       }
-      //add time filter if timeStart and timeEnd is not empty
-      if (timeEnd !== "" && timeStart !== "") {
-        jsonResuest.query.bool.filter.push({
-          range: {
-            "log.timestamp": {
-              gte: timeStart,
-              lte: timeEnd,
-            },
-          },
-        });
-      }
       //add filter for models if models is not empty and model is not event and model is not event
       //models ai array string model id
       if (models.length > 0) {
         let model_name: string[] = [];
         for (let modl of models) {
-          let _mod =await Model.findById(modl).exec();
+          let _mod = await Model.findById(modl).exec();
           if (_mod) {
-            if(_mod.category=="identification"){
+            if (_mod.category == "identification") {
               model_name.push("face");
-            }else{
+            } else {
               model_name.push(_mod.category);
             }
           }
@@ -180,6 +197,35 @@ export async function dynamicRequestToElasticSearch(
         });
       }
 
+      //add time filter if timeStart and timeEnd is not empty
+      if (timeEnd !== "" && timeStart !== "") {
+        jsonResuest.query.bool.filter.push({
+          range: {
+            "log.timestamp": {
+              gte: timeStart,
+              lte: timeEnd,
+            },
+          },
+        });
+      }
+
+      //add time filter if timeStart and timeEnd is not empty
+      //and add script for filter time between two hours
+      if (end_hour > -1 && start_hour > -1) {
+        jsonResuest.query.bool.filter.push({
+          script: {
+            script: {
+              source:
+                "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['timestamp'].value),ZoneId.of('Z')).getHour() >= params.min && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['timestamp'].value),ZoneId.of('Z')).getHour() <= params.max",
+              params: {
+                min: start_hour,
+                max: end_hour,
+              },
+            },
+          },
+        });
+      }
+
       //add filter for cameras with time roder
       jsonResuest.sort = [
         {
@@ -205,7 +251,7 @@ export async function dynamicRequestToElasticSearch(
 }
 
 export async function requestForGetPersonnel(personnelId: string) {
-  const response = await axios.get("http://192.168.10.20:9200/face_log/_search", {
+  const response = await axios.get(trackerURL, {
     headers: {
       "Content-Type": "application/json",
     },
