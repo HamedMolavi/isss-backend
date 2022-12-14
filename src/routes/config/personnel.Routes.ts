@@ -188,7 +188,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
     let id: string = req.params.id;
-    //verify body request
+    //return error if id not found
     if (!id) {
       req.flash("error", "Please enter id");
       return next(new ApiError(400, "Please enter id"));
