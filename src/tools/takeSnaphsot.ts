@@ -18,9 +18,9 @@ async function takeSnapshot(camInfo: cameraInfo): Promise<string | null | undefi
       user: camInfo.username,
       pass: camInfo.password,
     });
-    await device.init();//initial device
+    await device.init(); //initial device
     console.log("fetching the data of the snapshot...");
-    let res = await device.fetchSnapshot();//fetch image from camera
+    let res = await device.fetchSnapshot(); //fetch image from camera
     //convert result from binary to base64
     let mimeType = res.headers["content-type"];
     let rawImage = res.headers["accept-ranges"];
