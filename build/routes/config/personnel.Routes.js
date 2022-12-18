@@ -91,6 +91,7 @@ router.post("", function (req, res, next) {
 });
 //route for get personnels list
 router.get("", function (req, res, next) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             //get page from url
@@ -135,14 +136,16 @@ router.get("", function (req, res, next) {
                 let per = _personnel.toJSON();
                 let logPersonnel = yield (0, connectElasticSearch_1.requestForGetPersonnel)(_personnel._id.toString());
                 let _camera;
-                if (logPersonnel.data.hits.hits.length > 0) {
-                    _camera = yield camera_1.default.findById(logPersonnel.data.hits.hits[0]._source.camera_id).populate("section_id").exec();
+                if (((_c = (_b = (_a = logPersonnel === null || logPersonnel === void 0 ? void 0 : logPersonnel.data) === null || _a === void 0 ? void 0 : _a.hits) === null || _b === void 0 ? void 0 : _b.hits) === null || _c === void 0 ? void 0 : _c.length) > 0) {
+                    _camera = yield camera_1.default.findById((_e = (_d = logPersonnel.data.hits.hits[0]) === null || _d === void 0 ? void 0 : _d._source) === null || _e === void 0 ? void 0 : _e.camera_id).populate("section_id").exec();
                 }
-                else {
-                    continue;
-                }
+                // else {
+                //   data.push(per);
+                //   continue;
+                // }
                 (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
-                per.lastTimeSeen = new Date(logPersonnel.data.hits.hits[0]._source.timestamp);
+                per.lastTimeSeen = new Date((_j = (_h = (_g = (_f = logPersonnel.data) === null || _f === void 0 ? void 0 : _f.hits) === null || _g === void 0 ? void 0 : _g.hits[0]) === null || _h === void 0 ? void 0 : _h._source) === null || _j === void 0 ? void 0 : _j.timestamp);
+                // per.lastTimeSeen = randomDate('02/13/2020', '01/01/2022');
                 data.push(per);
             }
             //send response
@@ -160,12 +163,32 @@ router.get("", function (req, res, next) {
         }
     });
 });
+// function randomDate(date1: any, date2: any) {
+//   function randomValueBetween(min: any, max: any) {
+//     return Math.random() * (max - min) + min;
+//   }
+//   var date1 = date1 || "01-01-1970";
+//   var date2 = date2 || new Date().toLocaleDateString();
+//   date1 = new Date(date1).getTime();
+//   date2 = new Date(date2).getTime();
+//   if (date1 > date2) {
+//     return new Date(randomValueBetween(date2, date1)).toLocaleDateString();
+//   } else {
+//     return new Date(randomValueBetween(date1, date2)).toLocaleDateString();
+//   }
+// }
+// function randomDate(start, end, startHour, endHour) {
+//   var date = new Date(+start + Math.random() * (end - start));
+//   var hour = startHour + Math.random() * (endHour - startHour) | 0;
+//   date.setHours(hour);
+//   return date;
+// }
 //route for get personnel by id from DB
 router.get("/:id", function (req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             let id = req.params.id;
-            //verify body request
+            //return error if id not found
             if (!id) {
                 req.flash("error", "Please enter id");
                 return next(new error_handler_1.ApiError(400, "Please enter id"));

@@ -24,15 +24,23 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-//create Model person_image with schema for save in DB
-const PersonImageSchema = new mongoose_1.Schema({
-    person_id: { type: mongoose_1.Schema.Types.ObjectId, ref: "Personnel" },
-    hash_id: { type: String, required: true },
-    vector: [Number]
+//create Notification model with schema for save in DB
+const NotificationSchema = new mongoose_1.Schema({
+    create_date: { type: Date, default: Date.now },
+    cameras: { type: [mongoose_1.Schema.Types.ObjectId], ref: "Camera", required: false },
+    types: { type: [mongoose_1.Schema.Types.ObjectId], ref: "Model", required: false },
+    time_start: { type: String, required: false, default: "00:00" },
+    time_end: { type: String, required: false, default: "00:00" },
+    bypass_time: { type: Boolean, required: false },
+    has_video: { type: Boolean, required: false },
+    enable: { type: Boolean, required: false },
+    phone_number: { type: String, required: false, default: "" },
+    email: { type: String, required: false, default: "" },
+    sms_enable: { type: Boolean, required: false, default: false },
+    email_enable: { type: Boolean, required: false, default: false },
 }, {
-    collection: "Person_Image"
+    collection: "Notification",
 });
-// Compile Model from schema
-const PersonImage = mongoose_1.default.model("Person_Image", PersonImageSchema);
-exports.default = PersonImage;
-//[{type: Number}]
+// Compile model from schema
+const Notification = mongoose_1.default.model("Notification", NotificationSchema);
+exports.default = Notification;

@@ -62,11 +62,11 @@ router.post("/:model", function (req, res, next) {
             let _probabilities, _humanCounts = [];
             if (search) {
                 //get body from request
-                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, models, personnels, probabilities, humanCounts } = req.body;
+                const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
                 _humanCounts = humanCounts;
                 _personnels = personnels;
                 _cameras = cameras;
-                _models = models;
+                _models = model;
                 _probabilities = probabilities;
                 _allowed = (_a = Boolean(allowed)) !== null && _a !== void 0 ? _a : null;
                 _carBrand = car_brand !== null && car_brand !== void 0 ? car_brand : null;

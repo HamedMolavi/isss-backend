@@ -9,7 +9,6 @@ import Section from "../models/section";
 import Department from "../models/department";
 import toPersianPlate from "./EnglishToPersianPlate";
 import Model, { IModel } from "../models/model";
-import path from "path";
 import fs from "fs";
 import { getPathFromIdTime } from "./getPathFromIdTiem";
 
@@ -19,18 +18,13 @@ export async function sabotageLogResponse(response: any, time_start: string, tim
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
   for (let log of response.data.hits.hits) {
-    let time = new Date(log._source.timestamp);
-    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
-      continue;
-    }
-
     let result = {
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: time.toLocaleString(),
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
     };
     _data.push(result);
   }
@@ -65,11 +59,6 @@ export async function plateLogResponse(
   let _data: object[] = [];
   //create json response
   for (let log of response.data.hits.hits) {
-    let time = new Date(log._source.timestamp);
-    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
-      continue;
-    }
-
     //split plate_number to get first and last digit
     //change plate number format from english to persian
     let plateNumber1 = Number(log._source.plate_number.substr(0, 2)).toLocaleString("fa-IR");
@@ -92,7 +81,7 @@ export async function plateLogResponse(
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: time.toLocaleString(),
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
       plate_number: plateNumber,
       owner: "",
       color: "",
@@ -137,11 +126,6 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
   let schedules = await Schedule.find().exec();
   let cameras = await Camera.find().exec();
   for (let log of response.data.hits.hits) {
-    let time = new Date(log._source.timestamp);
-    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
-      continue;
-    }
-
     let _schedule = schedules.find((item) => {
       if (item._id == log.schedule_id) return item;
     });
@@ -151,7 +135,7 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: time.toLocaleString(),
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
       numberOfPeople: log._source.number_of_people,
       allowed: (_schedule && _schedule.config.max_people >= log._source.number_of_people && _schedule!.config!.min_people <= log._source.number_of_people) ?? false,
     };
@@ -169,18 +153,13 @@ export async function fireLogResponse(response: any, time_start: string, time_en
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
   for (let log of response.data.hits.hits) {
-    let time = new Date(log._source.timestamp);
-    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
-      continue;
-    }
-
     let result = {
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: time.toLocaleString(),
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
       probability: log._source.confidence,
     };
     _data.push(result);
@@ -194,11 +173,6 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
   let cameras = await Camera.find().exec();
   let personnels = await Personnel.find().exec();
   for (let log of response.data.hits.hits) {
-    let time = new Date(log._source.timestamp);
-    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
-      continue;
-    }
-
     let _personnel = personnels.find((person) => {
       if (log._source.personnel_id == person._id) {
         return person.first_name + " " + person.last_name;
@@ -212,7 +186,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
       fullName: _personnel != null ? _personnel?.first_name + " " + _personnel?.last_name : "",
-      time: time.toLocaleString(),
+      time: log._source?.timestamp ?new Date(log._source.timestamp).toLocaleString() : "",
       allowed: _personnel?.camera_whitelist.includes(log._source.camera_id) ?? false,
     };
     if (search && result.allowed == allowed) {
@@ -236,12 +210,6 @@ export async function eventLogResponse(response: any, time_start: string, time_e
   let sections = await Section.find().exec();
   let departments = await Department.find().exec();
   for (let log of response.data.hits.hits) {
-    //convert time from epoch to date for get path video
-    let time = new Date(log._source.log.timestamp);
-    if (time_start && time_end && (time.toTimeString() < time_start || time.toTimeString() > time_end)) {
-      continue;
-    }
-
     const videoPath = getPathFromIdTime(log._source.log.timestamp, log._source.log.camera_id.toString());
     let existVideo: boolean = false;
     if (videoPath !== "" && fs.existsSync(videoPath)) {
@@ -266,7 +234,7 @@ export async function eventLogResponse(response: any, time_start: string, time_e
         cameras.find((cam) => {
           if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
         })?.name ?? "",
-      time: time.toLocaleString(),
+      time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString() : "",
       ai: _model != undefined ? _model.category : "",
       section:
         sections.find((sec) => {
