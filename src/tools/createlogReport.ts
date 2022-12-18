@@ -1,5 +1,5 @@
 import Camera, { ICamera } from "../models/camera";
-import Car from "../models/car";
+import Car, { ICar } from "../models/car";
 import CarBrand from "../models/carBrand";
 import CarColor from "../models/carColor";
 import Personnel, { IPersonnel } from "../models/personnel";
@@ -11,6 +11,17 @@ import toPersianPlate from "./EnglishToPersianPlate";
 import Model, { IModel } from "../models/model";
 import fs from "fs";
 import { getPathFromIdTime } from "./getPathFromIdTiem";
+
+//define type fore input function extended description
+type Description = {
+  description: string;
+  camera: string;
+  section: string;
+  departement: string;
+  log: any;
+  perssonels: IPersonnel[];
+  cars: ICar[];
+};
 
 //create json response sabotageLog report for send to client
 export async function sabotageLogResponse(response: any, time_start: string, time_end: string) {
@@ -186,7 +197,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
       fullName: _personnel != null ? _personnel?.first_name + " " + _personnel?.last_name : "",
-      time: log._source?.timestamp ?new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
       allowed: _personnel?.camera_whitelist.includes(log._source.camera_id) ?? false,
     };
     if (search && result.allowed == allowed) {
@@ -209,6 +220,8 @@ export async function eventLogResponse(response: any, time_start: string, time_e
   let modelToCameras = await ModelToCamera.find().exec();
   let sections = await Section.find().exec();
   let departments = await Department.find().exec();
+  let personnels = await Personnel.find().exec();
+  let cars = await Car.find().exec();
   for (let log of response.data.hits.hits) {
     const videoPath = getPathFromIdTime(log._source.log.timestamp, log._source.log.camera_id.toString());
     let existVideo: boolean = false;
@@ -257,12 +270,57 @@ export async function eventLogResponse(response: any, time_start: string, time_e
             return dep;
           }
         })?.name ?? "",
-      description: log._source.description,
+      description: "",
+      //description: log._source.description,
       video: existVideo ? "http://" + dbUri + "/downloadVideo/" + log._source.log.camera_id + "." + log._source.log.timestamp : "",
     };
+    result.description = extended_description({
+      description: log._source.description,
+      camera: result.name,
+      section: result.section,
+      departement: result.department,
+      log: log,
+      perssonels: personnels,
+      cars: cars,
+    });
     _data.push(result);
   }
   return _data;
+}
+//define function fore extended description on dend toclient with event report
+function extended_description(_description: Description) {
+  let notification_text: string = "";
+  if (_description.log._source.type === "face") {
+    let personnel = _description.perssonels.find((per: any) => {
+      if (per?._id?.toString() === _description.log._source.log.personnel_id) {
+        return per;
+      }
+    });
+    notification_text = personnel
+      ? `${personnel?.first_name} ${personnel?.last_name} with personnel code: ${personnel.personnel_code} ditected\ndescription:${_description.description}`
+      : `none person ditected, description:${_description.description}`;
+  } else if (_description.log._source.type === "fire") {
+    notification_text = `fire ditected, 
+    description:${_description.description}`;
+  } else if (_description.log._source.type === "human") {
+    notification_text = `#${_description.log._source.log.number_of_people} human(s) ditected,
+     description:${_description.description}`;
+  } else if (_description.log._source.type === "sabotage") {
+    notification_text = `sabotage ditected,
+     description:${_description.description}`;
+  } else if (_description.log._source.type === "plate") {
+    let owner : any= _description.cars.find((_car: any) => {
+      if (_car?.plate_number === _description.log._source.log.plate_number) {
+        return _description.perssonels.find((per: any) => {
+          if (per?._id?.toString() === _car.owner.toString()) {
+            return per;
+          }
+        });
+      }
+    });
+    notification_text = `car plate: ${_description.log._source.log.plate_number}  with owner:${owner?.first_name} ${owner?.last_name} ditected description:${_description.description}`;
+  }
+  return notification_text;
 }
 
 //create json response eventLog report for send to client
