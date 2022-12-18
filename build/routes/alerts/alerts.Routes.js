@@ -21,6 +21,9 @@ const department_1 = __importDefault(require("../../models/department"));
 const car_1 = __importDefault(require("../../models/car"));
 const schedule_1 = __importDefault(require("../../models/schedule"));
 const recordStream_1 = __importDefault(require("../../tools/recordStream"));
+const sendSms_1 = require("../../tools/sendSms");
+const notification_1 = __importDefault(require("../../models/notification"));
+const sendEmail_1 = require("../../tools/sendEmail");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
 //create router for add to server
@@ -38,7 +41,7 @@ router.use(function (req, res, next) {
 //   res.sendFile(path);
 // });
 //define variable for filter log and block log
-var Log_Alert = [];
+//var Log_Alert: any = [["test", "schedule_id", "confidence", "camera_id", "personnel", "description", "peopleCounting", "plate_number"]];
 //for limit record stream
 var Camera_Is_Record = [];
 //get alerts from back
@@ -57,7 +60,7 @@ router.post("", function (req, res, next) {
             if (_camera === null || _camera === void 0 ? void 0 : _camera.section_id) {
                 _departement = yield department_1.default.findById(_camera === null || _camera === void 0 ? void 0 : _camera.section_id.department_id).exec(); //get departemant with section_id
             }
-            //get plate and owner from DB 
+            //get plate and owner from DB
             let _owner;
             if (bodyRequest.log.plate_number) {
                 _owner = yield car_1.default.findOne({ number_plate: bodyRequest.log.plate_number }).populate("owner").exec();
@@ -92,63 +95,110 @@ router.post("", function (req, res, next) {
             };
             //add to global list alerting for not send more then one notif
             //and filter old list to new alert
-            let temp = [result.time, result.camera_id, bodyRequest.log.schedule_id];
-            let send_notif = false;
-            if (Log_Alert.length == 0) {
-                Log_Alert.push([temp]);
-                send_notif = true;
-            }
-            else if (Log_Alert.length) {
-                for (let item of Log_Alert) {
-                    if (result.camera_id == item[0][1] && bodyRequest.log.schedule_id == item[0][2]) {
-                        if (result.time - item[0][0] > 10000) {
-                            send_notif = true;
-                            break;
-                        }
-                        else {
-                            break;
-                        }
-                    }
-                }
-            }
+            // let x = bodyRequest.log.personnel_id || bodyRequest.log.plate_number || bodyRequest.log.number_of_people || "";
+            // let temp: string[] = [
+            //   result.type ?? "",
+            //   bodyRequest.log.schedule_id ?? "",
+            //   result.camera_id ?? "",
+            //   result.personnel ?? "",
+            //   result.description ?? "",
+            //   result.peopleCounting ?? "",
+            //   result.plate_number ?? "",
+            // ];
+            // let send_notif: boolean = false;
+            // let new_notif: boolean = false;
+            // let i = 0;
+            // for (let item of Log_Alert) {
+            //   let is_log_before =
+            //     temp.length === item[0].length &&
+            //     temp.every(function (value, index) {
+            //       return value === item[0][index];
+            //     });
+            //   if (is_log_before) {
+            //     send_notif = false;
+            //     break;
+            //   }
+            //   send_notif = true;
+            // }
+            // if (send_notif) {
+            //   Log_Alert.push([temp]);
+            // }
             let notification = result;
             //get time for record from .env
             const time_record_stream = Number(process.env["RECORD_STREAM_TIME"]);
-            //create rtsp link 
+            //create rtsp link
             let rtsp_link_aray = _camera === null || _camera === void 0 ? void 0 : _camera.url.split(":");
             let rtsp_link = rtsp_link_aray ? rtsp_link_aray[0] + "://" + (_camera === null || _camera === void 0 ? void 0 : _camera.username) + ":" + (_camera === null || _camera === void 0 ? void 0 : _camera.password) + "@" + (_camera === null || _camera === void 0 ? void 0 : _camera.ip) + ":" + rtsp_link_aray[3] : "";
             //create new recorder
             let recorder = (0, recordStream_1.default)(rtsp_link, _camera === null || _camera === void 0 ? void 0 : _camera._id.toString());
-            if (is_muted_list === false && send_notif == true) {
+            //if (is_muted_list === false && send_notif == true) {
+            if (is_muted_list === false) {
                 server_1.io.emit("get alert", notification); //send notif to client with socket.io
                 //check for limit record camera to 3 and camera in not recording
-                if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !Camera_Is_Record.includes(notification.camera_id)) {
-                    recorder.start(); //start recording 
+                let temp_record = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
+                let isOpenForRecord = false;
+                for (let cam of Camera_Is_Record) {
+                    if (cam[0].includes(result.camera_id)) {
+                        isOpenForRecord = true;
+                        break;
+                    }
+                }
+                if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !isOpenForRecord) {
+                    //recorder.start(); //start recording
                     console.log("Recording has started.");
-                    Camera_Is_Record.push([notification.camera_id, bodyRequest.log.schedule_id]); //add camera_id to global list for limiting record
+                    Camera_Is_Record.push([temp_record]); //add camera_id to global list for limiting record
                     //stop record and delete item from global list limit record ==> Camera_Is_Record
                     setTimeout(() => {
-                        recorder.stop();
+                        //recorder.stop();
                         console.log("Recording has stopped.");
                         Camera_Is_Record = Camera_Is_Record.filter((item) => {
-                            if (notification.camera_id != item[1]) {
+                            if (bodyRequest.log.schedule_id != item[0][1]) {
                                 return item;
                             }
                         });
                     }, time_record_stream);
                 }
+                // setTimeout(() => {
+                //   if (Log_Alert.length > 250) {
+                //     //ckeck for empety memory
+                //     Log_Alert = [["test", "schedule_id", "confidence", "camera_id", "personnel", "description", "peopleCounting", "plate_number"]];
+                //   }
+                //   //update global list alerting
+                //   Log_Alert = Log_Alert.filter((item: any) => {
+                //     let is_log_before =
+                //       temp.length === item[0].length &&
+                //       temp.every(function (value, index) {
+                //         return value === item[0][index];
+                //       });
+                //     if (!is_log_before) {
+                //       return item[0];
+                //     }
+                //   });
+                // }, 20000);
             }
-            if (Log_Alert.length > 250) { //ckeck for empety memory
-                Log_Alert = [];
-            }
-            else {
-                //update global list alerting 
-                Log_Alert = Log_Alert.map((item) => {
-                    if (result.camera_id != item[1] && bodyRequest.log.schedule_id != item[2]) {
-                        return item;
+            //get all notification for send email or sms
+            let notifications = yield notification_1.default.find().exec(); //query for get all notification
+            for (let notif of notifications) {
+                if (!notif.sms_enable) {
+                    continue;
+                }
+                if (!notif.bypass_time) {
+                    continue;
+                }
+                let time = new Date(Date.now());
+                let time_is = time.getHours() + ":" + time.getMinutes();
+                if (notif.time_start < time_is && notif.time_end > time_is) {
+                    continue;
+                }
+                if (notif.cameras.includes(result.camera_id)) {
+                    //send sms
+                    if (notif.phone_number) {
+                        (0, sendSms_1.send_sms)(notif.phone_number, result.description);
                     }
-                    return [bodyRequest.log.timestamp, item[0][1], bodyRequest.log.schedule_id];
-                });
+                    if (notif.email) {
+                        (0, sendEmail_1.send_email)(notif.email, result.description);
+                    }
+                }
             }
             //send response to client
             return res.status(201).json({

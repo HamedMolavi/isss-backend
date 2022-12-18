@@ -1,4 +1,7 @@
 import reverseString from "./reverseString";
+let persianDate = require("persian-date");
+var jalaali = require("jalaali-js");
+var moment = require("jalali-moment");
 
 //for convert time to cron format
 export const convertToCron = (time: string) => {
@@ -40,7 +43,7 @@ export function date2Epokh(date: string, time: string): string {
   const dt = d + " " + t;
   //const timeDateEpokhStart : number = new Date(Number(dates[0]), Number(dates[1]), Number(dates[2]), Number(times[0]), Number(times[1]), 0,0).getTime();
   // const timeDateEpokhStart : number = new Date(Number(dates[0]), Number(dates[1]), Number(dates[2]), Number(times[0]), Number(times[1]), 0,0).getTime();
-  const timeDateEpokhStart: number = new Date(dt.replace(/-/g,"/")).getTime();
+  const timeDateEpokhStart: number = (new Date(dt.replace(/-/g, "/")).getTime()) ;
   //delete last 3 digits from epokh for delete milisecond
   // timeDateEpokhStart = timeDateEpokhStart / 1000;
   //convert epokh to Scientific Symbol

@@ -24,10 +24,15 @@ export async function dynamicRequestToElasticSearch(
   try {
     //get hours from epoch time
     let start_hour: number = -1,
-      end_hour: number = -1;
+      end_hour: number = -1,
+      start_minute: number = -1,
+      end_minute: number = -1;
+
     if (timeStart) {
-      start_hour = new Date(timeStart).getUTCHours();
-      end_hour = new Date(timeEnd).getUTCHours();
+      start_hour = Number(new Date(Number(timeStart)).getUTCHours());
+      start_minute =Number(new Date(Number(timeStart)).getUTCMinutes());
+      end_hour =Number(new Date(Number(timeEnd)).getUTCHours());
+      end_minute =Number(new Date(Number(timeEnd)).getUTCMinutes());
     }
 
     //create json response for client
@@ -37,8 +42,8 @@ export async function dynamicRequestToElasticSearch(
     //create json query for elastic search
     jsonResuest.query = {
       bool: {
-        filter: [],
-      },
+        filter: []
+      }
     };
 
     let response: any;
@@ -50,8 +55,8 @@ export async function dynamicRequestToElasticSearch(
       if (cameras.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            camera_id: cameras,
-          },
+            camera_id: cameras
+          }
         });
       }
       //add filter for personnels if personnels is not empty and model is not event
@@ -59,8 +64,8 @@ export async function dynamicRequestToElasticSearch(
       if (personnels && personnels!.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            personnel_id: personnels,
-          },
+            personnel_id: personnels
+          }
         });
       }
 
@@ -69,8 +74,8 @@ export async function dynamicRequestToElasticSearch(
       if (models.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            model: models,
-          },
+            model: models
+          }
         });
       }
 
@@ -81,9 +86,9 @@ export async function dynamicRequestToElasticSearch(
           range: {
             confidence: {
               gte: probability[0],
-              lte: probability[1],
-            },
-          },
+              lte: probability[1]
+            }
+          }
         });
       }
 
@@ -92,8 +97,8 @@ export async function dynamicRequestToElasticSearch(
       if (humanCounts.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            number_of_people: humanCounts,
-          },
+            number_of_people: humanCounts
+          }
         });
       }
 
@@ -103,26 +108,27 @@ export async function dynamicRequestToElasticSearch(
           range: {
             timestamp: {
               gte: timeStart,
-              lte: timeEnd,
-            },
-          },
+              lte: timeEnd
+            }
+          }
         });
       }
 
-      //add time filter if timeStart and timeEnd is not empty
-      //and add script for filter time between two hours
+      // add time filter if timeStart and timeEnd is not empty
+      // and add script for filter time between two hours
       if (end_hour > -1 && start_hour > -1) {
         jsonResuest.query.bool.filter.push({
           script: {
             script: {
-              source:
-                "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['timestamp'].value),ZoneId.of('Z')).getHour() >= params.min && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['timestamp'].value),ZoneId.of('Z')).getHour() <= params.max",
-              params: {
-                min: start_hour,
-                max: end_hour,
-              },
-            },
-          },
+              "source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getMinute() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getMinute() <= params.maxh",
+              "params": {
+                "minh": start_hour,
+                "maxh": end_hour,
+                "minMinute": start_minute,
+                "maxMinute": end_minute
+              }
+            }
+          }
         });
       }
 
@@ -130,9 +136,9 @@ export async function dynamicRequestToElasticSearch(
       jsonResuest.sort = [
         {
           timestamp: {
-            order: "desc",
-          },
-        },
+            order: "desc"
+          }
+        }
       ];
 
       //create url for elastic search with model for name table in elastic search
@@ -143,8 +149,8 @@ export async function dynamicRequestToElasticSearch(
       if (cameras.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            "log.camera_id": cameras,
-          },
+            "log.camera_id": cameras
+          }
         });
       }
       //add filter for personnels if personnels is not empty and model is not event
@@ -152,8 +158,8 @@ export async function dynamicRequestToElasticSearch(
       if (personnels && personnels.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            logpersonnel_id: personnels,
-          },
+            logpersonnel_id: personnels
+          }
         });
       }
       //add filter for models if models is not empty and model is not event and model is not event
@@ -172,8 +178,8 @@ export async function dynamicRequestToElasticSearch(
         }
         jsonResuest.query.bool.filter.push({
           terms: {
-            type: model_name,
-          },
+            type: model_name
+          }
         });
       }
 
@@ -182,8 +188,8 @@ export async function dynamicRequestToElasticSearch(
       if (probability.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            "log.confidence": probability,
-          },
+            "log.confidence": probability
+          }
         });
       }
 
@@ -192,8 +198,8 @@ export async function dynamicRequestToElasticSearch(
       if (humanCounts.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            "log.number_of_people": humanCounts,
-          },
+            "log.number_of_people": humanCounts
+          }
         });
       }
 
@@ -203,9 +209,9 @@ export async function dynamicRequestToElasticSearch(
           range: {
             "log.timestamp": {
               gte: timeStart,
-              lte: timeEnd,
-            },
-          },
+              lte: timeEnd
+            }
+          }
         });
       }
 
@@ -215,14 +221,15 @@ export async function dynamicRequestToElasticSearch(
         jsonResuest.query.bool.filter.push({
           script: {
             script: {
-              source:
-                "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['timestamp'].value),ZoneId.of('Z')).getHour() >= params.min && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['timestamp'].value),ZoneId.of('Z')).getHour() <= params.max",
-              params: {
-                min: start_hour,
-                max: end_hour,
-              },
-            },
-          },
+              "source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() <= params.maxh",
+              "params": {
+                "minh": start_hour,
+                "maxh": end_hour,
+                "minMinute": start_minute,
+                "maxMinute": end_minute
+            }
+          }
+        }
         });
       }
 
@@ -230,9 +237,9 @@ export async function dynamicRequestToElasticSearch(
       jsonResuest.sort = [
         {
           "log.timestamp": {
-            order: "desc",
-          },
-        },
+            order: "desc"
+          }
+        }
       ];
 
       baseurl = dbUri + "/alerts/_search";
@@ -255,22 +262,23 @@ export async function requestForGetPersonnel(personnelId: string) {
     headers: {
       "Content-Type": "application/json",
     },
-    // data: '\n{\n  "size": 1,\n  "query": {\n    "match": {\n      "personnel_id": "631731b4d2f90a9d4a49e661"\n    }\n  }, \n  "sort": [\n    {\n      "timestamp": {\n        "order": "desc"\n      }\n    }\n  ]\n}',
     data: {
       size: 1,
       query: {
         match: {
-          personnel_id: personnelId,
-        },
+          personnel_id: personnelId
+        }
       },
       sort: [
         {
           timestamp: {
-            order: "desc",
-          },
-        },
-      ],
-    },
+            order: "desc"
+          }
+        }
+      ]
+    }
   });
   return response;
 }
+
+
