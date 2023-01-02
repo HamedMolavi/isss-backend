@@ -72,7 +72,7 @@ router.get(
       let strPage = req.query.page as string;
       let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
       //get perPage from url
-      let strPerPage = req.query.PerPage as string;
+      let strPerPage = req.query.perPage as string;
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let search = (req.query.search as string) ?? "";
       //get token from header request and verify

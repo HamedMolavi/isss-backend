@@ -25,15 +25,15 @@ interface IUserDocument extends IUser, Document {
   _id: mongoose.Types.ObjectId;
   setPassword: (password: string) => Promise<void>;
   checkPassword: (password: string, done: Function) => Promise<boolean>;
-  generateJWT: () => any;
-  toAuthJSON: () => any;
+  generateJWT: (is_remember: boolean) => any;
+  toAuthJSON: (is_remember: boolean) => any;
 }
 
 interface IUserModel extends Model<IUserDocument> {
   checkPassword: (password: string, done: Function) => Promise<boolean>;
   setPassword: (password: string) => Promise<boolean>;
-  generateJWT: () => any;
-  toAuthJSON: () => any;
+  generateJWT: (is_remember: boolean) => any;
+  toAuthJSON: (is_remember: boolean) => any;
 }
 
 //create user model with schema for save in DB
@@ -65,28 +65,21 @@ UserSchema.pre("save", function (done: Function) {
     if (err) {
       return done(err);
     }
-    bcrypt.hash(
-      user.password + user.username,
-      salt,
-      function (err, hashedPassword) {
-        if (err) {
-          return done(err);
-        }
-        user.password = hashedPassword;
-        done();
+    bcrypt.hash(user.password + user.username, salt, function (err, hashedPassword) {
+      if (err) {
+        return done(err);
       }
-    );
+      user.password = hashedPassword;
+      done();
+    });
   });
 });
 
 //compare password
-UserSchema.methods.checkPassword = async function (
-  password: string,
-  done: Function
-) {
+UserSchema.methods.checkPassword = async function (password: string, done: Function) {
   try {
     let user = this;
-    let isMatch = await bcrypt.compare(password + user.username , user.password);
+    let isMatch = await bcrypt.compare(password + user.username, user.password);
     return done(null, isMatch);
   } catch (err) {
     return done(err);
@@ -115,16 +108,22 @@ UserSchema.methods.checkPassword = async function (
 const secret = process.env["JWT_SECRET"] as string;
 
 //generate jwt token
-UserSchema.methods.generateJWT = function () {
+UserSchema.methods.generateJWT = function (is_remember: boolean) {
   const today = new Date();
   const expirationDate = new Date(today);
-  expirationDate.setDate(today.getDate() + 30);
+  let exp_time = is_remember == true ? today.getHours() + 8 : today.getMinutes() + 15 
+  if(is_remember == true){
+    expirationDate.setHours(exp_time);
+  }else{
+    expirationDate.setMinutes(exp_time);
+  }
 
   return jwt.sign(
     {
       id: this._id,
       email: this.email,
       role: this.role,
+      remember: is_remember,
       exp: parseInt((expirationDate.getTime() / 1000).toString(), 10),
     },
     secret
@@ -149,7 +148,7 @@ UserSchema.methods.toJSON = function () {
 };
 
 //get user data jason for auth
-UserSchema.methods.toAuthJSON = function () {
+UserSchema.methods.toAuthJSON = function (is_remember: boolean) {
   return {
     _id: this._id,
     name: this.name,
@@ -162,7 +161,7 @@ UserSchema.methods.toAuthJSON = function () {
     report: this.report,
     configuration: this.configuration,
     create_date: this.created_date,
-    token: this.generateJWT(),
+    token: this.generateJWT(is_remember),
   };
 };
 

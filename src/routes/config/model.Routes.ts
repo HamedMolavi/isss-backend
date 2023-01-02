@@ -26,7 +26,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         let strPage = req.query.page as string;
         let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
         //get perPage from url
-        let strPerPage = req.query.PerPage as string;
+        let strPerPage = req.query.perPage as string;
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
         //get token from header request and verify
         let token = getTokenAndVerify(req, const_role, next);
