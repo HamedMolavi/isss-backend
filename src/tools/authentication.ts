@@ -62,6 +62,6 @@ export function getTokenAndVerify(req: Request, role: string, next: Function) {
     }
   } catch (e: any) {
     //return error if token not verify
-    next(new ApiError(500, "Internal server error token not verify -> " + e.message));
+    next(new ApiError(401, "Internal server error token not verify -> " + e.message));
   }
 }
