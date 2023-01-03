@@ -47,7 +47,7 @@ setUpPassport();
 //config server
 app.use(cors());
 app.use(cookieParser());
-app.use(bodyParser.json({limit: '50mb' }));
+app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 }));
 app.use(bodyParser.text({ limit: "200mb" }));
 app.use(fileUpload());
@@ -62,19 +62,32 @@ app.use(passport.session());
 app.use(flash());
 
 //add logger
-app.use(logger(process.env.REQUEST_LOG_FORMAT as string));
-//add logger in file
 app.use(
-  logger(process.env.REQUEST_LOG_FORMAT || "dev", {
-    stream: process.env.REQUEST_LOG_FILE
-      ? createStream(process.env.REQUEST_LOG_FILE, {
-          size: "10M", // rotate every 10 MegaBytes written
-          interval: "1d", // rotate daily
-          compress: "gzip", // compress rotated files
-        })
-      : process.stdout,
+  logger((tokens, req, res) => {
+    return JSON.stringify({
+      _date: tokens.date,
+      url: req.originalUrl,
+      query: req.query,
+      method: req.method,
+      httpVersion: req.httpVersion,
+      status: res.statusCode,
+      message: res.statusMessage,
+    });
   })
 );
+//app.use(logger(':method :url :status :res[content-length] - :response-time ms'))
+//add logger in file
+// app.use(
+//   logger(process.env.REQUEST_LOG_FORMAT || "dev", {
+//     stream: process.env.REQUEST_LOG_FILE
+//       ? createStream(process.env.REQUEST_LOG_FILE, {
+//           size: "10M", // rotate every 10 MegaBytes written
+//           interval: "1d", // rotate daily
+//           compress: "gzip", // compress rotated files
+//         })
+//       : process.stdout,
+//   })
+// );
 
 //create route for test
 app.get("/", (req: Request, res: Response, next: NextFunction) => {
@@ -116,3 +129,24 @@ export const io = new Server(server, {
 });
 
 export default app;
+
+export const setResponseBody = (req: any, res: any, next: any) => {
+  const oldWrite = res.write,
+    oldEnd = res.end,
+    chunks: any = [];
+
+  res.write = function (chunk: any) {
+    chunks.push(Buffer.from(chunk));
+    oldWrite.apply(res, arguments);
+  };
+
+  res.end = function (chunk: any) {
+    if (chunk) {
+      chunks.push(Buffer.from(chunk));
+    }
+    const body = Buffer.concat(chunks).toString("utf8");
+    res.__custombody__ = body;
+    oldEnd.apply(res, arguments);
+  };
+  next();
+};

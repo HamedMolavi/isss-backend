@@ -99,9 +99,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     if (!token) {
       return null;
     }
-    if (!token) {
-      return null;
-    }
+    
     //query for get user by personnels from DB
     let personnels: IPersonnel[] = [];
     if (!(search && search.length > 0)) {

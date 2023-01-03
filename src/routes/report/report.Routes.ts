@@ -63,8 +63,7 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       _humanCounts: number[] = [];
     if (search) {
       //get body from request
-      const { time_start, time_end, date_start, date_end, car_brand, car_color, 
-              owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
+      const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
       _humanCounts = humanCounts;
       _personnels = personnels;
       _cameras = cameras;
@@ -96,20 +95,20 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
     }
     //create json response for client
     if (model === "sabotage") {
-      _data = await sabotageLogResponse(response,_timeStart , _timeEnd);
+      _data = await sabotageLogResponse(response, _timeStart, _timeEnd);
     } else if (model === "plate") {
       if ((_carBrand === null || _carColor === null || _owner === null) && search) {
         return next(new ApiError(400, `car_brand, car_color, owner is required`));
       }
-      _data = await plateLogResponse(response, _carBrand, _carColor, _owner, _allowed, Boolean(search),_timeStart , _timeEnd);
+      _data = await plateLogResponse(response, _carBrand, _carColor, _owner, _allowed, Boolean(search), _timeStart, _timeEnd);
     } else if (model === "human") {
-      _data = await humanLogResponse(response, _allowed, Boolean(search),_timeStart , _timeEnd);
+      _data = await humanLogResponse(response, _allowed, Boolean(search), _timeStart, _timeEnd);
     } else if (model === "fire") {
-      _data = await fireLogResponse(response,_timeStart , _timeEnd);
+      _data = await fireLogResponse(response, _timeStart, _timeEnd);
     } else if (model === "face") {
-      _data = await faceLogResponse(response, _allowed, Boolean(search),_timeStart , _timeEnd);
+      _data = await faceLogResponse(response, _allowed, Boolean(search), _timeStart, _timeEnd);
     } else if (model === "event") {
-      _data = await eventLogResponse(response,_timeStart , _timeEnd);
+      _data = await eventLogResponse(response, _timeStart, _timeEnd);
     }
 
     //return data to client

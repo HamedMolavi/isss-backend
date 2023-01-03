@@ -98,7 +98,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //   result.plate_number ?? "",
     // ];
 
-   // let send_notif: boolean = false;
+    // let send_notif: boolean = false;
     // let new_notif: boolean = false;
     // let i = 0;
 
@@ -127,7 +127,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //create new recorder
     let recorder: any = recordStream(rtsp_link, _camera?._id.toString());
     //if (is_muted_list === false && send_notif == true) {
-    if (is_muted_list === false ) {
+    if (is_muted_list === false) {
       io.emit("get alert", notification); //send notif to client with socket.io
       //check for limit record camera to 3 and camera in not recording
       let temp_record: string[] = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
@@ -139,13 +139,13 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         }
       }
       if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !isOpenForRecord) {
-        //recorder.start(); //start recording
+        recorder.start(); //start recording
         console.log("Recording has started.");
 
         Camera_Is_Record.push([temp_record]); //add camera_id to global list for limiting record
         //stop record and delete item from global list limit record ==> Camera_Is_Record
         setTimeout(() => {
-          //recorder.stop();
+          recorder.stop();
           console.log("Recording has stopped.");
           Camera_Is_Record = Camera_Is_Record.filter((item: any) => {
             if (bodyRequest.log.schedule_id != item[0][1]) {

@@ -9,6 +9,7 @@ export interface ICritential {
   role: string;
   exp: number;
   iat: number;
+  remember: boolean;
 }
 
 //verify token
@@ -33,7 +34,7 @@ export function getToken(req: Request, next: Function) {
     bearerToken = bearerHeader.split(" ")[1];
     return bearerToken;
   } else {
-    next(new ApiError(401 , "Unauthorized"));
+    next(new ApiError(401, "Unauthorized"));
     return null;
   }
 }
@@ -61,6 +62,6 @@ export function getTokenAndVerify(req: Request, role: string, next: Function) {
     }
   } catch (e: any) {
     //return error if token not verify
-    next(new ApiError(500, "Internal server error token not verify -> " + e.message));
+    next(new ApiError(401, "Internal server error token not verify -> " + e.message));
   }
 }
