@@ -66,6 +66,14 @@ const enviroment = process.env.NODE_ENV || "development";
 //add error handler middleware
 router.use((err: ApiError, req: Request, res: Response, next: NextFunction) => {
   const statusCode = err.statusCode || 500; // <- Look here
+  console.log(
+    "Error in endpoint : " +
+      JSON.stringify({
+        success: false,
+        message: err.message,
+        stack: err.stack,
+      })
+  );
   return res.status(statusCode).send({
     success: false,
     message: err.message,
