@@ -247,7 +247,7 @@ export async function eventLogResponse(response: any, time_start: string, time_e
         cameras.find((cam) => {
           if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
         })?.name ?? "",
-      time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString() : "",
+      time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString()+ 3.30 * 60 * 1000 : "",
       ai: _model != undefined ? _model.category : "",
       section:
         sections.find((sec) => {
@@ -309,7 +309,7 @@ function extended_description(_description: Description) {
     notification_text = `sabotage ditected,
      description:${_description.description}`;
   } else if (_description.log._source.type === "plate") {
-    let owner : any= _description.cars.find((_car: any) => {
+    let owner: any = _description.cars.find((_car: any) => {
       if (_car?.plate_number === _description.log._source.log.plate_number) {
         return _description.perssonels.find((per: any) => {
           if (per?._id?.toString() === _car.owner.toString()) {

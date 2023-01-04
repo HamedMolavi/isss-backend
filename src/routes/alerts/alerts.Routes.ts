@@ -13,7 +13,6 @@ import { send_email } from "../../tools/sendEmail";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
-
 //create router for add to server
 const router: Router = Router();
 
@@ -117,10 +116,9 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     // if (send_notif) {
     //   Log_Alert.push([temp]);
     // }
-
+    const time_record_stream = Number(process.env["RECORD_STREAM_TIME"] as string);
     let notification = result;
     //get time for record from .env
-    const time_record_stream = Number(process.env["RECORD_STREAM_TIME"] as string);
     //create rtsp link
     let rtsp_link_aray: string[] | undefined = _camera?.url.split(":");
     let rtsp_link: string = rtsp_link_aray ? rtsp_link_aray[0] + "://" + _camera?.username + ":" + _camera?.password + "@" + _camera?.ip + ":" + rtsp_link_aray[3] : "";
@@ -138,7 +136,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
           break;
         }
       }
-      if (notification.title == "Alerting" && Camera_Is_Record.length < 3 && !isOpenForRecord) {
+      if (notification.title == "Alerting" && Camera_Is_Record.length < 2 && !isOpenForRecord) {
         recorder.start(); //start recording
         console.log("Recording has started.");
 
@@ -190,7 +188,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       if (notif.cameras.includes(result.camera_id)) {
         //send sms
         if (notif.phone_number) {
-          send_sms(notif.phone_number, result.description);
+          //send_sms(notif.phone_number, result.description);
         }
         if (notif.email) {
           send_email(notif.email, result.description);
