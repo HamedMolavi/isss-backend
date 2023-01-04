@@ -35,7 +35,7 @@ export async function sabotageLogResponse(response: any, time_start: string, tim
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString()+ 3.30 * 60 * 1000  : "",
     };
     _data.push(result);
   }
@@ -92,7 +92,7 @@ export async function plateLogResponse(
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString()+ 3.30 * 60 * 1000  : "",
       plate_number: plateNumber,
       owner: "",
       color: "",
@@ -146,7 +146,7 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString()+ 3.30 * 60 * 1000  : "",
       numberOfPeople: log._source.number_of_people,
       allowed: (_schedule && _schedule.config.max_people >= log._source.number_of_people && _schedule!.config!.min_people <= log._source.number_of_people) ?? false,
     };
@@ -170,7 +170,7 @@ export async function fireLogResponse(response: any, time_start: string, time_en
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString()+ 3.30 * 60 * 1000  : "",
       probability: log._source.confidence,
     };
     _data.push(result);
@@ -197,7 +197,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
       fullName: _personnel != null ? _personnel?.first_name + " " + _personnel?.last_name : "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString()+ 3.30 * 60 * 1000  : "",
       allowed: _personnel?.camera_whitelist.includes(log._source.camera_id) ?? false,
     };
     if (search && result.allowed == allowed) {
@@ -247,7 +247,7 @@ export async function eventLogResponse(response: any, time_start: string, time_e
         cameras.find((cam) => {
           if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
         })?.name ?? "",
-      time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString() : "",
+      time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString()+ 3.30 * 60 * 1000 : "",
       ai: _model != undefined ? _model.category : "",
       section:
         sections.find((sec) => {
@@ -309,7 +309,7 @@ function extended_description(_description: Description) {
     notification_text = `sabotage ditected,
      description:${_description.description}`;
   } else if (_description.log._source.type === "plate") {
-    let owner : any= _description.cars.find((_car: any) => {
+    let owner: any = _description.cars.find((_car: any) => {
       if (_car?.plate_number === _description.log._source.log.plate_number) {
         return _description.perssonels.find((per: any) => {
           if (per?._id?.toString() === _car.owner.toString()) {

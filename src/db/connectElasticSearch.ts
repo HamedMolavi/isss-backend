@@ -113,14 +113,14 @@ export async function dynamicRequestToElasticSearch(
           }
         });
       }
-
+      //"source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getMinute() >= params.minMinute && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getMinute() <= params.maxMinute",
       // add time filter if timeStart and timeEnd is not empty
       // and add script for filter time between two hours
       if (end_hour > -1 && start_hour > -1) {
         jsonResuest.query.bool.filter.push({
           script: {
             script: {
-              "source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getMinute() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getMinute() <= params.maxh",
+              "source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() >= params.minMinute",
               "params": {
                 "minh": start_hour,
                 "maxh": end_hour,
@@ -214,14 +214,14 @@ export async function dynamicRequestToElasticSearch(
           }
         });
       }
-
+      // "source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() >= params.minMinute && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() <= params.maxMinute",
       //add time filter if timeStart and timeEnd is not empty
       //and add script for filter time between two hours
       if (end_hour > -1 && start_hour > -1) {
         jsonResuest.query.bool.filter.push({
           script: {
             script: {
-              "source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() <= params.maxh",
+              "source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() >= params.minMinute",
               "params": {
                 "minh": start_hour,
                 "maxh": end_hour,
