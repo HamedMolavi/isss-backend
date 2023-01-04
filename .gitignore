@@ -44,7 +44,7 @@ node_modules/
 jspm_packages/
 assets/image
 assets/video
-
+.vscode
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
