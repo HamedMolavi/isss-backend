@@ -23,16 +23,34 @@ export async function dynamicRequestToElasticSearch(
 ) {
   try {
     //get hours from epoch time
-    let start_hour: number = -1,
-      end_hour: number = -1,
-      start_minute: number = -1,
-      end_minute: number = -1;
+    let start_hour: string = "",
+      end_hour: string = "",
+      start_minute: string = "",
+      end_minute: string = "";
 
     if (timeStart) {
-      start_hour = Number(new Date(Number(timeStart)).getUTCHours());
-      start_minute =Number(new Date(Number(timeStart)).getUTCMinutes());
-      end_hour =Number(new Date(Number(timeEnd)).getUTCHours());
-      end_minute =Number(new Date(Number(timeEnd)).getUTCMinutes());
+      // start_hour = Number(new Date(Number(timeStart)).getUTCHours());
+      // start_minute =Number(new Date(Number(timeStart)).getUTCMinutes());
+      // end_hour =Number(new Date(Number(timeEnd)).getUTCHours());
+      // end_minute =Number(new Date(Number(timeEnd)).getUTCMinutes());
+
+      start_hour =
+        new Date(Number(timeStart)).getHours().toString().length == 1 
+        ? "0" + new Date(Number(timeStart)).getHours().toString() 
+        : new Date(Number(timeStart)).getHours().toString();
+      start_minute =
+        new Date(Number(timeStart)).getMinutes().toString().length == 1
+          ? "0" + new Date(Number(timeStart)).getMinutes().toString()
+          : new Date(Number(timeStart)).getMinutes().toString();
+      end_hour =
+        new Date(Number(timeEnd)).getHours().toString().length == 1 
+        
+        ? "0" + new Date(Number(timeEnd)).getHours().toString() 
+        : new Date(Number(timeEnd)).getHours().toString();
+      end_minute =
+        new Date(Number(timeEnd)).getMinutes().toString().length == 1 
+        ? "0" + new Date(Number(timeEnd)).getMinutes().toString() 
+        : new Date(Number(timeEnd)).getMinutes().toString();
     }
 
     //create json response for client
@@ -42,8 +60,8 @@ export async function dynamicRequestToElasticSearch(
     //create json query for elastic search
     jsonResuest.query = {
       bool: {
-        filter: []
-      }
+        filter: [],
+      },
     };
 
     let response: any;
@@ -55,8 +73,8 @@ export async function dynamicRequestToElasticSearch(
       if (cameras.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            camera_id: cameras
-          }
+            camera_id: cameras,
+          },
         });
       }
       //add filter for personnels if personnels is not empty and model is not event
@@ -64,8 +82,8 @@ export async function dynamicRequestToElasticSearch(
       if (personnels && personnels!.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            personnel_id: personnels
-          }
+            personnel_id: personnels,
+          },
         });
       }
 
@@ -74,8 +92,8 @@ export async function dynamicRequestToElasticSearch(
       if (models.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            model: models
-          }
+            model: models,
+          },
         });
       }
 
@@ -86,9 +104,9 @@ export async function dynamicRequestToElasticSearch(
           range: {
             confidence: {
               gte: probability[0],
-              lte: probability[1]
-            }
-          }
+              lte: probability[1],
+            },
+          },
         });
       }
 
@@ -97,8 +115,8 @@ export async function dynamicRequestToElasticSearch(
       if (humanCounts.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            number_of_people: humanCounts
-          }
+            number_of_people: humanCounts,
+          },
         });
       }
 
@@ -108,27 +126,36 @@ export async function dynamicRequestToElasticSearch(
           range: {
             timestamp: {
               gte: timeStart,
-              lte: timeEnd
-            }
-          }
+              lte: timeEnd,
+            },
+          },
         });
       }
       //"source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getMinute() >= params.minMinute && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc.timestamp.value),ZoneId.of('Z')).getMinute() <= params.maxMinute",
       // add time filter if timeStart and timeEnd is not empty
       // and add script for filter time between two hours
-      if (end_hour > -1 && start_hour > -1) {
+      if (end_hour.length > 0 && start_hour.length > 0) {
         jsonResuest.query.bool.filter.push({
           script: {
             script: {
-              "source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() >= params.minMinute",
-              "params": {
-                "minh": start_hour,
-                "maxh": end_hour,
-                "minMinute": start_minute,
-                "maxMinute": end_minute
-              }
-            }
-          }
+              source:
+                "(Instant.ofEpochMilli(doc['log.timestamp'].value).atZone(ZoneId.systemDefault()).toLocalTime()).isAfter(LocalTime.parse('" +
+                start_hour +
+                ":" +
+                start_minute +
+                ":01.000')) && (Instant.ofEpochMilli(doc['log.timestamp'].value).atZone(ZoneId.systemDefault()).toLocalTime()).isBefore(LocalTime.parse('" +
+                end_hour +
+                ":" +
+                end_minute +
+                ":01.000'))",
+              params: {
+                minh: start_hour,
+                maxh: end_hour,
+                minMinute: start_minute,
+                maxMinute: end_minute,
+              },
+            },
+          },
         });
       }
 
@@ -136,9 +163,9 @@ export async function dynamicRequestToElasticSearch(
       jsonResuest.sort = [
         {
           timestamp: {
-            order: "desc"
-          }
-        }
+            order: "desc",
+          },
+        },
       ];
 
       //create url for elastic search with model for name table in elastic search
@@ -149,8 +176,8 @@ export async function dynamicRequestToElasticSearch(
       if (cameras.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            "log.camera_id": cameras
-          }
+            "log.camera_id": cameras,
+          },
         });
       }
       //add filter for personnels if personnels is not empty and model is not event
@@ -158,8 +185,8 @@ export async function dynamicRequestToElasticSearch(
       if (personnels && personnels.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            logpersonnel_id: personnels
-          }
+            logpersonnel_id: personnels,
+          },
         });
       }
       //add filter for models if models is not empty and model is not event and model is not event
@@ -178,8 +205,8 @@ export async function dynamicRequestToElasticSearch(
         }
         jsonResuest.query.bool.filter.push({
           terms: {
-            type: model_name
-          }
+            type: model_name,
+          },
         });
       }
 
@@ -188,8 +215,8 @@ export async function dynamicRequestToElasticSearch(
       if (probability.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            "log.confidence": probability
-          }
+            "log.confidence": probability,
+          },
         });
       }
 
@@ -198,8 +225,8 @@ export async function dynamicRequestToElasticSearch(
       if (humanCounts.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            "log.number_of_people": humanCounts
-          }
+            "log.number_of_people": humanCounts,
+          },
         });
       }
 
@@ -209,27 +236,36 @@ export async function dynamicRequestToElasticSearch(
           range: {
             "log.timestamp": {
               gte: timeStart,
-              lte: timeEnd
-            }
-          }
+              lte: timeEnd,
+            },
+          },
         });
       }
       // "source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() >= params.minMinute && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() <= params.maxMinute",
       //add time filter if timeStart and timeEnd is not empty
       //and add script for filter time between two hours
-      if (end_hour > -1 && start_hour > -1) {
+      if (end_hour.length > 0 && start_hour.length > 0) {
         jsonResuest.query.bool.filter.push({
           script: {
             script: {
-              "source": "ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() >= params.minh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getHour() <= params.maxh && ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['log.timestamp'].value),ZoneId.of('Z')).getMinute() >= params.minMinute",
-              "params": {
-                "minh": start_hour,
-                "maxh": end_hour,
-                "minMinute": start_minute,
-                "maxMinute": end_minute
-            }
-          }
-        }
+              source:
+                "(Instant.ofEpochMilli(doc['log.timestamp'].value).atZone(ZoneId.systemDefault()).toLocalTime()).isAfter(LocalTime.parse('" +
+                start_hour +
+                ":" +
+                start_minute +
+                ":01.000')) && (Instant.ofEpochMilli(doc['log.timestamp'].value).atZone(ZoneId.systemDefault()).toLocalTime()).isBefore(LocalTime.parse('" +
+                end_hour +
+                ":" +
+                end_minute +
+                ":01.000'))",
+              params: {
+                minh: start_hour,
+                maxh: end_hour,
+                minMinute: start_minute,
+                maxMinute: end_minute,
+              },
+            },
+          },
         });
       }
 
@@ -237,9 +273,9 @@ export async function dynamicRequestToElasticSearch(
       jsonResuest.sort = [
         {
           "log.timestamp": {
-            order: "desc"
-          }
-        }
+            order: "desc",
+          },
+        },
       ];
 
       baseurl = dbUri + "/alerts/_search";
@@ -266,19 +302,17 @@ export async function requestForGetPersonnel(personnelId: string) {
       size: 1,
       query: {
         match: {
-          personnel_id: personnelId
-        }
+          personnel_id: personnelId,
+        },
       },
       sort: [
         {
           timestamp: {
-            order: "desc"
-          }
-        }
-      ]
-    }
+            order: "desc",
+          },
+        },
+      ],
+    },
   });
   return response;
 }
-
-
