@@ -247,7 +247,7 @@ export async function eventLogResponse(response: any, time_start: string, time_e
         cameras.find((cam) => {
           if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
         })?.name ?? "",
-        //time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString()+ 3.30 * 60 * 1000 : "",
+       // time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString()+ 3.30 * 60 * 1000 : "",
         time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString() : "",
       ai: _model != undefined ? _model.category : "",
       section:

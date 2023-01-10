@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { getTokenAndVerify } from "../../tools/authentication";
 import { eventLogResponse, faceLogResponse, fireLogResponse, humanLogResponse, plateLogResponse, sabotageLogResponse } from "../../tools/createlogReport";
-import { date2Epokh } from "../../tools/convertTime";
+import { date2Epokh, getEpochList } from "../../tools/convertTime";
 import { ApiError } from "../../error/error.handler";
 import { dynamicRequestToElasticSearch } from "../../db/connectElasticSearch";
 
@@ -35,7 +35,6 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
     if (!token) {
       return null;
     }
-
     //get page from url
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -61,9 +60,11 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       _personnels: string[] | null = [];
     let _probabilities,
       _humanCounts: number[] = [];
+    let _timezone: string = "";
+    let times_epoch: object[] = [];
     if (search) {
       //get body from request
-      const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
+      const { timezone, time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
       _humanCounts = humanCounts;
       _personnels = personnels;
       _cameras = cameras;
@@ -75,20 +76,37 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       _owner = owner ?? null;
       _timeStart = time_start ?? "";
       _timeEnd = time_end ?? "";
+      _timezone = timezone ?? "";
       if (time_start && time_end && date_start && date_end) {
         //convert date_start to epokh
         if (!date_start.includes("/") || !date_end.includes("/")) {
           req.flash("error", "Date format is not correct");
           next(new ApiError(400, "Date format is not correct"));
         }
-        timeEpokhStart = date2Epokh(date_start, time_start);
-        timeEpokhEnd = date2Epokh(date_end, time_end);
+        timeEpokhStart = date2Epokh(date_start, time_start, timezone);
+        timeEpokhEnd = date2Epokh(date_end, time_end, timezone);
+        times_epoch = getEpochList(date_start, date_end, time_start, time_end, timezone);
+        console.log(times_epoch);
+        //let timesEpokhEnd = getEpochList();
       }
     }
 
     let _data: object[] = [];
     //get log for other models data from elastic
-    response = await dynamicRequestToElasticSearch(_cameras, _personnels, _models, _probabilities, _humanCounts, timeEpokhStart, timeEpokhEnd, model, page, perPage, next);
+    response = await dynamicRequestToElasticSearch(
+      _cameras,
+      _personnels,
+      _models,
+      _probabilities,
+      _humanCounts,
+      times_epoch,
+      timeEpokhStart,
+      timeEpokhEnd,
+      model,
+      page,
+      perPage,
+      next
+    );
     if (!response) {
       req.flash("error", "Data is null or undefined");
       return next(new ApiError(404, "Data is null or undefined"));
