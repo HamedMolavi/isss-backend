@@ -35,7 +35,7 @@ export async function sabotageLogResponse(response: any, time_start: string, tim
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString(): "",
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
     };
     _data.push(result);
   }
@@ -146,7 +146,7 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString(): "",
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
       numberOfPeople: log._source.number_of_people,
       allowed: (_schedule && _schedule.config.max_people >= log._source.number_of_people && _schedule!.config!.min_people <= log._source.number_of_people) ?? false,
     };
@@ -170,7 +170,7 @@ export async function fireLogResponse(response: any, time_start: string, time_en
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString(): "",
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
       probability: log._source.confidence,
     };
     _data.push(result);
@@ -197,7 +197,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
       fullName: _personnel != null ? _personnel?.first_name + " " + _personnel?.last_name : "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString(): "",
+      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
       allowed: _personnel?.camera_whitelist.includes(log._source.camera_id) ?? false,
     };
     if (search && result.allowed == allowed) {
@@ -247,8 +247,8 @@ export async function eventLogResponse(response: any, time_start: string, time_e
         cameras.find((cam) => {
           if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
         })?.name ?? "",
-       // time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString()+ 3.30 * 60 * 1000 : "",
-        time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString() : "",
+      // time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString()+ 3.30 * 60 * 1000 : "",
+      time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString() : "",
       ai: _model != undefined ? _model.category : "",
       section:
         sections.find((sec) => {
