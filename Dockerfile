@@ -6,8 +6,10 @@ COPY --from=mwader/static-ffmpeg:5.1.2 /ffprobe /usr/local/bin/
 #RUN -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:5.1.2 -i file.wavCOPY package.json .
 COPY package.json .
 COPY package-lock.json* .
-RUN npm install
-RUN npm install -g typescript ts-node 
+RUN yarn install
+RUN yarn global add typescript ts-node 
+#RUN npm install
+#RUN npm install -g typescript ts-node 
 # RUN echo http://repository.fit.cvut.cz/mirrors/alpine/v3.8/main > /etc/apk/repositories; \
 #     echo http://repository.fit.cvut.cz/mirrors/alpine/v3.8/community >> /etc/apk/repositories
 # RUN echo -e "http://nl.alpinelinux.org/alpine/v3.16/main\nhttp://nl.alpinelinux.org/alpine/v3.16/community" > /etc/apk/repositories
