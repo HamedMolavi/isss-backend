@@ -11,6 +11,7 @@ import toPersianPlate from "./EnglishToPersianPlate";
 import Model, { IModel } from "../models/model";
 import fs from "fs";
 import { getPathFromIdTime } from "./getPathFromIdTiem";
+import momentTimezone from "moment-timezone";
 
 //define type fore input function extended description
 type Description = {
@@ -24,7 +25,7 @@ type Description = {
 };
 
 //create json response sabotageLog report for send to client
-export async function sabotageLogResponse(response: any, time_start: string, time_end: string) {
+export async function sabotageLogResponse(response: any, time_start: string, time_end: string, timezone: string) {
   //create json response
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
@@ -35,7 +36,7 @@ export async function sabotageLogResponse(response: any, time_start: string, tim
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? momentTimezone.tz(new Date(log._source.timestamp).toLocaleString(), timezone).format("YYYY-MM-DD HH:mm:ss") : "",
     };
     _data.push(result);
   }
@@ -50,7 +51,8 @@ export async function plateLogResponse(
   allowed: boolean | null,
   search: boolean,
   time_start: string,
-  time_end: string
+  time_end: string,
+  timezone: string
 ) {
   let cars: any;
   if (owner && carColor && carBrand) {
@@ -92,7 +94,7 @@ export async function plateLogResponse(
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? momentTimezone.tz(new Date(log._source.timestamp).toLocaleString(), timezone).format("YYYY-MM-DD HH:mm:ss") : "",
       plate_number: plateNumber,
       owner: "",
       color: "",
@@ -130,7 +132,7 @@ export async function plateLogResponse(
   return _data;
 }
 //create json response humanLog report for send to client
-export async function humanLogResponse(response: any, allowed: boolean | null, search: boolean | null, time_start: string, time_end: string) {
+export async function humanLogResponse(response: any, allowed: boolean | null, search: boolean | null, time_start: string, time_end: string, timezone: string) {
   //create json response
   let _data: object[] = [];
   //let modelToCameras = await ModelToCamera.find().exec();
@@ -146,7 +148,7 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? momentTimezone.tz(new Date(log._source.timestamp).toLocaleString(), timezone).format("YYYY-MM-DD HH:mm:ss") : "",
       numberOfPeople: log._source.number_of_people,
       allowed: (_schedule && _schedule.config.max_people >= log._source.number_of_people && _schedule!.config!.min_people <= log._source.number_of_people) ?? false,
     };
@@ -159,7 +161,7 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
   return _data;
 }
 //create json response fireLog report for send to client
-export async function fireLogResponse(response: any, time_start: string, time_end: string) {
+export async function fireLogResponse(response: any, time_start: string, time_end: string, timezone: string) {
   //create json response
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
@@ -170,7 +172,7 @@ export async function fireLogResponse(response: any, time_start: string, time_en
         cameras.find((cam) => {
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? momentTimezone.tz(new Date(log._source.timestamp).toLocaleString(), timezone).format("YYYY-MM-DD HH:mm:ss") : "",
       probability: log._source.confidence,
     };
     _data.push(result);
@@ -178,7 +180,7 @@ export async function fireLogResponse(response: any, time_start: string, time_en
   return _data;
 }
 //create json response faceLog report for send to client
-export async function faceLogResponse(response: any, allowed: boolean | null, search: boolean | null, time_start: string, time_end: string) {
+export async function faceLogResponse(response: any, allowed: boolean | null, search: boolean | null, time_start: string, time_end: string, timezone: string) {
   //create json response
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
@@ -197,7 +199,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
       fullName: _personnel != null ? _personnel?.first_name + " " + _personnel?.last_name : "",
-      time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString() : "",
+      time: log._source?.timestamp ? momentTimezone.tz(new Date(log._source.timestamp).toLocaleString(), timezone).format("YYYY-MM-DD HH:mm:ss") : "",
       allowed: _personnel?.camera_whitelist.includes(log._source.camera_id) ?? false,
     };
     if (search && result.allowed == allowed) {
@@ -210,7 +212,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
 }
 
 //create json response eventLog report for send to client
-export async function eventLogResponse(response: any, time_start: string, time_end: string) {
+export async function eventLogResponse(response: any, time_start: string, time_end: string, timezone: string) {
   const dbUri = process.env["BASE_URL"] as string;
   //create json response
   let _data: object[] = [];
@@ -248,7 +250,7 @@ export async function eventLogResponse(response: any, time_start: string, time_e
           if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
         })?.name ?? "",
       // time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString()+ 3.30 * 60 * 1000 : "",
-      time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString() : "",
+      time: log._source.log?.timestamp ? momentTimezone.tz(new Date(log._source.log.timestamp).toLocaleString(), timezone).format("YYYY-MM-DD HH:mm:ss") : "",
       ai: _model != undefined ? _model.category : "",
       section:
         sections.find((sec) => {
