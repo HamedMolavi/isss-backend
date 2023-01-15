@@ -25,6 +25,7 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
   try {
     //get model from url request
     let model = req.params.model;
+    let _timezone = req.query.timez as string;
     //send error if model is not defined
     if (model !== "face" && model !== "fire" && model !== "human" && model !== "plate" && model !== "sabotage" && model !== "event") {
       req.flash("error", "Model not found");
@@ -60,7 +61,6 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       _personnels: string[] | null = [];
     let _probabilities,
       _humanCounts: number[] = [];
-    let _timezone: string = "";
     let times_epoch: object[] = [];
     if (search) {
       //get body from request
