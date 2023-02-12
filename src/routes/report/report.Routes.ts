@@ -64,7 +64,7 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
     let times_epoch: object[] = [];
     if (search) {
       //get body from request
-      const { timezone, time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
+      const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
       _humanCounts = humanCounts;
       _personnels = personnels;
       _cameras = cameras;
@@ -76,16 +76,15 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       _owner = owner ?? null;
       _timeStart = time_start ?? "";
       _timeEnd = time_end ?? "";
-      _timezone = timezone ?? "";
       if (time_start && time_end && date_start && date_end) {
         //convert date_start to epokh
         if (!date_start.includes("/") || !date_end.includes("/")) {
           req.flash("error", "Date format is not correct");
           next(new ApiError(400, "Date format is not correct"));
         }
-        timeEpokhStart = date2Epokh(date_start, time_start, timezone);
-        timeEpokhEnd = date2Epokh(date_end, time_end, timezone);
-        times_epoch = getEpochList(date_start, date_end, time_start, time_end, timezone);
+        timeEpokhStart = date2Epokh(date_start, time_start, _timezone);
+        timeEpokhEnd = date2Epokh(date_end, time_end, _timezone);
+        times_epoch = getEpochList(date_start, date_end, time_start, time_end, _timezone);
         console.log(times_epoch);
         //let timesEpokhEnd = getEpochList();
       }

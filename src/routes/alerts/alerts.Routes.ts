@@ -137,13 +137,13 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         }
       }
       if (notification.title == "Alerting" && Camera_Is_Record.length < 2 && !isOpenForRecord) {
-        recorder.start(); //start recording
+       // recorder.start(); //start recording
         console.log("Recording has started.");
 
         Camera_Is_Record.push([temp_record]); //add camera_id to global list for limiting record
         //stop record and delete item from global list limit record ==> Camera_Is_Record
         setTimeout(() => {
-          recorder.stop();
+         // recorder.stop();
           console.log("Recording has stopped.");
           Camera_Is_Record = Camera_Is_Record.filter((item: any) => {
             if (bodyRequest.log.schedule_id != item[0][1]) {
