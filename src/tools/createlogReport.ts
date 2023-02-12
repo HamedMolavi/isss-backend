@@ -9,9 +9,6 @@ import Section from "../models/section";
 import Department from "../models/department";
 import toPersianPlate from "./EnglishToPersianPlate";
 import Model, { IModel } from "../models/model";
-import fs from "fs";
-import { getPathFromIdTime } from "./getPathFromIdTiem";
-import momentTimezone from "moment-timezone";
 
 //define type fore input function extended description
 type Description = {
@@ -225,11 +222,11 @@ export async function eventLogResponse(response: any, time_start: string, time_e
   let personnels = await Personnel.find().exec();
   let cars = await Car.find().exec();
   for (let log of response.data.hits.hits) {
-    const videoPath = getPathFromIdTime(log._source.log.timestamp, log._source.log.camera_id.toString());
-    let existVideo: boolean = false;
-    if (videoPath !== "" && fs.existsSync(videoPath)) {
-      existVideo = true;
-    }
+    // const videoPath = getPathFromIdTime(log._source.log.timestamp, log._source.log.camera_id.toString());
+    // let existVideo: boolean = false;
+    // if (videoPath !== "" && fs.existsSync(videoPath)) {
+    //   existVideo = true;
+    // }
     let schedule = schedules.find((sche) => {
       if (log._source.log.schedule_id.toString() == sche._id.toString()) return sche;
     });
