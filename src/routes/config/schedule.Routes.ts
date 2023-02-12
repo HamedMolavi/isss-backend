@@ -56,13 +56,14 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       return next(new ApiError(400, "Invalid time"));
     }
     //search for model in DB
-    let model2Camera = await ModelToCamera.findOneAndUpdate(
-      {
-        $and: [{ model_id: model_id }, { camera_id: camera_id }],
-      },
-      { is_enabled: true },
-      { new: true }
-    ).exec();
+    let model2Camera = await ModelToCamera.findById(camera_id).exec();
+    // let model2Camera = await ModelToCamera.findOneAndUpdate(
+    //   {
+    //     $and: [{ model_id: model_id }, { camera_id: camera_id }],
+    //   },
+    //   { is_enabled: true },
+    //   { new: true }
+    // ).exec();
 
     //convert input time to cron format
     let start_cron: string = convertToCron(start);
