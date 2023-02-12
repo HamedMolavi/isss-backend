@@ -134,8 +134,8 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       data: _data,
       page: strPage,
       perPage: perPage,
-      total: search ? _data.length : response.data.hits.total.value,
-      pages: Math.ceil((search ? _data.length : response.data.hits.total.value) / perPage),
+      total:response.data.hits.total.value ?? _data.length,
+      pages: Math.ceil((response.data.hits.total.value ?? _data.length) / perPage),
     });
   } catch (err: any) {
     return next(new ApiError(500, "Internal server error ," + err));
