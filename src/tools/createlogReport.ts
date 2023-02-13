@@ -34,6 +34,9 @@ export async function sabotageLogResponse(response: any, time_start: string, tim
           if (cam._id == log._source.camera_id) return cam.name;
         })?.name ?? "",
       time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
+      video:  cameras.find((cam) => {
+        if (cam._id.toString() == log._source.camera_id.toString()) return cam;
+      })?.url ?? "",
     };
     _data.push(result);
   }
@@ -97,6 +100,9 @@ export async function plateLogResponse(
       color: "",
       brand: "",
       allowed: false,
+      video:  cameras.find((cam) => {
+        if (cam._id.toString() == log._source.camera_id.toString()) return cam;
+      })?.url ?? "",
     };
     //get compare plate_number from elastic search to cars plate_number and get owner, color, brand fore search api
     for (let car of cars) {
@@ -148,6 +154,9 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
       time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
       numberOfPeople: log._source.number_of_people,
       allowed: (_schedule && _schedule.config.max_people >= log._source.number_of_people && _schedule!.config!.min_people <= log._source.number_of_people) ?? false,
+      video:  cameras.find((cam) => {
+        if (cam._id.toString() == log._source.camera_id.toString()) return cam;
+      })?.url ?? "",
     };
     if (search && result.allowed == allowed) {
       _data.push(result);
@@ -171,6 +180,9 @@ export async function fireLogResponse(response: any, time_start: string, time_en
         })?.name ?? "",
       time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
       probability: log._source.confidence,
+      video:  cameras.find((cam) => {
+        if (cam._id.toString() == log._source.camera_id.toString()) return cam;
+      })?.url ?? "",
     };
     _data.push(result);
   }

@@ -82,6 +82,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       peopleCounting: bodyRequest.log.number_of_people,
       plate_number: bodyRequest.log.plate_number,
       owner: _owner?.owner?.first_name + " " + _owner?.owner?.last_name,
+      cause : bodyRequest.cause,
     };
 
     //add to global list alerting for not send more then one notif
