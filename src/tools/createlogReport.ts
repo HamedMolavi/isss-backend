@@ -125,12 +125,14 @@ export async function plateLogResponse(
           (result.allowed = car.camera_whitelist.includes(log._source.camera_id) ? true : false);
       }
     }
-    //if car not found in DB and request for all log report then add plate without owner
-    if (search && result.allowed == allowed) {
-      _data.push(result);
-    } else if (search == false) {
-      _data.push(result);
-    }
+    _data.push(result);
+  }
+  if (search && (allowed != null)) {
+    _data = _data.filter((item: any) => {
+      if (item.allowed == allowed) {
+        return item;
+      }
+    });
   }
   return _data;
 }
@@ -158,11 +160,14 @@ export async function humanLogResponse(response: any, allowed: boolean | undefin
         if (cam._id.toString() == log._source.camera_id.toString()) return cam;
       })?.url ?? "",
     };
-    if (search && result.allowed == allowed) {
-      _data.push(result);
-    } else if (search == false) {
-      _data.push(result);
-    }
+    _data.push(result);
+  }
+  if (search && (allowed != null)) {
+    _data = _data.filter((item: any) => {
+      if (item.allowed == allowed) {
+        return item;
+      }
+    });
   }
   return _data;
 }
@@ -214,11 +219,14 @@ export async function faceLogResponse(response: any, allowed: boolean | undefine
         if (cam._id.toString() == log._source.camera_id.toString()) return cam;
       })?.url ?? "",
     };
-    if (search && result.allowed == allowed) {
-      _data.push(result);
-    } else if (search == false) {
-      _data.push(result);
-    }
+    _data.push(result);
+  }
+  if (search && (allowed != null)) {
+    _data = _data.filter((item: any) => {
+      if (item.allowed == allowed) {
+        return item;
+      }
+    });
   }
   return _data;
 }
@@ -237,11 +245,6 @@ export async function eventLogResponse(response: any, timezone: string) {
   let personnels = await Personnel.find().exec();
   let cars = await Car.find().exec();
   for (let log of response.data.hits.hits) {
-    // const videoPath = getPathFromIdTime(log._source.log.timestamp, log._source.log.camera_id.toString());
-    // let existVideo: boolean = false;
-    // if (videoPath !== "" && fs.existsSync(videoPath)) {
-    //   existVideo = true;
-    // }
     let schedule = schedules.find((sche) => {
       if (log._source.log.schedule_id.toString() == sche._id.toString()) return sche;
     });
@@ -261,8 +264,7 @@ export async function eventLogResponse(response: any, timezone: string) {
         cameras.find((cam) => {
           if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
         })?.name ?? "",
-      // time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString()+ 3.30 * 60 * 1000 : "",
-      // time: log._source.log?.timestamp ? momentTimezone.tz(new Date(log._source.log.timestamp).toLocaleString(), timezone).format("YYYY-MM-DD HH:mm:ss") : "",
+
       time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
       ai: _model != undefined ? _model.category : "",
       section:
@@ -287,9 +289,6 @@ export async function eventLogResponse(response: any, timezone: string) {
           }
         })?.name ?? "",
       description: "",
-      //description: log._source.description,
-      // video: existVideo ? "http://" + dbUri + "/downloadVideo/" + log._source.log.camera_id + "." + log._source.log.timestamp : "",
-      //sample => rtsp://admin:MO12085ho%40@172.10.10.220:554/c16/b1675236632/e1675240193/replay/type1981/or/s0/
       video: cameras.find((cam) => {
         if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
       })?.url ?? "",

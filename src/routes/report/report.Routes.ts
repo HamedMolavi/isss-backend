@@ -97,34 +97,11 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       humanCounts: undefined,
       plate: undefined
     }
-    // let timeEpokhStart,
-    //   timeEpokhEnd: string = "";string[] | null
-    // let _timeStart,probabilities;
-    // let _allowed: boolean | null = null;
-    // let _carBrand,
-    //   _carColor,
-    //   _owner: string[] | null = null;
-    // let _cameras,
-    //   _models,
-    //   _personnels: string[] | null = [];
-    // let _probabilities,
-    //   _humanCounts: number[] = [];
+
     let times_epoch: object[] = [];
     if (search) {
       //get body from request
       input = req.body;
-      //const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
-      // _humanCounts = humanCounts;
-      // _personnels = personnels;
-      // _cameras = cameras;
-      // _models = model;
-      // _probabilities = probabilities;
-      // _allowed = Boolean(allowed) ?? null;
-      // _carBrand = car_brand ?? null;
-      // _carColor = car_color ?? null;
-      // _owner = owner ?? null;
-      // _timeStart = time_start ?? "";
-      // _timeEnd = time_end ?? "";
       if (input.time_start && input.time_end && input.date_start && input.date_end) {
         //convert date_start to epokh
         if (!input.date_start.includes("/") || !input.date_end.includes("/")) {
@@ -139,15 +116,6 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
     }
     let plate_number_engglish: string = "";
     if (input.plate) {
-      //add plate number to json response for sort persian format in font end
-      // let plateNumber = {
-      //   first: number_plate.first,
-      //   second: number_plate.second,
-      //   third: number_plate.third,
-      //   fourth: number_plate.fourth,
-      //   fifth: number_plate.fifth,
-      // };
-
       plate_number_engglish = `${input.plate.first}${toEnglishPLate[input.plate.second]}${input.plate.third}${input.plate.fifth}`;
       console.log(plate_number_engglish)
     }
@@ -177,15 +145,16 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
     if (model === "sabotage") {
       _data = await sabotageLogResponse(response, epoch.start, epoch.end, _timezone);
     } else if (model === "plate") {
-      if ((input.car_brand === null || input.car_color === null || input.owner === null) && search) {
-        return next(new ApiError(400, `car_brand, car_color, owner is required`));
-      }
+      // if ((input.car_brand === null || input.car_color === null || input.owner === null) && search) {
+      //   return next(new ApiError(400, `car_brand, car_color, owner is required`));
+      // }
       _data = await plateLogResponse(response, input.car_brand, input.car_color, input.owner,Boolean(input.allowed),Boolean(search) ,_timezone);
     } else if (model === "human") {
       _data = await humanLogResponse(response, input.allowed, Boolean(search), _timezone);
     } else if (model === "fire") {
       _data = await fireLogResponse(response, _timezone);
     } else if (model === "face") {
+      let x = Boolean(search) 
       _data = await faceLogResponse(response, input.allowed, Boolean(search), _timezone);
     } else if (model === "event") {
       _data = await eventLogResponse(response, _timezone);
