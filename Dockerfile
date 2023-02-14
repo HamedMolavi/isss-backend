@@ -1,7 +1,7 @@
 FROM node:alpine as builder
 WORKDIR /isss-backend
-COPY --from=mwader/static-ffmpeg:5.1.2 /ffmpeg /usr/local/bin/
-COPY --from=mwader/static-ffmpeg:5.1.2 /ffprobe /usr/local/bin/
+#COPY --from=mwader/static-ffmpeg:5.1.2 /ffmpeg /usr/local/bin/
+#COPY --from=mwader/static-ffmpeg:5.1.2 /ffprobe /usr/local/bin/
 #RUN -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:5.1.2 -i file.wav file.mp3
 #RUN -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:5.1.2 -i file.wavCOPY package.json .
 COPY package.json .
