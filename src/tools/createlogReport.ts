@@ -31,10 +31,10 @@ export async function sabotageLogResponse(response: any, time_start: string, tim
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
-          if (cam._id == log._source.camera_id) return cam.name;
+          if (cam._id.toString() == log._source.camera_id.toString()) return cam.name;
         })?.name ?? "",
       time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
-      video:  cameras.find((cam) => {
+      video: cameras.find((cam) => {
         if (cam._id.toString() == log._source.camera_id.toString()) return cam;
       })?.url ?? "",
     };
@@ -45,13 +45,13 @@ export async function sabotageLogResponse(response: any, time_start: string, tim
 //create json response plateLog report for send to client
 export async function plateLogResponse(
   response: any,
-  carBrand: string[] | null,
-  carColor: string[] | null,
-  owner: string[] | null,
-  allowed: boolean | null,
+  carBrand: string[] | undefined,
+  carColor: string[] | undefined,
+  owner: string[] | undefined,
+  allowed: boolean | undefined,
   search: boolean,
-  time_start: string,
-  time_end: string,
+  // time_start: string,
+  // time_end: string,
   timezone: string
 ) {
   let cars: any;
@@ -92,7 +92,7 @@ export async function plateLogResponse(
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
-          if (cam._id == log._source.camera_id) return cam.name;
+          if (cam._id.toString() === log._source.camera_id) return cam;
         })?.name ?? "",
       time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
       plate_number: plateNumber,
@@ -100,8 +100,8 @@ export async function plateLogResponse(
       color: "",
       brand: "",
       allowed: false,
-      video:  cameras.find((cam) => {
-        if (cam._id.toString() == log._source.camera_id.toString()) return cam;
+      video: cameras.find((cam) => {
+        if (cam._id.toString() == log._source.camera_id) return cam;
       })?.url ?? "",
     };
     //get compare plate_number from elastic search to cars plate_number and get owner, color, brand fore search api
@@ -135,7 +135,7 @@ export async function plateLogResponse(
   return _data;
 }
 //create json response humanLog report for send to client
-export async function humanLogResponse(response: any, allowed: boolean | null, search: boolean | null, time_start: string, time_end: string, timezone: string) {
+export async function humanLogResponse(response: any, allowed: boolean | undefined, search: boolean | null, timezone: string) {
   //create json response
   let _data: object[] = [];
   //let modelToCameras = await ModelToCamera.find().exec();
@@ -149,12 +149,12 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
-          if (cam._id == log._source.camera_id) return cam.name;
+          if (cam._id.toString() == log._source.camera_id.toString()) return cam.name;
         })?.name ?? "",
       time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
       numberOfPeople: log._source.number_of_people,
       allowed: (_schedule && _schedule.config.max_people >= log._source.number_of_people && _schedule!.config!.min_people <= log._source.number_of_people) ?? false,
-      video:  cameras.find((cam) => {
+      video: cameras.find((cam) => {
         if (cam._id.toString() == log._source.camera_id.toString()) return cam;
       })?.url ?? "",
     };
@@ -167,7 +167,7 @@ export async function humanLogResponse(response: any, allowed: boolean | null, s
   return _data;
 }
 //create json response fireLog report for send to client
-export async function fireLogResponse(response: any, time_start: string, time_end: string, timezone: string) {
+export async function fireLogResponse(response: any, timezone: string) {
   //create json response
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
@@ -176,11 +176,11 @@ export async function fireLogResponse(response: any, time_start: string, time_en
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
-          if (cam._id == log._source.camera_id) return cam.name;
+          if (cam._id.toString() == log._source.camera_id.toString()) return cam.name;
         })?.name ?? "",
       time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
       probability: log._source.confidence,
-      video:  cameras.find((cam) => {
+      video: cameras.find((cam) => {
         if (cam._id.toString() == log._source.camera_id.toString()) return cam;
       })?.url ?? "",
     };
@@ -189,7 +189,7 @@ export async function fireLogResponse(response: any, time_start: string, time_en
   return _data;
 }
 //create json response faceLog report for send to client
-export async function faceLogResponse(response: any, allowed: boolean | null, search: boolean | null, time_start: string, time_end: string, timezone: string) {
+export async function faceLogResponse(response: any, allowed: boolean | undefined, search: boolean | null, timezone: string) {
   //create json response
   let _data: object[] = [];
   let cameras = await Camera.find().exec();
@@ -205,12 +205,12 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
-          if (cam._id == log._source.camera_id) return cam.name;
+          if (cam._id.toString() == log._source.camera_id.toString()) return cam.name;
         })?.name ?? "",
       fullName: _personnel != null ? _personnel?.first_name + " " + _personnel?.last_name : "",
       time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
       allowed: _personnel?.camera_whitelist.includes(log._source.camera_id) ?? false,
-      video:  cameras.find((cam) => {
+      video: cameras.find((cam) => {
         if (cam._id.toString() == log._source.camera_id.toString()) return cam;
       })?.url ?? "",
     };
@@ -224,7 +224,7 @@ export async function faceLogResponse(response: any, allowed: boolean | null, se
 }
 
 //create json response eventLog report for send to client
-export async function eventLogResponse(response: any, time_start: string, time_end: string, timezone: string) {
+export async function eventLogResponse(response: any, timezone: string) {
   const dbUri = process.env["BASE_URL"] as string;
   //create json response
   let _data: object[] = [];
@@ -290,7 +290,7 @@ export async function eventLogResponse(response: any, time_start: string, time_e
       //description: log._source.description,
       // video: existVideo ? "http://" + dbUri + "/downloadVideo/" + log._source.log.camera_id + "." + log._source.log.timestamp : "",
       //sample => rtsp://admin:MO12085ho%40@172.10.10.220:554/c16/b1675236632/e1675240193/replay/type1981/or/s0/
-      video:  cameras.find((cam) => {
+      video: cameras.find((cam) => {
         if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
       })?.url ?? "",
     };

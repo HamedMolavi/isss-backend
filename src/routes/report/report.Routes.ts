@@ -4,6 +4,7 @@ import { eventLogResponse, faceLogResponse, fireLogResponse, humanLogResponse, p
 import { date2Epokh, getEpochList } from "../../tools/convertTime";
 import { ApiError } from "../../error/error.handler";
 import { dynamicRequestToElasticSearch } from "../../db/connectElasticSearch";
+import { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -19,6 +20,34 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"] as string;
 const const_role = process.env.const_role || "user";
+
+type Input = {
+  time_start: string | undefined;
+  time_end: string | undefined;
+  date_start: string | undefined;
+  date_end: string | undefined;
+  car_brand: string[] | undefined;
+  car_color: string[] | undefined;
+  owner: string[] | undefined;
+  allowed: boolean | undefined;
+  cameras: string[] | undefined;
+  models: string[] | undefined;
+  personnels: string[] | undefined;
+  probabilities: number[] | undefined;
+  humanCounts: number[] | undefined;
+  plate: Plate | undefined;
+}
+type Epoch = {
+  start: string;
+  end: string;
+}
+type Plate = {
+  first: string,
+  second: string,
+  third: string,
+  fourth: string,
+  fifth: string,
+}
 
 //route for get sabotage list
 router.post("/:model", async function (req: Request, res: Response, next: NextFunction) {
@@ -48,62 +77,96 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
     let search = (req.query.search as string) || "";
 
     let response: any;
-    let timeEpokhStart,
-      timeEpokhEnd: string = "";
-    let _timeStart,
-      _timeEnd = "";
-    let _allowed: boolean | null = null;
-    let _carBrand,
-      _carColor,
-      _owner: string[] | null = null;
-    let _cameras,
-      _models,
-      _personnels: string[] | null = [];
-    let _probabilities,
-      _humanCounts: number[] = [];
+    let epoch: Epoch = {
+      start: "",
+      end: ""
+    }
+    let input: Input = {
+      time_start: undefined,
+      time_end: undefined,
+      date_start: undefined,
+      date_end: undefined,
+      car_brand: undefined,
+      car_color: undefined,
+      owner: undefined,
+      allowed: false,
+      cameras: undefined,
+      models: undefined,
+      personnels: undefined,
+      probabilities: undefined,
+      humanCounts: undefined,
+      plate: undefined
+    }
+    // let timeEpokhStart,
+    //   timeEpokhEnd: string = "";string[] | null
+    // let _timeStart,probabilities;
+    // let _allowed: boolean | null = null;
+    // let _carBrand,
+    //   _carColor,
+    //   _owner: string[] | null = null;
+    // let _cameras,
+    //   _models,
+    //   _personnels: string[] | null = [];
+    // let _probabilities,
+    //   _humanCounts: number[] = [];
     let times_epoch: object[] = [];
     if (search) {
       //get body from request
-      const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
-      _humanCounts = humanCounts;
-      _personnels = personnels;
-      _cameras = cameras;
-      _models = model;
-      _probabilities = probabilities;
-      _allowed = Boolean(allowed) ?? null;
-      _carBrand = car_brand ?? null;
-      _carColor = car_color ?? null;
-      _owner = owner ?? null;
-      _timeStart = time_start ?? "";
-      _timeEnd = time_end ?? "";
-      if (time_start && time_end && date_start && date_end) {
+      input = req.body;
+      //const { time_start, time_end, date_start, date_end, car_brand, car_color, owner, allowed, cameras, model, personnels, probabilities, humanCounts } = req.body;
+      // _humanCounts = humanCounts;
+      // _personnels = personnels;
+      // _cameras = cameras;
+      // _models = model;
+      // _probabilities = probabilities;
+      // _allowed = Boolean(allowed) ?? null;
+      // _carBrand = car_brand ?? null;
+      // _carColor = car_color ?? null;
+      // _owner = owner ?? null;
+      // _timeStart = time_start ?? "";
+      // _timeEnd = time_end ?? "";
+      if (input.time_start && input.time_end && input.date_start && input.date_end) {
         //convert date_start to epokh
-        if (!date_start.includes("/") || !date_end.includes("/")) {
+        if (!input.date_start.includes("/") || !input.date_end.includes("/")) {
           req.flash("error", "Date format is not correct");
           next(new ApiError(400, "Date format is not correct"));
         }
-        timeEpokhStart = date2Epokh(date_start, time_start, _timezone);
-        timeEpokhEnd = date2Epokh(date_end, time_end, _timezone);
-        times_epoch = getEpochList(date_start, date_end, time_start, time_end, _timezone);
-        console.log(times_epoch);
+        epoch.start = date2Epokh(input.date_start, input.time_start, _timezone);
+        epoch.end = date2Epokh(input.date_end, input.time_end, _timezone);
+        times_epoch = getEpochList(input.date_start, input.date_end, input.time_start, input.time_end, _timezone);
         //let timesEpokhEnd = getEpochList();
       }
+    }
+    let plate_number_engglish: string = "";
+    if (input.plate) {
+      //add plate number to json response for sort persian format in font end
+      // let plateNumber = {
+      //   first: number_plate.first,
+      //   second: number_plate.second,
+      //   third: number_plate.third,
+      //   fourth: number_plate.fourth,
+      //   fifth: number_plate.fifth,
+      // };
+
+      plate_number_engglish = `${input.plate.first}${toEnglishPLate[input.plate.second]}${input.plate.third}${input.plate.fifth}`;
+      console.log(plate_number_engglish)
     }
 
     let _data: object[] = [];
     //get log for other models data from elastic
     response = await dynamicRequestToElasticSearch(
-      _cameras,
-      _personnels,
-      _models,
-      _probabilities,
-      _humanCounts,
+      input.cameras,
+      input.personnels,
+      input.models,
+      input.probabilities,
+      input.humanCounts,
       times_epoch,
-      timeEpokhStart,
-      timeEpokhEnd,
+      // epoch.start,
+      // epoch.end,
       model,
       page,
       perPage,
+      plate_number_engglish,
       next
     );
     if (!response) {
@@ -112,20 +175,20 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
     }
     //create json response for client
     if (model === "sabotage") {
-      _data = await sabotageLogResponse(response, _timeStart, _timeEnd, _timezone);
+      _data = await sabotageLogResponse(response, epoch.start, epoch.end, _timezone);
     } else if (model === "plate") {
-      if ((_carBrand === null || _carColor === null || _owner === null) && search) {
+      if ((input.car_brand === null || input.car_color === null || input.owner === null) && search) {
         return next(new ApiError(400, `car_brand, car_color, owner is required`));
       }
-      _data = await plateLogResponse(response, _carBrand, _carColor, _owner, _allowed, Boolean(search), _timeStart, _timeEnd, _timezone);
+      _data = await plateLogResponse(response, input.car_brand, input.car_color, input.owner,Boolean(input.allowed),Boolean(search) ,_timezone);
     } else if (model === "human") {
-      _data = await humanLogResponse(response, _allowed, Boolean(search), _timeStart, _timeEnd, _timezone);
+      _data = await humanLogResponse(response, input.allowed, Boolean(search), _timezone);
     } else if (model === "fire") {
-      _data = await fireLogResponse(response, _timeStart, _timeEnd, _timezone);
+      _data = await fireLogResponse(response, _timezone);
     } else if (model === "face") {
-      _data = await faceLogResponse(response, _allowed, Boolean(search), _timeStart, _timeEnd, _timezone);
+      _data = await faceLogResponse(response, input.allowed, Boolean(search), _timezone);
     } else if (model === "event") {
-      _data = await eventLogResponse(response, _timeStart, _timeEnd, _timezone);
+      _data = await eventLogResponse(response, _timezone);
     }
 
     //return data to client
@@ -134,7 +197,7 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       data: _data,
       page: strPage,
       perPage: perPage,
-      total:response.data.hits.total.value ?? _data.length,
+      total: response.data.hits.total.value ?? _data.length,
       pages: Math.ceil((response.data.hits.total.value ?? _data.length) / perPage),
     });
   } catch (err: any) {

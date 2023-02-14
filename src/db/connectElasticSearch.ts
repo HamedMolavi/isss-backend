@@ -14,43 +14,20 @@ export async function dynamicRequestToElasticSearch(
   models: string[] = [],
   probability: number[] = [],
   humanCounts: number[] = [],
-  times_epoch : any[] = [],
-  timeStart: string | undefined,
-  timeEnd: string,
+  times_epoch: any[] = [],
+  // timeStart: string ,
+  // timeEnd: string,
   model: string,
   page: number,
   perPage: number,
+  plate: string | null,
   next: NextFunction
 ) {
   try {
-    //get hours from epoch time
-    // let start_hour: string = "",
-    //   end_hour: string = "",
-    //   start_minute: string = "",
-    //   end_minute: string = "";
-
-    // if (timeStart) {
-    //   // start_hour = Number(new Date(Number(timeStart)).getUTCHours());
-    //   // start_minute =Number(new Date(Number(timeStart)).getUTCMinutes());
-    //   // end_hour =Number(new Date(Number(timeEnd)).getUTCHours());
-    //   // end_minute =Number(new Date(Number(timeEnd)).getUTCMinutes());
-
-    //   start_hour =
-    //     new Date(Number(timeStart)).getHours().toString().length == 1 ? "0" + new Date(Number(timeStart)).getHours().toString() : new Date(Number(timeStart)).getHours().toString();
-    //   start_minute =
-    //     new Date(Number(timeStart)).getMinutes().toString().length == 1
-    //       ? "0" + new Date(Number(timeStart)).getMinutes().toString()
-    //       : new Date(Number(timeStart)).getMinutes().toString();
-    //   end_hour =
-    //     new Date(Number(timeEnd)).getHours().toString().length == 1 ? "0" + new Date(Number(timeEnd)).getHours().toString() : new Date(Number(timeEnd)).getHours().toString();
-    //   end_minute =
-    //     new Date(Number(timeEnd)).getMinutes().toString().length == 1 ? "0" + new Date(Number(timeEnd)).getMinutes().toString() : new Date(Number(timeEnd)).getMinutes().toString();
-    // }
-
     //create json response for client
     let jsonResuest: any = {};
     jsonResuest.size = perPage;
-    jsonResuest.from = perPage * (page - 1) + 1;
+    jsonResuest.from = perPage * (page - 1) - 1;
     //create json query for elastic search
     jsonResuest.query = {
       bool: {
@@ -105,6 +82,14 @@ export async function dynamicRequestToElasticSearch(
         });
       }
 
+      if (plate !== "") {
+        jsonResuest.query.bool.filter.push({
+          term: {
+            "plate_number.keyword": plate,
+          }
+        });
+      }
+
       //add filter for human count if human count is not empty  and human count is not event
       //human count ai array string confidence number
       if (humanCounts.length > 0) {
@@ -117,7 +102,7 @@ export async function dynamicRequestToElasticSearch(
 
       //add time filter if timeStart and timeEnd is not empty
       if (times_epoch.length > 0) {
-        for(let t of times_epoch){
+        for (let t of times_epoch) {
           jsonResuest.query.bool.should.push({
             range: {
               timestamp: {
@@ -127,7 +112,7 @@ export async function dynamicRequestToElasticSearch(
             },
           });
         }
-        
+
         // jsonResuest.query.bool.filter.push({
         //   range: {
         //     timestamp: {
@@ -237,8 +222,8 @@ export async function dynamicRequestToElasticSearch(
       }
 
       //add time filter if timeStart and timeEnd is not empty
-      if (times_epoch.length > 0 ) {
-        for(let t of times_epoch){
+      if (times_epoch.length > 0) {
+        for (let t of times_epoch) {
           jsonResuest.query.bool.should.push({
             range: {
               "log.timestamp": {
