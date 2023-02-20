@@ -31,7 +31,7 @@ type Input = {
   owner: string[] | undefined;
   allowed: boolean | undefined;
   cameras: string[] | undefined;
-  models: string[] | undefined;
+  model: string[] | undefined;
   personnels: string[] | undefined;
   probabilities: number[] | undefined;
   humanCounts: number[] | undefined;
@@ -91,7 +91,7 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       owner: undefined,
       allowed: false,
       cameras: undefined,
-      models: undefined,
+      model: undefined,
       personnels: undefined,
       probabilities: undefined,
       humanCounts: undefined,
@@ -125,7 +125,7 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
     response = await dynamicRequestToElasticSearch(
       input.cameras,
       input.personnels,
-      input.models,
+      input.model,
       input.probabilities,
       input.humanCounts,
       times_epoch,

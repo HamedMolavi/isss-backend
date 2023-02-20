@@ -316,11 +316,10 @@ function extended_description(_description: Description) {
       }
     });
     notification_text = personnel
-      ? `${personnel?.first_name} ${personnel?.last_name} with personnel code: ${personnel.personnel_code} ditected\ndescription:${_description.description}`
+      ? `${personnel?.first_name} ${personnel?.last_name} with personnel code: ${personnel.personnel_code} detected\ndescription:${_description.description}`
       : `none person ditected, description:${_description.description}`;
   } else if (_description.log._source.type === "fire") {
-    notification_text = `fire ditected, 
-    description:${_description.description}`;
+    notification_text = `${_description.description}`;
   } else if (_description.log._source.type === "human") {
     notification_text = `#${_description.log._source.log.number_of_people} human(s) ditected,
      description:${_description.description}`;
@@ -337,7 +336,7 @@ function extended_description(_description: Description) {
         });
       }
     });
-    notification_text = `car plate: ${_description.log._source.log.plate_number}  with owner:${owner?.first_name} ${owner?.last_name} ditected description:${_description.description}`;
+    notification_text = `number plate: ${_description.log._source.log.plate_number}  with owner:${owner?.first_name} ${owner?.last_name} detected description:${_description.description}`;
   }
   return notification_text;
 }
