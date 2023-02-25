@@ -7,6 +7,7 @@ import ModelToCamera from "../../models/modelToCamera";
 import Schedule from "../../models/schedule";
 import Camera, { ICamera } from "./../../models/camera";
 import { getTokenAndVerify } from "./../../tools/authentication";
+import { CameraInfo, getStreamUri } from "../../tools/camera.tools";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -26,9 +27,9 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get jason from body request
-    const { section_id, url, ip, name, username, password, network, is_enabled, muted }: ICamera = req.body;
+    const { section_id, nvr, ip, name, username, password, network, is_enabled, muted }: ICamera = req.body;
     //verify body request
-    if (!section_id || !url || !ip || !name || !username || !password || !network) {
+    if (!section_id || !ip || !name || !username || !password || !network) {
       req.flash("error", "please complete all fields");
       return next(new ApiError(400, "please complete all fields"));
     }
@@ -50,10 +51,23 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       return next(new ApiError(400, "camera already exist"));
     }
 
+    let camInfo: CameraInfo = {
+      ip: ip,
+      username: username,
+      password: password
+    }
+
+    //get live stream uri(rtsp link from camera)
+    let stream_uri = await getStreamUri(camInfo);
+    if(stream_uri == undefined){
+      req.flash("error", "rtsp link not found");
+      return next(new ApiError(400, "rtsp link not found"));
+    }
     //fil new camera
     camera = new Camera({
       section_id: section_id,
-      url: url,
+      url: stream_uri,
+      nvr: nvr,
       ip: ip,
       network: network,
       name: name,

@@ -7,7 +7,7 @@ import Schedule from "../models/schedule";
 import ModelToCamera from "../models/modelToCamera";
 import Section from "../models/section";
 import Department from "../models/department";
-import toPersianPlate from "./EnglishToPersianPlate";
+import toPersianPlate, { english2Persian } from "./EnglishToPersianPlate";
 import Model, { IModel } from "../models/model";
 
 //define type fore input function extended description
@@ -243,7 +243,7 @@ export async function eventLogResponse(response: any, timezone: string) {
   let sections = await Section.find().exec();
   let departments = await Department.find().exec();
   let personnels = await Personnel.find().exec();
-  let cars = await Car.find().exec();
+  let cars = await Car.find().populate("owner").exec();
   for (let log of response.data.hits.hits) {
     let schedule = schedules.find((sche) => {
       if (log._source.log.schedule_id.toString() == sche._id.toString()) return sche;
@@ -256,10 +256,31 @@ export async function eventLogResponse(response: any, timezone: string) {
     let _model = models.find((mod) => {
       if (modelToCamera?.model_id.toString() == mod._id.toString()) return mod;
     });
+    let _personnel = personnels.find((per: any) => {
+      if (per?._id?.toString() === log._source.log.personnel_id) {
+        return per;
+      }
+    });
+    let _owner: any;
+    let number_plate: string = "";
+    if (log?._source?.log?.plate_number) {
+      _owner = cars.find((car: any) => {
+        if (car?.plate_number?.toString() === log?._source?.log?.plate_number) {
+          return car;
+        }
+      });
+      number_plate = english2Persian(log?._source?.log?.plate_number);
+    }
     let result = {
+      title: _personnel != null ? "Alerting" : "Warnings",
       type: log._source.type,
       cause: log._source.cause,
       camera_id: log._source.log.camera_id,
+      personnel: _personnel != null ? _personnel?.first_name + " " + _personnel?.last_name : "",
+      personnel_code: _personnel?.personnel_code,
+      peopleCounting: log?._source?.log?.number_of_people ?? "",
+      plate_number: number_plate ?? "",
+      owner: _owner != null ? _owner?.owner?.first_name + " " + _owner?.owner?.last_name : "",
       name:
         cameras.find((cam) => {
           if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
@@ -293,53 +314,53 @@ export async function eventLogResponse(response: any, timezone: string) {
         if (cam._id.toString() == log._source.log.camera_id.toString()) return cam;
       })?.url ?? "",
     };
-    result.description = extended_description({
-      description: log._source.description,
-      camera: result.name,
-      section: result.section,
-      departement: result.department,
-      log: log,
-      perssonels: personnels,
-      cars: cars,
-    });
+    // result.description = extended_description({
+    //   description: log._source.description,
+    //   camera: result.name,
+    //   section: result.section,
+    //   departement: result.department,
+    //   log: log,
+    //   perssonels: personnels,
+    //   cars: cars,
+    // });
     _data.push(result);
   }
   return _data;
 }
-//define function fore extended description on dend toclient with event report
-function extended_description(_description: Description) {
-  let notification_text: string = "";
-  if (_description.log._source.type === "face") {
-    let personnel = _description.perssonels.find((per: any) => {
-      if (per?._id?.toString() === _description.log._source.log.personnel_id) {
-        return per;
-      }
-    });
-    notification_text = personnel
-      ? `${personnel?.first_name} ${personnel?.last_name} with personnel code: ${personnel.personnel_code} detected\ndescription:${_description.description}`
-      : `none person ditected, description:${_description.description}`;
-  } else if (_description.log._source.type === "fire") {
-    notification_text = `${_description.description}`;
-  } else if (_description.log._source.type === "human") {
-    notification_text = `#${_description.log._source.log.number_of_people} human(s) ditected,
-     description:${_description.description}`;
-  } else if (_description.log._source.type === "sabotage") {
-    notification_text = `sabotage ditected,
-     description:${_description.description}`;
-  } else if (_description.log._source.type === "plate") {
-    let owner: any = _description.cars.find((_car: any) => {
-      if (_car?.plate_number === _description.log._source.log.plate_number) {
-        return _description.perssonels.find((per: any) => {
-          if (per?._id?.toString() === _car.owner.toString()) {
-            return per;
-          }
-        });
-      }
-    });
-    notification_text = `number plate: ${_description.log._source.log.plate_number}  with owner:${owner?.first_name} ${owner?.last_name} detected description:${_description.description}`;
-  }
-  return notification_text;
-}
+// //define function fore extended description on dend toclient with event report
+// function extended_description(_description: Description) {
+//   let notification_text: string = "";
+//   if (_description.log._source.type === "face") {
+//     let personnel = _description.perssonels.find((per: any) => {
+//       if (per?._id?.toString() === _description.log._source.log.personnel_id) {
+//         return per;
+//       }
+//     });
+//     notification_text = personnel
+//       ? `${personnel?.first_name} ${personnel?.last_name} with personnel code: ${personnel.personnel_code} detected\ndescription:${_description.description}`
+//       : `none person ditected, description:${_description.description}`;
+//   } else if (_description.log._source.type === "fire") {
+//     notification_text = `${_description.description}`;
+//   } else if (_description.log._source.type === "human") {
+//     notification_text = `#${_description.log._source.log.number_of_people} human(s) ditected,
+//      description:${_description.description}`;
+//   } else if (_description.log._source.type === "sabotage") {
+//     notification_text = `sabotage ditected,
+//      description:${_description.description}`;
+//   } else if (_description.log._source.type === "plate") {
+//     let owner: any = _description.cars.find((_car: any) => {
+//       if (_car?.plate_number === _description.log._source.log.plate_number) {
+//         return _description.perssonels.find((per: any) => {
+//           if (per?._id?.toString() === _car.owner.toString()) {
+//             return per;
+//           }
+//         });
+//       }
+//     });
+//     notification_text = `number plate: ${_description.log._source.log.plate_number}  with owner:${owner?.first_name} ${owner?.last_name} detected description:${_description.description}`;
+//   }
+//   return notification_text;
+// }
 
 //create json response eventLog report for send to client
 export async function eventDepartmentLogResponse(response: any) {

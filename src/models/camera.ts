@@ -6,6 +6,7 @@ export interface ICamera extends Document {
   section_id: mongoose.Types.ObjectId;
   network: string;
   url: string;
+  nvr: string;
   ip: string;
   name: string;
   username: string;
@@ -20,6 +21,7 @@ const CameraSchema: Schema<ICamera> = new Schema(
   {
     section_id: { type: Schema.Types.ObjectId, ref: "Section", required: true },
     url: { type: String, required: true },
+    nvr: { type: String, required: false },
     ip: { type: String, required: true },
     network: { type: String, required: true },
     name: { type: String, required: true },
