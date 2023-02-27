@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
-import User, { IUser } from "../../models/user";
+import User, { IUser, setPassword } from "../../models/user";
 import { getTokenAndVerify } from "../../tools/authentication";
 import { getStrength } from "../../tools/verifyPasswordRegex";
 
@@ -58,7 +58,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     newUser.username = username;
     newUser.password = password;
     newUser.phone_number = phone_number;
-    newUser.role = "admin";
+    newUser.role = "user";
     newUser.event = event;
     newUser.camera = camera;
     newUser.report = report;
@@ -172,9 +172,13 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
       req.flash("error", "Please enter id");
       return next(new ApiError(400, "Please enter id"));
     }
+    let _user =await User.findById(id).exec();
     //get jason from body request
     const userBody = req.body;
-    //get token from header request and verify
+    if (_user &&  userBody.password){
+      userBody.password =await setPassword(userBody?.password,_user?.username);
+    }
+
     //get token from header request and verify
     let token = getTokenAndVerify(req, const_role, next);
     if (!token) {
