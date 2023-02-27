@@ -1,5 +1,5 @@
-import fs from "fs";
 const onvif = require("node-onvif");
+
 
 export type cameraInfo = {
   ip: string;
@@ -19,7 +19,7 @@ async function takeSnapshot(camInfo: cameraInfo): Promise<string | null | undefi
       pass: camInfo.password,
     });
     await device.init(); //initial device
-    console.log("fetching the data of the snapshot...");
+    
     let res = await device.fetchSnapshot(); //fetch image from camera
     //convert result from binary to base64
     let mimeType = res.headers["content-type"];
@@ -30,7 +30,9 @@ async function takeSnapshot(camInfo: cameraInfo): Promise<string | null | undefi
     return image;
   } catch (error) {
     console.log(error);
+    
   }
 }
 
 export default takeSnapshot;
+

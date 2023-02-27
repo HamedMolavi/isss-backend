@@ -1,4 +1,4 @@
-let toPersianPlate :any = {
+let toPersianPlate: any = {
     "U": "ع",
     "X": "ط",
     "W": "ص",
@@ -23,29 +23,42 @@ let toPersianPlate :any = {
 
 }
 
-export let toEnglishPLate : any = {
-    "ع":"U",
-    "ط":"X",
-    "ص":"W",
-    "س":"S",
-    "ی":"Y",
-   "الف":"A",
-    "ه":"H",
-    "ج":"J",
-    "ق":"G",
-    "م":"M",
-    "ب":"B",
-    "و":"V",
-    "ن":"N",
-    "ل":"L",
-    "ش":"O",
-    "پ":"P",
-    "ث":"E",
-    "ت":"T",
-    "د":"D",
-    "ک":"K",
-    "ویلچر":"C"
+export let toEnglishPLate: any = {
+    "ع": "U",
+    "ط": "X",
+    "ص": "W",
+    "س": "S",
+    "ی": "Y",
+    "الف": "A",
+    "ه": "H",
+    "ج": "J",
+    "ق": "G",
+    "م": "M",
+    "ب": "B",
+    "و": "V",
+    "ن": "N",
+    "ل": "L",
+    "ش": "O",
+    "پ": "P",
+    "ث": "E",
+    "ت": "T",
+    "د": "D",
+    "ک": "K",
+    "ویلچر": "C"
 
 }
-    
+
 export default toPersianPlate;
+
+
+export function english2Persian(plate_number: string): string {
+    let tmp = {
+        first: Number(plate_number.substr(0, 2)),
+        second: toPersianPlate[plate_number.substr(2, 1)],
+        third: Number(plate_number.substr(3, 3)),
+        fourth: "ایران",
+        fifth: Number(plate_number.substr(6, 2)),
+    }
+    let result = `(${tmp.first}${tmp.second}${tmp.third}${tmp.fourth}${tmp.fifth})`
+    return result;
+}
