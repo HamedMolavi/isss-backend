@@ -23,7 +23,7 @@ export interface IUser {
 
 interface IUserDocument extends IUser, Document {
   _id: mongoose.Types.ObjectId;
-  setPassword: (password: string) => Promise<void>;
+  setPassword: (password: string, username: string) => string;
   checkPassword: (password: string, done: Function) => Promise<boolean>;
   generateJWT: (is_remember: boolean) => any;
   toAuthJSON: (is_remember: boolean) => any;
@@ -31,7 +31,7 @@ interface IUserDocument extends IUser, Document {
 
 interface IUserModel extends Model<IUserDocument> {
   checkPassword: (password: string, done: Function) => Promise<boolean>;
-  setPassword: (password: string) => Promise<boolean>;
+  setPassword: (password: string, username: string) => string;
   generateJWT: (is_remember: boolean) => any;
   toAuthJSON: (is_remember: boolean) => any;
 }
@@ -65,18 +65,25 @@ UserSchema.pre("save", function (done: Function) {
     if (err) {
       return done(err);
     }
-    bcrypt.hash(user.password + user.username, salt, function (err, hashedPassword) {
-      if (err) {
-        return done(err);
+    bcrypt.hash(
+      user.password + user.username,
+      salt,
+      function (err, hashedPassword) {
+        if (err) {
+          return done(err);
+        }
+        user.password = hashedPassword;
+        done();
       }
-      user.password = hashedPassword;
-      done();
-    });
+    );
   });
 });
 
 //compare password
-UserSchema.methods.checkPassword = async function (password: string, done: Function) {
+UserSchema.methods.checkPassword = async function (
+  password: string,
+  done: Function
+) {
   try {
     let user = this;
     let isMatch = await bcrypt.compare(password + user.username, user.password);
@@ -85,24 +92,12 @@ UserSchema.methods.checkPassword = async function (password: string, done: Funct
     return done(err);
   }
 };
-// //check password
-// UserSchema.methods.checkPassword = async function (
-//   guess: string,
-//   done: Function
-// ) {
-//   let result = await bcrypt
-//     .compare(guess, this.password)
-//     .then((valid) => {
-//       if (!valid) {
-//         return done(new ApiError(400, "Invalid password"));
-//       }
-//       return true;
-//     })
-//     .catch((error) => {
-//       done(error);
-//     });
-//   return result;
-// };
+
+export async function setPassword(password: string, username: string) {
+  let salt = await bcrypt.genSalt(SALT_FACTOR);
+  let result = await bcrypt.hash(password + username, salt);
+  return result
+}
 
 //get secrect key jwt token
 const secret = process.env["JWT_SECRET"] as string;
@@ -111,10 +106,11 @@ const secret = process.env["JWT_SECRET"] as string;
 UserSchema.methods.generateJWT = function (is_remember: boolean) {
   const today = new Date();
   const expirationDate = new Date(today);
-  let exp_time = is_remember == true ? today.getHours() + 8 : today.getMinutes() + 15 
-  if(is_remember == true){
+  let exp_time =
+    is_remember == true ? today.getHours() + 8 : today.getMinutes() + 15;
+  if (is_remember == true) {
     expirationDate.setHours(exp_time);
-  }else{
+  } else {
     expirationDate.setMinutes(exp_time);
   }
 
