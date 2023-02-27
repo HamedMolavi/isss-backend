@@ -1,8 +1,3 @@
-import { NextFunction } from "express";
-
-const Cam = require("onvif").Cam;
-var flow = require('nimble');
-
 const onvif = require("node-onvif");
 
 export type CameraInfo = {
@@ -22,10 +17,9 @@ export async function getStreamUri(camInfo: CameraInfo): Promise<string | undefi
             user: camInfo.username,
             pass: camInfo.password,
         });
-
         await device.init(); //initial device
         let url: string = device.getUdpStreamUrl();
-        url  = url.replace("rtsp://172.10.10.246","rtsp://{username}:{password}@{ip}:554")
+        url  = url.replace(/\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,"{username}:{password}@{ip}:554")
         return url;
     } catch (error) {
         console.log(error);

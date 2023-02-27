@@ -2305,11 +2305,6 @@ locate-path@^6.0.0:
   dependencies:
     p-locate "^5.0.0"
 
-lodash.get@^4.4.2:
-  version "4.4.2"
-  resolved "https://registry.npmjs.org/lodash.get/-/lodash.get-4.4.2.tgz"
-  integrity sha512-z+Uw/vLuy6gQe8cfaFWD7p0wVv8fJl3mbzXh33RS+0oW2wvUqiRXiQ69gLWSLpgB5/6sU+r6BlQR0MBILadqTQ==
-
 lodash.includes@^4.3.0:
   version "4.3.0"
   resolved "https://registry.npmjs.org/lodash.includes/-/lodash.includes-4.3.0.tgz"
@@ -2662,11 +2657,6 @@ negotiator@0.6.3:
   resolved "https://registry.npmjs.org/negotiator/-/negotiator-0.6.3.tgz"
   integrity sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==
 
-nimble@^0.0.2:
-  version "0.0.2"
-  resolved "https://registry.npmjs.org/nimble/-/nimble-0.0.2.tgz"
-  integrity sha512-W9wdEJqVfbA6gIHH50DUjZzjQf7u/7K70vDjPWH7VVnnFwnmnERqt3qyQ2fXLd49Hds+iGeGTsQyrVJBX2LHsg==
-
 node-addon-api@^3.1.0:
   version "3.2.1"
   resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-3.2.1.tgz"
@@ -2803,14 +2793,6 @@ onetime@^5.1.0:
   integrity sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==
   dependencies:
     mimic-fn "^2.1.0"
-
-onvif@^0.6.7:
-  version "0.6.7"
-  resolved "https://registry.npmjs.org/onvif/-/onvif-0.6.7.tgz"
-  integrity sha512-7ButP0QQcSvHaz2Jj04Hb5UWGQ+XTx1kTar2Hwe1KTbPhwC/3QoQcY06/Nnx6y94M4RDaKIf5iQY98PXJX5H4g==
-  dependencies:
-    lodash.get "^4.4.2"
-    xml2js "^0.4.23"
 
 ora@^5.4.1:
   version "5.4.1"
@@ -4016,7 +3998,7 @@ xml-crypto@^1.4.0:
     "@xmldom/xmldom" "^0.7.0"
     xpath "0.0.32"
 
-xml2js@^0.4.23, xml2js@>=0.4.17:
+xml2js@>=0.4.17:
   version "0.4.23"
   resolved "https://registry.npmjs.org/xml2js/-/xml2js-0.4.23.tgz"
   integrity sha512-ySPiMjM0+pLDftHgXY4By0uswI3SPKLDw/i3UXbnO8M/p28zqexCUoPmQFrYD+/1BzhGJSs2i1ERWKJAtiLrug==

@@ -1,5 +1,3 @@
-
-var request = require('request');
 const onvif = require("node-onvif");
 
 
@@ -20,9 +18,8 @@ async function takeSnapshot(camInfo: cameraInfo): Promise<string | null | undefi
       user: camInfo.username,
       pass: camInfo.password,
     });
-
     await device.init(); //initial device
-    console.log("fetching the data of the snapshot...");
+    
     let res = await device.fetchSnapshot(); //fetch image from camera
     //convert result from binary to base64
     let mimeType = res.headers["content-type"];
@@ -30,10 +27,10 @@ async function takeSnapshot(camInfo: cameraInfo): Promise<string | null | undefi
     let prefix = "data:" + mimeType + ";base64,";
     let base64Image = Buffer.from(res.body, rawImage).toString("base64");
     let image = prefix + base64Image;
-    console.log(image)
     return image;
   } catch (error) {
     console.log(error);
+    
   }
 }
 
