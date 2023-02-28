@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Model, { IModel } from "./../../models/model";
-import { getTokenAndVerify } from "./../../tools/authentication";
+//import { getTokenAndVerify } from "./../../tools/authentication";
 
 
 //get user role from enviroment variable
@@ -29,10 +29,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         let strPerPage = req.query.perPage as string;
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
         //get token from header request and verify
-        let token = getTokenAndVerify(req, const_role, next);
-      if(!token){
-        return null;
-      }
+     //   let token = getTokenAndVerify(req, const_role, next);
+     // if(!token){
+     //   return null;
+      //}
         //query for get list of models
         let models = await Model.find().limit(perPage).skip(perPage * (page - 1)).exec()
         if (!models) {
@@ -66,10 +66,10 @@ router.get("/:category", async function (req: Request, res: Response, next: Next
         }
 
         //get token from header request and verify
-        let token = getTokenAndVerify(req, const_role, next);
-      if(!token){
-        return null;
-      }
+    //    let token = getTokenAndVerify(req, const_role, next);
+    //  if(!token){
+    //    return null;
+    //  }
 
         //query for get model by id from DB
         let model = await Model.findOne({ category: category }).exec();

@@ -1,8 +1,7 @@
-import { data } from "cheerio/lib/api/attributes";
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Section, { ISection } from "./../../models/section";
-import { getTokenAndVerify } from "./../../tools/authentication";
+//import { getTokenAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -30,10 +29,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
 
     //query for save new section in DB
     let section = await Section.findOne({
@@ -75,10 +74,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
     let search = (req.query.search as string) || "";
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //query for get sections from DB
     let sections: ISection[] = [];
     if (!(search && search.length > 0)) {
@@ -125,10 +124,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
 
     //query for get section by id from DB
     let section = await Section.findById(id).exec();
@@ -159,10 +158,10 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     //get jason from body request
     const sectionBody = req.body;
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+   // let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+   //   return null;
+  //  }
     let _section1, _section2;
     if (sectionBody.department_id) {
       _section1 = await Section.findOne({ department_id: sectionBody.department_id }).exec();
@@ -206,10 +205,10 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
 
     //query for get section by id from DB
     let section = await Section.findByIdAndDelete(id).exec();

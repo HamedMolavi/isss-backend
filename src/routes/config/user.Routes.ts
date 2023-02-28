@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import User, { IUser, setPassword } from "../../models/user";
-import { getTokenAndVerify } from "../../tools/authentication";
+//import { getTokenAndVerify } from "../../tools/authentication";
 import { getStrength } from "../../tools/verifyPasswordRegex";
 
 //get user role from enviroment variable
@@ -30,10 +30,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       return next(new ApiError(400, "Please enter all fields"));
     }
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+    //let token = getTokenAndVerify(req, const_role, next);
+   // if (!token) {
+   //   return null;
+   // }
 
     //verify password
     let resultVerifyPassword = getStrength(password);
@@ -89,10 +89,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let search = req.query.search as string;
     //get token from header request and verify
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+   // let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //   return null;
+  //  }
     //query for get user by username from DB
     let users: IUser[] = [];
     if (!(search && search.length > 0)) {
@@ -139,10 +139,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+   // }
 
     //query for get user by id from DB
     let user = await User.findById(id).exec();
@@ -180,10 +180,10 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+   //   return null;
+  //  }
     //query for get user by username from DB
     let user = await User.findByIdAndUpdate(id, userBody, {
       new: true,
@@ -217,10 +217,10 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
 
     //get token from header request and verify
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //query for get user by id from DB
     let user = await User.findByIdAndDelete(id).exec();
 

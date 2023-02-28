@@ -4,7 +4,7 @@ import { ApiError } from "../../error/error.handler";
 import Camera, { ICamera } from "../../models/camera";
 import Departement, { IDepartment } from "../../models/department";
 import Section, { ISection } from "../../models/section";
-import { getTokenAndVerify } from "../../tools/authentication";
+//import { getTokenAndVerify } from "../../tools/authentication";
 
 
 //get user role from enviroment variable
@@ -52,10 +52,10 @@ router.get(
   async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if(!token){
-        return null;
-      }
+    //  let token = getTokenAndVerify(req, const_role, next);
+    //  if(!token){
+    //    return null;
+    //  }
       //query for get departements list
       let departments: IDepartment[] = await Departement.find({}).exec();
       //query for get all section from DB

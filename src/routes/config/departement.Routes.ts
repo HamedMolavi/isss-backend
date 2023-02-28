@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Departement , {IDepartment} from "../../models/department";
-import { getTokenAndVerify } from "./../../tools/authentication";
+//import { getTokenAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -30,10 +30,10 @@ router.post(
         return next(new ApiError(400, "Departement name is required"));
       }
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if(!token){
-        return null;
-      }
+     // let token = getTokenAndVerify(req, const_role, next);
+    //  if(!token){
+    //    return null;
+    //  }
 
       let newDepartement = new Departement();
       //query for save new departement in DB
@@ -75,10 +75,10 @@ router.get(
       let search = (req.query.search as string) || "";
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if(!token){
-        return null;
-      }
+    //  let token = getTokenAndVerify(req, const_role, next);
+    //  if(!token){
+    //    return null;
+    //  }
       //query for get departements list
       let departements: IDepartment[] = [];
       if (!(search && search.length > 0)) {
@@ -129,10 +129,10 @@ router.get(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if(!token){
-        return null;
-      }
+    //  let token = getTokenAndVerify(req, const_role, next);
+    //  if(!token){
+    //    return null;
+    //  }
 
       //query for get departement by id from DB
       let departement = await Departement.findById(id).exec();
@@ -169,10 +169,10 @@ router.patch(
 
       const departementBody = req.body;
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if(!token){
-        return null;
-      }
+    //  let token = getTokenAndVerify(req, const_role, next);
+    //  if(!token){
+    //    return null;
+    //  }
       //query for get camera by id from DB and update
       let departement = await Departement.findByIdAndUpdate(
         id,
@@ -206,10 +206,10 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-      if(!token){
-        return null;
-      }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //    if(!token){
+  //      return null;
+  //    }
 
     //query for get departement by id from DB
     let departement = await Departement.findByIdAndDelete(id).exec();
