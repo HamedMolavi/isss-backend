@@ -111,9 +111,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   //get user role from enviroment variable
   const const_role = process.env.const_role || "user";
   //get token from header request and verify
-  let token = getTokenAndVerify(req, const_role, next);
-  if (!token) {
-    return null;
+  let is_login = RegExp('\\b'+ "login" +'\\b').test(req.originalUrl)
+  if (!is_login) {
+    let token = getTokenAndVerify(req, const_role, next);
+    if (!token) {
+      return null;
+    }
   }
   next();
 });
