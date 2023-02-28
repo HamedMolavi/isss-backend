@@ -1,7 +1,7 @@
 import { setFileInRedis, getImageFromRedis, deleteImageInRedis, uploadAvatar } from "./../../tools/fileUpload";
 import { NextFunction, Router, Request, Response } from "express";
 import fs from "fs";
-import { getTokenAndVerify } from "./../../tools/authentication";
+//import { getTokenAndVerify } from "./../../tools/authentication";
 import axios from "axios";
 import path from "path";
 import PersonImage from "./../../models/personImage";
@@ -36,10 +36,10 @@ router.post("/upload", async function (req: Request, res: Response, next: NextFu
       return next(new ApiError(400, "Please enter a personnel_code"));
     }
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+   // let token = getTokenAndVerify(req, const_role, next);
+   // if (!token) {
+   //   return null;
+   // }
     //get file from request and change format  to json and get file name and save in server with personnel_code
     let result = await uploadAvatar(image_str, perssonel_id);
     if (!result) {
@@ -63,10 +63,10 @@ router.post("/upload", async function (req: Request, res: Response, next: NextFu
 router.get("/download/:fileName", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+   // }
     //get file name from request params
     const fileName = req.params.fileName;
 
@@ -89,10 +89,10 @@ router.get("/download/:fileName", async function (req: Request, res: Response, n
 router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+   // }
     let fileInfos: object[] = [];
     //get directory path
     const directoryPath = path.join(__dirname, "./../../../assets/image/");

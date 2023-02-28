@@ -6,7 +6,7 @@ import Camera from "../../models/camera";
 import PersonImage from "../../models/personImage";
 import { deleteDirectory, uploadAvatar } from "../../tools/fileUpload";
 import Personnel, { IPersonnel } from "./../../models/personnel";
-import { getTokenAndVerify } from "./../../tools/authentication";
+//import { getTokenAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -35,10 +35,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //query for save new personnel in DB
     let personnel = await Personnel.findOne({
       $or: [{ national_code: national_code }, { personnel_code: personnel_code }],
@@ -95,10 +95,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
     let search = (req.query.search as string) || "";
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     
     //query for get user by personnels from DB
     let personnels: IPersonnel[] = [];
@@ -193,10 +193,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
 
     //query for get personnel by id from DB
     let personnel = await Personnel.findById(id).exec();
@@ -229,10 +229,10 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 
     const personnelBody = req.body;
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+   // let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //query for get personnel by id from DB
     let personnel = await Personnel.findByIdAndUpdate(id, personnelBody, {
       new: true,
@@ -270,10 +270,10 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //query for get personnel by id from DB
     let personnel = await Personnel.findByIdAndDelete(id).exec();
 

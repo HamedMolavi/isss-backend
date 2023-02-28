@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { getTokenAndVerify } from "../../tools/authentication";
+//import { getTokenAndVerify } from "../../tools/authentication";
 import { eventLogResponse, faceLogResponse, fireLogResponse, humanLogResponse, plateLogResponse, sabotageLogResponse } from "../../tools/createlogReport";
 import { date2Epokh, getEpochList } from "../../tools/convertTime";
 import { ApiError } from "../../error/error.handler";
@@ -61,10 +61,10 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       return next(new ApiError(404, "Model not found"));
     }
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //get page from url
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;

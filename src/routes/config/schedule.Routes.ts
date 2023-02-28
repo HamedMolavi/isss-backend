@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import mongoose, { Model } from "mongoose";
+import mongoose from "mongoose";
 import Schedule, { ISchedule } from "./../../models/schedule";
-import { getTokenAndVerify } from "./../../tools/authentication";
+//import { getTokenAndVerify } from "./../../tools/authentication";
 import { compareTime, convertToCron, convertToCronDay } from "./../../tools/convertTime";
 import ModelToCamera from "./../../models/modelToCamera";
 import { ApiError } from "../../error/error.handler";
@@ -46,10 +46,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       return next(new ApiError(400, "Please fill all fields"));
     }
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //check for valid time
     if (!compareTime(start, stop)) {
       req.flash("error", "Invalid time");
@@ -131,10 +131,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
 
     //query for get schedule from DB
     let schedules: ISchedule[] | null = await Schedule.find({})
@@ -193,10 +193,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+   // let token = getTokenAndVerify(req, const_role, next);
+   // if (!token) {
+  //    return null;
+  //  }
     //query for get schedule by id from DB
     let schedule = await Schedule.findById(id).exec();
 
@@ -246,10 +246,10 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
       return next(new ApiError(400, "schedule id is required"));
     }
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //get body from request
     const scheduleBody: IGetParams = req.body;
 
@@ -350,10 +350,10 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
 
     //query for get schedule by id from DB
     let schedule = await Schedule.findByIdAndDelete(id).exec();

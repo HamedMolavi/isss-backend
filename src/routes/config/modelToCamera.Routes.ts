@@ -3,7 +3,7 @@ import { ApiError } from "../../error/error.handler";
 import Camera from "../../models/camera";
 import Model from "../../models/model";
 import ModelToCamera, { IModelToCamera } from "../../models/modelToCamera";
-import { getTokenAndVerify } from "../../tools/authentication";
+//import { getTokenAndVerify } from "../../tools/authentication";
 import { convertToCron, convertToCronDay } from "../../tools/convertTime";
 
 //get user role from enviroment variable
@@ -31,10 +31,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       return next(new ApiError(400, "Departement name is required"));
     }
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
 
     //convert input time to cron format
     let start_cron: string = convertToCron(start);
@@ -157,10 +157,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let search = (req.query.search as string) || "";
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //query for get departements list
     let model2Cameras = await ModelToCamera.find({}).exec();
 
@@ -194,10 +194,10 @@ router.patch("", async function (req: Request, res: Response, next: NextFunction
       return next(new ApiError(400, "Please enter all fields"));
     }
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     let model2Camera = await ModelToCamera.findOneAndUpdate(
       {
         $and: [{ model_id: model_id }, { camera_id: camera_id }],

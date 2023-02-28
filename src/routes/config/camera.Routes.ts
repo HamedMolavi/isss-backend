@@ -6,7 +6,7 @@ import Model from "../../models/model";
 import ModelToCamera from "../../models/modelToCamera";
 import Schedule from "../../models/schedule";
 import Camera, { ICamera } from "./../../models/camera";
-import { getTokenAndVerify } from "./../../tools/authentication";
+//import { getTokenAndVerify } from "./../../tools/authentication";
 import { CameraInfo, getStreamUri } from "../../tools/camera.tools";
 
 //get user role from enviroment variable
@@ -47,10 +47,10 @@ router.post(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if (!token) {
-        return null;
-      }
+     // let token = getTokenAndVerify(req, const_role, next);
+    //  if (!token) {
+     //   return null;
+     // }
 
       //query for save new Camera in DB
       let camera = await Camera.findOne({
@@ -129,10 +129,10 @@ router.get(
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if (!token) {
-        return null;
-      }
+     // let token = getTokenAndVerify(req, const_role, next);
+     // if (!token) {
+     //   return null;
+     // }
       let cameras: ICamera[] = [];
       //query for get cameras list
       if (search !== "") {
@@ -183,10 +183,10 @@ router.post(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if (!token) {
-        return null;
-      }
+     // let token = getTokenAndVerify(req, const_role, next);
+     // if (!token) {
+     //   return null;
+     // }
       //get live stream uri(rtsp link from camera)
       let stream_uri = await getStreamUri(cam_test);
       if (stream_uri == undefined) {
@@ -242,10 +242,10 @@ router.get(
         return next({ status: 400, message: "Bad request" });
       }
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if (!token) {
-        return null;
-      }
+      //let token = getTokenAndVerify(req, const_role, next);
+     // if (!token) {
+     //   return null;
+     // }
 
       //query for get camera by id from DB
       let camera = await Camera.findById(id).exec();
@@ -281,10 +281,10 @@ router.patch(
       //get jason from body request
       const cameraBody = req.body;
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if (!token) {
-        return null;
-      }
+     // let token = getTokenAndVerify(req, const_role, next);
+     // if (!token) {
+     //   return null;
+     // }
       //query for get user by id from DB
       let camera = await Camera.findByIdAndUpdate(id, cameraBody, {
         new: true,
@@ -317,10 +317,10 @@ router.delete(
       }
 
       //get token from header request and verify
-      let token = getTokenAndVerify(req, const_role, next);
-      if (!token) {
-        return null;
-      }
+     // let token = getTokenAndVerify(req, const_role, next);
+     // if (!token) {
+     //   return null;
+     // }
 
       //query for get camera by username from DB
       let camera = await Camera.findByIdAndDelete(id).exec();

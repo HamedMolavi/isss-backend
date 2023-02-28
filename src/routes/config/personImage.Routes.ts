@@ -1,9 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
-import fs from "fs";
 import { ApiError } from "../../error/error.handler";
 import PersonImage from "../../models/personImage";
-import { getTokenAndVerify } from "./../../tools/authentication";
+//import { getTokenAndVerify } from "./../../tools/authentication";
 import { deleteFiles, readFiles } from "../../tools/fileUpload";
 
 //get user role from enviroment variable
@@ -31,10 +30,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
 
     //query for get personnel by id from DB
     let personImages = await PersonImage.find({ person_id: id }).exec();
@@ -73,10 +72,10 @@ router.delete("/:hashid", async function (req: Request, res: Response, next: Nex
       return next(new ApiError(400, "Please enter hashid"));
     }
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //query for get personnel by id from DB
     let personimage = await PersonImage.findOne({ hash_id: hashid }).exec();
     if (!personimage) {

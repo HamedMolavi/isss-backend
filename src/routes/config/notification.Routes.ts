@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Notification, { INotification } from "../../models/notification";
-import { getTokenAndVerify } from "./../../tools/authentication";
+//import { getTokenAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -29,10 +29,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+   //   return null;
+  //  }
 
     //query for save new notification in DB
     //check if notification exist
@@ -78,10 +78,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let strPerPage = req.query.perPage as string;
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //query for get notifications from DB
     let notifications: INotification[] = await Notification.find({})
      // .populate("cameras")
@@ -120,10 +120,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
 
     //query for get notification by id from DB
     let notification = await Notification.findById(id).exec();
@@ -154,10 +154,10 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     //get jason from body request
     const notificationBody = req.body;
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+   //   return null;
+   // }
 
     //query for get notification by id from DB
     let notification = await Notification.findByIdAndUpdate(id, notificationBody, {
@@ -189,10 +189,10 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
 
     //query for get notification by id from DB
     let notification = await Notification.findByIdAndDelete(id).exec();

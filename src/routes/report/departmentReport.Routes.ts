@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { getTokenAndVerify } from "../../tools/authentication";
+//import { getTokenAndVerify } from "../../tools/authentication";
 import { eventDepartmentLogResponse } from "../../tools/createlogReport";
 import { date2Epokh } from "../../tools/convertTime";
 import { ApiError } from "../../error/error.handler";
@@ -27,10 +27,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //get model from url request
     //let model = req.params.model;
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+  //    return null;
+  //  }
     //get page from url
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;

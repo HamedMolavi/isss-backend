@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Camera, { ICamera } from "../../models/camera";
-import { getTokenAndVerify } from "../../tools/authentication";
+//import { getTokenAndVerify } from "../../tools/authentication";
 import takeSnapshot, { cameraInfo } from "../../tools/takeSnaphsot";
 
 //get user role from enviroment variable
@@ -28,10 +28,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
       return next(new ApiError(400, "Please enter id"));
     }
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+  //  let token = getTokenAndVerify(req, const_role, next);
+  // if (!token) {
+  //    return null;
+  //  }
     //query for get camera from DB
     let camera: ICamera | null = await Camera.findById(id).exec();
     //return response not found to client if not found camera

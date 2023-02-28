@@ -16,6 +16,7 @@ import routes from "./routes/index.Routes";
 import { util } from "chai";
 import fileUpload from "express-fileupload";
 import { Server } from "socket.io";
+import { getTokenAndVerify } from "./tools/authentication";
 //initial file .env
 dotenv.config();
 
@@ -24,8 +25,14 @@ export const dbUri = process.env["MONGODB_URL"] as string;
 //export default function server() {
 
 //read key and cert from files for certificate in https server
-const key = fs.readFileSync(__dirname + "/../security/sslconfig/key.pem", "utf-8");
-const cert = fs.readFileSync(__dirname + "/../security/sslconfig/cert.pem", "utf-8");
+const key = fs.readFileSync(
+  __dirname + "/../security/sslconfig/key.pem",
+  "utf-8"
+);
+const cert = fs.readFileSync(
+  __dirname + "/../security/sslconfig/cert.pem",
+  "utf-8"
+);
 const options = {
   key: key,
   cert: cert,
@@ -46,7 +53,13 @@ setUpPassport();
 app.use(cors());
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 }));
+app.use(
+  bodyParser.urlencoded({
+    limit: "50mb",
+    extended: true,
+    parameterLimit: 50000,
+  })
+);
 app.use(bodyParser.text({ limit: "200mb" }));
 app.use(fileUpload());
 app.use(
@@ -93,7 +106,17 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
     message: "Application works!",
   });
 });
-
+//middleware for check and verify token
+app.use((req: Request, res: Response, next: NextFunction) => {
+  //get user role from enviroment variable
+  const const_role = process.env.const_role || "user";
+  //get token from header request and verify
+  let token = getTokenAndVerify(req, const_role, next);
+  if (!token) {
+    return null;
+  }
+  next();
+});
 //add routes app
 app.use("/api/v1", routes);
 

@@ -6,7 +6,7 @@ import CarColor from "../../models/carColor";
 import Personnel from "../../models/personnel";
 import toPersianPlate, { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
 import Car from "./../../models/car";
-import { getTokenAndVerify } from "./../../tools/authentication";
+//import { getTokenAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -32,10 +32,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       return next(new ApiError(400, "Car is required"));
     }
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+   // let token = getTokenAndVerify(req, const_role, next);
+   // if (!token) {
+  //    return null;
+   // }
     //add plate number to json response for sort persian format in font end
     let plateNumber = {
       first: number_plate.first,
@@ -101,10 +101,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+   // let token = getTokenAndVerify(req, const_role, next);
+   // if (!token) {
+   //   return null;
+   // }
 
     //query for get car list from DB
     let cars: any[] = [];
@@ -183,10 +183,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+    //let token = getTokenAndVerify(req, const_role, next);
+   // if (!token) {
+    //  return null;
+    //}
     // let s;
 
     // let test = await Car.find().populate("owner").populate("brand").populate("color");
@@ -238,10 +238,10 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     //get body request
     const carBody = req.body;
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+   // let token = getTokenAndVerify(req, const_role, next);
+   // if (!token) {
+   //   return null;
+   // }
     let plateNumber: any | null = {};
     if (carBody.number_plate) {
       //add plate number to json response for sort persian format in font end
@@ -299,10 +299,10 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     }
 
     //get token from header request and verify
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
+   // let token = getTokenAndVerify(req, const_role, next);
+   // if (!token) {
+    //  return null;
+    //}
 
     //query for get car by id from DB
     let car: any = await Car.findByIdAndDelete(id).exec();
