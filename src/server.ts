@@ -106,20 +106,7 @@ app.get("/", (req: Request, res: Response, next: NextFunction) => {
     message: "Application works!",
   });
 });
-//middleware for check and verify token
-app.use((req: Request, res: Response, next: NextFunction) => {
-  //get user role from enviroment variable
-  const const_role = process.env.const_role || "user";
-  //get token from header request and verify
-  let is_login = RegExp('\\b'+ "login" +'\\b').test(req.originalUrl)
-  if (!is_login) {
-    let token = getTokenAndVerify(req, const_role, next);
-    if (!token) {
-      return null;
-    }
-  }
-  next();
-});
+
 //add routes app
 app.use("/api/v1", routes);
 

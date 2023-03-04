@@ -24,9 +24,28 @@ import notification from "../routes/config/notification.Routes";
 import testSMS from "../routes/config/testSMS.Routes";
 import testEmail from "../routes/config/testEmailSend.Routes";
 import snapshot from "../routes/config/snapshot.Routes";
+import login from "../routes/config/login.Routes";
+import { getTokenAndVerify } from "../tools/authentication";
 
 //create router for add to server
 const router: Router = Router();
+
+router.use("/users/login", login);
+
+//middleware for check and verify token
+router.use((req: Request, res: Response, next: NextFunction) => {
+  //get user role from enviroment variable
+  const const_role = process.env.const_role || "user";
+  //get token from header request and verify
+ // let is_login = RegExp("\\b" + "login" + "\\b").test(req.originalUrl);
+ // if (!is_login) {
+    let token = getTokenAndVerify(req, const_role, next);
+    if (!token) {
+      return null;
+    }
+ // }
+  next();
+});
 
 //add rotes app
 router.use("/users", userRoutes);
