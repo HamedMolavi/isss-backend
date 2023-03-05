@@ -1,5 +1,6 @@
-const onvif = require("node-onvif");
+import axios from "axios";
 
+const onvif = require("node-onvif");
 
 export type cameraInfo = {
   ip: string;
@@ -7,7 +8,7 @@ export type cameraInfo = {
   password: string;
 };
 //take snapshot from camera with ip , username , password
-async function takeSnapshot(camInfo: cameraInfo): Promise<string | null | undefined> {
+async function takeSnapshot(camInfo: cameraInfo) {
   try {
     if (!camInfo.ip || !camInfo.username || !camInfo.password) {
       return null; // input verify
@@ -19,7 +20,7 @@ async function takeSnapshot(camInfo: cameraInfo): Promise<string | null | undefi
       pass: camInfo.password,
     });
     await device.init(); //initial device
-    
+    console.log("fetching the data of the snapshot...");
     let res = await device.fetchSnapshot(); //fetch image from camera
     //convert result from binary to base64
     let mimeType = res.headers["content-type"];
@@ -30,9 +31,7 @@ async function takeSnapshot(camInfo: cameraInfo): Promise<string | null | undefi
     return image;
   } catch (error) {
     console.log(error);
-    
   }
 }
 
 export default takeSnapshot;
-
