@@ -28,10 +28,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
       return next(new ApiError(400, "Please enter id"));
     }
     //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  // if (!token) {
-  //    return null;
-  //  }
+    //  let token = getTokenAndVerify(req, const_role, next);
+    // if (!token) {
+    //    return null;
+    //  }
     //query for get camera from DB
     let camera: ICamera | null = await Camera.findById(id).exec();
     //return response not found to client if not found camera
@@ -45,7 +45,6 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
       password: camera.password,
     };
     let snapshotBase64: string | null | undefined = await takeSnapshot(_camInfo);
-
     if (!snapshotBase64) {
       req.flash("error", "There was a problem on creating the image, please try again");
       return next(new ApiError(404, "There was a problem on creating the image, please try again"));
