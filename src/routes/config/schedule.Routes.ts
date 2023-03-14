@@ -424,11 +424,11 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
       return next(new ApiError(404, "schedule not found"));
     }
 
-    let model2Camera = await ModelToCamera.findByIdAndUpdate(
-      schedule.model_camera_id,
-      { is_enabled: false },
-      { new: true }
-    ).exec();
+    // let model2Camera = await ModelToCamera.findByIdAndUpdate(
+    //   schedule.model_camera_id,
+    //   { is_enabled: false },
+    //   { new: true }
+    // ).exec();
 
     // let model2Camera = await ModelToCamera.findOneAndDelete({sche})
     //return response to client with schedule

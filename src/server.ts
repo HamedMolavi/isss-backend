@@ -25,14 +25,8 @@ export const dbUri = process.env["MONGODB_URL"] as string;
 //export default function server() {
 
 //read key and cert from files for certificate in https server
-const key = fs.readFileSync(
-  __dirname + "/../security/sslconfig/key.pem",
-  "utf-8"
-);
-const cert = fs.readFileSync(
-  __dirname + "/../security/sslconfig/cert.pem",
-  "utf-8"
-);
+const key = fs.readFileSync(__dirname + "/../security/sslconfig/key.pem", "utf-8");
+const cert = fs.readFileSync(__dirname + "/../security/sslconfig/cert.pem", "utf-8");
 const options = {
   key: key,
   cert: cert,
@@ -50,7 +44,11 @@ connect();
 
 setUpPassport();
 //config server
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(
