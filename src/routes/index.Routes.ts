@@ -31,7 +31,7 @@ import { getTokenAndVerify } from "../tools/authentication";
 const router: Router = Router();
 
 router.use("/users/login", login);
-
+router.use("/alerts", alerts);
 //middleware for check and verify token
 router.use((req: Request, res: Response, next: NextFunction) => {
   //get user role from enviroment variable
@@ -64,7 +64,6 @@ router.use("/modelToCameras", modelToCamera);
 router.use("/reports", report);
 router.use("/reportDepartmets", reportDepartments);
 router.use("/departementfiles", reportDepartementfiles);
-router.use("/alerts", alerts);
 router.use("/schedulesreport", schedulesreport);
 router.use("/personImage", PersonImage);
 router.use("/downloadVideo", downloadVideo);
