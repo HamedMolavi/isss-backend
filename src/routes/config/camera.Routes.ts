@@ -193,7 +193,6 @@ router.post("/getIdStream", async function (req: Request, res: Response, next: N
         },
       }
     );
-    console.log(response.data);
     if (response.status === 200 && response.data != "") {
       //send response to client with camera
       return res.status(200).json({

@@ -28,11 +28,13 @@ export async function getStreamUri(camInfo: CameraInfo): Promise<string | undefi
   } catch (error) {
     console.log(error);
     const SAMPLE_STREAM_URI = process.env["SAMPLE_STREAM_URI"];
+    const WORD_BEFORE_REPLACE_STREAM = process.env["WORD_BEFORE_REPLACE_STREAM"] ?? "c";
+    const WORD_AFTER_REPLACE_STREAM = process.env["WORD_AFTER_REPLACE_STREAM"] ?? "c1";
     let url_nvr = SAMPLE_STREAM_URI?.replace(
       /\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,
-      "{username}:{password}@{ip}:554"
+      "{username}:{password}@{ip}"
     );
-    url_nvr = url_nvr?.replace("c0", "c" + camInfo.nvr);
+    url_nvr = url_nvr?.replace( WORD_BEFORE_REPLACE_STREAM , WORD_AFTER_REPLACE_STREAM + camInfo.nvr);
     return url_nvr;
   }
 }
