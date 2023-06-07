@@ -3,6 +3,7 @@ import path from "path";
 import { requestForGetPersonnel } from "../../db/connectElasticSearch";
 import { ApiError } from "../../error/error.handler";
 import Camera from "../../models/camera";
+import url from "url"
 import PersonImage from "../../models/personImage";
 import { deleteDirectory, uploadAvatar } from "../../tools/fileUpload";
 import Personnel, { IPersonnel } from "./../../models/personnel";
@@ -21,6 +22,8 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
   res.locals.infos = req.flash("info");
   next();
 });
+
+
 
 //add route for register new personnel
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
@@ -87,6 +90,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
 //route for get personnels list
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
   try {
+
     //get page from url
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -180,7 +184,27 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 // }
 
 
+router.get("/search", async function (req: Request, res: Response, next: NextFunction) {
+  try {
+    var query = url.parse(req.url,true).query.params as string ;
 
+const regex = new RegExp(query, 'i') 
+    let personnel = await Personnel.find({$or:[
+      {first_name:{$regex: regex}},
+      {last_name:{$regex: regex}},
+      {national_code:{$regex: regex}},
+      {personnel_code:{$regex: regex}},
+      {phone_number:{$regex: regex}}]})
+      .exec();
+        return res.status(200).json({
+      success: true,
+      data: personnel,
+    });
+
+   } catch (err: any) {
+    return next(new ApiError(500, "Internal server error , " + err.message));
+   }
+});
 
 //route for get personnel by id from DB
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
@@ -222,6 +246,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
   try {
     //get id from url
     let id: string = req.params.id;
+
     if (!id) {
       req.flash("error", "Please enter id");
       return next(new ApiError(400, "Please enter id"));

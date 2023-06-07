@@ -140,9 +140,7 @@ export const io = new Server(server, {
 export default app;
 
 export const setResponseBody = (req: any, res: any, next: any) => {
-  const oldWrite = res.write,
-    oldEnd = res.end,
-    chunks: any = [];
+  const oldWrite = res.write,oldEnd = res.end,chunks: any = [];
 
   res.write = function (chunk: any) {
     chunks.push(Buffer.from(chunk));
