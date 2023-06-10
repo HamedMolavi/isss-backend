@@ -69,6 +69,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //create json for send to client
     let result = {
       title: _personnel != null ? "Alerting" : "Warnings",
+      tracked:_personnel?.tracked,
       type: bodyRequest.type,
       confidence: bodyRequest.log.confidence,
       camera: _camera?.name,
