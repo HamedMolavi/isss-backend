@@ -17,6 +17,7 @@ export interface IPersonnel extends Document {
   is_active: boolean;
   is_employee: boolean;
   is_dismissed: boolean;
+  tracked:boolean;
   create_date: Date;
 }
 
