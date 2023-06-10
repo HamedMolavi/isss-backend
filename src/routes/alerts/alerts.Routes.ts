@@ -173,6 +173,13 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       //   });
       // }, 20000);
     }
+    else{
+      if(_personnel?.tracked===true)
+      {
+        io.emit("get alert", notification);
+      }
+      
+    }
     //get all notification for send email or sms
     let notifications = await Notification.find().exec(); //query for get all notification
     for (let notif of notifications) {
