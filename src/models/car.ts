@@ -8,9 +8,9 @@ export interface ICar extends Document {
     brand: Schema.Types.ObjectId;
     color: Schema.Types.ObjectId;
     camera_whitelist: Schema.Types.ObjectId[];
+    tracked:boolean;
     create_date: Date;
 }
-
 
 //create car model with schema for save in DB
 const CarSchema: Schema<ICar> = new Schema({
@@ -19,6 +19,7 @@ const CarSchema: Schema<ICar> = new Schema({
     brand: { type: Schema.Types.ObjectId, ref: "Car_Brand" },
     color: { type: Schema.Types.ObjectId, ref: "Car_Color" },
     camera_whitelist: [Schema.Types.ObjectId],
+    tracked: { type: Boolean, default: false },
     create_date: { type: Date, default: Date.now }
 },{
     collection: "Car"

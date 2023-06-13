@@ -50,9 +50,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       _departement = await Department.findById(_camera?.section_id.department_id).exec(); //get departemant with section_id
     }
     //get plate and owner from DB
-    let _owner: any;
+    let _car: any;
     if (bodyRequest.log.plate_number) {
-      _owner = await Car.findOne({ number_plate: bodyRequest.log.plate_number }).populate("owner").exec();
+      _car = await Car.findOne({ number_plate: bodyRequest.log.plate_number }).populate("owner").exec();
+
     }
     let _personnel;
     if (bodyRequest.log.personnel_id != null && isNaN(Number(bodyRequest.log.personnel_id))) {
@@ -69,7 +70,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //create json for send to client
     let result = {
       title: _personnel != null ? "Alerting" : "Warnings",
-      tracked:_personnel?.tracked,
+      tracked:_personnel?.tracked !=null ?_personnel?.tracked: (_car?.tracked!=null ?_car?.tracked:null) ,
       type: bodyRequest.type,
       confidence: bodyRequest.log.confidence,
       camera: _camera?.name,
@@ -82,7 +83,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       time: bodyRequest.log.timestamp,
       peopleCounting: bodyRequest.log.number_of_people,
       plate_number: bodyRequest.log.plate_number,
-      owner: _owner?.owner?.first_name + " " + _owner?.owner?.last_name,
+      owner: _car?.owner?.first_name + " " + _car?.owner?.last_name,
       cause : bodyRequest.cause,
     };
 
@@ -174,7 +175,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       // }, 20000);
     }
     else{
-      if(_personnel?.tracked===true)
+      if(_personnel?.tracked===true||_car?.tracked)
       {
         io.emit("get alert", notification);
       }

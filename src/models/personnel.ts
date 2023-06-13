@@ -36,6 +36,7 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
     is_active: { type: Boolean, default: false },
     is_employee: { type: Boolean, default: false },
     is_dismissed: { type: Boolean, default: false },
+    tracked: { type: Boolean, default: false },
     create_date: { type: Date, default: Date.now },
   },
   {
@@ -71,6 +72,7 @@ PersonnelSchema.methods.toJSON =function () {
     is_employee: this.is_employee,
     is_dismissed: this.is_dismissed,
     create_date: this.create_date,
+    tracked:this.tracked,
     image_url: have_avatar === true ? BASE_URL + "/files/download/" + this._id : BASE_URL + "/files/download/default"
   };
 };
