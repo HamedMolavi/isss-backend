@@ -1,7 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import { send_email } from "../../tools/sendEmail";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { Access } from "../../tools/enums/access";
+import { getAccessAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -21,7 +22,7 @@ let limit_send_email: string[] = [];
 
 //route for test send email
 router.get("/:email", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let email: string = req.params.email;
     if (!email) {

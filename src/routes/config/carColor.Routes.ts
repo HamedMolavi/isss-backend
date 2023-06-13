@@ -1,7 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import CarColor, { ICarColor } from "./../../models/carColor";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { Access } from "../../tools/enums/access";
+import { getAccessAndVerify } from "./../../tools/authentication";
 
 
 
@@ -23,6 +24,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 //add route for register new car_color
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        getAccessAndVerify(req,Access.Configuration,"user",next)
         //get jason from body request
         const { name } = req.body;
         //verify body request

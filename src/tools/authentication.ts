@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
 import { Request } from "express";
 import { ApiError } from "../error/error.handler";
-
+import { Access } from "../tools/enums/access";
+import User, { IUser, setPassword } from "../models/user";
 //define token type after verify
 export interface ICritential {
   id: string;
@@ -60,6 +61,38 @@ export function getTokenAndVerify(req: Request, role: string, next: Function) {
     } else {
       return token;
     }
+  } catch (e: any) {
+    //return error if token not verify
+    next(new ApiError(401, "Internal server error token not verify -> " + e.message));
+  }
+}
+//get token from header request client and verify
+export async function getAccessAndVerify(req: Request,access:Access, role: string, next: Function) {
+  try {
+    //get token from header request
+    let token: string = getToken(req, next) as string;
+    //send error if token not found
+
+    //verify token
+    let cridential = authorize(token) as ICritential;
+    //check time expire token and role
+    let _user =await User.findById(cridential.id).exec();
+
+  
+    if(!(_user&&_user[access]==true))
+    {
+       req.flash("error", "No access,"+access+" access needed.");
+     return next(new ApiError(401, "No access"));
+    }
+    else if (cridential.role !== "admin" && role === "admin") {
+        req.flash("error", "You are not admin");
+       return next(new ApiError(401, "You are not admin"));
+    }
+    else  
+    {
+      return _user; 
+    }
+
   } catch (e: any) {
     //return error if token not verify
     next(new ApiError(401, "Internal server error token not verify -> " + e.message));

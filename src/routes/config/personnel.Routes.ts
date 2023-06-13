@@ -7,7 +7,8 @@ import url from "url"
 import PersonImage from "../../models/personImage";
 import { deleteDirectory, uploadAvatar } from "../../tools/fileUpload";
 import Personnel, { IPersonnel } from "./../../models/personnel";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { Access } from "../../tools/enums/access";
+import { getAccessAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -27,7 +28,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 //add route for register new personnel
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get jason from body request
     const { first_name, last_name, national_code, email, phone_number, job_id,tracked, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, avatar_str } =
       req.body;
@@ -244,7 +245,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 
 //add route for edit personnel
 router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try { getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id: string = req.params.id;
 
@@ -287,7 +288,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 
 //add route for delete personnel
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try { getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id = req.params.id;
     if (!id) {

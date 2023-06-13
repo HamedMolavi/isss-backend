@@ -3,6 +3,8 @@ import fs from "fs";
 import path from "path";
 import { ApiError } from "../../error/error.handler";
 import { getPathFromIdTime } from "../../tools/getPathFromIdTiem";
+import { Access } from "../../tools/enums/access";
+import {getAccessAndVerify} from "../../tools/authentication";
 var ffmpeg = require("fluent-ffmpeg");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -19,7 +21,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
-  try {
+  try {getAccessAndVerify(req,Access.Camera,"user",next)
     //get parameter from url
     const dataVideo: string = req.params.id;
     const dataVideoList: string[] = dataVideo?.split(".");

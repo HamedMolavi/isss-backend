@@ -19,6 +19,7 @@ export interface IUser {
   configuration: boolean;
   views: boolean;
   created_date: Date;
+  camera_access:mongoose.Types.ObjectId[];
 }
 
 interface IUserDocument extends IUser, Document {
@@ -48,6 +49,7 @@ const UserSchema: Schema<IUserDocument> = new Schema(
     configuration: { type: Boolean, default: false },
     role: { type: String, required: true },
     created_date: { type: Date, default: Date.now },
+    camera_access:{type:[mongoose.Types.ObjectId],ref:"camera",default:[]}
   },
   {
     collection: "User",
@@ -140,6 +142,7 @@ UserSchema.methods.toJSON = function () {
     report: this.report,
     configuration: this.configuration,
     create_date: this.created_date,
+    camera_access:this.camera_access
   };
 };
 
@@ -157,6 +160,7 @@ UserSchema.methods.toAuthJSON = function (is_remember: boolean) {
     report: this.report,
     configuration: this.configuration,
     create_date: this.created_date,
+    camera_access:this.camera_access,
     token: this.generateJWT(is_remember),
   };
 };

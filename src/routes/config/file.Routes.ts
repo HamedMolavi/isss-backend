@@ -1,12 +1,13 @@
 import { setFileInRedis, getImageFromRedis, deleteImageInRedis, uploadAvatar } from "./../../tools/fileUpload";
 import { NextFunction, Router, Request, Response } from "express";
 import fs from "fs";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { getAccessAndVerify } from "./../../tools/authentication";
 import axios from "axios";
 import path from "path";
 import PersonImage from "./../../models/personImage";
 import { hashJson } from "./../../tools/hash";
 import { ApiError } from "../../error/error.handler";
+import { Access } from "../../tools/enums/access";
 
 //create router for add to server
 const router: Router = Router();
@@ -29,6 +30,7 @@ type resultType = {
 //create api for upload image
 router.post("/upload", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get personnel_code from url
     const { perssonel_id, image_str } = req.body;
     if (!perssonel_id || !image_str) {
@@ -125,7 +127,7 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
 
 //api for upload image to redis
 router.post("/redis", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {    getAccessAndVerify(req,Access.Configuration,"user",next)
     // get id from request url
     const { personnel_id, image_str } = req.body;
     const image_str_base46 = String(image_str.split(",")[1]);
@@ -190,6 +192,7 @@ router.post("/redis", async function (req: Request, res: Response, next: NextFun
 //route for verified image in redis
 router.post("/verify", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get body from request
     const requestBody = req.body;
     if (!requestBody.id) {

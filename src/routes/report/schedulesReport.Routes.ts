@@ -5,9 +5,10 @@ import Camera, { ICamera } from "../../models/camera";
 import Departement from "../../models/department";
 import { IModel } from "../../models/model";
 import Model from "../../models/model";
-//import { getTokenAndVerify } from "../../tools/authentication";
+import { getAccessAndVerify } from "../../tools/authentication";
 import Schedule, { ISchedule } from "../../models/schedule";
 import ModelToCamera, { IModelToCamera } from "../../models/modelToCamera";
+import { Access } from "../../tools/enums/access";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -62,7 +63,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 //route for get departementfile list
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"user",next)
     //get token from header request and verify
   //  let token = getTokenAndVerify(req, const_role, next);
   //  if (!token) {
@@ -178,7 +179,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
 //route for get departementfile list
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"user",next)
     let id = req.params.id;
     //get token from header request and verify
    // let token = getTokenAndVerify(req, const_role, next);

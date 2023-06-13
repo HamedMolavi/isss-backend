@@ -6,7 +6,8 @@ import CarColor from "../../models/carColor";
 import Personnel from "../../models/personnel";
 import toPersianPlate, { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
 import Car from "./../../models/car";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { Access } from "../../tools/enums/access";
+import { getAccessAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -25,6 +26,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 //add route for register new car
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get jason from body request
     const { owner, number_plate, brand, color, camera_whitelist } = req.body;
     if (!owner || !number_plate || !brand || !color || !camera_whitelist) {
@@ -175,6 +177,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 //route for get car by id from DB
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
+
     //get id from url
     let id: string = req.params.id;
     if (!id) {
@@ -227,6 +230,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for edit car
 router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id: string = req.params.id;
 
@@ -291,6 +295,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 //add route for delete car
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"user",next)
     let id: string = req.params.id;
     //verify body request
     if (!id) {

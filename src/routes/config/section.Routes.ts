@@ -1,7 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Section, { ISection } from "./../../models/section";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { Access } from "../../tools/enums/access";
+import { getAccessAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -19,7 +20,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 //add route for register new section
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"user",next)
     //get jason from body request
     const { name, department_id }: ISection = req.body;
     //verify body request
@@ -148,7 +149,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 
 //add route for edit section
 router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id = req.params.id as Object;
     if (!id) {
@@ -196,7 +197,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 
 //add route for delete section
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id = req.params.id;
     if (!id) {

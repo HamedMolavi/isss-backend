@@ -1,7 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import { send_sms } from "../../tools/sendSms";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { Access } from "../../tools/enums/access";
+import { getAccessAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -21,7 +22,7 @@ let limit_send_sms: string[] = [];
 
 //route for test send sms
 router.get("/:phone_number", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let phone_number: string = req.params.phone_number;
     if (!phone_number) {
