@@ -185,6 +185,11 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
    //   return null;
   //  }
     //query for get user by username from DB
+    let resultVerifyPassword = getStrength( userBody.password );
+    if (resultVerifyPassword < 99) {
+      req.flash("error", "Password is not strong enough");
+      return next(new ApiError(400, "Password is not strong enough"));
+    }
     let user = await User.findByIdAndUpdate(id, userBody, {
       new: true,
     }).exec();

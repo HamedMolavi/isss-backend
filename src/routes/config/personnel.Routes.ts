@@ -29,10 +29,11 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get jason from body request
-    const { first_name, last_name, national_code, email, phone_number, job_id, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, avatar_str } =
+    const { first_name, last_name, national_code, email, phone_number, job_id,tracked, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, avatar_str } =
       req.body;
+      
     //verify body request
-    if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code || !section_id || !camera_whitelist) {
+    if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code || !section_id || !camera_whitelist||!tracked) {
       req.flash("error", "Please fill all fields");
       return next(new ApiError(400, "Please fill all fields"));
     }
@@ -52,7 +53,6 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       req.flash("error", "Personnel already exists");
       return next(new ApiError(400, "Personnel already exists"));
     }
-
     //create new personnel
     personnel = new Personnel({
       first_name,
@@ -61,6 +61,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       email,
       phone_number,
       job_id,
+      tracked,
       personnel_code,
       section_id,
       camera_whitelist,
