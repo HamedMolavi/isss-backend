@@ -6,8 +6,9 @@ import Model from "../../models/model";
 import ModelToCamera from "../../models/modelToCamera";
 import Schedule from "../../models/schedule";
 import Camera, { ICamera } from "./../../models/camera";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { getAccessAndVerify } from "./../../tools/authentication";
 import { CameraInfo, getStreamUri } from "../../tools/camera.tools";
+import { Access } from "../../tools/enums/access";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -20,12 +21,14 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
   res.locals.currentUser = req.user;
   res.locals.errors = req.flash("error");
   res.locals.infos = req.flash("info");
+  
   next();
 });
 
 //add route for register new camera
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get jason from body request
     const { section_id, nvr, ip, name, username, password, network, is_enabled, muted }: ICamera = req.body;
     //verify body request
@@ -106,6 +109,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
 //route for get cameras list
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
   try {
+
     //get page from url
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -248,6 +252,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for edit camera
 router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id: string = req.params.id;
     if (!id) {
@@ -283,6 +288,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 //add route for delete camera
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id = req.params.id;
     if (!id) {

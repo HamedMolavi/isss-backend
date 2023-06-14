@@ -1,7 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import JobTitle, { IJobTitle } from "./../../models/jobTitle";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { Access } from "../../tools/enums/access";
+import { getAccessAndVerify } from "./../../tools/authentication";
 
 
 //get user role from enviroment variable
@@ -23,6 +24,7 @@ router.post(
   "",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
+      getAccessAndVerify(req,Access.Configuration,"user",next)
       //get jason from body request
       const { name } = req.body;
       //verify body request
@@ -161,6 +163,7 @@ router.patch(
   "/:id",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
+      getAccessAndVerify(req,Access.Configuration,"user",next)
       //get id from url
       let id: string = req.params.id;
       if (!id) {
@@ -201,6 +204,7 @@ router.delete(
   "/:id",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
+      getAccessAndVerify(req,Access.Configuration,"user",next)
       //get id from url
       let id: string = req.params.id;
       if (!id) {

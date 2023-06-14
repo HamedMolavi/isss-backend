@@ -1,8 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import User, { IUser, setPassword } from "../../models/user";
-//import { getTokenAndVerify } from "../../tools/authentication";
+import { getAccessAndVerify } from "../../tools/authentication";
 import { getStrength } from "../../tools/verifyPasswordRegex";
+import { Access } from "../../tools/enums/access";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -20,7 +21,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 //add route for register new user
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"admin",next)
     //get jason from body request
     const { username, password, phone_number, event, camera, report, configuration }: IUser = req.body;
 
@@ -79,7 +80,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
 
 //route for get users list
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"admin",next)
     //get page from url
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -130,7 +131,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
 //route for get user by id from DB
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"admin",next)
     //get id from url
     let id: string = req.params.id;
     if (!id) {
@@ -166,6 +167,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for edit user
 router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"admin",next)
     //get id from url
     let id: string = req.params.id as string;
     if (!id) {
@@ -175,8 +177,15 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     let _user =await User.findById(id).exec();
     //get jason from body request
     const userBody = req.body;
+
+    
     if (_user &&  userBody.password){
-      userBody.password =await setPassword(userBody?.password,_user?.username);
+      let resultVerifyPassword = getStrength( userBody.password );
+    if (resultVerifyPassword < 99) {
+      req.flash("error", "Password is not strong enough");
+      return next(new ApiError(400, "Password is not strong enough"));
+    }
+    userBody.password =await setPassword(userBody?.password,_user?.username);
     }
 
     //get token from header request and verify
@@ -185,11 +194,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
    //   return null;
   //  }
     //query for get user by username from DB
-    let resultVerifyPassword = getStrength( userBody.password );
-    if (resultVerifyPassword < 99) {
-      req.flash("error", "Password is not strong enough");
-      return next(new ApiError(400, "Password is not strong enough"));
-    }
+
     let user = await User.findByIdAndUpdate(id, userBody, {
       new: true,
     }).exec();
@@ -213,6 +218,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 //add route for delete user
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"admin",next)
     //get id from url
     let id = req.params.id;
     if (!id) {

@@ -1,7 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Departement , {IDepartment} from "../../models/department";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { Access } from "../../tools/enums/access";
+import { getAccessAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -22,6 +23,7 @@ router.post(
   "",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
+      getAccessAndVerify(req,Access.Configuration,"user",next)
       //get jason from body request
       const { name, created_date } = req.body;
       //verify body request
@@ -158,6 +160,7 @@ router.patch(
   "/:id",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
+      getAccessAndVerify(req,Access.Configuration,"user",next)
       //get id from url
       let id: string = req.params.id;
 
@@ -198,6 +201,7 @@ router.patch(
 //add route for delete departement
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
   try {
+    getAccessAndVerify(req,Access.Configuration,"user",next)
     let id: string = req.params.id;
     //verify body request
     if (!id) {

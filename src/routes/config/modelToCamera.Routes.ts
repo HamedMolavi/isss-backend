@@ -3,8 +3,9 @@ import { ApiError } from "../../error/error.handler";
 import Camera from "../../models/camera";
 import Model from "../../models/model";
 import ModelToCamera, { IModelToCamera } from "../../models/modelToCamera";
-//import { getTokenAndVerify } from "../../tools/authentication";
+import { getAccessAndVerify } from "../../tools/authentication";
 import { convertToCron, convertToCronDay } from "../../tools/convertTime";
+import { Access } from "../../tools/enums/access";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -22,7 +23,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 //add route for register modelToCamera
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {      getAccessAndVerify(req,Access.Configuration,"user",next)
     //get jason from body request
     const { camera_id, start, stop, dayOfWeek, model_id } = req.body;
     //verify body request
@@ -186,7 +187,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
 //add route for edit modelToCamera
 router.patch("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {  getAccessAndVerify(req,Access.Configuration,"user",next)
     //get camera_id and model_id from body
     let { camera_id, model_id, is_enabled } = req.body;
     if (!camera_id || !model_id) {

@@ -32,11 +32,11 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
     job_id: { type: Schema.Types.ObjectId, ref: "JobTitle", required: true },
     personnel_code: { type: String, required: true },
     section_id: { type: Schema.Types.ObjectId, ref: "Section", required: true },
-    camera_whitelist: [Schema.Types.ObjectId],
+    camera_whitelist:{type: [Schema.Types.ObjectId]},
     is_active: { type: Boolean, default: false },
     is_employee: { type: Boolean, default: false },
     is_dismissed: { type: Boolean, default: false },
-    tracked: { type: Boolean, default: false },
+    tracked: { type: Boolean, default: false},
     create_date: { type: Date, default: Date.now },
   },
   {

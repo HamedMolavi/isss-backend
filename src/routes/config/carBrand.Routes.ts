@@ -1,7 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import CarBrand, { ICarBrand } from "./../../models/carBrand";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { Access } from "../../tools/enums/access";
+import { getAccessAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -23,6 +24,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 //add route for register new car_brand
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
+        getAccessAndVerify(req,Access.Configuration,"user",next)
         //get jason from body request
         const { name,tracked } = req.body;
         //verify body request
@@ -144,6 +146,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for delete car_brand by id from DB
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
+        getAccessAndVerify(req,Access.Configuration,"user",next)
         //get id from url
         let id: string = req.params.id;
         if (!id) {

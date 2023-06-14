@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import Schedule, { ISchedule } from "./../../models/schedule";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { getAccessAndVerify } from "./../../tools/authentication";
 import {
   compareTime,
   convertToCron,
@@ -9,6 +9,7 @@ import {
 } from "./../../tools/convertTime";
 import ModelToCamera from "./../../models/modelToCamera";
 import { ApiError } from "../../error/error.handler";
+import { Access } from "../../tools/enums/access";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -43,7 +44,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 router.post(
   "",
   async function (req: Request, res: Response, next: NextFunction) {
-    try {
+    try { getAccessAndVerify(req,Access.Configuration,"user",next)
       //get jason from body request
       const {
         start,
@@ -279,7 +280,7 @@ router.get(
 router.patch(
   "/:id",
   async function (req: Request, res: Response, next: NextFunction) {
-    try {
+    try {getAccessAndVerify(req,Access.Configuration,"user",next)
       //get id from url
       let id: string = req.params.id;
       if (!id) {
@@ -402,7 +403,7 @@ router.patch(
 
 //add route for delete schedule
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id: string = req.params.id;
     if (!id) {

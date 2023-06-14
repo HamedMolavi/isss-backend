@@ -1,7 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import Notification, { INotification } from "../../models/notification";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import { Access } from "../../tools/enums/access";
+import { getAccessAndVerify } from "./../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -19,7 +20,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 //add route for register new notification
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {  getAccessAndVerify(req,Access.Configuration,"user",next)
     //get jason from body request
     const newNotif: INotification = req.body;
     //verify body request
@@ -180,7 +181,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 
 //add route for delete notification
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
+  try {getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id = req.params.id;
     if (!id) {
