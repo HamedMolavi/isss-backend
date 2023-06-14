@@ -177,13 +177,15 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     let _user =await User.findById(id).exec();
     //get jason from body request
     const userBody = req.body;
-    let resultVerifyPassword = getStrength( userBody.password );
+
+    
+    if (_user &&  userBody.password){
+      let resultVerifyPassword = getStrength( userBody.password );
     if (resultVerifyPassword < 99) {
       req.flash("error", "Password is not strong enough");
       return next(new ApiError(400, "Password is not strong enough"));
     }
-    if (_user &&  userBody.password){
-      userBody.password =await setPassword(userBody?.password,_user?.username);
+    userBody.password =await setPassword(userBody?.password,_user?.username);
     }
 
     //get token from header request and verify

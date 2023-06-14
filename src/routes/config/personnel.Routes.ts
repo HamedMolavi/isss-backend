@@ -34,7 +34,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       req.body;
       
     //verify body request
-    if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code || !section_id || !camera_whitelist||!tracked) {
+    if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code || !section_id || !camera_whitelist) {
       req.flash("error", "Please fill all fields");
       return next(new ApiError(400, "Please fill all fields"));
     }
