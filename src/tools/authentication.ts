@@ -78,12 +78,15 @@ export async function getAccessAndVerify(req: Request,access:Access, role: strin
     //check time expire token and role
     let _user =await User.findById(cridential.id).exec();
 
-    
-    if(!(_user&&_user[access]==true))
+    if(cridential.role !== "admin")
     {
-       req.flash("error", "No access => "+access+" access needed.");
-     return next(new ApiError(403, "No access => "+access+" access needed."));
+      if(!(_user&&_user[access]==true))
+      {
+         req.flash("error", "No access => "+access+" access needed.");
+       return next(new ApiError(403, "No access => "+access+" access needed."));
+      }
     }
+
     else if (cridential.role !== "admin" && role === "admin") {
         req.flash("error", "You are not admin");
        return next(new ApiError(403, "You are not admin"));

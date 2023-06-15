@@ -89,6 +89,9 @@ export async function plateLogResponse(
 
     //define json for add in list response data
     let result = {
+      camera_type:        cameras.find((cam) => {
+        if (cam._id.toString() == log._source.camera_id.toString()) return cam.camera_type;
+      })?.camera_type ?? "",
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
@@ -149,6 +152,9 @@ export async function humanLogResponse(response: any, allowed: boolean | undefin
     });
     let result = {
       camera_id: log._source.camera_id,
+      camera_type:        cameras.find((cam) => {
+        if (cam._id.toString() == log._source.camera_id.toString()) return cam.camera_type;
+      })?.camera_type ?? "",
       camera:
         cameras.find((cam) => {
           if (cam._id.toString() == log._source.camera_id.toString()) return cam.name;
@@ -207,6 +213,9 @@ export async function faceLogResponse(response: any, allowed: boolean | undefine
     });
 
     let result = {
+      camera_type:        cameras.find((cam) => {
+        if (cam._id.toString() == log._source.camera_id.toString()) return cam.camera_type;
+      })?.camera_type ?? "",
       camera_id: log._source.camera_id,
       camera:
         cameras.find((cam) => {
@@ -272,6 +281,9 @@ export async function eventLogResponse(response: any, timezone: string) {
       number_plate = english2Persian(log?._source?.log?.plate_number);
     }
     let result = {
+      camera_type:        cameras.find((cam) => {
+        if (cam._id.toString() == log._source.camera_id.toString()) return cam.camera_type;
+      })?.camera_type ?? "",
       title: _personnel != null ? "Alerting" : "Warnings",
       type: log._source.type,
       cause: log._source.cause,
