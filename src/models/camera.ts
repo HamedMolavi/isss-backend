@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { CameraTypes } from "../tools/enums/camera";
 
 //define camera type
 export interface ICamera extends Document {
@@ -14,6 +15,8 @@ export interface ICamera extends Document {
   muted : Schema.Types.ObjectId[];
   is_enabled: boolean;
   create_date: Date;
+  camera_type:CameraTypes;
+
 }
 
 //create camera model with schema for save in DB
@@ -30,6 +33,7 @@ const CameraSchema: Schema<ICamera> = new Schema(
     muted: [Schema.Types.ObjectId],
     is_enabled: { type: Boolean, required: true },
     create_date: { type: Date, default: Date.now },
+    camera_type: { type: String, required: true }
   },
   {
     collection: "Camera",

@@ -30,9 +30,9 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
   try {
     getAccessAndVerify(req,Access.Configuration,"user",next)
     //get jason from body request
-    const { section_id, nvr, ip, name, username, password, network, is_enabled, muted }: ICamera = req.body;
+    const { section_id, nvr, ip, name, username, password, network, is_enabled, muted ,camera_type}: ICamera = req.body;
     //verify body request
-    if (!section_id || !ip || !name || !username || !password || !network) {
+    if (!section_id || !ip || !name || !username || !password || !network||!camera_type) {
       req.flash("error", "please complete all fields");
       return next(new ApiError(400, "please complete all fields"));
     }
@@ -79,6 +79,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       password: password,
       muted: muted,
       is_enabled: is_enabled,
+      camera_type:camera_type
     });
 
     //save camera in DB

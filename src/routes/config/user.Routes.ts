@@ -1,9 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import User, { IUser, setPassword } from "../../models/user";
-import { getAccessAndVerify } from "../../tools/authentication";
+import { ICritential, getAccessAndVerify, getToken, getTokenAndVerify } from "../../tools/authentication";
 import { getStrength } from "../../tools/verifyPasswordRegex";
 import { Access } from "../../tools/enums/access";
+import { authorize } from "../../tools/authentication";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -289,4 +290,78 @@ router.post("/login", async function (req: Request, res: Response, next: Functio
   }
 });
 
+router.patch("/reset-password/:id", async function (req: Request, res: Response, next: NextFunction) {
+  try {
+    // getAccessAndVerify(req,Access.Configuration,"user",next)
+    //get id from url
+    let id: string = req.params.id as string;
+    if (!id) {
+      req.flash("error", "Please enter id");
+      return next(new ApiError(400, "Please enter id"));
+    }
+    
+    //get jason from body request
+    let { current_password, new_password } = req.body;
+
+    let token: string = getToken(req, next) as string;
+    //send error if token not found
+    if (!token) {
+      next(new ApiError(401, "Unauthorized"));
+      return null;
+    }
+    //verify token
+    let critential = authorize(token) as ICritential;
+    let _user =await User.findById(critential.id).exec();
+    if (!_user) {
+      return next(new ApiError(404, "User not found"));
+    }
+    getTokenAndVerify(req, "user", next);
+
+
+    if (_user &&  current_password&&new_password){
+      let resultVerifyPassword = getStrength( new_password );
+      let isMatch = await _user.checkPassword(current_password, (err: any, isMatch: any) => {
+        if (err) {
+          return next(new ApiError(500, "internal server error , " + err.message));
+        }
+        return isMatch;
+      });
+      if (!isMatch) {
+        return next(new ApiError(401, "Password is incorrect"));
+      }
+    if (resultVerifyPassword < 99) {
+      req.flash("error", "Password is not strong enough");
+      return next(new ApiError(400, "Password is not strong enough"));
+    }
+ 
+    _user.password =await setPassword(new_password,_user?.username);
+
+    }
+
+    //get token from header request and verify
+  //  let token = getTokenAndVerify(req, const_role, next);
+  //  if (!token) {
+   //   return null;
+  //  }
+    //query for get user by username from DB
+
+    let user = await User.findByIdAndUpdate(id, _user, {
+      new: true,
+    }).exec();
+
+    //send not found if user not found
+    if (!user) {
+      req.flash("error", "User not found");
+      return next(new ApiError(404, "User not found"));
+    }
+
+    //send response
+    return res.status(201).json({
+      success: true,
+      data: user,
+    });
+  } catch (err: any) {
+    return next(new ApiError(500, "internal server error , " + err.message));
+  }
+});
 export default router;

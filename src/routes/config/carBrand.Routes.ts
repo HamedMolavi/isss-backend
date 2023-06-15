@@ -26,7 +26,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     try {
         getAccessAndVerify(req,Access.Configuration,"user",next)
         //get jason from body request
-        const { name,tracked } = req.body;
+        const { name } = req.body;
         //verify body request
         if (!name) {
             req.flash("error", "Car brand is required");
@@ -48,7 +48,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         //fill new car_brand
         let newCarBrand = new CarBrand({
             name: name,
-            tracked:tracked
+         
         });
         //query for save new car_brand in DB
         await newCarBrand.save();

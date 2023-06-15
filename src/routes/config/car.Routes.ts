@@ -28,7 +28,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
   try {
     getAccessAndVerify(req,Access.Configuration,"user",next)
     //get jason from body request
-    const { owner, number_plate, brand, color, camera_whitelist } = req.body;
+    const { owner, number_plate, brand, color, camera_whitelist,tracked } = req.body;
     if (!owner || !number_plate || !brand || !color || !camera_whitelist) {
       req.flash("error", "Car is required");
       return next(new ApiError(400, "Car is required"));
@@ -65,6 +65,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       brand: brand,
       color: color,
       camera_whitelist: camera_whitelist,
+      tracked:tracked
     });
     //query for save new car in DB
     await newCar.save();
@@ -84,6 +85,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         brand: newCar.brand,
         color: newCar.color,
         camera_whitelist: camera_whitelist,
+        
       },
     });
   } catch (err: any) {
