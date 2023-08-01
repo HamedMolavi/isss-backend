@@ -1,159 +1,64 @@
-import express, { Application, NextFunction, Request, Response } from "express";
-import fs from "fs";
+//initial file .env
+import extraEnvConfigs from "./config/env.config";
+extraEnvConfigs();
+const { OPTIONS, PORT_HTTPS, PORT_HTTP, HOST, MONGODB_URL, REDIS_URL } = process.env;
+//imports
 import http from "http";
 import https from "https";
-import logger from "morgan";
-import connect from "./db/connectMongo";
-import dotenv from "dotenv";
-import cors from "cors";
-import bodyParser from "body-parser";
-import cookieParser from "cookie-parser";
-import session from "express-session";
-import flash from "connect-flash";
-import setUpPassport from "./tools/setuppassport";
-import passport from "passport";
-import routes from "./routes/index.Routes";
-import { util } from "chai";
-import fileUpload from "express-fileupload";
-import { Server } from "socket.io";
-import { getTokenAndVerify } from "./tools/authentication";
-//initial file .env
-dotenv.config();
+import { setExceptionHandler } from "./error/process.handler";
+import app from "./apps/app.Application";
+import { setupRooms } from "./setups/rooms.setup";
+import { setupInteractive } from "./setups/interactiveShell.setup";
+import { MediaServer } from "./apps/kafka.Application";
+import connectToDBs from "./db/index.database";
+import ioServer from "./apps/socket.Application";
 
-export const dbUri = process.env["MONGODB_URL"] as string;
+setExceptionHandler();
 
-//export default function server() {
+export const serversPromise =
+  setupInteractive() // Interactive Sehll
+    .then(async _ => await connectToDBs({ mongo: MONGODB_URL, redis: REDIS_URL })) // returns {mongo, redis} in case you need it
+    .then(async _ => await setupRooms()) // returns the rooms if you need it in future
+    .then(async () => {
+      //                             SETUP YOUR SERVERS
+      ////////////////////////////////////////////////////////////////////////////
+      // run https server on port PORT_HTTPS
+      const httpsServer = https.createServer(JSON.parse(OPTIONS as string), app).listen(PORT_HTTPS, () => {
+        console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);
+      }).on('error', errorHandler);
 
-//read key and cert from files for certificate in https server
-const key = fs.readFileSync(__dirname + "/../security/sslconfig/key.pem", "utf-8");
-const cert = fs.readFileSync(__dirname + "/../security/sslconfig/cert.pem", "utf-8");
-const options = {
-  key: key,
-  cert: cert,
-};
+      // run http server on port PORT_HTTP
+      const httpServer = http.createServer(app).listen(PORT_HTTP, () => {
+        console.log(`Server is running on http://${HOST}:${PORT_HTTP}`);
+      }).on('error', errorHandler);
 
-const PORT_HTTP = process.env["PORT_http"] as number | undefined;
-const PORT_HTTPS = process.env["PORT_https"] as number | undefined;
-const HOST = process.env["HOST"] as string | undefined;
+      // run socket.io server on httpServer
+      const io = await ioServer(httpServer);
 
-//create express app
-const app: Application = express();
-
-//connect to database
-connect();
-
-setUpPassport();
-//config server
-app.use(
-  cors({
-    origin: "*",
-  })
-);
-app.use(cookieParser());
-app.use(bodyParser.json({ limit: "50mb" }));
-app.use(
-  bodyParser.urlencoded({
-    limit: "50mb",
-    extended: true,
-    parameterLimit: 50000,
-  })
-);
-app.use(bodyParser.text({ limit: "200mb" }));
-app.use(fileUpload());
-app.use(
-  session({
-    secret: "TKRv0IJs=HYqrvagQ#&!F!%V]Ww/4KiVs$s,<<MX",
-    resave: true,
-    saveUninitialized: true,
-  })
-);
-app.use(passport.session());
-app.use(flash());
-
-//add logger
-app.use(
-  logger((tokens, req, res) => {
-    return JSON.stringify({
-      _date: tokens.date,
-      url: req.originalUrl,
-      query: req.query,
-      method: req.method,
-      httpVersion: req.httpVersion,
-      status: res.statusCode,
-      message: res.statusMessage,
+      // run Media Server
+      // const mediaServer = new MediaServer(io);
+      ////////////////////////////////////////////////////////////////////////////
+      return { io, httpServer, httpsServer };
+    })
+    .catch((err) => {
+      console.error("Error making the main server...");
+      console.error(err);
+      process.exit(1);
     });
-  })
-);
-//app.use(logger(':method :url :status :res[content-length] - :response-time ms'))
-//add logger in file
-// app.use(
-//   logger(process.env.REQUEST_LOG_FORMAT || "dev", {
-//     stream: process.env.REQUEST_LOG_FILE
-//       ? createStream(process.env.REQUEST_LOG_FILE, {
-//           size: "10M", // rotate every 10 MegaBytes written
-//           interval: "1d", // rotate daily
-//           compress: "gzip", // compress rotated files
-//         })
-//       : process.stdout,
-//   })
-// );
 
-//create route for test
-app.get("/", (req: Request, res: Response, next: NextFunction) => {
-  res.status(200).json({
-    message: "Application works!",
-  });
-});
 
-//add routes app
-app.use("/api/v1", routes);
-
-//for get unhandeled error in express
-process.on("uncaughtException", function (err) {
-  console.error(`I've crashed!!! - ${err.stack || err}`);
-});
-//for get unhandeled rejection in express
-process.on("unhandledRejection", (reason, p) => {
-  console.error(`Unhandled Rejection at: ${util.inspect(p)} reason: ${reason}`);
-});
-
-//run https server on port 4000
-https.createServer(options, app).listen(PORT_HTTPS, () => {
-  console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);
-});
-
-//run http server on port 3000
-const server = http.createServer(app).listen(PORT_HTTP, () => {
-  console.log(`Server is running on http://${HOST}:${PORT_HTTP}`);
-});
-
-// app.listen(3000, () => {
-//     console.log('Application started on http://localhost:3000');
-// });
-
-export const io = new Server(server, {
-  cors: {
-    origin: "*",
-  },
-});
-
-export default app;
-
-export const setResponseBody = (req: any, res: any, next: any) => {
-  const oldWrite = res.write,oldEnd = res.end,chunks: any = [];
-
-  res.write = function (chunk: any) {
-    chunks.push(Buffer.from(chunk));
-    oldWrite.apply(res, arguments);
-  };
-
-  res.end = function (chunk: any) {
-    if (chunk) {
-      chunks.push(Buffer.from(chunk));
-    }
-    const body = Buffer.concat(chunks).toString("utf8");
-    res.__custombody__ = body;
-    oldEnd.apply(res, arguments);
-  };
-  next();
+function errorHandler(error: { syscall: string, code: string }) {
+  if (error.syscall !== 'listen') throw error; // handeling only listen errors
+  const bind = typeof PORT_HTTPS === 'string'
+    ? 'Pipe ' + PORT_HTTPS
+    : 'Port ' + PORT_HTTPS;
+  switch (error.code) { // handle errors properly
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+    default:
+      console.error(error);
+  }
+  process.exit(1);
 };

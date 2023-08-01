@@ -3,9 +3,9 @@ import { getAccessAndVerify } from "../../tools/authentication";
 import { eventLogResponse, faceLogResponse, fireLogResponse, humanLogResponse, plateLogResponse, sabotageLogResponse } from "../../tools/createlogReport";
 import { date2Epokh, getEpochList } from "../../tools/convertTime";
 import { ApiError } from "../../error/error.handler";
-import { dynamicRequestToElasticSearch } from "../../db/connectElasticSearch";
+import { dynamicRequestToElasticSearch } from "../../db/elastic/connect.database";
 import { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
-import { Access } from "../../tools/enums/access";
+import { Access } from "../../interfaces/enums/access.enum";
 
 //create router for add to routes file
 const router: Router = Router();

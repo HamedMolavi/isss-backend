@@ -1,11 +1,11 @@
-import app from "../../server";
 import { expect } from "chai";
 import request from "supertest";
-import Departement, { IDepartment } from "../../models/department";
+import Departement from "../../models/department";
 import Camera from "../../models/camera";
 import mongoose from "mongoose";
 import Section from "../../models/section";
 import { NextFunction } from "express";
+import app from "../../apps/app.Application";
 
 
 const token = process.env.sample_token;

@@ -1,0 +1,47 @@
+import dotenv from "dotenv";
+import fs from "fs";
+import { Consumer } from "kafkajs";
+import { join } from "path";
+
+dotenv.config({ path: join(__dirname, "../../.env"), encoding: 'utf8', debug: true, override: false });
+
+export default function extraEnvConfigs() {
+  try {
+    //check for env varialbles and fill non-existing ones
+    const allEnv = [
+      ["PORT_http", "4000"],
+      ["PORT_https", "3000"],
+      ["HOST", "127.0.0.1"],
+      ["BASE_URL", "127.0.0.1:3000/api/v1"],
+      ["MONGODB_URL", "mongodb://localhost:27017/test"],
+      ["REDIS_URL", "redis://localhost:6379"],
+      ["ELASTIC_SEARCH", "<<ip : port elasticksearch>>"],
+      ["REQUEST_LOG_FORMAT", ""],
+      ["NODE_ENV", "production"],
+      ["REQUEST_LOG_FILE", "./logs/request.log"],
+      ["RECORD_STREAM_TIME", "10"]
+    ]
+    allEnv.forEach(env_default => {
+      if (!process.env[env_default[0]]) process.env[env_default[0]] = env_default[1];
+    });
+
+    //read key and cert from files for certificate in https server
+    const key = fs.readFileSync(__dirname + "/../../security/sslconfig/key.pem", "utf-8");
+    const cert = fs.readFileSync(__dirname + "/../../security/sslconfig/cert.pem", "utf-8");
+    process.env["OPTIONS"] = JSON.stringify({
+      key: key,
+      cert: cert,
+    });
+    // //declare an empty rooms' map to be filled and updated over time
+    // let ROOMS: Map<string, string> = new Map();
+    // process["ROOMS"] = ROOMS;
+    //declare an empty consumers' map to be filled and updated over time
+    let CONSUMERS: Map<string, Consumer> = new Map();
+    process["CONSUMERS"] = CONSUMERS;
+
+  } catch (err) {
+    console.error("Error in reading key and pem...");
+    console.error(err);
+    process.exit(1);
+  };
+};

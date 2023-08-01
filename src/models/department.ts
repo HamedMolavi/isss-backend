@@ -1,11 +1,7 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
+import { IDepartment } from "../interfaces/department.interface";
 
-//define department type
-export interface IDepartment extends Document {
-    _id: mongoose.Types.ObjectId;
-    name: string;
-    created_date: Date;
-}
+
 
 
 //create department model with schema for save in DB

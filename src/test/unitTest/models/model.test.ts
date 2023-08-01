@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import { Disconnect } from "./../../../db/connectMongo";
+import { Disconnect } from "../../../db/mongo/connect.database";
 import mongoose from "mongoose";
-import { dbUri } from "./../../../server";
+import { dbUri } from "../../../server.ts";
 
 //test  models model
 describe("model", function () {

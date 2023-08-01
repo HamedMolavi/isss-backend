@@ -1,4 +1,4 @@
-import redisClient from "./../db/redis";
+import redisClient from "../db/redis/connect.database";
 import path, { basename } from "path";
 import fs from "fs";
 import console from "console";

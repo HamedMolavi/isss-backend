@@ -1,11 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import { ApiError } from "../error/error.handler";
+import { Request } from "express";
 
-//initial file .env
-dotenv.config();
 //create user type
 export interface IUser {
   _id: mongoose.Types.ObjectId;
@@ -19,21 +15,21 @@ export interface IUser {
   configuration: boolean;
   views: boolean;
   created_date: Date;
-  camera_access:mongoose.Types.ObjectId[];
+  camera_access: mongoose.Types.ObjectId[];
 }
 
 interface IUserDocument extends IUser, Document {
   _id: mongoose.Types.ObjectId;
   setPassword: (password: string, username: string) => string;
-  checkPassword: (password: string, done: Function) => Promise<boolean>;
-  generateJWT: (is_remember: boolean) => any;
+  checkPassword: (password: string) => Promise<boolean>;
+  generateAuthSession: (is_remember: boolean) => any;
   toAuthJSON: (is_remember: boolean) => any;
 }
 
 interface IUserModel extends Model<IUserDocument> {
-  checkPassword: (password: string, done: Function) => Promise<boolean>;
+  checkPassword: (password: string) => Promise<boolean>;
   setPassword: (password: string, username: string) => string;
-  generateJWT: (is_remember: boolean) => any;
+  generateAuthSession: (is_remember: boolean) => any;
   toAuthJSON: (is_remember: boolean) => any;
 }
 
@@ -49,7 +45,7 @@ const UserSchema: Schema<IUserDocument> = new Schema(
     configuration: { type: Boolean, default: false },
     role: { type: String, required: true },
     created_date: { type: Date, default: Date.now },
-    camera_access:{type:[mongoose.Types.ObjectId],ref:"camera",default:[]}
+    camera_access: { type: [mongoose.Types.ObjectId], ref: "camera", default: [] }
   },
   {
     collection: "User",
@@ -82,17 +78,9 @@ UserSchema.pre("save", function (done: Function) {
 });
 
 //compare password
-UserSchema.methods.checkPassword = async function (
-  password: string,
-  done: Function
-) {
-  try {
-    let user = this;
-    let isMatch = await bcrypt.compare(password + user.username, user.password);
-    return done(null, isMatch);
-  } catch (err) {
-    return done(err);
-  }
+UserSchema.methods.checkPassword = async function (password: string) {
+  let user = this;
+  return await bcrypt.compare(password + user.username, user.password);
 };
 
 export async function setPassword(password: string, username: string) {
@@ -101,31 +89,20 @@ export async function setPassword(password: string, username: string) {
   return result
 }
 
-//get secrect key jwt token
-const secret = process.env["JWT_SECRET"] as string;
-
 //generate jwt token
-UserSchema.methods.generateJWT = function (is_remember: boolean) {
-  const today = new Date();
-  const expirationDate = new Date(today);
-  let exp_time =
-    is_remember == true ? today.getHours() + 8 : today.getMinutes() + 15;
-  if (is_remember == true) {
-    expirationDate.setHours(exp_time);
-  } else {
-    expirationDate.setMinutes(exp_time);
-  }
+UserSchema.methods.generateAuthSession = function (req: Request) {
+  const is_remember = req.body["is_remember"] ?? false; // defaulted to false
+  const maxAge = is_remember ? 8 * 60 * 60 * 1000 : 15 * 60 * 1000;
+  //             if remeber     8 hours       else    15 minutes
+  req.session.cookie.maxAge = maxAge;
+  req.session.user = this;
+  console.log(__dirname, "/", __filename, " -> user", this);
 
-  return jwt.sign(
-    {
-      id: this._id,
-      email: this.email,
-      role: this.role,
-      remember: is_remember,
-      exp: parseInt((expirationDate.getTime() / 1000).toString(), 10),
-    },
-    secret
-  );
+  // {
+  //   id: this._id,
+  //   email: this.email,
+  //   role: this.role,
+  // }
 };
 
 //get user data jason for register
@@ -142,12 +119,13 @@ UserSchema.methods.toJSON = function () {
     report: this.report,
     configuration: this.configuration,
     create_date: this.created_date,
-    camera_access:this.camera_access
+    camera_access: this.camera_access,
   };
 };
 
 //get user data jason for auth
 UserSchema.methods.toAuthJSON = function (is_remember: boolean) {
+  // this.generateAuthSession(is_remember);
   return {
     _id: this._id,
     name: this.name,
@@ -160,8 +138,7 @@ UserSchema.methods.toAuthJSON = function (is_remember: boolean) {
     report: this.report,
     configuration: this.configuration,
     create_date: this.created_date,
-    camera_access:this.camera_access,
-    token: this.generateJWT(is_remember),
+    camera_access: this.camera_access,
   };
 };
 

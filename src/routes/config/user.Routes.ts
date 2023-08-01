@@ -1,48 +1,29 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
 import User, { IUser, setPassword } from "../../models/user";
-import { ICritential, getAccessAndVerify, getToken, getTokenAndVerify } from "../../tools/authentication";
 import { getStrength } from "../../tools/verifyPasswordRegex";
-import { Access } from "../../tools/enums/access";
-import { authorize } from "../../tools/authentication";
-
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
 
 //create router for add to server
 const router: Router = Router();
 
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-  res.locals.currentUser = req.user;
-  res.locals.errors = req.flash("error");
-  res.locals.infos = req.flash("info");
-  next();
-});
-
 //add route for register new user
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {getAccessAndVerify(req,Access.Configuration,"admin",next)
-    //get jason from body request
+  try {
+    //get json from body request
     const { username, password, phone_number, event, camera, report, configuration }: IUser = req.body;
 
     //verify body request
     if (!username || !password || !phone_number) {
       req.flash("error", "Please enter all fields");
       return next(new ApiError(400, "Please enter all fields"));
-    }
-    //get token from header request and verify
-    //let token = getTokenAndVerify(req, const_role, next);
-   // if (!token) {
-   //   return null;
-   // }
+    };
 
     //verify password
     let resultVerifyPassword = getStrength(password);
     if (resultVerifyPassword < 99) {
       req.flash("error", "Password is not strong enough");
       return next(new ApiError(400, "Password is not strong enough"));
-    }
+    };
 
     //query for save new user in DB
     let user = await User.findOne({
@@ -53,7 +34,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     if (user) {
       req.flash("error", "User already exists");
       return next(new ApiError(400, "User already exists"));
-    }
+    };
 
     //set data for new user
     let newUser = new User();
@@ -81,7 +62,8 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
 
 //route for get users list
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
-  try {getAccessAndVerify(req,Access.Configuration,"admin",next)
+  try {
+
     //get page from url
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -89,12 +71,6 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let strPerPage = req.query.perPage as string;
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
     let search = req.query.search as string;
-    //get token from header request and verify
-    //get token from header request and verify
-   // let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //   return null;
-  //  }
     //query for get user by username from DB
     let users: IUser[] = [];
     if (!(search && search.length > 0)) {
@@ -132,19 +108,13 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
 //route for get user by id from DB
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {getAccessAndVerify(req,Access.Configuration,"admin",next)
+  try {
     //get id from url
     let id: string = req.params.id;
     if (!id) {
       req.flash("error", "Please enter id");
       return next(new ApiError(400, "Please enter id"));
     }
-
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-   // }
 
     //query for get user by id from DB
     let user = await User.findById(id).exec();
@@ -168,34 +138,27 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for edit user
 router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    getAccessAndVerify(req,Access.Configuration,"admin",next)
     //get id from url
     let id: string = req.params.id as string;
     if (!id) {
       req.flash("error", "Please enter id");
       return next(new ApiError(400, "Please enter id"));
     }
-    let _user =await User.findById(id).exec();
-    //get jason from body request
+    let _user = await User.findById(id).exec();
+    //get json from body request
     const userBody = req.body;
 
-    
-    if (_user &&  userBody.password){
-      let resultVerifyPassword = getStrength( userBody.password );
-    if (resultVerifyPassword < 99) {
-      req.flash("error", "Password is not strong enough");
-      return next(new ApiError(400, "Password is not strong enough"));
-    }
-    userBody.password =await setPassword(userBody?.password,_user?.username);
+
+    if (_user && userBody.password) {
+      let resultVerifyPassword = getStrength(userBody.password);
+      if (resultVerifyPassword < 99) {
+        req.flash("error", "Password is not strong enough");
+        return next(new ApiError(400, "Password is not strong enough"));
+      }
+      userBody.password = await setPassword(userBody?.password, _user?.username);
     }
 
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-   //   return null;
-  //  }
     //query for get user by username from DB
-
     let user = await User.findByIdAndUpdate(id, userBody, {
       new: true,
     }).exec();
@@ -219,7 +182,6 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 //add route for delete user
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    getAccessAndVerify(req,Access.Configuration,"admin",next)
     //get id from url
     let id = req.params.id;
     if (!id) {
@@ -227,12 +189,6 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
       return next(new ApiError(400, "Please enter id"));
     }
 
-    //get token from header request and verify
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
     //query for get user by id from DB
     let user = await User.findByIdAndDelete(id).exec();
 
@@ -252,74 +208,23 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
   }
 });
 
-//api for login user
-router.post("/login", async function (req: Request, res: Response, next: Function) {
+/*
+router.patch("/reset-password/:id",accessCheck(Access.Configuration,"user"), async function (req: Request, res: Response, next: NextFunction) {
   try {
-    //get jason from body request
-    let { username, password , is_remember} = req.body;
-    //verify body request
-    if (!username || !password) {
-      return next({
-        status: 400,
-        message: "Bad request",
-        name: "user",
-      });
-    }
-    //  get user from DB
-    let user = await User.findOne({ username: username }).exec();
-    if (!user) {
-      return next(new ApiError(404, "User not found"));
-    }
-    //check password
-    let isMatch = await user.checkPassword(password, (err: any, isMatch: any) => {
-      if (err) {
-        return next(new ApiError(500, "internal server error , " + err.message));
-      }
-      return isMatch;
-    });
-    if (!isMatch) {
-      return next(new ApiError(401, "Password is incorrect"));
-    }
-    //send response
-    return res.status(200).json({
-      success: true,
-      data: user.toAuthJSON(is_remember),
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error , " + err.message));
-  }
-});
-
-router.patch("/reset-password/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-    // getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id: string = req.params.id as string;
     if (!id) {
       req.flash("error", "Please enter id");
       return next(new ApiError(400, "Please enter id"));
     }
-    
-    //get jason from body request
+
+    //get json from body request
     let { current_password, new_password } = req.body;
 
-    let token: string = getToken(req, next) as string;
-    //send error if token not found
-    if (!token) {
-      next(new ApiError(401, "Unauthorized"));
-      return null;
-    }
-    //verify token
-    let critential = authorize(token) as ICritential;
-    let _user =await User.findById(critential.id).exec();
-    if (!_user) {
-      return next(new ApiError(404, "User not found"));
-    }
-    getTokenAndVerify(req, "user", next);
+    let _user = await User.findById(id).exec();
 
-
-    if (_user &&  current_password&&new_password){
-      let resultVerifyPassword = getStrength( new_password );
+    if (_user && current_password && new_password) {
+      let resultVerifyPassword = getStrength(new_password);
       let isMatch = await _user.checkPassword(current_password, (err: any, isMatch: any) => {
         if (err) {
           return next(new ApiError(500, "internal server error , " + err.message));
@@ -329,21 +234,14 @@ router.patch("/reset-password/:id", async function (req: Request, res: Response,
       if (!isMatch) {
         return next(new ApiError(401, "Password is incorrect"));
       }
-    if (resultVerifyPassword < 99) {
-      req.flash("error", "Password is not strong enough");
-      return next(new ApiError(400, "Password is not strong enough"));
-    }
- 
-    _user.password =await setPassword(new_password,_user?.username);
+      if (resultVerifyPassword < 99) {
+        req.flash("error", "Password is not strong enough");
+        return next(new ApiError(400, "Password is not strong enough"));
+      }
+
+      _user.password = await setPassword(new_password, _user?.username);
 
     }
-
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-   //   return null;
-  //  }
-    //query for get user by username from DB
 
     let user = await User.findByIdAndUpdate(id, _user, {
       new: true,
@@ -364,4 +262,6 @@ router.patch("/reset-password/:id", async function (req: Request, res: Response,
     return next(new ApiError(500, "internal server error , " + err.message));
   }
 });
+*/
+
 export default router;

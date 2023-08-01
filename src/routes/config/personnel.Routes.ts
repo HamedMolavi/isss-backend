@@ -1,98 +1,77 @@
 import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
-import { requestForGetPersonnel } from "../../db/connectElasticSearch";
+import { requestForGetPersonnel } from "../../db/elastic/connect.database";
 import { ApiError } from "../../error/error.handler";
 import Camera from "../../models/camera";
 import url from "url"
 import PersonImage from "../../models/personImage";
 import { deleteDirectory, uploadAvatar } from "../../tools/fileUpload";
 import Personnel, { IPersonnel } from "./../../models/personnel";
-import { Access } from "../../tools/enums/access";
-import { getAccessAndVerify } from "./../../tools/authentication";
-
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
 
 //create router for add to routes file
 const router: Router = Router();
 
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-  res.locals.currentUser = req.user;
-  res.locals.errors = req.flash("error");
-  res.locals.infos = req.flash("info");
-  next();
-});
-
-
-
 //add route for register new personnel
-router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {    getAccessAndVerify(req,Access.Configuration,"user",next)
-    //get jason from body request
-    const { first_name, last_name, national_code, email, phone_number, job_id,tracked, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, avatar_str } =
-      req.body;
-      
-    //verify body request
-    if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code || !section_id || !camera_whitelist) {
-      req.flash("error", "Please fill all fields");
-      return next(new ApiError(400, "Please fill all fields"));
+router.post("",
+  async function (req: Request, res: Response, next: NextFunction) {
+    try {
+      //get json from body request
+      const { first_name, last_name, national_code, email, phone_number, job_id, tracked, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, avatar_str } =
+        req.body;
+
+      //verify body request
+      if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code || !section_id || !camera_whitelist) {
+        req.flash("error", "Please fill all fields");
+        return next(new ApiError(400, "Please fill all fields"));
+      }
+      //query for save new personnel in DB
+      let personnel = await Personnel.findOne({
+        $or: [{ national_code: national_code }, { personnel_code: personnel_code }],
+      }).exec();
+
+      //check personnel in DB
+      if (personnel) {
+        req.flash("error", "Personnel already exists");
+        return next(new ApiError(400, "Personnel already exists"));
+      }
+      //create new personnel
+      personnel = new Personnel({
+        first_name,
+        last_name,
+        national_code,
+        email,
+        phone_number,
+        job_id,
+        tracked,
+        personnel_code,
+        section_id,
+        camera_whitelist,
+        is_active,
+        is_employee,
+        is_dismissed,
+      });
+
+      //save personnel in DB
+      let _personnnel = await personnel.save();
+      req.flash("info", "Personnel has been registered");
+
+      //save personnel avatar in hardDisk
+      let avatarStr = avatar_str.split(",")[1];
+      let result = await uploadAvatar(avatarStr, _personnnel._id.toString());
+
+      //send response
+      res.status(201).json({
+        success: true,
+        data: _personnnel.toJSON(),
+      });
+    } catch (err: any) {
+      return next(new ApiError(500, "Internal server error , " + err.message));
     }
-
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
-    //query for save new personnel in DB
-    let personnel = await Personnel.findOne({
-      $or: [{ national_code: national_code }, { personnel_code: personnel_code }],
-    }).exec();
-
-    //check personnel in DB
-    if (personnel) {
-      req.flash("error", "Personnel already exists");
-      return next(new ApiError(400, "Personnel already exists"));
-    }
-    //create new personnel
-    personnel = new Personnel({
-      first_name,
-      last_name,
-      national_code,
-      email,
-      phone_number,
-      job_id,
-      tracked,
-      personnel_code,
-      section_id,
-      camera_whitelist,
-      is_active,
-      is_employee,
-      is_dismissed,
-    });
-
-    //save personnel in DB
-    let _personnnel = await personnel.save();
-    req.flash("info", "Personnel has been registered");
-
-    //save personnel avatar in hardDisk
-    let avatarStr = avatar_str.split(",")[1];
-    let result = await uploadAvatar(avatarStr, _personnnel._id.toString());
-
-    //send response
-    res.status(201).json({
-      success: true,
-      data: _personnnel.toJSON(),
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "Internal server error , " + err.message));
-  }
-});
+  });
 
 //route for get personnels list
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
   try {
-
     //get page from url
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -100,12 +79,6 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let strPerPage = req.query.perPage as string;
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
     let search = (req.query.search as string) || "";
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
-    
     //query for get user by personnels from DB
     let personnels: IPersonnel[] = [];
     if (!(search && search.length > 0)) {
@@ -137,7 +110,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
       let _camera;
       if (logPersonnel?.data?.hits?.hits?.length > 0) {
         _camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate("section_id").exec();
-      } 
+      }
       // else {
       //   data.push(per);
       //   continue;
@@ -188,24 +161,26 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
 router.get("/search", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    var query = url.parse(req.url,true).query.params as string ;
+    var query = url.parse(req.url, true).query.params as string;
 
-const regex = new RegExp(query, 'i') 
-    let personnel = await Personnel.find({$or:[
-      {first_name:{$regex: regex}},
-      {last_name:{$regex: regex}},
-      {national_code:{$regex: regex}},
-      {personnel_code:{$regex: regex}},
-      {phone_number:{$regex: regex}}]})
+    const regex = new RegExp(query, 'i')
+    let personnel = await Personnel.find({
+      $or: [
+        { first_name: { $regex: regex } },
+        { last_name: { $regex: regex } },
+        { national_code: { $regex: regex } },
+        { personnel_code: { $regex: regex } },
+        { phone_number: { $regex: regex } }]
+    })
       .exec();
-        return res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: personnel,
     });
 
-   } catch (err: any) {
+  } catch (err: any) {
     return next(new ApiError(500, "Internal server error , " + err.message));
-   }
+  }
 });
 
 //route for get personnel by id from DB
@@ -217,12 +192,6 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
       req.flash("error", "Please enter id");
       return next(new ApiError(400, "Please enter id"));
     }
-
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
 
     //query for get personnel by id from DB
     let personnel = await Personnel.findById(id).exec();
@@ -245,7 +214,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 
 //add route for edit personnel
 router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try { getAccessAndVerify(req,Access.Configuration,"user",next)
+  try {
     //get id from url
     let id: string = req.params.id;
 
@@ -255,11 +224,6 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     }
 
     const personnelBody = req.body;
-    //get token from header request and verify
-   // let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
     //query for get personnel by id from DB
     let personnel = await Personnel.findByIdAndUpdate(id, personnelBody, {
       new: true,
@@ -288,7 +252,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 
 //add route for delete personnel
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try { getAccessAndVerify(req,Access.Configuration,"user",next)
+  try {
     //get id from url
     let id = req.params.id;
     if (!id) {
@@ -296,11 +260,6 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
       return next(new ApiError(400, "Please enter id"));
     }
 
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
     //query for get personnel by id from DB
     let personnel = await Personnel.findByIdAndDelete(id).exec();
 

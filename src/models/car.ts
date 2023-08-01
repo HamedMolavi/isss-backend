@@ -1,16 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { ICar } from "../interfaces/car.interface";
 
-//define car type
-export interface ICar extends Document {
-    _id: Schema.Types.ObjectId;
-    owner: Schema.Types.ObjectId;
-    number_plate: string;
-    brand: Schema.Types.ObjectId;
-    color: Schema.Types.ObjectId;
-    camera_whitelist: Schema.Types.ObjectId[];
-    tracked:boolean;
-    create_date: Date;
-}
+
 
 //create car model with schema for save in DB
 const CarSchema: Schema<ICar> = new Schema({
@@ -21,7 +12,7 @@ const CarSchema: Schema<ICar> = new Schema({
     camera_whitelist: [Schema.Types.ObjectId],
     tracked: { type: Boolean, default: false },
     create_date: { type: Date, default: Date.now }
-},{
+}, {
     collection: "Car"
 });
 

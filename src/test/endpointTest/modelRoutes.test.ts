@@ -1,4 +1,4 @@
-import app from "../../server";
+import app from "../../server.ts";
 import { expect } from "chai";
 import request from "supertest";
 import Model, { IModel } from "../../models/model";

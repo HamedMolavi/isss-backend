@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import mongoose from "mongoose";
+import { IGetParams } from "../../interfaces/temp.interface";
 import Schedule, { ISchedule } from "./../../models/schedule";
-import { getAccessAndVerify } from "./../../tools/authentication";
 import {
   compareTime,
   convertToCron,
@@ -9,43 +8,16 @@ import {
 } from "./../../tools/convertTime";
 import ModelToCamera from "./../../models/modelToCamera";
 import { ApiError } from "../../error/error.handler";
-import { Access } from "../../tools/enums/access";
-
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
-
-//define type of schedule for request body
-interface IGetParams {
-  _id: mongoose.Types.ObjectId;
-  model_camera_id: mongoose.Types.ObjectId;
-  start: string;
-  stop: string;
-  dayOfWeek: number[];
-  threshold: number;
-  zones: [[number, number, number, number]];
-  montionDetection: boolean;
-  min_people: number;
-  max_people: number;
-  timeDuplicationDiagnoses: number;
-}
 
 //create router for add to server file
 const router: Router = Router();
-
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-  res.locals.currentUser = req.user;
-  res.locals.errors = req.flash("error");
-  res.locals.infos = req.flash("info");
-  next();
-});
 
 //add route for register new schedule
 router.post(
   "",
   async function (req: Request, res: Response, next: NextFunction) {
-    try { getAccessAndVerify(req,Access.Configuration,"user",next)
-      //get jason from body request
+    try {
+      //get json from body request
       const {
         start,
         stop,
@@ -64,11 +36,6 @@ router.post(
         req.flash("error", "Please fill all fields");
         return next(new ApiError(400, "Please fill all fields"));
       }
-      //get token from header request and verify
-      //  let token = getTokenAndVerify(req, const_role, next);
-      //  if (!token) {
-      //    return null;
-      //  }
       //check for valid time
       if (!compareTime(start, stop)) {
         req.flash("error", "Invalid time");
@@ -158,12 +125,6 @@ router.get(
       let strPerPage = req.query.PerPage as string;
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
-      //get token from header request and verify
-      //  let token = getTokenAndVerify(req, const_role, next);
-      //  if (!token) {
-      //    return null;
-      //  }
-
       //query for get schedule from DB
       let schedules: ISchedule[] | null = await Schedule.find({})
         .limit(perPage)
@@ -227,11 +188,6 @@ router.get(
         return next(new ApiError(400, "Schedule id is required"));
       }
 
-      //get token from header request and verify
-      // let token = getTokenAndVerify(req, const_role, next);
-      // if (!token) {
-      //    return null;
-      //  }
       //query for get schedule by id from DB
       let schedule = await Schedule.findById(id).exec();
 
@@ -280,18 +236,13 @@ router.get(
 router.patch(
   "/:id",
   async function (req: Request, res: Response, next: NextFunction) {
-    try {getAccessAndVerify(req,Access.Configuration,"user",next)
+    try {
       //get id from url
       let id: string = req.params.id;
       if (!id) {
         req.flash("error", "schedule id is required");
         return next(new ApiError(400, "schedule id is required"));
       }
-      //get token from header request and verify
-      //  let token = getTokenAndVerify(req, const_role, next);
-      //  if (!token) {
-      //    return null;
-      //  }
       //get body from request
       const scheduleBody: IGetParams = req.body;
 
@@ -402,44 +353,39 @@ router.patch(
 );
 
 //add route for delete schedule
-router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
-  try {getAccessAndVerify(req,Access.Configuration,"user",next)
-    //get id from url
-    let id: string = req.params.id;
-    if (!id) {
-      req.flash("error", "schedule id is required");
-      return next(new ApiError(400, "schedule id is required"));
+router.delete("/:id",
+  async function (req: any, res: any, next: NextFunction) {
+    try {
+      //get id from url
+      let id: string = req.params.id;
+      if (!id) {
+        req.flash("error", "schedule id is required");
+        return next(new ApiError(400, "schedule id is required"));
+      }
+
+      //query for get schedule by id from DB
+      let schedule = await Schedule.findByIdAndDelete(id).exec();
+      //return response not found to client if not found schedule
+      if (!schedule) {
+        req.flash("error", "schedule not found");
+        return next(new ApiError(404, "schedule not found"));
+      }
+
+      // let model2Camera = await ModelToCamera.findByIdAndUpdate(
+      //   schedule.model_camera_id,
+      //   { is_enabled: false },
+      //   { new: true }
+      // ).exec();
+
+      // let model2Camera = await ModelToCamera.findOneAndDelete({sche})
+      //return response to client with schedule
+      return res.status(201).json({
+        message: "Success",
+        schedule: schedule,
+      });
+    } catch (err: any) {
+      return next(new ApiError(500, "Internal server error , " + err.message));
     }
-
-    //get token from header request and verify
-    //  let token = getTokenAndVerify(req, const_role, next);
-    //  if (!token) {
-    //    return null;
-    //  }
-
-    //query for get schedule by id from DB
-    let schedule = await Schedule.findByIdAndDelete(id).exec();
-    //return response not found to client if not found schedule
-    if (!schedule) {
-      req.flash("error", "schedule not found");
-      return next(new ApiError(404, "schedule not found"));
-    }
-
-    // let model2Camera = await ModelToCamera.findByIdAndUpdate(
-    //   schedule.model_camera_id,
-    //   { is_enabled: false },
-    //   { new: true }
-    // ).exec();
-
-    // let model2Camera = await ModelToCamera.findOneAndDelete({sche})
-    //return response to client with schedule
-    return res.status(201).json({
-      message: "Success",
-      schedule: schedule,
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "Internal server error , " + err.message));
-  }
-});
+  });
 
 export default router;

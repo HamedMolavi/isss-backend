@@ -1,43 +1,23 @@
 import { Router, Request, Response, NextFunction } from "express";
-import mongoose from "mongoose";
 import { ApiError } from "../../error/error.handler";
 import CarBrand from "../../models/carBrand";
 import CarColor from "../../models/carColor";
 import Personnel from "../../models/personnel";
 import toPersianPlate, { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
 import Car from "./../../models/car";
-import { Access } from "../../tools/enums/access";
-import { getAccessAndVerify } from "./../../tools/authentication";
-
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
 
 //create router for add to routes file
 const router: Router = Router();
 
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-  res.locals.currentUser = req.user;
-  res.locals.errors = req.flash("error");
-  res.locals.infos = req.flash("info");
-  next();
-});
-
 //add route for register new car
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    getAccessAndVerify(req,Access.Configuration,"user",next)
-    //get jason from body request
-    const { owner, number_plate, brand, color, camera_whitelist,tracked } = req.body;
+    //get json from body request
+    const { owner, number_plate, brand, color, camera_whitelist, tracked } = req.body;
     if (!owner || !number_plate || !brand || !color || !camera_whitelist) {
       req.flash("error", "Car is required");
       return next(new ApiError(400, "Car is required"));
-    }
-    //get token from header request and verify
-   // let token = getTokenAndVerify(req, const_role, next);
-   // if (!token) {
-  //    return null;
-   // }
+    };
     //add plate number to json response for sort persian format in font end
     let plateNumber = {
       first: number_plate.first,
@@ -56,7 +36,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     if (car) {
       req.flash("error", "Car already exists");
       return next(new ApiError(400, "Car already exists"));
-    }
+    };
 
     //fill new car
     let newCar = new Car({
@@ -65,7 +45,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       brand: brand,
       color: color,
       camera_whitelist: camera_whitelist,
-      tracked:tracked
+      tracked: tracked
     });
     //query for save new car in DB
     await newCar.save();
@@ -85,7 +65,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         brand: newCar.brand,
         color: newCar.color,
         camera_whitelist: camera_whitelist,
-        
+
       },
     });
   } catch (err: any) {
@@ -103,12 +83,6 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     //get perPage from url
     let strPerPage = req.query.perPage as string;
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-
-    //get token from header request and verify
-   // let token = getTokenAndVerify(req, const_role, next);
-   // if (!token) {
-   //   return null;
-   // }
 
     //query for get car list from DB
     let cars: any[] = [];
@@ -187,13 +161,8 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
       return next(new ApiError(400, "Car id is required"));
     }
 
-    //get token from header request and verify
-    //let token = getTokenAndVerify(req, const_role, next);
-   // if (!token) {
-    //  return null;
-    //}
-    // let s;
 
+    // let s;
     // let test = await Car.find().populate("owner").populate("brand").populate("color");
     // console.log(test);
     //query for get car by id from DB
@@ -232,7 +201,6 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for edit car
 router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let id: string = req.params.id;
 
@@ -243,11 +211,6 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
     }
     //get body request
     const carBody = req.body;
-    //get token from header request and verify
-   // let token = getTokenAndVerify(req, const_role, next);
-   // if (!token) {
-   //   return null;
-   // }
     let plateNumber: any | null = {};
     if (carBody.number_plate) {
       //add plate number to json response for sort persian format in font end
@@ -297,7 +260,6 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
 //add route for delete car
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
   try {
-    getAccessAndVerify(req,Access.Configuration,"user",next)
     let id: string = req.params.id;
     //verify body request
     if (!id) {
@@ -305,11 +267,6 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
       return next(new ApiError(400, "Car id is required"));
     }
 
-    //get token from header request and verify
-   // let token = getTokenAndVerify(req, const_role, next);
-   // if (!token) {
-    //  return null;
-    //}
 
     //query for get car by id from DB
     let car: any = await Car.findByIdAndDelete(id).exec();

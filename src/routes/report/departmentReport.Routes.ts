@@ -3,7 +3,7 @@ import { getAccessAndVerify } from "../../tools/authentication";
 import { eventDepartmentLogResponse } from "../../tools/createlogReport";
 import { date2Epokh } from "../../tools/convertTime";
 import { ApiError } from "../../error/error.handler";
-import { Access } from "../../tools/enums/access";
+import { Access } from "../../interfaces/enums/access.enum";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";

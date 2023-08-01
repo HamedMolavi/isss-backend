@@ -1,23 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
-import Model, { IModel } from "./../../models/model";
-//import { getTokenAndVerify } from "./../../tools/authentication";
+import Model, { IModel } from "../../models/model";
 
 
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
-
-
-//create router for add to server file 
+//create router for add to server file
 const router: Router = Router();
-
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-    res.locals.currentUser = req.user;
-    res.locals.errors = req.flash("error");
-    res.locals.infos = req.flash("info");
-    next();
-});
 
 //create route for get list of models
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
@@ -28,11 +15,6 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         //get perPage from url
         let strPerPage = req.query.perPage as string;
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-        //get token from header request and verify
-     //   let token = getTokenAndVerify(req, const_role, next);
-     // if(!token){
-     //   return null;
-      //}
         //query for get list of models
         let models = await Model.find().limit(perPage).skip(perPage * (page - 1)).exec()
         if (!models) {
@@ -64,12 +46,6 @@ router.get("/:category", async function (req: Request, res: Response, next: Next
             req.flash("error", "category is required");
             return next(new ApiError(400, "category is required"));
         }
-
-        //get token from header request and verify
-    //    let token = getTokenAndVerify(req, const_role, next);
-    //  if(!token){
-    //    return null;
-    //  }
 
         //query for get model by id from DB
         let model = await Model.findOne({ category: category }).exec();

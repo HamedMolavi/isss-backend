@@ -1,47 +1,24 @@
 import { setFileInRedis, getImageFromRedis, deleteImageInRedis, uploadAvatar } from "./../../tools/fileUpload";
 import { NextFunction, Router, Request, Response } from "express";
 import fs from "fs";
-import { getAccessAndVerify } from "./../../tools/authentication";
 import axios from "axios";
 import path from "path";
 import PersonImage from "./../../models/personImage";
 import { hashJson } from "./../../tools/hash";
 import { ApiError } from "../../error/error.handler";
-import { Access } from "../../tools/enums/access";
 
 //create router for add to server
 const router: Router = Router();
 
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-  res.locals.currentUser = req.user;
-  res.locals.errors = req.flash("error");
-  res.locals.infos = req.flash("info");
-  next();
-});
-
-const const_role = process.env.const_role || "user";
-
-type resultType = {
-  name: string;
-  path: string;
-};
-
 //create api for upload image
 router.post("/upload", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get personnel_code from url
     const { perssonel_id, image_str } = req.body;
     if (!perssonel_id || !image_str) {
       req.flash("error", "Please enter a personnel_code");
       return next(new ApiError(400, "Please enter a personnel_code"));
     }
-    //get token from header request and verify
-   // let token = getTokenAndVerify(req, const_role, next);
-   // if (!token) {
-   //   return null;
-   // }
     //get file from request and change format  to json and get file name and save in server with personnel_code
     let result = await uploadAvatar(image_str, perssonel_id);
     if (!result) {
@@ -64,11 +41,6 @@ router.post("/upload", async function (req: Request, res: Response, next: NextFu
 //create api for download image
 router.get("/download/:fileName", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-   // }
     //get file name from request params
     const fileName = req.params.fileName;
 
@@ -76,7 +48,7 @@ router.get("/download/:fileName", async function (req: Request, res: Response, n
     const directoryPath = path.join(__dirname, "./../../../assets/image/") + fileName + "/";
 
     //send image to client
-    await res.download(directoryPath + "avatar.jpeg", fileName, (err) => {
+    res.download(directoryPath + "avatar.jpeg", fileName, (err) => {
       if (err) {
         req.flash("error", "File not found");
         return next(new ApiError(404, "File not found"));
@@ -90,11 +62,6 @@ router.get("/download/:fileName", async function (req: Request, res: Response, n
 //create api for get list file upload
 router.get("/list", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-   // }
     let fileInfos: object[] = [];
     //get directory path
     const directoryPath = path.join(__dirname, "./../../../assets/image/");
@@ -127,25 +94,11 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
 
 //api for upload image to redis
 router.post("/redis", async function (req: Request, res: Response, next: NextFunction) {
-  try {    getAccessAndVerify(req,Access.Configuration,"user",next)
+  try {
     // get id from request url
     const { personnel_id, image_str } = req.body;
     const image_str_base46 = String(image_str.split(",")[1]);
     //  const personnel_id = req.params.id;
-    // //get token from header request and verify
-    // let token = getTokenAndVerify(req, const_role, next);
-    // if (!token) {
-    //   return null;
-    // }
-
-    // // // //get file from request and change format  to json
-    // let reqFile = JSON.parse(JSON.stringify(req.files));
-
-    // // // //move file to buffer
-    // let image = Buffer.from(reqFile.file.data, "base64");
-    // // // //convert file to base64
-    // let fileBase64 = image.toString("base64");
-    // //  let fileName: string =  "test.jpg";
 
     //create hash for redis id
     let idHashed = hashJson(image_str_base46, personnel_id);
@@ -192,7 +145,6 @@ router.post("/redis", async function (req: Request, res: Response, next: NextFun
 //route for verified image in redis
 router.post("/verify", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get body from request
     const requestBody = req.body;
     if (!requestBody.id) {
@@ -259,7 +211,7 @@ router.post("/verify", async function (req: Request, res: Response, next: NextFu
       };
 
       let response = await axios(config);
-  
+
       return res.status(200).send({
         success: true,
         data: {

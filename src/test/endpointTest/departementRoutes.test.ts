@@ -1,7 +1,8 @@
-import app from "../../server";
 import { expect } from "chai";
 import request from "supertest";
-import Departement, { IDepartment } from "../../models/department";
+import Departement from "../../models/department";
+import { IDepartment } from "../../interfaces/department.interface";
+import app from "../../apps/app.Application";
 
 const token = process.env.sample_token;
 let _departement: IDepartment;

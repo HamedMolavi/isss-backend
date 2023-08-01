@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { ApiError } from "../../error/error.handler";
 import { getPathFromIdTime } from "../../tools/getPathFromIdTiem";
-import { Access } from "../../tools/enums/access";
+import { Access } from "../../interfaces/enums/access.enum";
 import {getAccessAndVerify} from "../../tools/authentication";
 var ffmpeg = require("fluent-ffmpeg");
 //get user role from enviroment variable

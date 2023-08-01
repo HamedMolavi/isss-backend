@@ -8,7 +8,7 @@ import Model from "../../models/model";
 import { getAccessAndVerify } from "../../tools/authentication";
 import Schedule, { ISchedule } from "../../models/schedule";
 import ModelToCamera, { IModelToCamera } from "../../models/modelToCamera";
-import { Access } from "../../tools/enums/access";
+import { Access } from "../../interfaces/enums/access.enum";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";

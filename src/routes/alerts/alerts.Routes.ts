@@ -2,63 +2,36 @@ import { NextFunction, Router, Request, Response } from "express";
 import { ApiError } from "../../error/error.handler";
 import Camera from "../../models/camera";
 import Personnel from "../../models/personnel";
-import { io } from "../../server";
 import Department from "../../models/department";
 import Car from "../../models/car";
 import Schedule from "../../models/schedule";
 import recordStream from "../../tools/recordStream";
-import { send_sms } from "../../tools/sendSms";
 import Notification from "../../models/notification";
 import { send_email } from "../../tools/sendEmail";
 
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
-//create router for add to server
 const router: Router = Router();
-
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-  res.locals.currentUser = req.user;
-  res.locals.errors = req.flash("error");
-  res.locals.infos = req.flash("info");
-  next();
-});
-
-//return html file for test socket.io
-// router.get("/", function (req: Request, res: Response, next: NextFunction) {
-//   let path = Path.join(__dirname, "./../../../index.html");
-//   res.sendFile(path);
-// });
 
 //define variable for filter log and block log
 //var Log_Alert: any = [["test", "schedule_id", "confidence", "camera_id", "personnel", "description", "peopleCounting", "plate_number"]];
 //for limit record stream
-var Camera_Is_Record: any = [];
+var Camera_Is_Record: Array<Array<Array<string>>> = [];
 
-//get alerts from back
+//requested from dispatcher, response with socket to UI
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    //get jason from body request
+    //get json from body request
     const bodyRequest = req.body;
-    if (!bodyRequest?.log?.camera_id) {
-      return next(new ApiError(500, "not found camrea_id"));
-    }
+    if (!bodyRequest?.log?.camera_id) return next(new ApiError(404, "not found camrea_id"));
     //get camera from DB and relational section
     let _camera: any = await Camera.findById(bodyRequest.log.camera_id).populate("section_id").exec();
-    let _departement;
-    if (_camera?.section_id) {
-      _departement = await Department.findById(_camera?.section_id.department_id).exec(); //get departemant with section_id
-    }
+    //get departemant with section_id
+    let _departement = _camera?.section_id ? await Department.findById(_camera?.section_id.department_id).exec() : undefined;
     //get plate and owner from DB
-    let _car: any;
-    if (bodyRequest.log.plate_number) {
-      _car = await Car.findOne({ number_plate: bodyRequest.log.plate_number }).populate("owner").exec();
-
-    }
-    let _personnel;
-    if (bodyRequest.log.personnel_id != null && isNaN(Number(bodyRequest.log.personnel_id))) {
-      _personnel = await Personnel.findById(bodyRequest.log.personnel_id).exec(); //get personnel with perssonel_id
-    }
+    let _car = bodyRequest.log.plate_number ? await Car.findOne({ number_plate: bodyRequest.log.plate_number }).populate("owner").exec() : undefined;
+    let _personnel =
+      bodyRequest.log.personnel_id != null && isNaN(Number(bodyRequest.log.personnel_id))
+        ? await Personnel.findById(bodyRequest.log.personnel_id).exec()
+        : undefined;
 
     let is_muted_list: boolean = false;
     if (bodyRequest.log.schedule_id) {
@@ -70,7 +43,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //create json for send to client
     let result = {
       title: _personnel != null ? "Alerting" : "Warnings",
-      tracked:_personnel?.tracked !=null ?_personnel?.tracked: (_car?.tracked!=null ?_car?.tracked:null) ,
+      tracked: _personnel?.tracked != null ? _personnel?.tracked : (_car?.tracked != null ? _car?.tracked : null),
       type: bodyRequest.type,
       confidence: bodyRequest.log.confidence,
       camera: _camera?.name,
@@ -84,10 +57,9 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       peopleCounting: bodyRequest.log.number_of_people,
       plate_number: bodyRequest.log.plate_number,
       owner: _car?.owner?.first_name + " " + _car?.owner?.last_name,
-      cause : bodyRequest.cause,
+      cause: bodyRequest.cause,
     };
-
-    //add to global list alerting for not send more then one notif
+    //add to global list alerting to not to send more than one notification
     //and filter old list to new alert
     // let x = bodyRequest.log.personnel_id || bodyRequest.log.plate_number || bodyRequest.log.number_of_people || "";
     // let temp: string[] = [
@@ -129,9 +101,9 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     let recorder: any = recordStream(rtsp_link, _camera?._id.toString());
     //if (is_muted_list === false && send_notif == true) {
     if (is_muted_list === false) {
-      io.emit("get alert", notification); //send notif to client with socket.io
-      //check for limit record camera to 3 and camera in not recording
-      let temp_record: string[] = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
+      (await ioPromise).emit("get alert", notification); //send notification to client with socket.io
+      //check for limit record camera up to 3 and camera is not recording
+      let temp_record: Array<string> = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
       let isOpenForRecord = false;
       for (let cam of Camera_Is_Record) {
         if (cam[0].includes(result.camera_id)) {
@@ -140,13 +112,13 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         }
       }
       if (notification.title == "Alerting" && Camera_Is_Record.length < 2 && !isOpenForRecord) {
-       // recorder.start(); //start recording
+        // recorder.start(); //start recording
         console.log("Recording has started.");
 
         Camera_Is_Record.push([temp_record]); //add camera_id to global list for limiting record
         //stop record and delete item from global list limit record ==> Camera_Is_Record
         setTimeout(() => {
-         // recorder.stop();
+          // recorder.stop();
           console.log("Recording has stopped.");
           Camera_Is_Record = Camera_Is_Record.filter((item: any) => {
             if (bodyRequest.log.schedule_id != item[0][1]) {
@@ -174,12 +146,11 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       //   });
       // }, 20000);
     }
-    else{
-      if(_personnel?.tracked===true||_car?.tracked)
-      {
-        io.emit("get alert", notification);
+    else {
+      if (_personnel?.tracked === true || _car?.tracked) {
+        (await ioPromise).emit("get alert", notification);
       }
-      
+
     }
     //get all notification for send email or sms
     let notifications = await Notification.find().exec(); //query for get all notification

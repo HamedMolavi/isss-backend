@@ -1,11 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-
-//define car_brand type
-export interface ICarBrand extends Document {
-    _id: mongoose.Types.ObjectId;
-    name: string;
-}
-
+import { ICarBrand } from "../interfaces/car.interface";
 
 //create car_brand model with schema for save in DB
 const CarBrandSchema: Schema<ICarBrand> = new Schema({
