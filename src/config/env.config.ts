@@ -19,7 +19,8 @@ export default function extraEnvConfigs() {
       ["REQUEST_LOG_FORMAT", ""],
       ["NODE_ENV", "production"],
       ["REQUEST_LOG_FILE", "./logs/request.log"],
-      ["RECORD_STREAM_TIME", "10"]
+      ["RECORD_STREAM_TIME", "10"],
+      ["SESSION_SECRET", "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4i"],
     ]
     allEnv.forEach(env_default => {
       if (!process.env[env_default[0]]) process.env[env_default[0]] = env_default[1];

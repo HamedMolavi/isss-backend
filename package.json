@@ -48,6 +48,7 @@
     "connect-flash": "^0.1.1",
     "connect-redis": "^7.1.0",
     "cookie-parser": "^1.4.6",
+    "cookie-signature": "^1.2.1",
     "cors": "^2.8.5",
     "cron-converter": "^1.0.2",
     "dotenv": "^16.0.0",
@@ -85,6 +86,7 @@
   },
   "devDependencies": {
     "@types/config": "^0.0.41",
+    "@types/cookie-signature": "^1.1.0",
     "@types/cors": "^2.8.12",
     "@types/ip": "^1.1.0",
     "@types/mocha": "^9.1.1",

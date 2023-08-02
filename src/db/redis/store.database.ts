@@ -12,7 +12,7 @@ export default function redisStore(): Store | undefined {
     // Initialize store.
     return new RedisStore({
       client: redisClient,
-      prefix: "auth:",
+      prefix: "Bearer ",
     });
 
   } catch (error) {

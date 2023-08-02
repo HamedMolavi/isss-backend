@@ -13,13 +13,19 @@ import localVarMiddleware from "../setups/localVar.setup";
 import { setupLogger } from "../setups/logger.setup";
 import { join } from "path";
 import redisStore from "../db/redis/store.database";
+import { randomUuid } from "../tools/index.tools";
+import { authHeaderExtraction } from "../authentication/authorize.auth";
 
 //create express app
 const app: Application = express();
+
 export const sessionMiddleware = session({
+  // genid(req) { // id of the session saved in table as key.
+  //   return "randomUuid(12)";
+  // },
   store: redisStore(),
-  name: "connect.sid",
-  secret: "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4I",
+  name: "Bearer",
+  secret: process.env["SESSION_SECRET"] as string, // TODO: remove as string
   resave: false,//if you want to keep the session in case of user activity, set these both to true.
   rolling: false,//if you want to keep the session in case of user activity, set these both to true.
   saveUninitialized: false,
@@ -44,7 +50,10 @@ app.use(
 //   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
 //   next();
 // });
-app.use(cookieParser());
+app.use([
+  cookieParser(),
+  authHeaderExtraction
+])
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(
   bodyParser.urlencoded({
@@ -68,9 +77,13 @@ app.use(localVarMiddleware);
 
 //app routes
 app.use("/api/v1", routes);
-app.get("/index", (_req, res) => {
+app.get("/index", (req, res) => {
+  console.log("session", req.session);
+  console.log("cookies", req.cookies);
+  console.log("headers", req.headers);
+  console.log("user", req.user);
   res.sendFile(join(__dirname, "../clients/socketio.html"))
-})
+});
 
 //404 route
 app.use(function notFound(req: Request, _res: Response, next: NextFunction) {
