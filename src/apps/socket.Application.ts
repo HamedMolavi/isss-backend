@@ -4,7 +4,8 @@ import allowRequest from "../authentication/socketCheck.auth";
 import setupNewSocket from "../setups/socket.setup";
 import passport from "passport";
 import { sessionMiddleware } from "./app.Application";
-import { passportGate } from "../authentication/authorize.auth";
+import { authHeaderExtraction, passportGate } from "../authentication/authorize.auth";
+import cookieParser from "cookie-parser";
 const wrapMiddlewareForSocketIo = (middleware: Function) => (socket: Socket, next: Function) => middleware(socket.request, {}, next);
 
 
@@ -25,6 +26,8 @@ export default async function ioServer(httpServer: http.Server) {
   });
 
   //authorize user
+  // io.use(wrapMiddlewareForSocketIo(cookieParser()))
+  io.use(wrapMiddlewareForSocketIo(authHeaderExtraction))
   io.use(wrapMiddlewareForSocketIo(passport.initialize()));
   io.use(wrapMiddlewareForSocketIo(sessionMiddleware));
   io.use(wrapMiddlewareForSocketIo(passport.session()));

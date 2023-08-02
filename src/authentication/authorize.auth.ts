@@ -1,14 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { ApiError } from "../error/error.handler";
 import passport from "passport";
-import { IncomingMessage } from "http";
-import cookieParser from "cookie-parser";
 import cookie from "cookie-signature";
 
 export function passportGate(req: Request, _res: Response, next: NextFunction) {
   const ip = req.ip ?? req.socket.remoteAddress;
+  console.log("session:", req.session);
   if (!req.user) return next(new ApiError(401, "Unauthorized")); // || req.session.ip !== ip
-  next();
+  return next();
 };
 
 
@@ -25,14 +24,14 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 };
 
 export function authHeaderExtraction(req: Request, _res: Response, next: NextFunction) {
-
   if (!req.cookies?.Bearer && !!req.headers["authorization"]) {
     let token: string | undefined = decodeURIComponent(req.headers["authorization"]?.split("Bearer ")[1]);
-    if (!!req.cookies) req.cookies["Bearer"] = token;
+    if (!!req.cookies) req.cookies["Bearer"] = token; // TODO: also write it to req.headers.cookie
     else req.cookies = { "Bearer": token };
   } else {
     // new guy;
   };
+  console.log("set cookie:", req.cookies);
   return next();
 };
 

@@ -78,10 +78,6 @@ app.use(localVarMiddleware);
 //app routes
 app.use("/api/v1", routes);
 app.get("/index", (req, res) => {
-  console.log("session", req.session);
-  console.log("cookies", req.cookies);
-  console.log("headers", req.headers);
-  console.log("user", req.user);
   res.sendFile(join(__dirname, "../clients/socketio.html"))
 });
 

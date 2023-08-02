@@ -36,9 +36,9 @@ export const serversPromise =
       const io = await ioServer(httpServer);
 
       // run Media Server
-      // const mediaServer = new MediaServer(io);
+      const mediaServer = new MediaServer(io);
       ////////////////////////////////////////////////////////////////////////////
-      return { io, httpServer, httpsServer };
+      return { io, httpServer, mediaServer, httpsServer };
     })
     .catch((err) => {
       console.error("Error making the main server...");
