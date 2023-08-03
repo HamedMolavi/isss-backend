@@ -31,7 +31,6 @@ export function authHeaderExtraction(req: Request, _res: Response, next: NextFun
   } else {
     // new guy;
   };
-  console.log("set cookie:", req.cookies);
   return next();
 };
 

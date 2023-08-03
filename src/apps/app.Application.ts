@@ -19,6 +19,7 @@ import { authHeaderExtraction } from "../authentication/authorize.auth";
 //create express app
 const app: Application = express();
 
+///////////////////////////////////////////////////////////////////////////////// Credentials
 export const sessionMiddleware = session({
   // genid(req) { // id of the session saved in table as key.
   //   return "randomUuid(12)";
@@ -34,9 +35,7 @@ export const sessionMiddleware = session({
     httpOnly: true,
   },
 });
-//config server
 setUpPassport();
-
 app.use(
   cors({
     origin: "*",
@@ -52,34 +51,29 @@ app.use(
 // });
 app.use([
   cookieParser(),
-  authHeaderExtraction
-])
-app.use(bodyParser.json({ limit: "50mb" }));
+  authHeaderExtraction,
+  sessionMiddleware,
+  passport.initialize(),
+  passport.session(),
+]);
+///////////////////////////////////////////////////////////////////////////////// Parsing & Logger
 app.use(
+  bodyParser.json({ limit: "50mb" }),
   bodyParser.urlencoded({
     limit: "50mb",
     extended: true,
     parameterLimit: 50000,
-  })
+  }),
+  bodyParser.text({ limit: "200mb" }),
+  fileUpload(),
+  flash(),
+  setupLogger(),
+  localVarMiddleware, //local variables setup
 );
-app.use(bodyParser.text({ limit: "200mb" }));
-app.use(fileUpload());
-app.use(sessionMiddleware);
-app.use(passport.initialize());
-app.use(flash());
-app.use(passport.session());
 
-//add logger
-app.use(setupLogger());
-
-//local variables setup
-app.use(localVarMiddleware);
-
+///////////////////////////////////////////////////////////////////////////////// Routing
 //app routes
 app.use("/api/v1", routes);
-app.get("/index", (req, res) => {
-  res.sendFile(join(__dirname, "../clients/socketio.html"))
-});
 
 //404 route
 app.use(function notFound(req: Request, _res: Response, next: NextFunction) {
