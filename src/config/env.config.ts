@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import { Consumer } from "kafkajs";
 import { join } from "path";
+import {} from "../types/global";
 
 dotenv.config({ path: join(__dirname, "../../.env"), encoding: 'utf8', debug: true, override: false });
 

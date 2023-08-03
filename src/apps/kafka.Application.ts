@@ -47,7 +47,7 @@ export class MediaServer {
   };
   private async deleteConsumer(key: string) {
     const consumer = process["CONSUMERS"].get(key);
-    await consumer.disconnect().then((_: undefined) => process.env["NODE_ENV"] === "development" ? console.log("Consumer", key, "disconnected!") : undefined);
+    await consumer?.disconnect().then((_: void) => process.env["NODE_ENV"] === "development" ? console.log("Consumer", key, "disconnected!") : undefined);
     return key;
   };
   private checkConsumersThread(): NodeJS.Timer {

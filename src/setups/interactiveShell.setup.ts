@@ -26,7 +26,7 @@ async function act(action: string) {
     default: // implicit actions
       if (action.startsWith("close consumer")) {
         const consumerId = action.split("close consumer ")[1];
-        process["ROOMS"].delete(consumerId);
+        process["CONSUMERS"].delete(consumerId);
       } else if (action.startsWith("close consumer")) {
 
       } else {
