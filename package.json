@@ -81,7 +81,6 @@
     "supertest": "^6.2.3",
     "trez-sms-client": "^1.0.4",
     "ts-node": "^10.7.0",
-    "winston": "^3.8.1",
     "winston-loki": "^6.0.5"
   },
   "devDependencies": {

@@ -11,7 +11,6 @@ import fileUpload from "express-fileupload";
 import { ApiError } from "../error/error.handler";
 import localVarMiddleware from "../setups/localVar.setup";
 import { setupLogger } from "../setups/logger.setup";
-import { join } from "path";
 import redisStore from "../db/redis/store.database";
 import { randomUuid } from "../tools/index.tools";
 import { authHeaderExtraction } from "../authentication/authorize.auth";
@@ -74,6 +73,7 @@ app.use(
 ///////////////////////////////////////////////////////////////////////////////// Routing
 //app routes
 app.use("/api/v1", routes);
+app.get("/test", (_req, res)=> res.send("ok"))
 
 //404 route
 app.use(function notFound(req: Request, _res: Response, next: NextFunction) {

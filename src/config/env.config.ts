@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import { Consumer } from "kafkajs";
 import { join } from "path";
-import {} from "../types/global";
+import { } from "../types/global";
 
 dotenv.config({ path: join(__dirname, "../../.env"), encoding: 'utf8', debug: true, override: false });
 
@@ -10,6 +10,7 @@ export default function extraEnvConfigs() {
   try {
     //check for env varialbles and fill non-existing ones
     const allEnv = [
+      ["NODE_ENV", "development"],
       ["PORT_http", "4000"],
       ["PORT_https", "3000"],
       ["HOST", "127.0.0.1"],
@@ -18,8 +19,7 @@ export default function extraEnvConfigs() {
       ["REDIS_URL", "redis://localhost:6379"],
       ["ELASTIC_SEARCH", "<<ip : port elasticksearch>>"],
       ["REQUEST_LOG_FORMAT", ""],
-      ["NODE_ENV", "production"],
-      ["REQUEST_LOG_FILE", "./logs/request.log"],
+      ["REQUEST_LOG_DIR", "../logs"],
       ["RECORD_STREAM_TIME", "10"],
       ["SESSION_SECRET", "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4i"],
     ]
