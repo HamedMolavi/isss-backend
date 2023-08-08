@@ -1,5 +1,6 @@
 import { Consumer } from "kafkajs";
 import { IUser } from "../models/user";
+import { IncomingMessage } from "http";
 
 export { }
 declare global {
@@ -16,3 +17,8 @@ declare global {
   }
 }
 
+declare module 'http' {
+  export interface IncomingMessage {
+    user: IUser
+  }
+}

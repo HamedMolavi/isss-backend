@@ -53,7 +53,7 @@ export function setupLogger() {
   });
   const middlewares = [
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
-    logger(":id :user-agent :remote-addr :date[web] :url :method :status\n\tUser :remote-user"), // log all
+    logger(":id :user-agent :remote-addr :date[web] :url :method :status"), // log all
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     logger((tokens, req: Request, res: Response) => {
       return !!process.env["REQUEST_LOG_FORMAT"] ? process.env["REQUEST_LOG_FORMAT"]

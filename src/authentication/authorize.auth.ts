@@ -5,7 +5,6 @@ import cookie from "cookie-signature";
 
 export function passportGate(req: Request, _res: Response, next: NextFunction) {
   const ip = req.ip ?? req.socket.remoteAddress;
-  console.log("session:", req.session);
   if (!req.user) return next(new ApiError(401, "Unauthorized")); // || req.session.ip !== ip
   return next();
 };
@@ -29,7 +28,7 @@ export function authHeaderExtraction(req: Request, _res: Response, next: NextFun
     if (!!req.cookies) req.cookies["Bearer"] = token; // TODO: also write it to req.headers.cookie
     else req.cookies = { "Bearer": token };
   } else {
-    // new guy;
+    // new guy or it has cookie.Bearer;
   };
   return next();
 };

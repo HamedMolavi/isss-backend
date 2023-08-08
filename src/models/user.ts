@@ -15,7 +15,7 @@ export interface IUser {
   configuration: boolean;
   views: boolean;
   created_date: Date;
-  camera_access: mongoose.Types.ObjectId[];
+  camera_access?: Array<mongoose.Types.ObjectId>;
 }
 
 interface IUserDocument extends IUser, Document {
@@ -45,7 +45,7 @@ const UserSchema: Schema<IUserDocument> = new Schema(
     configuration: { type: Boolean, default: false },
     role: { type: String, required: true },
     created_date: { type: Date, default: Date.now },
-    camera_access: { type: [mongoose.Types.ObjectId], ref: "camera", default: [] }
+    camera_access: { type: Array<mongoose.Types.ObjectId>, ref: "Camera", default: [] }
   },
   {
     collection: "User",

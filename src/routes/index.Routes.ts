@@ -20,7 +20,6 @@ const router: Router = Router();
 
 //routes in which verification is not needed
 router.use("/auth/login", login);
-// router.use("/alerts", alerts); // TODO: change this route to be a consumer and send notifs on evented sockets
 
 //middleware for check and verify token
 router.use(passportGate);

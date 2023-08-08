@@ -15,33 +15,25 @@ export class MediaServer {
   };
   private async initConsumers() {
     for (const key of process["CONSUMERS"].keys()) { // this syntax of for loop is sync, forEach is not sync.
-      // if (key.startsWith("cam_")) {
       const consumer = await this.createConsumer(key);
       process["CONSUMERS"].set(key, consumer);
-      // };
     };
-    console.log("Initializing check thread");
     this.checkConsumersInterval = this.checkConsumersThread();
   };
   private async createConsumer(key: string) {
+    const eventName = key.split("_")[0]; // stream, fire, face, human, ...
+    const roomId = key.split("_").slice(1).join("_"); // camera id equals to room id
     const consumer = kafkaFactory({ clientId: key, type: "consumer" }) as Consumer; // TODO: when I place them in one group I get this error: The group is rebalancing, so a rejoin is needed 
     await consumer.subscribe({ topic: key, fromBeginning: false });
     await consumer.run({
       eachMessage: async ({ topic, partition, message, heartbeat }) => { // heartbeat function to send manual heartbeat as messages recieved
-        // console.log(topic, key, process["CONSUMERS"].has(key), message.offset);
-
-        // console.log(message.headers);           //{}
-        // console.log(message.timestamp);           //1690287272162
-        // console.log(message.value);           //Buffer
-        if (process["CONSUMERS"].has(key)) this.io.to(key as string).emit('stream', message.value);
-        else { }//TODO: cam_id doesn't exist in rooms so it should be deleted
-
+        if (process["CONSUMERS"].has(key)) this.io.to(roomId).emit(eventName, message.value); // TODO: add headers and dto schema
+        else { };//TODO: cam_id doesn't exist in rooms so it should be deleted
       },
     }).then(_ => process.env["NODE_ENV"] === "development" ? console.log("Consumer", key, "connected!") : undefined);
     consumer.on("consumer.crash", (e: ConsumerCrashEvent) => {
-      console.error(e.payload.error);
       return this.deleteConsumer(key);
-    })
+    });
     // consumer.on("consumer.stop")
     return consumer;
   };
@@ -57,7 +49,7 @@ export class MediaServer {
         // some keys exist in consumers but their rooms have been deleted -> delete consumer too
         if (!process["CONSUMERS"].has(key)) return process["CONSUMERS"].delete(await this.deleteConsumer(key)); // old cameras in map
       };
-    }, 1000)
+    }, 1000);
   };
 };
 

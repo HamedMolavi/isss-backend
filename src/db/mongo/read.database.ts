@@ -3,7 +3,7 @@ import { ApiError } from "../../error/error.handler";
 import { Document, FilterQuery } from "mongoose";
 
 export async function read(model: any, query?: FilterQuery<any>) {
-  let docs: Document[] = await model.find(!!query ? query : {}).exec();
+  let docs: Document[] | any = await model.find(!!query ? query : {}).exec(); // TODO: change the type here
   return docs;
 };
 

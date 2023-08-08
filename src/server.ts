@@ -38,7 +38,7 @@ export const serversPromise =
       // run Media Server
       const mediaServer = new MediaServer(io);
       ////////////////////////////////////////////////////////////////////////////
-      return { io, httpServer, mediaServer, httpsServer };
+      return { io, httpServer, httpsServer }; // TODO: include mediaServer
     })
     .catch((err) => {
       console.error("Error making the main server...");

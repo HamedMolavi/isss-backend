@@ -8,6 +8,7 @@ import Schedule from "../../models/schedule";
 import recordStream from "../../tools/recordStream";
 import Notification from "../../models/notification";
 import { send_email } from "../../tools/sendEmail";
+import { serversPromise } from "../../server";
 
 const router: Router = Router();
 
@@ -101,7 +102,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     let recorder: any = recordStream(rtsp_link, _camera?._id.toString());
     //if (is_muted_list === false && send_notif == true) {
     if (is_muted_list === false) {
-      (await ioPromise).emit("get alert", notification); //send notification to client with socket.io
+      (await serversPromise).io.emit("get alert", notification); //send notification to client with socket.io
       //check for limit record camera up to 3 and camera is not recording
       let temp_record: Array<string> = [bodyRequest.log.camera_id, bodyRequest.log.schedule_id];
       let isOpenForRecord = false;
@@ -148,7 +149,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     }
     else {
       if (_personnel?.tracked === true || _car?.tracked) {
-        (await ioPromise).emit("get alert", notification);
+        (await serversPromise).io.emit("get alert", notification);
       }
 
     }
