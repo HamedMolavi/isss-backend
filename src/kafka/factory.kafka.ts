@@ -1,5 +1,4 @@
 import { Kafka, logLevel, ConsumerConfig, ProducerConfig, AdminConfig, Consumer, Producer, Admin } from 'kafkajs';
-import { KafkaClientType } from '../interfaces/enums/kafka.enum';
 
 // TODO: config?
 

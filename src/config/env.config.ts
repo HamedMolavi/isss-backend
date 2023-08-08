@@ -4,7 +4,7 @@ import { Consumer } from "kafkajs";
 import { join } from "path";
 import { } from "../types/global";
 import { read } from "../db/mongo/read.database";
-import Model, { IModel } from "../db/mongo/models/model";
+import Model from "../db/mongo/models/model";
 import { Schema } from "mongoose";
 
 dotenv.config({ path: join(__dirname, "../../.env"), encoding: 'utf8', debug: true, override: false });

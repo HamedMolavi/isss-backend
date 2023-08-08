@@ -1,14 +1,14 @@
-import Camera, { ICamera } from "../db/mongo/models/camera";
-import Car, { ICar } from "../db/mongo/models/car";
+import Camera from "../db/mongo/models/camera";
+import Car from "../db/mongo/models/car";
 import CarBrand from "../db/mongo/models/carBrand";
 import CarColor from "../db/mongo/models/carColor";
-import Personnel, { IPersonnel } from "../db/mongo/models/personnel";
+import Personnel from "../db/mongo/models/personnel";
 import Schedule from "../db/mongo/models/schedule";
 import ModelToCamera from "../db/mongo/models/modelToCamera";
 import Section from "../db/mongo/models/section";
 import Department from "../db/mongo/models/department";
 import toPersianPlate, { english2Persian } from "./EnglishToPersianPlate";
-import Model, { IModel } from "../db/mongo/models/model";
+import Model from "../db/mongo/models/model";
 
 //define type fore input function extended description
 type Description = {

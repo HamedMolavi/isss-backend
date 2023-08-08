@@ -5,7 +5,6 @@ import passport from "passport";
 import { sessionMiddleware } from "./app.Application";
 import { authHeaderExtraction, passportGate } from "../authentication/authorize.auth";
 import { wrapMiddlewareForSocketIo } from "../tools/socket.tools";
-import { SocketDisconnectReason } from "../interfaces/enums/socket.enum";
 
 export default async function ioServer(httpServer: http.Server) {
   // run http websocket
