@@ -1,10 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
-import CarBrand from "../../models/carBrand";
-import CarColor from "../../models/carColor";
-import Personnel from "../../models/personnel";
+import CarBrand from "../../db/mongo/models/carBrand";
+import CarColor from "../../db/mongo/models/carColor";
+import Personnel from "../../db/mongo/models/personnel";
 import toPersianPlate, { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
-import Car from "./../../models/car";
+import Car from "../../db/mongo/models/car";
 
 //create router for add to routes file
 const router: Router = Router();

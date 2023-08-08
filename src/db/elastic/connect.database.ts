@@ -1,6 +1,6 @@
 import axios from "axios";
 import { NextFunction } from "express";
-import Model from "../../models/model";
+import Model from "../mongo/models/model";
 import { ApiError } from "../../error/error.handler";
 
 //get connection string from enviroment variable

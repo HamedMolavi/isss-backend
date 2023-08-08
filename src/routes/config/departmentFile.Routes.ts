@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
-import Camera from "../../models/camera";
-import Departement from "../../models/department";
-import Section, { ISection } from "../../models/section";
+import Camera from "../../db/mongo/models/camera";
+import Departement from "../../db/mongo/models/department";
+import Section, { ISection } from "../../db/mongo/models/section";
 import { IChildrenCamera, IChildrenSection, IResponseJson } from "../../interfaces/temp.interface";
 import { IDepartment } from "../../interfaces/department.interface";
 import { ICamera } from "../../interfaces/camera.interface";

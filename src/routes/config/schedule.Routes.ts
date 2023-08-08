@@ -1,12 +1,12 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { IGetParams } from "../../interfaces/temp.interface";
-import Schedule, { ISchedule } from "./../../models/schedule";
+import Schedule, { ISchedule } from "../../db/mongo/models/schedule";
 import {
   compareTime,
   convertToCron,
   convertToCronDay,
 } from "./../../tools/convertTime";
-import ModelToCamera from "./../../models/modelToCamera";
+import ModelToCamera from "../../db/mongo/models/modelToCamera";
 import { ApiError } from "../../error/error.handler";
 
 //create router for add to server file

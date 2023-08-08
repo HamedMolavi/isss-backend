@@ -1,7 +1,7 @@
 import app from '../../server.ts';
 import { expect } from 'chai';
 import request from 'supertest';
-import Personnel, { IPersonnel } from '../../models/personnel';
+import Personnel, { IPersonnel } from '../../db/mongo/models/personnel.js';
 import mongoose from 'mongoose';
 
 

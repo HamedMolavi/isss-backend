@@ -1,7 +1,7 @@
 import app from '../../server.ts';
 import { expect } from 'chai';
 import request from 'supertest';
-import CarBrand, { ICarBrand } from '../../models/carBrand';
+import CarBrand, { ICarBrand } from '../../db/mongo/models/carBrand.js';
 
 
 const token = process.env.sample_token;

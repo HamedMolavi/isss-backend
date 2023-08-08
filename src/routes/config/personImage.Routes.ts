@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
 import { ApiError } from "../../error/error.handler";
-import PersonImage from "../../models/personImage";
+import PersonImage from "../../db/mongo/models/personImage";
 import { deleteFiles, readFiles } from "../../tools/fileUpload";
 
 //create router for add to routes file

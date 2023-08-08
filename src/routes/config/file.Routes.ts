@@ -3,7 +3,7 @@ import { NextFunction, Router, Request, Response } from "express";
 import fs from "fs";
 import axios from "axios";
 import path from "path";
-import PersonImage from "./../../models/personImage";
+import PersonImage from "../../db/mongo/models/personImage";
 import { hashJson } from "./../../tools/hash";
 import { ApiError } from "../../error/error.handler";
 

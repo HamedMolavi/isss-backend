@@ -12,7 +12,6 @@ import { ApiError } from "../error/error.handler";
 import localVarMiddleware from "../setups/localVar.setup";
 import { setupLogger } from "../setups/logger.setup";
 import redisStore from "../db/redis/store.database";
-import { randomUuid } from "../tools/index.tools";
 import { authHeaderExtraction } from "../authentication/authorize.auth";
 
 //create express app
@@ -20,9 +19,6 @@ const app: Application = express();
 
 ///////////////////////////////////////////////////////////////////////////////// Credentials
 export const sessionMiddleware = session({
-  // genid(req) { // id of the session saved in table as key.
-  //   return "randomUuid(12)";
-  // },
   store: redisStore(),
   name: "Bearer",
   secret: process.env["SESSION_SECRET"] as string, // TODO: remove as string
@@ -101,20 +97,3 @@ app.use(function errorHandler(err: ApiError, _req: Request, res: Response, _next
 
 
 export default app;
-
-export const setResponseBody = (_req: any, res: any, next: any) => {
-  const oldWrite = res.write, oldEnd = res.end, chunks: any = [];
-  res.write = function (chunk: any) {
-    chunks.push(Buffer.from(chunk));
-    oldWrite.apply(res, arguments);
-  };
-  res.end = function (chunk: any) {
-    if (chunk) {
-      chunks.push(Buffer.from(chunk));
-    };
-    const body = Buffer.concat(chunks).toString("utf8");
-    res.__custombody__ = body;
-    oldEnd.apply(res, arguments);
-  };
-  next();
-};

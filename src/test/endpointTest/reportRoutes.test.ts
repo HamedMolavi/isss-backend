@@ -1,16 +1,16 @@
 import app from "../../server.ts";
 import { expect } from "chai";
 import request from "supertest";
-import Camera from "../../models/camera";
-import Model from "../../models/model";
-import Section from "../../models/section";
-import Departement from "../../models/department";
-import Personnel from "../../models/personnel";
-import CarBrand from "../../models/carBrand";
-import CarColor from "../../models/carColor";
+import Camera from "../../db/mongo/models/camera.js";
+import Model from "../../db/mongo/models/model.js";
+import Section from "../../db/mongo/models/section.js";
+import Departement from "../../db/mongo/models/department.js";
+import Personnel from "../../db/mongo/models/personnel.js";
+import CarBrand from "../../db/mongo/models/carBrand.js";
+import CarColor from "../../db/mongo/models/carColor.js";
 import { NextFunction } from "express";
 import mongoose from "mongoose";
-import Car from "../../models/car";
+import Car from "../../db/mongo/models/car.js";
 
 const token = process.env.sample_token;
 

@@ -1,5 +1,5 @@
 import mongoose, { Schema , Document } from "mongoose";
-import { ICarColor } from "../interfaces/car.interface";
+import { ICarColor } from "../../../interfaces/car.interface";
 
 
 

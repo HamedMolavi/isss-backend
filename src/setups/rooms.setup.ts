@@ -1,7 +1,7 @@
 import { Schema } from "mongoose";
 import { read } from "../db/mongo/read.database";
-import Camera from "../models/camera";
-import Model, { IModel } from "../models/model";
+import Camera from "../db/mongo/models/camera";
+import Model, { IModel } from "../db/mongo/models/model";
 
 export async function setupRooms() {
   let models: (IModel & { _id: Schema.Types.ObjectId; })[] = await read(Model);

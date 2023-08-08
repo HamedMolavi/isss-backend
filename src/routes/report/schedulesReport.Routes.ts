@@ -1,13 +1,13 @@
 import { Router, Request, Response, NextFunction } from "express";
 import mongoose, { Schema } from "mongoose";
 import { ApiError } from "../../error/error.handler";
-import Camera, { ICamera } from "../../models/camera";
-import Departement from "../../models/department";
-import { IModel } from "../../models/model";
-import Model from "../../models/model";
+import Camera, { ICamera } from "../../db/mongo/models/camera";
+import Departement from "../../db/mongo/models/department";
+import { IModel } from "../../db/mongo/models/model";
+import Model from "../../db/mongo/models/model";
 import { getAccessAndVerify } from "../../tools/authentication";
-import Schedule, { ISchedule } from "../../models/schedule";
-import ModelToCamera, { IModelToCamera } from "../../models/modelToCamera";
+import Schedule, { ISchedule } from "../../db/mongo/models/schedule";
+import ModelToCamera, { IModelToCamera } from "../../db/mongo/models/modelToCamera";
 import { Access } from "../../interfaces/enums/access.enum";
 
 //get user role from enviroment variable

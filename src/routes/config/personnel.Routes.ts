@@ -2,11 +2,11 @@ import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
 import { requestForGetPersonnel } from "../../db/elastic/connect.database";
 import { ApiError } from "../../error/error.handler";
-import Camera from "../../models/camera";
+import Camera from "../../db/mongo/models/camera";
 import url from "url"
-import PersonImage from "../../models/personImage";
+import PersonImage from "../../db/mongo/models/personImage";
 import { deleteDirectory, uploadAvatar } from "../../tools/fileUpload";
-import Personnel, { IPersonnel } from "./../../models/personnel";
+import Personnel, { IPersonnel } from "../../db/mongo/models/personnel";
 
 //create router for add to routes file
 const router: Router = Router();

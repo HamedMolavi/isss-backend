@@ -1,7 +1,7 @@
 import app from "../../server.ts";
 import { expect } from "chai";
 import request from "supertest";
-import User, { IUser } from "./../../models/user";
+import User, { IUser } from "../../db/mongo/models/user.js";
 import { NextFunction } from "express";
 import { idText } from "typescript";
 

@@ -1,5 +1,5 @@
 import passport from "passport";
-import User from "../models/user";
+import User from "../db/mongo/models/user";
 import passportLocal from "passport-local";
 import { Request, Response, NextFunction } from "express";
 // const JWTStrategy = require('passport-jwt').Strategy;

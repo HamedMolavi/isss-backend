@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
-import CarBrand from "./../../models/carBrand";
+import CarBrand from "../../db/mongo/models/carBrand";
 import { ICarBrand } from "../../interfaces/car.interface";
 //create router for add to server file 
 const router: Router = Router();

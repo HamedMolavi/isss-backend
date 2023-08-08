@@ -9,7 +9,7 @@ import { setExceptionHandler } from "./error/process.handler";
 import app from "./apps/app.Application";
 import { setupRooms } from "./setups/rooms.setup";
 import { setupInteractive } from "./setups/interactiveShell.setup";
-import { MediaServer } from "./apps/kafka.Application";
+import { KafkaServer } from "./apps/kafka.Application";
 import connectToDBs from "./db/index.database";
 import ioServer from "./apps/socket.Application";
 
@@ -36,7 +36,7 @@ export const serversPromise =
       const io = await ioServer(httpServer);
 
       // run Media Server
-      const mediaServer = new MediaServer(io);
+      const mediaServer = new KafkaServer(io);
       ////////////////////////////////////////////////////////////////////////////
       return { io, httpServer, httpsServer }; // TODO: include mediaServer
     })

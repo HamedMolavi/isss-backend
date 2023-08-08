@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
-import User, { IUser, setPassword } from "../../models/user";
+import User, { IUser, setPassword } from "../../db/mongo/models/user";
 import { getStrength } from "../../tools/verifyPasswordRegex";
 
 //create router for add to server

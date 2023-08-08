@@ -1,5 +1,5 @@
 import { Router } from "express";
-import Camera from "./../../models/camera";
+import Camera from "../../db/mongo/models/camera";
 import { getStreamUri } from "../../tools/camera.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import { CreateCameraBody } from "../../validation/dto/camera.dto";

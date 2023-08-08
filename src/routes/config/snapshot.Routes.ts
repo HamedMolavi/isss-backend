@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
-import Camera from "../../models/camera";
+import Camera from "../../db/mongo/models/camera";
 import takeSnapshot, { cameraInfo } from "../../tools/takeSnaphsot";
 import { ICamera } from "../../interfaces/camera.interface";
 

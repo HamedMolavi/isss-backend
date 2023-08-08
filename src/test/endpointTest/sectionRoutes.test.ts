@@ -1,7 +1,7 @@
 import app from '../../server.ts';
 import { expect } from 'chai';
 import request from 'supertest';
-import Section, { ISection } from '../../models/section';
+import Section, { ISection } from '../../db/mongo/models/section.js';
 import mongoose from 'mongoose';
 
 

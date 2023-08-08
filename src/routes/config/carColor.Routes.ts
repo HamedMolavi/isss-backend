@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../error/error.handler";
-import CarColor from "./../../models/carColor";
+import CarColor from "../../db/mongo/models/carColor";
 import { ICarColor } from "../../interfaces/car.interface";
 
 //create router for add to server file 
