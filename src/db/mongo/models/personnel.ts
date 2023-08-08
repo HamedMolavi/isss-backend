@@ -2,25 +2,6 @@ import mongoose, { Schema, Document } from "mongoose";
 import path from "path";
 import fs from "fs";
 
-//define personnel type
-export interface IPersonnel extends Document {
-  _id: Schema.Types.ObjectId;
-  first_name: string;
-  last_name: string;
-  national_code: string;
-  email: string;
-  phone_number: string;
-  job_id: Schema.Types.ObjectId;
-  personnel_code: string;
-  section_id: Schema.Types.ObjectId;
-  camera_whitelist: Schema.Types.ObjectId[];
-  is_active: boolean;
-  is_employee: boolean;
-  is_dismissed: boolean;
-  tracked:boolean;
-  create_date: Date;
-}
-
 //create personnel model with schema for save in DB
 const PersonnelSchema: Schema<IPersonnel> = new Schema(
   {
@@ -47,14 +28,12 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
 //get personnel data jason for auth
 PersonnelSchema.methods.toJSON =function () {
   //get url AI for send request
-  const BASE_URL: string = process.env["BASE_URL"] as string;
+  const BASE_URL = process.env["BASE_URL"] as string;
   //define path for save image
   let pathSave = path.join(__dirname, `./../../assets/image/${this._id}/avatar.jpeg`);
-  let have_avatar: Boolean = false;
+  let has_avatar: Boolean = false;
   //if path not exist, create path
-  if (fs.existsSync(pathSave)) {
-    have_avatar = true;
-  }
+  if (fs.existsSync(pathSave)) has_avatar = true;
 
   return {
     _id: this._id,
@@ -73,7 +52,7 @@ PersonnelSchema.methods.toJSON =function () {
     is_dismissed: this.is_dismissed,
     create_date: this.create_date,
     tracked:this.tracked,
-    image_url: have_avatar === true ? BASE_URL + "/files/download/" + this._id : BASE_URL + "/files/download/default"
+    image_url: has_avatar === true ? BASE_URL + "/files/download/" + this._id : BASE_URL + "/files/download/default"
   };
 };
 

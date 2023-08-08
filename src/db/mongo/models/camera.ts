@@ -2,9 +2,14 @@ import mongoose, { Schema, Document } from "mongoose";
 import Model from "./model";
 import ModelToCamera from "./modelToCamera";
 import Schedule from "./schedule";
-import { ICamera } from "../../../interfaces/camera.interface";
-import { CameraTypes } from "../../../interfaces/enums/camera.enum";
 import { updateRooms } from "../../../tools/rooms.tools";
+
+export const CameraInfoKeys: ICameraInfo = {
+  ip: "true",
+  username: "true",
+  password: "true",
+  nvr: "true"
+};
 
 //create camera model with schema for save in DB
 const CameraSchema: Schema<ICamera> = new Schema(

@@ -5,7 +5,7 @@ import Departement from "../../db/mongo/models/department";
 import Section, { ISection } from "../../db/mongo/models/section";
 import { IChildrenCamera, IChildrenSection, IResponseJson } from "../../interfaces/temp.interface";
 import { IDepartment } from "../../interfaces/department.interface";
-import { ICamera } from "../../interfaces/camera.interface";
+import { ICamera } from "../../types/camera.interface";
 
 
 //create router for add to server file

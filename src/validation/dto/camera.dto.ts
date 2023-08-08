@@ -18,5 +18,5 @@ export class CreateCameraBody {
   public password?: string;
   public muted?: Schema.Types.ObjectId[];
   public is_enabled?: boolean;
-  public camera_type?: any; // CameraTypes
+  public camera_type?: CameraTypes;
 };

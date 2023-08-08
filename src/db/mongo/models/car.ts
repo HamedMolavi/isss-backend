@@ -1,5 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
-import { ICar } from "../../../interfaces/car.interface";
+import mongoose, { Schema } from "mongoose";
 
 
 

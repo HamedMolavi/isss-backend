@@ -1,8 +1,4 @@
 import mongoose, { Schema } from "mongoose";
-import { IDepartment } from "../../../interfaces/department.interface";
-
-
-
 
 //create department model with schema for save in DB
 const DepartmentSchema: Schema<IDepartment> = new Schema({

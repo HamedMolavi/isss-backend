@@ -1,14 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-//define section type
-export interface ISection extends Document {
-    _id: mongoose.Types.ObjectId;
-    name: string;
-    department_id: mongoose.Types.ObjectId;
-    create_date: Date;
-}
-
-
 //create section model with schema for save in DB
 const SectionSchema: Schema<ISection> = new Schema({
     name: { type: String, required: true },
