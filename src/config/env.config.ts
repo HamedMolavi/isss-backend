@@ -3,6 +3,9 @@ import fs from "fs";
 import { Consumer } from "kafkajs";
 import { join } from "path";
 import { } from "../types/global";
+import { read } from "../db/mongo/read.database";
+import Model, { IModel } from "../db/mongo/models/model";
+import { Schema } from "mongoose";
 
 dotenv.config({ path: join(__dirname, "../../.env"), encoding: 'utf8', debug: true, override: false });
 
@@ -34,12 +37,15 @@ export default function extraEnvConfigs() {
       key: key,
       cert: cert,
     });
-    // //declare an empty rooms' map to be filled and updated over time
-    // let ROOMS: Map<string, string> = new Map();
-    // process["ROOMS"] = ROOMS;
     //declare an empty consumers' map to be filled and updated over time
     let CONSUMERS: Map<string, Consumer> = new Map();
     process["CONSUMERS"] = CONSUMERS;
+    // setting AI model categories into a global variable
+    read(Model).then((models: (IModel & { _id: Schema.Types.ObjectId; })[]) => {
+      for (const model of models) {
+        process["MODELS"].push(model.category);
+      };
+    });
 
   } catch (err) {
     console.error("Error in reading key and pem...");

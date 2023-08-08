@@ -1,21 +1,16 @@
-import { randomUuid } from "./index.tools";
-
 //TODO: is this enough?
 export async function updateRooms(doc: any) {
-  if (process["CONSUMERS"].has(`cam_${doc.id}`)) process["CONSUMERS"].delete(`cam_${doc.id}`);
-  else process["CONSUMERS"].set(`cam_${doc.id}`, undefined);
+  const cam_id: string = doc.id;
+  if ([...process["CONSUMERS"].keys()].some((val) => val.endsWith(doc.id))) removeRooms(cam_id);
+  else addRooms(cam_id);
 };
 
-// export async function updateRooms() {
-//   // camera stream rooms
-//   let onlineCameras = await read(Camera);
-//   let cam_ids = onlineCameras.map((el) => el.id);
-//   // set new rooms
-//   cam_ids.forEach((cam_id: string) => {
-//     if (!(process["ROOMS"].has(`cam_${cam_id}`))) process["ROOMS"].set(`cam_${cam_id}`, randomUuid(12))
-//   })
-//   // delete old rooms
-//   process["ROOMS"].forEach((_val: string, key: string, map: Map<string, string>) => {
-//     if (!cam_ids.includes(`cam_${key}`)) map.delete(key);
-//   });
-// };
+export async function addRooms(cam_id: string) {
+  process["CONSUMERS"].set(`stream_${cam_id}`, undefined); // rooms for streaming video, e.g. stream_628dc28ef014bc89f0280c4a
+  process["MODELS"].forEach((model) => process["CONSUMERS"].set(`${model}_${cam_id}`, undefined)) // rooms in which alerts are sent, e.g. fire_628dc28ef014bc89f0280c4a
+};
+
+export async function removeRooms(cam_id: string) {
+  process["CONSUMERS"].delete(`stream_${cam_id}`);
+  process["MODELS"].forEach((model) => process["CONSUMERS"].delete(`${model}_${cam_id}`)) // rooms in which alerts are sent, e.g. fire_628dc28ef014bc89f0280c4a
+};

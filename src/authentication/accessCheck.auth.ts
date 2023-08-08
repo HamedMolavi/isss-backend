@@ -6,7 +6,7 @@ import { ApiError } from "../error/error.handler";
 
 export default function accessCheck(access: Access, role: string) {
   return function middleware(req: Request, _res: Response, next: NextFunction) {
-    const user = req.session.user;
+    const user = req.user;
     switch (user.role) {
       case "admin":
         break;

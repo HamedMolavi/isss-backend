@@ -3,6 +3,7 @@ declare global {
   namespace NodeJS {
     interface Process {
       CONSUMERS: Map<string, Consumer | undefined>;
+      MODELS: string[];
     };
   };
   namespace Express {
