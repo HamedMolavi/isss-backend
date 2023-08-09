@@ -1,7 +1,7 @@
-import app from "../../server";
+import app from "../../server.ts";
 import { expect } from "chai";
 import request from "supertest";
-import Camera, { ICamera } from "../../models/camera";
+import Camera, { ICamera } from "../../db/mongo/models/camera.js";
 import mongoose from "mongoose";
 import { beforeEach } from "mocha";
 

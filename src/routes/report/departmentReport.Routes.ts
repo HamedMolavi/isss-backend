@@ -1,9 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { getAccessAndVerify } from "../../tools/authentication";
 import { eventDepartmentLogResponse } from "../../tools/createlogReport";
 import { date2Epokh } from "../../tools/convertTime";
-import { ApiError } from "../../error/error.handler";
-import { Access } from "../../tools/enums/access";
+import { ApiError } from "../../types/classes/error.class";
+import { Access } from "../../types/enums/access.enum";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -24,7 +23,7 @@ const dbUri = process.env["ELASTIC_SEARCH"] as string;
 
 //route for get sabotage list
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {getAccessAndVerify(req,Access.Configuration,"user",next)
+  try {
     //get model from url request
     //let model = req.params.model;
     //get token from header request and verify

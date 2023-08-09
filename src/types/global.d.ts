@@ -1,0 +1,26 @@
+import { IConsumer } from "./interfaces/kafka.interface";
+
+export { };
+declare global {
+  namespace NodeJS {
+    interface Process {
+      CONSUMERS: Map<string, IConsumer | undefined>;
+      MODELS: string[];
+    }
+    interface ProcessEnv {
+      PORT_HTTP: string
+      PORT_HTTPS: string
+      HOST: string
+      BASE_URL: string
+      MONGODB_URL: string
+      REDIS_URL: string
+      SESSION_SECRET: string
+      ELASTIC_SEARCH: string
+      REQUEST_LOG_FORMAT: string
+      NODE_ENV: string
+      WEB_STREAM: string
+      REQUEST_LOG_FILE: string
+      KAFKA_BOOTSTRAP: string
+    }
+  }
+}

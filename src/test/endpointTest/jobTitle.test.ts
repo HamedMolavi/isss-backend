@@ -1,7 +1,7 @@
-import app from '../../server';
+import app from '../../server.ts';
 import { expect } from 'chai';
 import request from 'supertest';
-import JobTitle, { IJobTitle } from '../../models/jobTitle';
+import JobTitle, { IJobTitle } from '../../db/mongo/models/jobTitle.js';
 
 
 const token = process.env.sample_token;

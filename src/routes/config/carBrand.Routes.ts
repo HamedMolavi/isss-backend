@@ -1,42 +1,20 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../error/error.handler";
-import CarBrand, { ICarBrand } from "./../../models/carBrand";
-import { Access } from "../../tools/enums/access";
-import { getAccessAndVerify } from "./../../tools/authentication";
-
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
-
-
+import { ApiError } from "../../types/classes/error.class";
+import CarBrand from "../../db/mongo/models/carBrand";
+import { ICarBrand } from "../../types/interfaces/car.interface";
 //create router for add to server file 
 const router: Router = Router();
-
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-    res.locals.currentUser = req.user;
-    res.locals.errors = req.flash("error");
-    res.locals.infos = req.flash("info");
-    next();
-});
-
-//define global 
 
 //add route for register new car_brand
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
     try {
-        getAccessAndVerify(req,Access.Configuration,"user",next)
-        //get jason from body request
+        //get json from body request
         const { name } = req.body;
         //verify body request
         if (!name) {
             req.flash("error", "Car brand is required");
             return next(new ApiError(400, "Bad request car brand is required"));
         }
-        //get token from header request and verify
-       // let token = getTokenAndVerify(req, const_role, next);
-     // if(!token){
-     //   return null;
-     // }
 
         //query for save new car_brand in DB
         let carBrand = await CarBrand.findOne({ name: name }).exec();
@@ -73,11 +51,6 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
         let search = req.query.search as string || "";
 
-        //get token from header request and verify
-     //   let token = getTokenAndVerify(req, const_role, next);
-     // if(!token){
-     //   return null;
-    //  }
         //query for get car_barnd list
         let carBrands: ICarBrand[] = [];
         if (!(search && search.length > 0)) {
@@ -118,12 +91,6 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
             return next(new ApiError(400, "Bad request car brand id is required"));
         }
 
-        //get token from header request and verify
-     //   let token = getTokenAndVerify(req, const_role, next);
-    //  if(!token){
-     //   return null;
-     // }
-
         //query for get car_brand by id from DB
         let carBrand = await CarBrand.findById(id).exec();
 
@@ -146,19 +113,12 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for delete car_brand by id from DB
 router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
     try {
-        getAccessAndVerify(req,Access.Configuration,"user",next)
         //get id from url
         let id: string = req.params.id;
         if (!id) {
             req.flash("error", "Car Brand id is required");
             return next(new ApiError(400, "Bad request car brand id is required"));
         }
-
-        //get token from header request and verify
-     //   let token = getTokenAndVerify(req, const_role, next);
-    //  if(!token){
-     //   return null;
-     // }
 
         //query for get car_brand by id from DB
         let carBrand = await CarBrand.findByIdAndDelete(id).exec();

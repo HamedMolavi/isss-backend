@@ -1,61 +1,22 @@
 import { Router, Request, Response, NextFunction } from "express";
-import mongoose from "mongoose";
-import { ApiError } from "../../error/error.handler";
-import Camera, { ICamera } from "../../models/camera";
-import Departement, { IDepartment } from "../../models/department";
-import Section, { ISection } from "../../models/section";
-//import { getTokenAndVerify } from "../../tools/authentication";
+import { ApiError } from "../../types/classes/error.class";
+import Camera from "../../db/mongo/models/camera";
+import Departement from "../../db/mongo/models/department";
+import Section from "../../db/mongo/models/section";
+import { IChildrenCamera, IChildrenSection, IResponseJson } from "../../types/interfaces/temp.interface";
+import { IDepartment } from "../../types/interfaces/department.interface";
+import { ICamera } from "../../types/interfaces/camera.interface";
+import { ISection } from "../../types/interfaces/section.interface";
 
-
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
-
-interface IChildrenCamera {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  type: string;
-  url: string;
-  username: string;
-  password: string;
-  ip: string;
-  is_enabled: boolean;
-}
-
-interface IChildrenSection {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  type: string;
-  children: IChildrenCamera[];
-}
-
-interface IResponseJson {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  type: string;
-  children: IChildrenSection[];
-}
 
 //create router for add to server file
 const router: Router = Router();
-
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-  res.locals.currentUser = req.user;
-  res.locals.errors = req.flash("error");
-  res.locals.infos = req.flash("info");
-  next();
-});
 
 //route for get departementfile list
 router.get(
   "",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
-      //get token from header request and verify
-    //  let token = getTokenAndVerify(req, const_role, next);
-    //  if(!token){
-    //    return null;
-    //  }
       //query for get departements list
       let departments: IDepartment[] = await Departement.find({}).exec();
       //query for get all section from DB

@@ -1,41 +1,21 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../error/error.handler";
-import Camera from "../../models/camera";
-import Model from "../../models/model";
-import ModelToCamera, { IModelToCamera } from "../../models/modelToCamera";
-import { getAccessAndVerify } from "../../tools/authentication";
+import { ApiError } from "../../types/classes/error.class";
+import ModelToCamera from "../../db/mongo/models/modelToCamera";
 import { convertToCron, convertToCronDay } from "../../tools/convertTime";
-import { Access } from "../../tools/enums/access";
-
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
 
 //create router for add to server file
 const router: Router = Router();
 
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-  res.locals.currentUser = req.user;
-  res.locals.errors = req.flash("error");
-  res.locals.infos = req.flash("info");
-  next();
-});
-
 //add route for register modelToCamera
 router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {      getAccessAndVerify(req,Access.Configuration,"user",next)
-    //get jason from body request
+  try {
+    //get json from body request
     const { camera_id, start, stop, dayOfWeek, model_id } = req.body;
     //verify body request
     if (!camera_id || start || stop || !dayOfWeek || !model_id) {
       req.flash("error", "Departement name is required");
       return next(new ApiError(400, "Departement name is required"));
-    }
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
+    };
 
     //convert input time to cron format
     let start_cron: string = convertToCron(start);
@@ -157,11 +137,6 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
     let search = (req.query.search as string) || "";
 
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
     //query for get departements list
     let model2Cameras = await ModelToCamera.find({}).exec();
 
@@ -187,18 +162,13 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
 //add route for edit modelToCamera
 router.patch("", async function (req: Request, res: Response, next: NextFunction) {
-  try {  getAccessAndVerify(req,Access.Configuration,"user",next)
+  try {
     //get camera_id and model_id from body
     let { camera_id, model_id, is_enabled } = req.body;
     if (!camera_id || !model_id) {
       req.flash("error", "Please enter all fields");
       return next(new ApiError(400, "Please enter all fields"));
     }
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
     let model2Camera = await ModelToCamera.findOneAndUpdate(
       {
         $and: [{ model_id: model_id }, { camera_id: camera_id }],

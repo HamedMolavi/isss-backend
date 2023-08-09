@@ -1,24 +1,12 @@
 import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
-import { ApiError } from "../../error/error.handler";
-import PersonImage from "../../models/personImage";
-import { getAccessAndVerify } from "./../../tools/authentication";
+import { ApiError } from "../../types/classes/error.class";
+import PersonImage from "../../db/mongo/models/personImage";
 import { deleteFiles, readFiles } from "../../tools/fileUpload";
-import { Access } from "../../tools/enums/access";
-
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
 
 //create router for add to routes file
 const router: Router = Router();
 
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-  res.locals.currentUser = req.user;
-  res.locals.errors = req.flash("error");
-  res.locals.infos = req.flash("info");
-  next();
-});
 
 //route for get personnel by id from DB
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
@@ -29,12 +17,6 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
       req.flash("error", "Please enter id");
       return next(new ApiError(400, "Please enter id"));
     }
-
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
 
     //query for get personnel by id from DB
     let personImages = await PersonImage.find({ person_id: id }).exec();
@@ -66,18 +48,12 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 //add route for delete image from folder assets\image
 router.delete("/:hashid", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get id from url
     let hashid = req.params.hashid;
     if (!hashid) {
       req.flash("error", "Please enter hashid");
       return next(new ApiError(400, "Please enter hashid"));
     }
-    //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
     //query for get personnel by id from DB
     let personimage = await PersonImage.findOne({ hash_id: hashid }).exec();
     if (!personimage) {

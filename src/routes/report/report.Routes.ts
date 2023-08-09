@@ -1,11 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { getAccessAndVerify } from "../../tools/authentication";
 import { eventLogResponse, faceLogResponse, fireLogResponse, humanLogResponse, plateLogResponse, sabotageLogResponse } from "../../tools/createlogReport";
 import { date2Epokh, getEpochList } from "../../tools/convertTime";
-import { ApiError } from "../../error/error.handler";
-import { dynamicRequestToElasticSearch } from "../../db/connectElasticSearch";
+import { ApiError } from "../../types/classes/error.class";
+import { dynamicRequestToElasticSearch } from "../../db/elastic/connect.database";
 import { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
-import { Access } from "../../tools/enums/access";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -53,7 +51,6 @@ type Plate = {
 //route for get sabotage list
 router.post("/:model", async function (req: Request, res: Response, next: NextFunction) {
   try {
-    getAccessAndVerify(req,Access.Configuration,"user",next)
     //get model from url request
     let model = req.params.model;
     let _timezone = req.query.timez as string;

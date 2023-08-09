@@ -1,7 +1,7 @@
-import app from "../../server";
+import app from "../../server.ts";
 import { expect } from "chai";
 import request from "supertest";
-import Model, { IModel } from "../../models/model";
+import Model, { IModel } from "../../db/mongo/models/model.js";
 import mongoose from "mongoose";
 import { NextFunction } from "express";
 

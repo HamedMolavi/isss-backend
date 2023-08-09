@@ -1,14 +1,15 @@
 import { Router, Request, Response, NextFunction } from "express";
 import mongoose, { Schema } from "mongoose";
-import { ApiError } from "../../error/error.handler";
-import Camera, { ICamera } from "../../models/camera";
-import Departement from "../../models/department";
-import { IModel } from "../../models/model";
-import Model from "../../models/model";
-import { getAccessAndVerify } from "../../tools/authentication";
-import Schedule, { ISchedule } from "../../models/schedule";
-import ModelToCamera, { IModelToCamera } from "../../models/modelToCamera";
-import { Access } from "../../tools/enums/access";
+import { ApiError } from "../../types/classes/error.class";
+import Camera from "../../db/mongo/models/camera";
+import Departement from "../../db/mongo/models/department";
+import Model from "../../db/mongo/models/model";
+import Schedule from "../../db/mongo/models/schedule";
+import ModelToCamera from "../../db/mongo/models/modelToCamera";
+import { ICamera } from "../../types/interfaces/camera.interface";
+import { IModel } from "../../types/interfaces/model.interface";
+import { ISchedule } from "../../types/interfaces/schedule.interface";
+import { IModelToCamera } from "../../types/interfaces/modelToCamera.interface";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -63,7 +64,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 //route for get departementfile list
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
-  try {getAccessAndVerify(req,Access.Configuration,"user",next)
+  try {
     //get token from header request and verify
   //  let token = getTokenAndVerify(req, const_role, next);
   //  if (!token) {
@@ -179,7 +180,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
 //route for get departementfile list
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {getAccessAndVerify(req,Access.Configuration,"user",next)
+  try {
     let id = req.params.id;
     //get token from header request and verify
    // let token = getTokenAndVerify(req, const_role, next);

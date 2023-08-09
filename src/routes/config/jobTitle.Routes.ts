@@ -1,43 +1,24 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../error/error.handler";
-import JobTitle, { IJobTitle } from "./../../models/jobTitle";
-import { Access } from "../../tools/enums/access";
-import { getAccessAndVerify } from "./../../tools/authentication";
-
-
-//get user role from enviroment variable
-const const_role = process.env.const_role || "user";
+import { ApiError } from "../../types/classes/error.class";
+import JobTitle from "../../db/mongo/models/jobTitle";
+import { IJobTitle } from "../../types/interfaces/jobTitle.interface";
 
 //create router for add to server file
 const router: Router = Router();
 
-//add error handler middleware
-router.use(function (req: Request, res: Response, next: NextFunction) {
-  res.locals.currentUser = req.user;
-  res.locals.errors = req.flash("error");
-  res.locals.infos = req.flash("info");
-  next();
-});
 
 //add route for register new jobTitle
 router.post(
   "",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
-      getAccessAndVerify(req,Access.Configuration,"user",next)
-      //get jason from body request
+      //get json from body request
       const { name } = req.body;
       //verify body request
       if (!name) {
         req.flash("error", "Please enter a name");
         return next(new ApiError(400, "Please enter a jobTitle"));
       }
-      //get token from header request and verify
-    //  let token = getTokenAndVerify(req, const_role, next);
-    //  if(!token){
-    //    return null;
-    //  }
-
       //query for save new jobTitle in DB
       let jobTitle = await JobTitle.findOne({ name: name }).exec();
 
@@ -77,11 +58,6 @@ router.get(
       let strPerPage = req.query.perPage as string;
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let search = (req.query.search as string) ?? "";
-      //get token from header request and verify
-    //  let token = getTokenAndVerify(req, const_role, next);
-    //  if(!token){
-    //    return null;
-    //  }
 
       //query for get jobTitle from DB
       let jobTitles: IJobTitle[] = [];
@@ -132,12 +108,6 @@ router.get(
         return next(new ApiError(400, "JobTitle id is required"));
       }
 
-      //get token from header request and verify
-    //  let token = getTokenAndVerify(req, const_role, next);
-    //  if(!token){
-    //    return null;
-    //  }
-
       //query for get jobTitle by id from DB
       let jobTitle = await JobTitle.findById(id).exec();
 
@@ -163,7 +133,6 @@ router.patch(
   "/:id",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
-      getAccessAndVerify(req,Access.Configuration,"user",next)
       //get id from url
       let id: string = req.params.id;
       if (!id) {
@@ -172,11 +141,6 @@ router.patch(
       }
       //get body from request
       const jobTitleBody = req.body;
-      //get token from header request and verify
-    //  let token = getTokenAndVerify(req, const_role, next);
-    //  if(!token){
-    //    return null;
-    //  }
       //query for get jobTitle by id from DB
       let jobTitle = await JobTitle.findByIdAndUpdate(id, jobTitleBody, {
         new: true,
@@ -204,18 +168,11 @@ router.delete(
   "/:id",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
-      getAccessAndVerify(req,Access.Configuration,"user",next)
       //get id from url
       let id: string = req.params.id;
       if (!id) {
         return next({ status: 400, message: "Bad request" });
       }
-
-      //get token from header request and verify
-    //  let token = getTokenAndVerify(req, const_role, next);
-    //  if(!token){
-    //    return null;
-    //  }
 
       //query for get jobTitle by id from DB
       let jobTitle = await JobTitle.findByIdAndDelete(id).exec();

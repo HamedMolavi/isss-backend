@@ -1,5 +1,4 @@
 import md5 from "md5";
-import { IFileInRedis } from "./fileUpload";
 
 //function for hash json for create id save picture in redis
 export function hashJson(data: string, personnel_id: string) {

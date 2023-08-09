@@ -1,12 +1,12 @@
-import app from "../../server";
+import app from "../../server.ts";
 import { expect } from "chai";
 import request from "supertest";
-import Car, { ICar } from "../../models/car";
+import Car, { ICar } from "../../db/mongo/models/car.js";
 import toPersianPlate from "../../tools/EnglishToPersianPlate";
-import Personnel from "../../models/personnel";
+import Personnel from "../../db/mongo/models/personnel.js";
 import { Schema } from "mongoose";
-import CarBrand from "../../models/carBrand";
-import CarColor from "../../models/carColor";
+import CarBrand from "../../db/mongo/models/carBrand.js";
+import CarColor from "../../db/mongo/models/carColor.js";
 
 const token = process.env.sample_token;
 let _car: any;
