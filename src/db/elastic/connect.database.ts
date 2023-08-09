@@ -1,7 +1,7 @@
 import axios from "axios";
 import { NextFunction } from "express";
 import Model from "../mongo/models/model";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"] as string;

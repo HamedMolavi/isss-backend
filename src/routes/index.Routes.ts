@@ -9,11 +9,9 @@ import report from "./report/report.Routes";
 import schedulesreport from "./report/schedulesReport.Routes";
 import reportDepartments from "./report/departmentReport.Routes";
 
-import alerts from "./alerts/alerts.Routes";
-
 import { passportGate } from "../authentication/authorize.auth";
 import accessCheck from "../authentication/accessCheck.auth";
-import { Access } from "../interfaces/enums/access.enum";
+import { Access } from "../types/enums/access.enum";
 import { endHere, printMiddleware } from "../test/endpointTest/endhere.test";
 
 const router: Router = Router();
@@ -34,7 +32,7 @@ router.use(endHere(["url", "originalUrl", "params", "query", "session", "headers
 // router.use("/config/admin", accessCheck(Access.Configuration, "admin"), adminConfig)
 
 /*
-router.use("/reports", report);
+router.use("/reports", report, accessCheck(Access.Configuration, "user"), ?);
 router.use("/reportDepartmets", reportDepartments);
 router.use("/schedulesreport", schedulesreport);
 router.use("/downloadVideo", downloadVideo);

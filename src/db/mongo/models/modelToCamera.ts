@@ -1,12 +1,5 @@
-import mongoose, { Schema, Document } from "mongoose";
-
-//define ModelToCamera type
-export interface IModelToCamera extends Document {
-  _id: Schema.Types.ObjectId;
-  model_id: Schema.Types.ObjectId;
-  camera_id: Schema.Types.ObjectId;
-  is_enabled: boolean;
-}
+import mongoose, { Schema } from "mongoose";
+import { IModelToCamera } from "../../../types/interfaces/modelToCamera.interface";
 
 //create Model ModelToCamera with schema for save in DB
 const ModelToCameraSchema: Schema<IModelToCamera> = new Schema(

@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import { ApiError } from "../error/error.handler";
+import { ApiError } from "../types/classes/error.class";
 import passport from "passport";
 import cookie from "cookie-signature";
 
 export function passportGate(req: Request, _res: Response, next: NextFunction) {
-  const ip = req.ip ?? req.socket.remoteAddress;
+  const ip = req.ip ?? req.socket.remoteAddress; //TODO
   if (!req.user) return next(new ApiError(401, "Unauthorized")); // || req.session.ip !== ip
   return next();
 };

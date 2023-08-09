@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { CameraTypes } from "./enums/camera.enum";
+import { CameraTypes } from "../enums/camera.enum";
 
 //define camera type
 export interface ICamera extends Document {

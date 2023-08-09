@@ -1,3 +1,5 @@
+//import this file to correct global and modular types
+import { } from "./types/index";
 //initial file .env
 import extraEnvConfigs from "./config/env.config";
 extraEnvConfigs();

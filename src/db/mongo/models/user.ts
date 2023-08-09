@@ -1,37 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { genSaltSync, compareSync, hashSync } from "bcrypt";
 import { Request } from "express";
-
-//create user type
-export interface IUser {
-  _id: mongoose.Types.ObjectId;
-  username: string;
-  password: string;
-  phone_number: string;
-  role: string;
-  event: boolean;
-  camera: boolean;
-  report: boolean;
-  configuration: boolean;
-  views: boolean;
-  created_date: Date;
-  camera_access?: Array<mongoose.Types.ObjectId>;
-}
-
-interface IUserDocument extends IUser, Document {
-  _id: mongoose.Types.ObjectId;
-  setPassword: (password: string, username: string) => string;
-  checkPassword: (password: string) => Promise<boolean>;
-  generateAuthSession: (is_remember: boolean) => any;
-  toAuthJSON: (is_remember: boolean) => any;
-}
-
-interface IUserModel extends Model<IUserDocument> {
-  setPassword: (password: string, username: string) => string;
-  checkPassword: (password: string) => Promise<boolean>;
-  generateAuthSession: (is_remember: boolean) => any;
-  toAuthJSON: (is_remember: boolean) => any;
-}
+import { IUserDocument, IUserModel } from "../../../types/interfaces/user.interface";
 
 //create user model with schema for save in DB
 const UserSchema: Schema<IUserDocument> = new Schema(
@@ -62,15 +32,6 @@ export function setPassword(password: string, username: string) {
   const salt = genSaltSync(SALT_FACTOR);
   const result = hashSync(password + username, salt);
   return result
-};
-
-//generate jwt token
-UserSchema.methods.generateAuthSession = function (req: Request) {
-  const is_remember = req.body["is_remember"] ?? false; // defaulted to false
-  const maxAge = is_remember ? 8 * 60 * 60 * 1000 : 15 * 60 * 1000;
-  //             if remeber     8 hours       else    15 minutes
-  req.session.cookie.maxAge = maxAge;
-  req.session.user = this;
 };
 
 //for encrypt password

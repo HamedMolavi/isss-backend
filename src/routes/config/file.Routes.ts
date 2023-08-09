@@ -5,7 +5,7 @@ import axios from "axios";
 import path from "path";
 import PersonImage from "../../db/mongo/models/personImage";
 import { hashJson } from "./../../tools/hash";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 
 //create router for add to server
 const router: Router = Router();

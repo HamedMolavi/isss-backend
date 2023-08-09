@@ -70,7 +70,7 @@ export function setupLogger() {
           "query: " + req.query,
           "params: " + req.params,
           "route: " + req.route,
-          "user.id: " + req.user?._id,
+          "user.id: " + req.user,
         ].join('\n\t');
     }, {
       skip: (_req, res) => res.statusCode < 400,

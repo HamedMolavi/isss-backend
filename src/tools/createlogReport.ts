@@ -9,6 +9,8 @@ import Section from "../db/mongo/models/section";
 import Department from "../db/mongo/models/department";
 import toPersianPlate, { english2Persian } from "./EnglishToPersianPlate";
 import Model from "../db/mongo/models/model";
+import { ICar } from "../types/interfaces/car.interface";
+import { IPersonnel } from "../types/interfaces/personnel.interface";
 
 //define type fore input function extended description
 type Description = {

@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 import Departement from "../../db/mongo/models/department";
-import { IDepartment } from "../../interfaces/department.interface";
+import { IDepartment } from "../../types/interfaces/department.interface";
 
 //create router for add to server file
 const router: Router = Router();

@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IDepartment } from "../../../interfaces/department.interface";
+import { IDepartment } from "../../../types/interfaces/department.interface";
 
 
 

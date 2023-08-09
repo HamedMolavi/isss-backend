@@ -45,9 +45,6 @@ async function joinRoom(socket: Socket): Promise<void> {
     const roomId = socket.request.headers.roomid as string;
     await socket.join(roomId);
   } else { // join all rooms user has access to, mostly to get alerts
-    console.log(typeof socket.request.user.camera_access);
-    console.log(socket.request.user.camera_access);
-
     for (const cam_id of socket.request.user.camera_access ?? []) {
       const roomId = cam_id.toString();
       await socket.join(roomId);

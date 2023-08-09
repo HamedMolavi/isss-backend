@@ -2,9 +2,9 @@ import mongoose, { Schema, Document } from "mongoose";
 import Model from "./model";
 import ModelToCamera from "./modelToCamera";
 import Schedule from "./schedule";
-import { ICamera } from "../../../interfaces/camera.interface";
-import { CameraTypes } from "../../../interfaces/enums/camera.enum";
+import { CameraTypes } from "../../../types/enums/camera.enum";
 import { updateRooms } from "../../../tools/rooms.tools";
+import { ICamera } from "../../../types/interfaces/camera.interface";
 
 //create camera model with schema for save in DB
 const CameraSchema: Schema<ICamera> = new Schema(

@@ -1,12 +1,5 @@
-import mongoose, { Schema, Document } from "mongoose";
-
-//define person_image type
-export interface IPersonImage extends Document {
-    _id: Schema.Types.ObjectId;
-    person_id: Schema.Types.ObjectId;
-    hash_id:string;
-    vector: [Number];
-}
+import mongoose, { Schema } from "mongoose";
+import { IPersonImage } from "../../../types/interfaces/personImage.interface";
 
 //create Model person_image with schema for save in DB
 const PersonImageSchema: Schema<IPersonImage> = new Schema({

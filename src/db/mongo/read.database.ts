@@ -1,5 +1,5 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 import { Document, FilterQuery } from "mongoose";
 
 export async function read(model: any, query?: FilterQuery<any>) {

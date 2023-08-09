@@ -4,7 +4,7 @@ import { getStreamUri } from "../../tools/camera.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import { CreateCameraBody } from "../../validation/dto/camera.dto";
 import { existCheck } from "../../validation/db/cameraRegister.validation";
-import { CameraInfoKeys } from "../../interfaces/camera.interface";
+import { CameraInfoKeys } from "../../types/interfaces/camera.interface";
 import { create } from "../../db/mongo/create.database";
 import { readMiddleware, readByIdMiddleware } from "../../db/mongo/read.database";
 import { updateById } from "../../db/mongo/update.database";

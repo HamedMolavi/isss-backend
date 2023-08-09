@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { ApiError } from "../error/error.handler";
+import { ApiError } from "../types/classes/error.class";
+import { Access } from "../types/enums/access.enum";
 
 
 

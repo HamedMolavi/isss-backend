@@ -1,10 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
 import fs from "fs";
 import path from "path";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 import { getPathFromIdTime } from "../../tools/getPathFromIdTiem";
-import { Access } from "../../interfaces/enums/access.enum";
-import {getAccessAndVerify} from "../../tools/authentication";
+import { Access } from "../../types/enums/access.enum";
 var ffmpeg = require("fluent-ffmpeg");
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -21,7 +20,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
-  try {getAccessAndVerify(req,Access.Camera,"user",next)
+  try {
     //get parameter from url
     const dataVideo: string = req.params.id;
     const dataVideoList: string[] = dataVideo?.split(".");

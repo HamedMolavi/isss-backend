@@ -1,11 +1,11 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 import Camera from "../../db/mongo/models/camera";
 import Departement from "../../db/mongo/models/department";
 import Section, { ISection } from "../../db/mongo/models/section";
-import { IChildrenCamera, IChildrenSection, IResponseJson } from "../../interfaces/temp.interface";
-import { IDepartment } from "../../interfaces/department.interface";
-import { ICamera } from "../../interfaces/camera.interface";
+import { IChildrenCamera, IChildrenSection, IResponseJson } from "../../types/interfaces/temp.interface";
+import { IDepartment } from "../../types/interfaces/department.interface";
+import { ICamera } from "../../types/interfaces/camera.interface";
 
 
 //create router for add to server file

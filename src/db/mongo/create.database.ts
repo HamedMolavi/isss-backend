@@ -1,5 +1,5 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 
 export function create(keys: string[], model: any): RequestHandler {
   return async function middleware(req: Request, res: Response, next: NextFunction) {

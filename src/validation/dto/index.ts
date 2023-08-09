@@ -2,7 +2,7 @@ import { RequestHandler, Request, Response, NextFunction } from "express";
 import { plainToInstance } from "class-transformer";
 import { validate, ValidationError } from "class-validator";
 // import { sanitize, Trim } from "class-sanitizer";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 
 export function dtoValidationMiddleware(type: any, options?: { skipMissingProperties?: boolean, detailedMassage?: boolean, info?: string }): RequestHandler {
   let defaultOpt = { skipMissingProperties: false, detailedMassage: false, info: undefined };

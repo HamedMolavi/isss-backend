@@ -8,7 +8,7 @@ import { setUpPassport } from "../setups/passport.setup";
 import passport from "passport";
 import routes from "../routes/index.Routes";
 import fileUpload from "express-fileupload";
-import { ApiError } from "../error/error.handler";
+import { ApiError } from "../types/classes/error.class";
 import localVarMiddleware from "../setups/localVar.setup";
 import { setupLogger } from "../setups/logger.setup";
 import redisStore from "../db/redis/store.database";

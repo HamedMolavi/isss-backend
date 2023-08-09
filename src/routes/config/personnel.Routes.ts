@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
 import { requestForGetPersonnel } from "../../db/elastic/connect.database";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 import Camera from "../../db/mongo/models/camera";
 import url from "url"
 import PersonImage from "../../db/mongo/models/personImage";

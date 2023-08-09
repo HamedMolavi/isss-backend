@@ -1,17 +1,10 @@
-import redisClient from "../db/redis/connect.database";
-import path, { basename } from "path";
+import connect from "../db/redis/connect.database";
+import path from "path";
 import fs from "fs";
 import console from "console";
-
-export interface IFileInRedis {
-  id: string;
-  full_frame: string;
-  personnel_id: string;
-  face: string;
-  embedding: string | number[] | null;
-  has_face: number;
-  timestamp: Date;
-}
+import { IFileInRedis } from "../types/interfaces/file.interface";
+// TODO: clean this shit up.
+const redisClient = connect(process.env["REDIS_URL"] as string);
 
 type resultType = {
   name: string;
@@ -41,7 +34,7 @@ export async function uploadAvatar(image_str: string, personnel_code: string) {
     }
 
     //write image in path
-    await fs.writeFile(dirPersonnelAvatar + "/avatar.jpeg", image, (err) => {
+    fs.writeFile(dirPersonnelAvatar + "/avatar.jpeg", image, (err) => {
       if (err) {
         return null;
       }
@@ -61,8 +54,8 @@ export async function uploadAvatar(image_str: string, personnel_code: string) {
 export async function setFileInRedis(fileBase64: string, id: string, Personnel_id: string) {
   try {
     //connet to redis if not connected
-    if (!redisClient.isOpen) {
-      await redisClient.connect();
+    if (!(await redisClient).isOpen) {
+      await (await redisClient).connect();
     }
     //define object for save in redis
     let fileInRedis: IFileInRedis = {
@@ -76,9 +69,9 @@ export async function setFileInRedis(fileBase64: string, id: string, Personnel_i
     };
 
     //insert to redis
-    await redisClient.set(fileInRedis.id, JSON.stringify(fileInRedis));
+    await (await redisClient).set(fileInRedis.id, JSON.stringify(fileInRedis));
     //close redis connection
-    redisClient.disconnect();
+    (await redisClient).disconnect();
     //return file id
     return fileInRedis.id.toString();
   } catch (error: any) {
@@ -91,13 +84,13 @@ export async function setFileInRedis(fileBase64: string, id: string, Personnel_i
 export async function getImageFromRedis(id: string) {
   try {
     //connet to redis if not connected
-    if (!redisClient.isOpen) {
-      await redisClient.connect();
+    if (!(await redisClient).isOpen) {
+      await (await redisClient).connect();
     }
-    const result = (await redisClient.get(id)) as any;
+    const result = (await (await redisClient).get(id)) as any;
     const replaced = result?.replaceAll("'", '"');
     let fileInRedis = JSON.parse(replaced);
-    redisClient.disconnect();
+    (await redisClient).disconnect();
     //return file
     return fileInRedis;
   } catch (error: any) {
@@ -110,13 +103,13 @@ export async function getImageFromRedis(id: string) {
 export async function deleteImageInRedis(id: string) {
   try {
     //connet to redis if not connected
-    if (!redisClient.isOpen) {
-      await redisClient.connect();
+    if (!(await redisClient).isOpen) {
+      await (await redisClient).connect();
     }
     //delete file from redis
-    let result = await redisClient.del(id);
+    let result = await (await redisClient).del(id);
     //close redis connection
-    redisClient.disconnect();
+    (await redisClient).disconnect();
     //return file
     return result;
   } catch (error: any) {

@@ -1,12 +1,12 @@
-import { EConsumer } from "kafkajs";
 import { Server } from "socket.io";
 import { createConsumer } from "../kafka/consumer.kafka";
+import { IConsumer } from "../types/interfaces/kafka.interface";
 
 // TODO: clean this shit up
 export class KafkaServer {
   private io: Server;
   public checkConsumersInterval: NodeJS.Timer | undefined;
-  public consumers: Map<string, EConsumer>; // local set of consumers to check with global every interval
+  public consumers: Map<string, IConsumer>; // local set of consumers to check with global every interval
 
   ////////////////////////////////////////////////////////////////////////////////////////////
   constructor(io: Server) {

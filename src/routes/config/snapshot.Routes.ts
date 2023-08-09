@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 import Camera from "../../db/mongo/models/camera";
 import takeSnapshot, { cameraInfo } from "../../tools/takeSnaphsot";
-import { ICamera } from "../../interfaces/camera.interface";
+import { ICamera } from "../../types/interfaces/camera.interface";
 
 //create router for add to server file
 const router: Router = Router();

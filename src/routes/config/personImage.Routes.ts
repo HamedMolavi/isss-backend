@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 import PersonImage from "../../db/mongo/models/personImage";
 import { deleteFiles, readFiles } from "../../tools/fileUpload";
 

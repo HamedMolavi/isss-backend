@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 import CarBrand from "../../db/mongo/models/carBrand";
 import CarColor from "../../db/mongo/models/carColor";
 import Personnel from "../../db/mongo/models/personnel";

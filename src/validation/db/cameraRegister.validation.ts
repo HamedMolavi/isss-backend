@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { Model } from "mongoose";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 
 
 { $and: [{ ip: "ip" }, { nvr: "nvr" }] }

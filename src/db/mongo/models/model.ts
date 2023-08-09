@@ -1,12 +1,5 @@
-import mongoose, { Schema, Document } from "mongoose";
-
-//define Model type
-export interface IModel extends Document {
-    _id: Schema.Types.ObjectId;
-    name: string;
-    category: string;
-    uri: string;
-}
+import mongoose, { Schema } from "mongoose";
+import { IModel } from "../../../types/interfaces/model.interface";
 
 //create Model  with schema for save in DB
 const ModelSchema: Schema<IModel> = new Schema({

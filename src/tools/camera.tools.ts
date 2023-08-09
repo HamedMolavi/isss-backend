@@ -1,6 +1,6 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
-import { ICameraInfo } from "../types/camera.interface";
-import { ApiError } from "../error/error.handler";
+import { ICameraInfo } from "../types/interfaces/camera.interface";
+import { ApiError } from "../types/classes/error.class";
 
 const onvif = require("node-onvif");
 

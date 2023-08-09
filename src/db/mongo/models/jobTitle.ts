@@ -1,12 +1,5 @@
-import mongoose, { Schema , Document } from "mongoose";
-
-//define jobTitle type
-export interface IJobTitle extends Document {
-    _id: mongoose.Types.ObjectId;
-    name: string;
-    create_date: Date;
-}
-
+import mongoose, { Schema  } from "mongoose";
+import { IJobTitle } from "../../../types/interfaces/jobTitle.interface";
 
 //create jobTitle model with schema for save in DB
 const JobTitleSchema: Schema<IJobTitle> = new Schema({

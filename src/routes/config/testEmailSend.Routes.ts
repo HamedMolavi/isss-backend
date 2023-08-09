@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../error/error.handler";
+import { ApiError } from "../../types/classes/error.class";
 import { send_email } from "../../tools/sendEmail";
 
 //create router for add to routes file

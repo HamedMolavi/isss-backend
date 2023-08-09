@@ -1,4 +1,5 @@
-import { Kafka, logLevel, ConsumerConfig, ProducerConfig, AdminConfig, Consumer, Producer, Admin } from 'kafkajs';
+import { Kafka, logLevel } from 'kafkajs';
+import { KafkaClientType } from '../types/enums/kafka.enum';
 
 // TODO: config?
 
@@ -11,7 +12,7 @@ export function kafkaFactory(
 ) {
   const kafka = new Kafka({
     logLevel: process.env["NODE_ENV"] === "development" ? logLevel.ERROR : logLevel.NOTHING,
-    brokers: [`localhost:19092`],
+    brokers: [process.env["KAFKA_BOOTSTRAP"] as string],
     clientId: options.clientId,
     // ssl: {
     //   rejectUnauthorized: true

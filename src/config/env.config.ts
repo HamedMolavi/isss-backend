@@ -1,11 +1,11 @@
 import dotenv from "dotenv";
 import fs from "fs";
-import { Consumer } from "kafkajs";
 import { join } from "path";
-import { } from "../types/global";
 import { read } from "../db/mongo/read.database";
 import Model from "../db/mongo/models/model";
 import { Schema } from "mongoose";
+import { IModel } from "../types/interfaces/model.interface";
+import { IConsumer } from "../types/interfaces/kafka.interface";
 
 dotenv.config({ path: join(__dirname, "../../.env"), encoding: 'utf8', debug: true, override: false });
 
@@ -25,6 +25,7 @@ export default function extraEnvConfigs() {
       ["REQUEST_LOG_DIR", "../logs"],
       ["RECORD_STREAM_TIME", "10"],
       ["SESSION_SECRET", "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4i"],
+      ["KAFKA_BOOTSTRAP", "localhost:9091"],
     ]
     allEnv.forEach(env_default => {
       if (!process.env[env_default[0]]) process.env[env_default[0]] = env_default[1];
@@ -38,10 +39,11 @@ export default function extraEnvConfigs() {
       cert: cert,
     });
     //declare an empty consumers' map to be filled and updated over time
-    let CONSUMERS: Map<string, Consumer> = new Map();
+    let CONSUMERS: Map<string, IConsumer> = new Map();
     process["CONSUMERS"] = CONSUMERS;
     // setting AI model categories into a global variable
     read(Model).then((models: (IModel & { _id: Schema.Types.ObjectId; })[]) => {
+      process["MODELS"] = [];
       for (const model of models) {
         process["MODELS"].push(model.category);
       };

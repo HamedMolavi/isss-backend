@@ -1,14 +1,14 @@
 import { Router, Request, Response, NextFunction } from "express";
 import mongoose, { Schema } from "mongoose";
-import { ApiError } from "../../error/error.handler";
-import Camera, { ICamera } from "../../db/mongo/models/camera";
+import { ApiError } from "../../types/classes/error.class";
+import Camera from "../../db/mongo/models/camera";
 import Departement from "../../db/mongo/models/department";
 import { IModel } from "../../db/mongo/models/model";
 import Model from "../../db/mongo/models/model";
-import { getAccessAndVerify } from "../../tools/authentication";
 import Schedule, { ISchedule } from "../../db/mongo/models/schedule";
 import ModelToCamera, { IModelToCamera } from "../../db/mongo/models/modelToCamera";
-import { Access } from "../../interfaces/enums/access.enum";
+import { Access } from "../../types/enums/access.enum";
+import { ICamera } from "../../types/interfaces/camera.interface";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -63,7 +63,7 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 
 //route for get departementfile list
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
-  try {getAccessAndVerify(req,Access.Configuration,"user",next)
+  try {
     //get token from header request and verify
   //  let token = getTokenAndVerify(req, const_role, next);
   //  if (!token) {
@@ -179,7 +179,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
 
 //route for get departementfile list
 router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {getAccessAndVerify(req,Access.Configuration,"user",next)
+  try {
     let id = req.params.id;
     //get token from header request and verify
    // let token = getTokenAndVerify(req, const_role, next);
