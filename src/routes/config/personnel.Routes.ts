@@ -6,7 +6,8 @@ import Camera from "../../db/mongo/models/camera";
 import url from "url"
 import PersonImage from "../../db/mongo/models/personImage";
 import { deleteDirectory, uploadAvatar } from "../../tools/fileUpload";
-import Personnel, { IPersonnel } from "../../db/mongo/models/personnel";
+import Personnel from "../../db/mongo/models/personnel";
+import { IPersonnel } from "../../types/interfaces/personnel.interface";
 
 //create router for add to routes file
 const router: Router = Router();

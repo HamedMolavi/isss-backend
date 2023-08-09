@@ -3,12 +3,13 @@ import mongoose, { Schema } from "mongoose";
 import { ApiError } from "../../types/classes/error.class";
 import Camera from "../../db/mongo/models/camera";
 import Departement from "../../db/mongo/models/department";
-import { IModel } from "../../db/mongo/models/model";
 import Model from "../../db/mongo/models/model";
-import Schedule, { ISchedule } from "../../db/mongo/models/schedule";
-import ModelToCamera, { IModelToCamera } from "../../db/mongo/models/modelToCamera";
-import { Access } from "../../types/enums/access.enum";
+import Schedule from "../../db/mongo/models/schedule";
+import ModelToCamera from "../../db/mongo/models/modelToCamera";
 import { ICamera } from "../../types/interfaces/camera.interface";
+import { IModel } from "../../types/interfaces/model.interface";
+import { ISchedule } from "../../types/interfaces/schedule.interface";
+import { IModelToCamera } from "../../types/interfaces/modelToCamera.interface";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";

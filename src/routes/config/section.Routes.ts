@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../types/classes/error.class";
-import Section, { ISection } from "../../db/mongo/models/section";
+import Section from "../../db/mongo/models/section";
+import { ISection } from "../../types/interfaces/section.interface";
 
 //create router for add to routes file
 const router: Router = Router();

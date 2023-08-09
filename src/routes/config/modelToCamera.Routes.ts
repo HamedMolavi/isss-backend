@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../types/classes/error.class";
-import ModelToCamera, { IModelToCamera } from "../../db/mongo/models/modelToCamera";
+import ModelToCamera from "../../db/mongo/models/modelToCamera";
 import { convertToCron, convertToCronDay } from "../../tools/convertTime";
 
 //create router for add to server file

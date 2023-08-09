@@ -1,7 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../types/classes/error.class";
-import User, {  IUser, setPassword } from "../../db/mongo/models/user";
+import User, { setPassword } from "../../db/mongo/models/user";
 import { getStrength } from "../../tools/verifyPasswordRegex";
+import { IUser } from "../../types/interfaces/user.interface";
 
 //create router for add to server
 const router: Router = Router();

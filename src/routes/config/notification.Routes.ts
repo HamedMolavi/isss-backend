@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../types/classes/error.class";
-import Notification, { INotification } from "../../db/mongo/models/notification";
+import Notification from "../../db/mongo/models/notification";
+import { INotification } from "../../types/interfaces/notification.interface";
 
 //create router for add to routes file
 const router: Router = Router();

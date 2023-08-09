@@ -4,7 +4,6 @@ import { date2Epokh, getEpochList } from "../../tools/convertTime";
 import { ApiError } from "../../types/classes/error.class";
 import { dynamicRequestToElasticSearch } from "../../db/elastic/connect.database";
 import { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
-import { Access } from "../../types/enums/access.enum";
 
 //create router for add to routes file
 const router: Router = Router();

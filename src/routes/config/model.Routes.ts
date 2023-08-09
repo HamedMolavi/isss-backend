@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../types/classes/error.class";
-import Model, { IModel } from "../../db/mongo/models/model";
+import Model from "../../db/mongo/models/model";
 
 
 //create router for add to server file
