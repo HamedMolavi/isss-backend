@@ -1,4 +1,5 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
+import { ICarBrand } from "../../../interfaces/car.interface";
 
 //create car_brand model with schema for save in DB
 const CarBrandSchema: Schema<ICarBrand> = new Schema({
