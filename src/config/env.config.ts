@@ -26,6 +26,9 @@ export default function extraEnvConfigs() {
       ["RECORD_STREAM_TIME", "10"],
       ["SESSION_SECRET", "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4i"],
       ["KAFKA_BOOTSTRAP", "localhost:9091"],
+      ["SAMPLE_STREAM_URI", ""],
+      ["WORD_BEFORE_REPLACE_STREAM", "c"],
+      ["WORD_AFTER_REPLACE_STREAM", "c1"],
     ]
     allEnv.forEach(env_default => {
       if (!process.env[env_default[0]]) process.env[env_default[0]] = env_default[1];
