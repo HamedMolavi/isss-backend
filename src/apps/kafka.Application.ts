@@ -29,7 +29,7 @@ export class KafkaServer {
     const roomId = key.split("_").slice(1).join("_"); // room id equals to camera id
     const consumer = await createConsumer(key, async function eachMessage({ topic, partition, message, heartbeat }) { // heartbeat function to send manual heartbeat as messages recieved
       if (process["CONSUMERS"].has(key)) io.to(roomId).emit(eventName, message.value); // TODO: add headers and dto schema
-      else { };//TODO: cam_id doesn't exist in rooms so it should be deleted
+      else await consumer.delete();
     });
     this.consumers.set(key, consumer);
     return consumer;

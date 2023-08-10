@@ -10,7 +10,7 @@ export async function createConsumer(
     fromBeginning?: boolean | undefined,
     groupId?: string | undefined,
   }
-) {
+): Promise<IConsumer> {
   const consumer = kafkaFactory({ clientId: key, type: "consumer", groupId: randomUuid(5) }) as IConsumer; // TODO: when I place them in one group I get this error: The group is rebalancing, so a rejoin is needed 
   await consumer.subscribe({ topic: key, fromBeginning: options?.fromBeginning ?? false });
   await consumer.run({

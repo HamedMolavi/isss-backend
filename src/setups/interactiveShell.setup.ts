@@ -1,4 +1,6 @@
-var stdin = process.stdin;
+import { log } from "../tools/util.tools";
+//TODO: add more commands
+const stdin = process.stdin;
 export async function setupInteractive(): Promise<void> {
   // Setup Interactive stdin
   stdin.resume();
@@ -9,9 +11,6 @@ export async function setupInteractive(): Promise<void> {
 };
 
 async function act(action: string) {
-
-
-
   switch (action) { // explicit actions
     case '\u0003':// ctrl-c
       process.exit(0);
@@ -20,17 +19,15 @@ async function act(action: string) {
       break;
 
 
-
-
-
     default: // implicit actions
       if (action.startsWith("close consumer")) {
-        const consumerId = action.split("close consumer ")[1];
-        process["CONSUMERS"].delete(consumerId);
-      } else if (action.startsWith("close consumer")) {
-
+        const consumerIds = action.split("close consumer ")[1];
+        for (const consumerId of consumerIds.split(" ")) {
+          const consumer = process["CONSUMERS"].get(consumerId);
+          await consumer?.delete().then(_ => log("consumer", consumerId, "deleted!"))
+        }
       } else {
-        console.log("Unknown command!");
+        log("Unknown command!");
         break;
       }
   };

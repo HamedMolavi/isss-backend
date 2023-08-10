@@ -1,4 +1,4 @@
-import { Kafka, logLevel } from 'kafkajs';
+import { Admin, Consumer, Kafka, Producer, logLevel } from 'kafkajs';
 import { KafkaClientType } from '../types/enums/kafka.enum';
 
 // TODO: config?
@@ -6,10 +6,10 @@ import { KafkaClientType } from '../types/enums/kafka.enum';
 export function kafkaFactory(
   options: {
     clientId: string,
-    groupId: string ,
+    groupId: string,
     type: KafkaClientType,
   }
-) {
+): Kafka | Consumer | Producer | Admin {
   const kafka = new Kafka({
     logLevel: process.env["NODE_ENV"] === "development" ? logLevel.ERROR : logLevel.NOTHING,
     brokers: [process.env["KAFKA_BOOTSTRAP"] as string],

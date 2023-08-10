@@ -1,13 +1,12 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { genSaltSync, compareSync, hashSync } from "bcrypt";
-import { Request } from "express";
 import { IUserDocument, IUserModel } from "../../../types/interfaces/user.interface";
 
 //create user model with schema for save in DB
 const UserSchema: Schema<IUserDocument> = new Schema(
   {
     username: { type: String, required: true },
-    password: { type: String, required: true },
+    password: { type: String, required: true, select: false },
     phone_number: { type: String, required: true },
     event: { type: Boolean, default: false },
     camera: { type: Boolean, default: false },
@@ -19,6 +18,12 @@ const UserSchema: Schema<IUserDocument> = new Schema(
   },
   {
     collection: "User",
+    toJSON: {
+      transform(_doc, ret) {
+        delete ret["password"];
+        return ret;
+      },
+    }
   }
 );
 

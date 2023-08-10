@@ -16,7 +16,7 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
       const maxAge = req.body.is_remember ? 8 * 60 * 60 * 1000 : 15 * 60 * 1000;
       //             if remeber     8 hours       else    15 minutes
       req.session.cookie.maxAge = maxAge;
-      req.session.ip = req.ip;
+      req.session.ip = req.ip ?? req.socket.remoteAddress;;
       next(err ? err : null);
     });
   });
@@ -27,8 +27,6 @@ export function authHeaderExtraction(req: Request, _res: Response, next: NextFun
     let token: string | undefined = decodeURIComponent(req.headers["authorization"]?.split("Bearer ")[1]);
     if (!!req.cookies) req.cookies["Bearer"] = token; // TODO: also write it to req.headers.cookie
     else req.cookies = { "Bearer": token };
-  } else {
-    // new guy or it has cookie.Bearer;
   };
   return next();
 };
@@ -39,7 +37,7 @@ export function sendTokenToclient(req: Request, res: Response, next: NextFunctio
   else {
     return res.status(200).json({
       success: true,
-      data: { token }, //TODO: ...req.user,
+      data: { token, ...req.user },
     });
   };
 };

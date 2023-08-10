@@ -20,7 +20,7 @@ export default function extraEnvConfigs() {
       ["BASE_URL", "127.0.0.1:3000/api/v1"],
       ["MONGODB_URL", "mongodb://localhost:27017/test"],
       ["REDIS_URL", "redis://localhost:6379"],
-      ["ELASTIC_SEARCH", "<<ip : port elasticksearch>>"],
+      ["ELASTIC_SEARCH", "https://localhost:9200"],
       ["REQUEST_LOG_FORMAT", ""],
       ["REQUEST_LOG_DIR", "../logs"],
       ["RECORD_STREAM_TIME", "10"],

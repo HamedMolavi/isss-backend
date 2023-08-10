@@ -5,6 +5,7 @@ import passport from "passport";
 import { sessionMiddleware } from "./app.Application";
 import { authHeaderExtraction, passportGate } from "../authentication/authorize.auth";
 import { wrapMiddlewareForSocketIo } from "../tools/socket.tools";
+import { SocketDisconnectReason } from "../types/enums/socket.enum";
 
 export default async function ioServer(httpServer: http.Server) {
   // run http websocket
@@ -53,7 +54,7 @@ async function joinRoom(socket: Socket): Promise<void> {
   return;
 };
 async function disconnect(reason: string) {
-  // (SocketDisconnectReason as any)[reason];
+  // let a = reason as SocketDisconnectReason;
 };
 
 
