@@ -1,14 +1,11 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { IGetParams } from "../../types/interfaces/temp.interface";
 import Schedule from "../../db/mongo/models/schedule";
-import {
-  compareTime,
-  convertToCron,
-  convertToCronDay,
-} from "./../../tools/convertTime";
+import Time from "./../../tools/convertTime";
 import ModelToCamera from "../../db/mongo/models/modelToCamera";
 import { ApiError } from "../../types/classes/error.class";
 import { ISchedule } from "../../types/interfaces/schedule.interface";
+import { Clock, CronDay, DayOfWeek } from "../../types/interfaces/time.interface";
 
 //create router for add to server file
 const router: Router = Router();
@@ -38,7 +35,7 @@ router.post(
         return next(new ApiError(400, "Please fill all fields"));
       }
       //check for valid time
-      if (!compareTime(start, stop)) {
+      if (!Time.compareTime(start, stop)) {
         req.flash("error", "Invalid time");
         return next(new ApiError(400, "Invalid time"));
       }
@@ -55,10 +52,8 @@ router.post(
       // ).exec();
 
       //convert input time to cron format
-      let start_cron: string = convertToCron(start);
-      start_cron = convertToCronDay(start_cron, dayOfWeek.toString());
-      let stop_cron: string = convertToCron(stop);
-      stop_cron = convertToCronDay(stop_cron, dayOfWeek.toString());
+      let start_cron = Time.toCronDay(Time.toCron(start), dayOfWeek.toString());
+      let stop_cron = Time.toCronDay(Time.toCron(stop), dayOfWeek.toString());
 
       //fil new schedule
       let schedule = new Schedule({
@@ -261,25 +256,23 @@ router.patch(
         req.flash("error", "start and stop is required");
         return next(new ApiError(400, "start and stop is required"));
       }
-      let start_cron = "",
-        stop_cron = "";
+      let start_cron: CronDay | "" = "",
+        stop_cron: CronDay | "" = "";
       if (scheduleBody.start && scheduleBody.stop) {
         //check for valid time
-        if (!compareTime(scheduleBody.start, scheduleBody.stop)) {
+        if (!Time.compareTime(scheduleBody.start as Clock, scheduleBody.stop as Clock)) {
           req.flash("error", "Invalid time");
           return next(new ApiError(400, "Invalid time"));
         }
 
         //convert input time to cron format
-        start_cron = convertToCron(scheduleBody.start);
-        start_cron = convertToCronDay(
-          start_cron,
-          scheduleBody.dayOfWeek.toString()
+        start_cron = Time.toCronDay(
+          Time.toCron(scheduleBody.start as Clock),
+          scheduleBody.dayOfWeek.toString() as DayOfWeek
         );
-        stop_cron = convertToCron(scheduleBody.stop);
-        stop_cron = convertToCronDay(
-          stop_cron,
-          scheduleBody.dayOfWeek.toString()
+        stop_cron = Time.toCronDay(
+          Time.toCron(scheduleBody.stop as Clock),
+          scheduleBody.dayOfWeek.toString() as DayOfWeek
         );
       }
 

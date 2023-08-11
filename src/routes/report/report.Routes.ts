@@ -1,9 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { eventLogResponse, faceLogResponse, fireLogResponse, humanLogResponse, plateLogResponse, sabotageLogResponse } from "../../tools/createlogReport";
-import { date2Epokh, getEpochList } from "../../tools/convertTime";
+import Time, { getEpochList } from "../../tools/convertTime";
 import { ApiError } from "../../types/classes/error.class";
 import { dynamicRequestToElasticSearch } from "../../db/elastic/connect.database";
 import { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
+import { Clock, DateType } from "../../types/interfaces/time.interface";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -107,8 +108,8 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
           req.flash("error", "Date format is not correct");
           next(new ApiError(400, "Date format is not correct"));
         }
-        epoch.start = date2Epokh(input.date_start, input.time_start, _timezone);
-        epoch.end = date2Epokh(input.date_end, input.time_end, _timezone);
+        epoch.start = Time.toTimestamp(input.date_start as DateType, input.time_start as Clock);
+        epoch.end = Time.toTimestamp(input.date_end as DateType, input.time_end as Clock);
         times_epoch = getEpochList(input.date_start, input.date_end, input.time_start, input.time_end, _timezone);
         //let timesEpokhEnd = getEpochList();
       }

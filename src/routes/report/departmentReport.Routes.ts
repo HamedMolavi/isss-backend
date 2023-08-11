@@ -1,8 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { eventDepartmentLogResponse } from "../../tools/createlogReport";
-import { date2Epokh } from "../../tools/convertTime";
 import { ApiError } from "../../types/classes/error.class";
 import { Access } from "../../types/enums/access.enum";
+import Time from "../../tools/convertTime";
+import { Clock, DateType } from "../../types/interfaces/time.interface";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -55,8 +56,8 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       _cameras = cameras ?? [];
       if (time_start && time_end && date_start && date_end) {
         //convet time to timeStamp
-        timeEpokhStart = date2Epokh(date_start, time_start, "");
-        timeEpokhEnd = date2Epokh(date_end, time_end, "");
+        timeEpokhStart = Time.toTimestamp(date_start as DateType, time_start as Clock);
+        timeEpokhEnd = Time.toTimestamp(date_end as DateType, time_end as Clock);
       }
     }
 
