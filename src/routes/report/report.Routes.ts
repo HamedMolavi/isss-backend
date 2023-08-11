@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { eventLogResponse, faceLogResponse, fireLogResponse, humanLogResponse, plateLogResponse, sabotageLogResponse } from "../../tools/createlogReport";
-import Time, { getEpochList } from "../../tools/convertTime";
+import Time from "../../tools/convertTime";
 import { ApiError } from "../../types/classes/error.class";
 import { dynamicRequestToElasticSearch } from "../../db/elastic/connect.database";
 import { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
@@ -110,7 +110,7 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
         }
         epoch.start = Time.toTimestamp(input.date_start as DateType, input.time_start as Clock);
         epoch.end = Time.toTimestamp(input.date_end as DateType, input.time_end as Clock);
-        times_epoch = getEpochList(input.date_start, input.date_end, input.time_start, input.time_end, _timezone);
+        times_epoch = Time.getEpochList(input.date_start, input.date_end, input.time_start, input.time_end, _timezone);
         //let timesEpokhEnd = getEpochList();
       }
     }
