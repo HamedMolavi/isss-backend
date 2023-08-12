@@ -11,32 +11,10 @@ import { ApiError } from "../../types/classes/error.class";
 const router: Router = Router();
 
 //create api for upload image
-router.post("/upload", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-    //get personnel_code from url
-    const { perssonel_id, image_str } = req.body;
-    if (!perssonel_id || !image_str) {
-      req.flash("error", "Please enter a personnel_code");
-      return next(new ApiError(400, "Please enter a personnel_code"));
-    }
-    //get file from request and change format  to json and get file name and save in server with personnel_code
-    let result = await uploadAvatar(image_str, perssonel_id);
-    if (!result) {
-      return null;
-    }
-    //send response to client
-    res.status(201).send({
-      success: true,
-      data: {
-        name: result.name,
-        location: result.path,
-        message: "Uploaded the file successfully: " + result,
-      },
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error" + err.message));
-  }
-});
+router.post(
+  "/upload",
+  uploadAvatar("image_str", "perssonel_id")
+);
 
 //create api for download image
 router.get("/download/:fileName", async function (req: Request, res: Response, next: NextFunction) {
@@ -93,54 +71,8 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
 });
 
 //api for upload image to redis
-router.post("/redis", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-    // get id from request url
-    const { personnel_id, image_str } = req.body;
-    const image_str_base46 = String(image_str.split(",")[1]);
-    //  const personnel_id = req.params.id;
-
-    //create hash for redis id
-    let idHashed = hashJson(image_str_base46, personnel_id);
-    //set file in redis
-    let id = await setFileInRedis(image_str_base46, idHashed, personnel_id);
-    if (!id) {
-      req.flash("error", "File not upload");
-      return next(new ApiError(400, "File not upload"));
-    }
-    //get url AI for send request
-    const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
-    //send request to AI api for send id_personnel
-    var data = JSON.stringify({
-      id: idHashed,
-    });
-    var config = {
-      method: "post",
-      url: dbUri + "/redis/face",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      data: data,
-    };
-
-    axios(config)
-      .then(function (response) {
-        console.log(JSON.stringify(response.data));
-      })
-      .catch(function (error) {
-        console.log(error);
-      });
-    res.status(201).send({
-      success: true,
-      data: {
-        message: "Uploaded the file successfully",
-        id: idHashed,
-      },
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error" + err.message));
-  }
-});
+router.post("/redis",
+  setFileInRedis(process.env["REDIS_URL"], "image_str", "personnel_id", process.env["SESSION_SECRET"]));
 
 //route for verified image in redis
 router.post("/verify", async function (req: Request, res: Response, next: NextFunction) {

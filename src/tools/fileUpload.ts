@@ -3,82 +3,99 @@ import path from "path";
 import fs from "fs";
 import console from "console";
 import { IFileInRedis } from "../types/interfaces/file.interface";
+import { NextFunction, Request, Response } from "express";
+import { ApiError } from "../types/classes/error.class";
+import { hashJson } from "./hash";
 // TODO: clean this shit up.
-const redisClient = connect(process.env["REDIS_URL"] as string);
-
-type resultType = {
-  name: string;
-  path: string;
-};
 
 export let location: string;
 export let fileName: string;
 
-export async function uploadAvatar(image_str: string, personnel_code: string) {
-  try {
-    //move file to buffer
-    let image = Buffer.from(image_str, "base64");
-    //get path for save file
-    let _path = path.join(__dirname, "./../..");
-    var dir = _path + "/assets/image";
-
-    var dirPersonnelAvatar = _path + "/assets/image/" + personnel_code;
-
-    //if path not exist, create path
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir);
-    }
-    //define path for save image
-    if (!fs.existsSync(dirPersonnelAvatar)) {
-      fs.mkdirSync(dirPersonnelAvatar);
-    }
-
-    //write image in path
-    fs.writeFile(dirPersonnelAvatar + "/avatar.jpeg", image, (err) => {
-      if (err) {
-        return null;
-      }
-    });
-
-    const result: resultType = {
-      name: "avatar.jpeg",
-      path: dirPersonnelAvatar + personnel_code + ".jpeg",
+export function uploadAvatar(imagePropertyName: string, idPropertyName: string, resultPropertyName: string = "") {
+  /*
+  use result property name to identify wether you want to send a customized result to the user.
+  */
+  return async function middleware(req: Request, res: Response, next: NextFunction) {
+    try {
+      const imageStr = req.body[imagePropertyName];
+      const id = req.body[idPropertyName];
+      //move file to buffer
+      let image = Buffer.from(imageStr, "base64");
+      //get path for save file
+      let dirPath = path.join(__dirname, "./../..") + "/assets/image";
+      let dirPersonnelAvatar = dirPath + id;
+      //if path not exist, create path
+      if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath);
+      //define path for save image
+      if (!fs.existsSync(dirPersonnelAvatar)) fs.mkdirSync(dirPersonnelAvatar);
+      //write image in path
+      fs.writeFileSync(dirPersonnelAvatar + "/avatar.jpeg", image);
+      if (!!resultPropertyName) {
+        return res.status(201).json({
+          success: true,
+          data: {
+            name: "avatar.jpeg",
+            location: dirPersonnelAvatar + id + ".jpeg",
+            message: "Uploaded the file successfully: ",
+          }
+        });
+      };
+      return res.status(201).json({
+        success: true,
+        data: req.body[resultPropertyName],
+      });
+    } catch (e: any) {
+      return next(new ApiError(500, "Internal Error!"));
     };
-    return result;
-  } catch (e: any) {
-    return null;
-  }
-}
+  };
+};
 
 //set file in redis
-export async function setFileInRedis(fileBase64: string, id: string, Personnel_id: string) {
-  try {
-    //connet to redis if not connected
-    if (!(await redisClient).isOpen) {
-      await (await redisClient).connect();
-    }
-    //define object for save in redis
-    let fileInRedis: IFileInRedis = {
-      id: id,
-      personnel_id: Personnel_id,
-      full_frame: fileBase64,
-      face: "",
-      embedding: "",
-      has_face: 0,
-      timestamp: new Date(),
-    };
+export function setFileInRedis(redisUrl: string, imagePropertyName: string, idPropertyName: string, secret: string, resultPropertyName: string = "") {
+  const redisClientParrent = connect(redisUrl);
+  const hash = (json: object) => hashJson(json, secret);
+  return async function (req: Request, res: Response, next: NextFunction) {
+    try {
+      //connet to redis if not connected
+      const redisClient = await redisClientParrent;
+      //define object for save in redis
+      let firstStep = {
+        personnel_id: req.body[idPropertyName],
+        full_frame: req.body[imagePropertyName],
+        face: "",
+        embedding: "",
+        has_face: 0,
+      };
+      const id = hash(firstStep);
+      let fileInRedis: IFileInRedis = {
+        id,
+        timestamp: new Date(),
+        ...firstStep
+      };
+      //insert to redis
+      await redisClient.set(id, JSON.stringify(fileInRedis));
+      //close redis connection
+      await redisClient.disconnect();
 
-    //insert to redis
-    await (await redisClient).set(fileInRedis.id, JSON.stringify(fileInRedis));
-    //close redis connection
-    (await redisClient).disconnect();
-    //return file id
-    return fileInRedis.id.toString();
-  } catch (error: any) {
-    console.log(error);
-    throw new Error(error);
-  }
-}
+      if (!!resultPropertyName) {
+        return res.status(201).json({
+          success: true,
+          data: req.body[resultPropertyName]
+        });
+      };
+      return res.status(201).json({
+        success: true,
+        data: {
+          message: "Uploaded the file successfully",
+          id
+        },
+      });
+    } catch (error: any) {
+      req.flash("error", "File not upload");
+      return next(new ApiError(400, "File not upload"));
+    };
+  };
+};
 
 //get image verified from redis
 export async function getImageFromRedis(id: string) {
@@ -155,11 +172,11 @@ export async function deleteFiles(fileName: string, dirname: string): Promise<Bo
       result = true;
     }
   }
-  await deleteDirectory(dirname,false);
+  await deleteDirectory(dirname, false);
   return result;
 }
 
-export async function deleteDirectory(dirname: string, force : boolean): Promise<Boolean | null> {
+export async function deleteDirectory(dirname: string, force: boolean): Promise<Boolean | null> {
   //check for exist path
   if (!fs.existsSync(dirname)) {
     return null;
@@ -169,7 +186,7 @@ export async function deleteDirectory(dirname: string, force : boolean): Promise
   if (filenames.length > 0 && !force) {
     return false;
   }
-  await fs.promises.rm(dirname,{ recursive: true, force: true }); //delete file if exist
+  await fs.promises.rm(dirname, { recursive: true, force: true }); //delete file if exist
   result = true;
   return result;
 }

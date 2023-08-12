@@ -24,7 +24,7 @@ router.post("",
       if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code || !section_id || !camera_whitelist) {
         req.flash("error", "Please fill all fields");
         return next(new ApiError(400, "Please fill all fields"));
-      }
+      };
       //query for save new personnel in DB
       let personnel = await Personnel.findOne({
         $or: [{ national_code: national_code }, { personnel_code: personnel_code }],
@@ -34,7 +34,7 @@ router.post("",
       if (personnel) {
         req.flash("error", "Personnel already exists");
         return next(new ApiError(400, "Personnel already exists"));
-      }
+      };
       //create new personnel
       personnel = new Personnel({
         first_name,
@@ -58,17 +58,15 @@ router.post("",
 
       //save personnel avatar in hardDisk
       let avatarStr = avatar_str.split(",")[1];
-      let result = await uploadAvatar(avatarStr, _personnnel._id.toString());
-
-      //send response
-      res.status(201).json({
-        success: true,
-        data: _personnnel.toJSON(),
-      });
+      req.body["avatarStr"] = avatarStr;
+      req.body["id"] = _personnnel._id.toString();
+      req.body["data"] = _personnnel.toJSON();
     } catch (err: any) {
       return next(new ApiError(500, "Internal server error , " + err.message));
-    }
-  });
+    };
+  },
+  uploadAvatar("avatarStr", "id", "data"),
+);
 
 //route for get personnels list
 router.get("", async function (req: Request, res: Response, next: NextFunction) {
