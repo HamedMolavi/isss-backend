@@ -1,12 +1,11 @@
-import { Clock, Cron, CronDay, DateType, DayOfWeek, Hours, Minutes, TwoDigitsClock, TwoDigitsDateType, TwoDigitsHours, TwoDigitsMinutes } from "../types/interfaces/time.interface";
+import { Clock, Cron, CronDay, DayOfWeek, Hours, Minutes, TwoDigitsClock, TwoDigitsHours, TwoDigitsMinutes } from "../types/interfaces/time.interface";
+//TODO: clean this up
 import reverseString from "./reverseString";
 import momentTimezone from "moment-timezone";
 let persianDate = require("persian-date");
 let jalaali = require("jalaali-js");
 let moment = require("jalali-moment");
 
-new Date().toLocaleDateString(undefined, {})
-Intl
 /*
 uer input => locale
 input dates & times => locale
@@ -17,16 +16,14 @@ outputs => utc/locale => should return locale with format of ISO string
 re-input => shoul be locale right?
 */
 
-
-
 export default class Time {
   //the most common usage of custom time format
   constructor() { };
   //for making all time numbers as two digit numbers
-  static makeTwoDigits(timeOrDate: Clock | Hours | Minutes | DateType): TwoDigitsClock | TwoDigitsHours | TwoDigitsMinutes | TwoDigitsDateType {
+  static makeTwoDigits(timeOrDate: Clock | Hours | Minutes | string): TwoDigitsClock | TwoDigitsHours | TwoDigitsMinutes | string {
     if (timeOrDate.includes("/")) {
       let dateArray = timeOrDate.split("/").map(val => val.length > 1 ? val : ("0" + val).slice(-2)); // make only one digit numbers into two digits
-      return dateArray.join("/") as TwoDigitsDateType;
+      return dateArray.join("/");
     } else {
       let timeArray = timeOrDate.split(":");
       switch (timeArray.length) {
@@ -53,39 +50,41 @@ export default class Time {
   static toCronDay(time_cron: Cron, dayOfWeek: DayOfWeek): CronDay { return `${time_cron}${dayOfWeek}` as CronDay; };
   //for compare time
   static compareTime(start: Clock, stop: Clock): boolean {
-    return new Date(`1/1/1998 ${stop}`) > new Date(`1/1/1998 ${start}`); // 1/1/1998 is arbitrary
+    return new Date(`14/6/1998 ${stop}`) > new Date(`14/6/1998 ${start}`); // 1/1/1998 is arbitrary
   };
 
   //convert date to epoch
-  static toTimestamp(date: DateType, time: Clock): number {
+  static toTimestamp(date: string, time: Clock): number {
     return (new Date(
       [date, time].join(" ")
     )).getTime();
   };
 
-  static toString(date: DateType, time: Clock, isReverse = false): string {
-    if (isReverse) date = date.split("/").reverse().join("/") as DateType;
-    date = Time.makeTwoDigits(date) as TwoDigitsDateType;
-    const t = Time.makeTwoDigits(time) as TwoDigitsClock;
-    return new Date(new Date([date, t, "+0"].join(" "))).toISOString();
+  static toString(date: string, time: Clock, isReverse = false): string {
+    if (isReverse) date = date.split("/").reverse().join("/");
+    date = Time.makeTwoDigits(date);
+    time = Time.makeTwoDigits(time) as TwoDigitsClock;
+    return new Date(new Date([date, time, "+0"].join(" "))).toISOString();
   };
 
-  static toList(date: DateType): number[] {
+  static toList(date: string): number[] {
     let d = new Date(date)
     return [d.getFullYear(), d.getMonth() - 1, d.getDay(), d.getHours(), d.getMinutes(), d.getSeconds()];
   };
 
-  static getEpochList(startDate: DateType, stopDate: DateType, start_time: Clock, stop_time: Clock, timezone: string): object[] {
-    let start_date_iso: string = this.toString(startDate, start_time, timezone);
+  static getEpochList(startDate: string, stopDate: string, start_time: Clock, stop_time: Clock, timezone: string): object[] {
+    let start_date_iso: string = this.toString(startDate, start_time);
     let start_date = new Date(start_date_iso);
-    let stop_date_iso: string = this.toString(stopDate, stop_time, timezone);
+    let stop_date_iso: string = this.toString(stopDate, stop_time);
     let stop_date = new Date(stop_date_iso);
     let epoch_list: object[] = [];
-    let start_ens_epoch = { gte: "", lte: "" };
-    for (let d = start_date; d <= stop_date; d.setDate(d.getDate() + 1)) {
-      let x1 = this.toString(d.toLocaleDateString("en-US", { timeZone: timezone }), start_time, timezone, true);
+    let start_ens_epoch = {
+      gte: "", lte: "" // representing the start and end times of that day in epoch time
+    };
+    for (let d = start_date; d <= stop_date; d.setDate(d.getDate() + 1)) { // incrementing the date by one day at each iteration.
+      let x1 = this.toString(d.toLocaleDateString("en-US", { timeZone: timezone }), start_time, true); // new Date(t.toLocaleString() + "+0")
       let x = this.toList(x1);
-      let z1 = this.toString(d.toLocaleDateString("en-US", { timeZone: timezone }), stop_time, timezone, true);
+      let z1 = this.toString(d.toLocaleDateString("en-US", { timeZone: timezone }), stop_time, true);
       let z = this.toList(z1);
       start_ens_epoch.gte = new Date(Date.UTC(x[0], x[1], x[2], x[3], x[4], x[5])).getTime().toString();
       start_ens_epoch.lte = new Date(Date.UTC(z[0], z[1], z[2], z[3], z[4], z[5])).getTime().toString();
@@ -95,8 +94,8 @@ export default class Time {
       // start_ens_epoch.lte = Date.UTC(stop_date_daily[0],stop_date_daily[1],stop_date_daily[2],stop_date_daily[3],stop_date_daily[4],stop_date_daily[5]).toString();
       epoch_list.push(start_ens_epoch);
       start_ens_epoch = { gte: "", lte: "" };
-    }
+    };
     return epoch_list;
-  }
+  };
 
 };

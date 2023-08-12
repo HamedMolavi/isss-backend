@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import Time from './../../../tools/convertTime';
+import Time from '../../../tools/time.tools';
 import { Clock } from '../../../types/interfaces/time.interface';
 //test function Time.toCron
 describe('Time.toCron', () => {

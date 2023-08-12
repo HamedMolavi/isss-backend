@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import ModelToCamera from "../../db/mongo/models/modelToCamera";
-import Time from "../../tools/convertTime";
+import Time from "../../tools/time.tools";
 
 //create router for add to server file
 const router: Router = Router();

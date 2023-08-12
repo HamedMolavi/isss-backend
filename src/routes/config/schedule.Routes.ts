@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { IGetParams } from "../../types/interfaces/temp.interface";
 import Schedule from "../../db/mongo/models/schedule";
-import Time from "./../../tools/convertTime";
+import Time from "../../tools/time.tools";
 import ModelToCamera from "../../db/mongo/models/modelToCamera";
 import { ApiError } from "../../types/classes/error.class";
 import { ISchedule } from "../../types/interfaces/schedule.interface";

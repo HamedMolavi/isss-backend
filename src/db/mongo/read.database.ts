@@ -2,8 +2,10 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import { Document, FilterQuery } from "mongoose";
 
-export async function read(model: any, query?: FilterQuery<any>) {
-  let docs: Document[] | any = await model.find(!!query ? query : {}).exec(); // TODO: change the type here
+export async function read(model: any, options?: { query?: FilterQuery<any>, populate?: string }) {
+  let docs: Document[] | any = !!options?.populate
+    ? model.find(!!options?.query ? options?.query : {}).exec()
+    : model.find(!!options?.query ? options?.query : {}).populate(options?.populate).exec();
   return docs;
 };
 
