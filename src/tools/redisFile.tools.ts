@@ -1,15 +1,99 @@
+import { RedisClientType } from "redis"
 import connect from "../db/redis/connect.database";
 import path from "path";
 import fs from "fs";
-import console from "console";
 import { IFileInRedis } from "../types/interfaces/file.interface";
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../types/classes/error.class";
 import { hashJson } from "./hash";
 // TODO: clean this shit up.
 
-export let location: string;
-export let fileName: string;
+export class FileRedis {
+  redisClient: RedisClientType | undefined
+  secret: string
+  middlewareWraper: (f: Function, options: { resultPropertyName?: string | undefined, isInReq?: boolean, save?: string | undefined }, ...args: any[]) => RequestHandler
+  json: Function
+  hash: (json: { [key: string]: string }) => string
+  constructor() {
+    this.secret = process.env["SESSION_SECRET"];
+    this.hash = (json: { [key: string]: string }) => hashJson(json, this.secret);
+    this.middlewareWraper = (f: Function, options: { resultPropertyName?: string | undefined, isInReq?: boolean, save?: string | undefined }, ...args: any[]) => ((req: Request, res: Response) => {
+      /*
+      takes an function to wrap it with RequestHandler.
+      Inside it will call the function with the given args.
+      If isInReq is true, you can give property names of req.body in args.
+      If resultPropertyName is not undefiend, the result sent to the user will be req.body[resultPropertyName]
+      */
+      const inputs = options.isInReq ? args : Object.entries(req.body).filter(el => args.includes(el[0])).map(el => el[1])
+      const result = f(...inputs);
+      if (!!options.save) return req.body[options.save] = result;
+      if (!!options.resultPropertyName) {
+        return res.status(201).json({
+          success: true,
+          data: req.body[options.resultPropertyName as string],
+        });
+      };
+      return res.status(201).json({
+        success: true,
+        data: result,
+      });
+    });
+    this.json = function recursive(o: { [key: string]: string } | undefined = undefined, kwargs: Array<[string, string]> | undefined = undefined) {
+      if (!o) {
+        let json: { [key: string]: string } = {};
+        if (!!kwargs)
+          for (const kwarg of kwargs) json[kwarg[0]] = kwarg[1];
+        else
+          json = { "key": "value" } //TODO: default version of this
+        recursive(json, undefined);
+      } else {
+        const id = this.hash(o);
+        return { id, ...o };
+      };
+    };
+    connect(process.env["REDIS_URL"])
+      .then(client => this.redisClient = client);
+  };
+
+  async redisSave(personnel_id: string, full_frame: string) {
+    //define object for save in redis
+    let fileInRedis = this.json({
+      personnel_id,
+      full_frame,
+      face: "",//TODO: why empty?
+      embedding: "",
+      has_face: "0",
+      timestamp: new Date(new Date().toLocaleString() + "+0").toISOString(),
+    });
+    //insert to redis
+    await this.redisClient?.set(fileInRedis?.id as string, JSON.stringify(fileInRedis));
+    //close redis connection
+    return {
+      message: "Uploaded the file successfully",
+      id: fileInRedis?.id
+    };
+  };
+
+  async redisGet(id: string) {
+    const result = await this.redisClient?.get(id) as string;
+    const replaced = result?.replace("'", '"');
+    const json = JSON.parse(replaced);
+    //return file
+    return json;
+  };
+
+  async redisDelete(id: string) {
+    let result = await this.redisClient?.del(id);
+    return {
+      message: "Deleted the file successfully",
+      data: result
+    };
+  };
+
+};
+
+
+
 
 export function uploadAvatar(imagePropertyName: string, idPropertyName: string, resultPropertyName: string = "") {
   /*
@@ -22,7 +106,7 @@ export function uploadAvatar(imagePropertyName: string, idPropertyName: string, 
       //move file to buffer
       let image = Buffer.from(imageStr, "base64");
       //get path for save file
-      let dirPath = path.join(__dirname, "./../..") + "/assets/image";
+      let dirPath = path.join(__dirname, "./../..") + "/assets/image/";
       let dirPersonnelAvatar = dirPath + id;
       //if path not exist, create path
       if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath);
@@ -50,90 +134,7 @@ export function uploadAvatar(imagePropertyName: string, idPropertyName: string, 
   };
 };
 
-//set file in redis
-export function setFileInRedis(redisUrl: string, imagePropertyName: string, idPropertyName: string, secret: string, resultPropertyName: string = "") {
-  const redisClientParrent = connect(redisUrl);
-  const hash = (json: object) => hashJson(json, secret);
-  return async function (req: Request, res: Response, next: NextFunction) {
-    try {
-      //connet to redis if not connected
-      const redisClient = await redisClientParrent;
-      //define object for save in redis
-      let firstStep = {
-        personnel_id: req.body[idPropertyName],
-        full_frame: req.body[imagePropertyName],
-        face: "",
-        embedding: "",
-        has_face: 0,
-      };
-      const id = hash(firstStep);
-      let fileInRedis: IFileInRedis = {
-        id,
-        timestamp: new Date(),
-        ...firstStep
-      };
-      //insert to redis
-      await redisClient.set(id, JSON.stringify(fileInRedis));
-      //close redis connection
-      await redisClient.disconnect();
 
-      if (!!resultPropertyName) {
-        return res.status(201).json({
-          success: true,
-          data: req.body[resultPropertyName]
-        });
-      };
-      return res.status(201).json({
-        success: true,
-        data: {
-          message: "Uploaded the file successfully",
-          id
-        },
-      });
-    } catch (error: any) {
-      req.flash("error", "File not upload");
-      return next(new ApiError(400, "File not upload"));
-    };
-  };
-};
-
-//get image verified from redis
-export async function getImageFromRedis(id: string) {
-  try {
-    //connet to redis if not connected
-    if (!(await redisClient).isOpen) {
-      await (await redisClient).connect();
-    }
-    const result = (await (await redisClient).get(id)) as any;
-    const replaced = result?.replaceAll("'", '"');
-    let fileInRedis = JSON.parse(replaced);
-    (await redisClient).disconnect();
-    //return file
-    return fileInRedis;
-  } catch (error: any) {
-    console.log(error);
-    throw new Error(error);
-  }
-}
-
-//delete jason image in redis
-export async function deleteImageInRedis(id: string) {
-  try {
-    //connet to redis if not connected
-    if (!(await redisClient).isOpen) {
-      await (await redisClient).connect();
-    }
-    //delete file from redis
-    let result = await (await redisClient).del(id);
-    //close redis connection
-    (await redisClient).disconnect();
-    //return file
-    return result;
-  } catch (error: any) {
-    console.log(error);
-    throw new Error(error);
-  }
-}
 //function for read all image in assets and convert to base64 and return list base64
 export async function readFiles(dirname: string): Promise<object[] | null> {
   //check for exist path
@@ -190,3 +191,5 @@ export async function deleteDirectory(dirname: string, force: boolean): Promise<
   result = true;
   return result;
 }
+
+

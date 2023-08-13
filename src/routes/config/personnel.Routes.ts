@@ -5,7 +5,7 @@ import { ApiError } from "../../types/classes/error.class";
 import Camera from "../../db/mongo/models/camera";
 import url from "url"
 import PersonImage from "../../db/mongo/models/personImage";
-import { deleteDirectory, uploadAvatar } from "../../tools/fileUpload";
+import { deleteDirectory, uploadAvatar } from "../../tools/redisFile.tools";
 import Personnel from "../../db/mongo/models/personnel";
 import { IPersonnel } from "../../types/interfaces/personnel.interface";
 

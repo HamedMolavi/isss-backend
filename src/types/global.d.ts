@@ -22,8 +22,9 @@ declare global {
       REQUEST_LOG_FILE: string
       KAFKA_BOOTSTRAP: string
       SAMPLE_STREAM_URI: string
-      WORD_BEFORE_REPLACE_STREAM :string
-      WORD_AFTER_REPLACE_STREAM :string
+      WORD_BEFORE_REPLACE_STREAM: string
+      WORD_AFTER_REPLACE_STREAM: string
     }
   }
 }
+

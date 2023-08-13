@@ -1,4 +1,4 @@
-import { setFileInRedis, getImageFromRedis, deleteImageInRedis, uploadAvatar } from "./../../tools/fileUpload";
+import { uploadAvatar, FileRedis } from "../../tools/redisFile.tools";
 import { NextFunction, Router, Request, Response } from "express";
 import fs from "fs";
 import axios from "axios";
@@ -7,6 +7,8 @@ import PersonImage from "../../db/mongo/models/personImage";
 import { hashJson } from "./../../tools/hash";
 import { ApiError } from "../../types/classes/error.class";
 
+//create customized redis client
+const redis = new FileRedis();
 //create router for add to server
 const router: Router = Router();
 
@@ -72,96 +74,67 @@ router.get("/list", async function (req: Request, res: Response, next: NextFunct
 
 //api for upload image to redis
 router.post("/redis",
-  setFileInRedis(process.env["REDIS_URL"], "image_str", "personnel_id", process.env["SESSION_SECRET"]));
+  redis.middlewareWraper(redis.redisSave, { isInReq: true }, "personnel_id", "image_str"));
 
 //route for verified image in redis
-router.post("/verify", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-    //get body from request
-    const requestBody = req.body;
-    if (!requestBody.id) {
-      req.flash("error", "id is required!");
-      return next({ status: 400, message: "id is required" });
-    }
-    //get jason information from redis
-    let redisData: any = await getImageFromRedis(requestBody.id);
-    //convert base64 to file
-    let image = Buffer.from(redisData.face, "base64");
-    // let embedding = Buffer.from(redisData.embedding, "base64");
-    //covert base64 to array buffer
-    //let embeddingArray: Number[] = Buffer.from(redisData.embedding, "base64").toJSON().data;
-    // let embeddingArray =  Uint8Array.from(atob(redisData.embedding), c => c.charCodeAt(0))
-    // function bytesToFloatArray(bytes: any) {
-    //   var output = bytes.buffer; // Get the ArrayBuffer from the Uint8Array.
-    //   return new Float32Array(output); // Convert the ArrayBuffer to floats.
-    // }
-    // let embeddingArray = bytesToFloatArray(embedding);
-    //Face recognition condition
-    if (redisData.has_face === 1) {
-      let guid: string = requestBody.id;
-      //create name for image
-      let fileName: string = guid + ".jpeg";
+router.post("/verify",
+  redis.middlewareWraper(redis.redisGet, { save: "redisData", isInReq: true }, "id"),
+  async function (req: Request, res: Response, next: NextFunction) {
+    try {
+      let redisData: any = req.body["redisData"];
+      //convert base64 to file
+      let image = Buffer.from(redisData.face, "base64");
+      if (redisData.has_face === 1) {
+        let guid: string = req.body["id"];
+        //create name for image
+        let fileName: string = guid + ".jpeg";
+        //TODO : convert BGR to RGB
+        //define path for save image
+        let pathSave = path.join(__dirname, `./../../../assets/image/${redisData.personnel_id}`);
+        if (!fs.existsSync(pathSave)) fs.mkdirSync(pathSave);
+        pathSave = path.join(__dirname, `./../../../assets/image/${redisData.personnel_id}/${redisData.personnel_id}`);
+        //write image in path
+        fs.writeFileSync(pathSave + fileName, image);
+        let embedding = redisData.embedding;
+        //create new personimage
+        let personImage = new PersonImage();
+        personImage.person_id = redisData.personnel_id;
+        personImage.vector = embedding;
+        personImage.hash_id = guid;
+        //  save personimage in database
+        await personImage.save();
+        //  delete jason image in redis
+        await redis.redisDelete(req.body["id"]);
+        //get url AI for send request
+        const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
+        //send request to AI api for send id_personnel
+        var config = {
+          method: "get",
+          url: dbUri + "/embed",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        };
+        await axios(config);
 
-      //todo : convert BGR to RGB
-
-      //define path for save image
-
-      let pathSave = path.join(__dirname, `./../../../assets/image/${redisData.personnel_id}`);
-      if (!fs.existsSync(pathSave)) {
-        fs.mkdirSync(pathSave);
+        return res.status(200).send({
+          success: true,
+          data: {
+            message: "Verified the file successfully",
+            face: redisData.face,
+            hash_id: guid,
+          },
+        });
+      } else if (Number(redisData.has_face) === 0) {
+        req.flash("error", "No face found");
+        //send response to client for not face recognition
+        res.status(406).send({
+          message: "No face found",
+        });
       }
-      pathSave = path.join(__dirname, `./../../../assets/image/${redisData.personnel_id}/${redisData.personnel_id}-`);
-      //write image in path
-      await fs.writeFile(pathSave + fileName, image, (err) => {
-        if (err) {
-          return next(new ApiError(500, "internal server error" + err.message));
-        }
-      });
-      let embedding = redisData.embedding;
-      //create new personimage
-      // if (!personImage) {
-      let personImage = new PersonImage();
-      personImage.person_id = redisData.personnel_id;
-      personImage.vector = embedding;
-      personImage.hash_id = guid;
-      //  save personimage in database
-      await personImage.save();
-      // }
-      //  delete jason image in redis
-      let result = await deleteImageInRedis(requestBody.id.toString());
-      //   send response to client
-
-      //get url AI for send request
-      const dbUri: string = process.env["API_AI_REDIS_NAME"] as string;
-      //send request to AI api for send id_personnel
-      var config = {
-        method: "get",
-        url: dbUri + "/embed",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      };
-
-      let response = await axios(config);
-
-      return res.status(200).send({
-        success: true,
-        data: {
-          message: "Verified the file successfully",
-          face: redisData.face,
-          hash_id: guid,
-        },
-      });
-    } else if (Number(redisData.has_face) === 0) {
-      req.flash("error", "No face found");
-      //send response to client for not face recognition
-      res.status(406).send({
-        message: "No face found",
-      });
+    } catch (err: any) {
+      return next(new ApiError(500, "internal server error" + err.message));
     }
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error" + err.message));
-  }
-});
+  });
 
 export default router;
