@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { getStrength } from "../../../tools/verifyPasswordRegex";
+import { getStrength } from "../../../tools/password.tools";
 
 //test function password veify with regex
 describe("password veify with regex", function () {

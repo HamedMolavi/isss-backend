@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import Model from "./model";
 import ModelToCamera from "./modelToCamera";
 import Schedule from "./schedule";
@@ -13,7 +13,7 @@ const CameraSchema: Schema<ICamera> = new Schema(
     url: { type: String, required: true },
     nvr: { type: String, required: false },
     ip: { type: String, required: true },
-    network: { type: String, required: true },
+    network: { type: String, default:"255.255.255.255" },
     name: { type: String, required: true },
     username: { type: String, required: true },
     password: { type: String, required: true },
@@ -43,6 +43,7 @@ CameraSchema.post('save', async function (doc) {
   // update ROOMS
   await updateRooms(doc);
 });
+
 
 
 CameraSchema.post("remove", async (doc) => {

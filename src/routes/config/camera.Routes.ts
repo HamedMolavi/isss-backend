@@ -16,7 +16,7 @@ const router: Router = Router();
 //add route for register new camera
 router.post(
   "",
-  dtoValidationMiddleware(CreateCameraBody, { skipMissingProperties: false, detailedMassage: false, info: "please complete all fields" }),
+  dtoValidationMiddleware(CreateCameraBody, { skipMissingProperties: false, detailedMassage: false, info: "please fill all fields" }),
   existCheck(Camera, { $and: [{ ip: "ip" }, { nvr: "nvr" }], }, "Camera already exists!"),
   getStreamUri(CameraInfoKeys), //get live stream uri(rtsp link from camera)
   create(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "muted", "camera_type", "url"], Camera)
@@ -38,7 +38,7 @@ router.get(
 //add route for edit camera
 router.patch(
   "/:id",
-  updateById(Camera)
+  updateById(Camera) // TODO: test for edit
 );
 
 //add route for delete camera

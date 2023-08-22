@@ -39,7 +39,7 @@ export function sendTokenToclient(req: Request, res: Response, next: NextFunctio
   else {
     return res.status(200).json({
       success: true,
-      data: { token }, //TODO: ...req.user,
+      data: { token,...req.user }, //TODO: ...req.user,
     });
   };
 };

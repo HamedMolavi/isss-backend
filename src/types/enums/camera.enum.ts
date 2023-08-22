@@ -1,4 +1,5 @@
 export enum CameraTypes {
-  Foo,
-  Bar
+  enter,
+  exit,
+  null
 }

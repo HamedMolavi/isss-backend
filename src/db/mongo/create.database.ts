@@ -9,10 +9,9 @@ export function create(keys: string[], model: any): RequestHandler {
       for (const key of keys) payload[key] = req.body[key];
       //create
       let doc = new model(payload);
-      //save camera in DB -> post process saves also ModelToCamera for each model
       await doc.save();
       //return success
-      req.flash("info", "camera added");
+      req.flash("info", `${model.collection.collectionName} added.`);
       return res.status(201).json({
         success: true,
         data: doc,

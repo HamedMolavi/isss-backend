@@ -7,7 +7,7 @@ export async function read(model: any, query?: FilterQuery<any>) {
   return docs;
 };
 
-export function readMiddleware(model: any, query: (search: string) => FilterQuery<any>): RequestHandler {
+export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any>): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get page from url
@@ -19,7 +19,7 @@ export function readMiddleware(model: any, query: (search: string) => FilterQuer
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
       let docs: Document[] =
-        (!!search
+        (!!query
           ? await model.find(query(search))
           : await model.find({}))
           .limit(perPage)

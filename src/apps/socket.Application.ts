@@ -1,10 +1,11 @@
 import http from "http";
 import { Server, Socket } from "socket.io";
-import allowRequest from "../authentication/socketCheck.auth";
+import {allowRequest,} from "../authentication/socketCheck.auth";
 import passport from "passport";
 import { sessionMiddleware } from "./app.Application";
 import { authHeaderExtraction, passportGate } from "../authentication/authorize.auth";
 import { wrapMiddlewareForSocketIo } from "../tools/socket.tools";
+import { cameraAccessCheckMiddleware } from "../authentication/accessCheck.auth";
 
 export default async function ioServer(httpServer: http.Server) {
   // run http websocket
@@ -27,6 +28,7 @@ export default async function ioServer(httpServer: http.Server) {
   io.use(wrapMiddlewareForSocketIo(sessionMiddleware));
   io.use(wrapMiddlewareForSocketIo(passport.session()));
   io.use(wrapMiddlewareForSocketIo(passportGate));
+  io.use(wrapMiddlewareForSocketIo(cameraAccessCheckMiddleware));
 
   // TODO: setuping new socket connection
   io.on("connection", async function setupNewSocket(socket: Socket) {

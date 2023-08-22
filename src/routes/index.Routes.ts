@@ -25,7 +25,7 @@ router.use(passportGate);
 
 
 // router.use(printMiddleware(["user"]));
-router.use(endHere(["url", "originalUrl", "params", "query", "session", "headers", "user"]));
+// router.use(endHere(["url", "originalUrl", "params", "query", "session", "headers", "user"]));
 
 //add rotes app
 router.use("/config/user", accessCheck(Access.Configuration, "user"), userConfig)

@@ -26,3 +26,13 @@ export default function accessCheck(access: Access, role: string) {
     return next();
   };
 };
+
+
+export function cameraAccessCheckMiddleware(req: Request, res: Response, next: NextFunction) {
+  
+  const camera_access = req.user["camera_access"]?.map((val) => val.toString());
+  const roomId = req.headers.roomid as string;
+  console.log(camera_access, roomId, !!roomId && !camera_access?.includes(roomId));
+  if (!!roomId && !camera_access?.includes(roomId)) return next(new ApiError(403, "Unauthorized!"))
+  next();
+}

@@ -1,6 +1,5 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { genSaltSync, compareSync, hashSync } from "bcrypt";
-import { Request } from "express";
 import { IUserDocument, IUserModel } from "../../../types/interfaces/user.interface";
 
 //create user model with schema for save in DB
@@ -28,11 +27,12 @@ UserSchema.methods.checkPassword = function (password: string) {
   return compareSync(password + user.username, user.password);
 };
 
-export function setPassword(password: string, username: string) {
+UserSchema.methods.setPassword = function (password: string, username: string) {
   const salt = genSaltSync(SALT_FACTOR);
   const result = hashSync(password + username, salt);
   return result
 };
+
 
 //for encrypt password
 const SALT_FACTOR = 10;
@@ -46,6 +46,13 @@ UserSchema.pre("save", function (done: Function) {
     done(err);
   };
 });
+UserSchema.pre('updateOne', async function (done) {
+  const doc = await this.model.findOne(this.getQuery());
+  const updatingFileds: { [key: string]: string } = Object(this.getUpdate());
+  if (!updatingFileds.hasOwnProperty("password")) return done(); // password didn't updated
+  doc.password = doc.setPassword(doc.password, doc.username);
+  done()
+})
 // Compile model from schema
 const User = mongoose.model<IUserDocument, IUserModel>("User", UserSchema);
 export default User;
