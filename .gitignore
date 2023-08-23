@@ -134,3 +134,7 @@ dist
 .pnp.*build
 build
 tmp_Dockerfile
+
+# setting
+.dependencygraph
+.vs
