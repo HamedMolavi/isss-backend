@@ -17,3 +17,18 @@ interface IConfig {
   zones: [[number, number, number, number]];
 };
 
+
+//define type of schedule for request body
+export interface IGetParams {
+  _id: Schema.Types.ObjectId;
+  model_camera_id: Schema.Types.ObjectId;
+  start: string;
+  stop: string;
+  dayOfWeek: number[];
+  threshold: number;
+  zones: [[number, number, number, number]];
+  montionDetection: boolean;
+  min_people: number;
+  max_people: number;
+  timeDuplicationDiagnoses: number;
+}

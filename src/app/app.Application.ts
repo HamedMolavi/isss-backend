@@ -9,28 +9,25 @@ import passport from "passport";
 import routes from "../routes/index.Routes";
 import fileUpload from "express-fileupload";
 import { ApiError } from "../types/classes/error.class";
-import localVarMiddleware from "../setups/localVar.setup";
-import { setupLogger } from "../setups/logger.setup";
+import localVarMiddleware from "../middleware/localVar.middleware";
+import { setupLogger } from "../middleware/logger.middleware";
 import redisStore from "../db/redis/store.database";
+<<<<<<< Updated upstream:src/app/app.Application.ts
+import { authHeaderExtraction, sessionMiddleware } from "../authentication/authorize.auth";
+=======
+<<<<<<< Updated upstream:src/apps/app.Application.ts
 import { authHeaderExtraction } from "../authentication/authorize.auth";
+=======
+import middlewares from "../middleware/index";
+>>>>>>> Stashed changes:src/app/app.Application.ts
+>>>>>>> Stashed changes:src/apps/app.Application.ts
 
 //create express app
 const app: Application = express();
 
+<<<<<<< Updated upstream:src/apps/app.Application.ts
 ///////////////////////////////////////////////////////////////////////////////// Credentials
-export const sessionMiddleware = session({
-  store: redisStore(),
-  name: "Bearer",
-  secret: process.env["SESSION_SECRET"] as string, // TODO: remove as string
-  resave: false,//if you want to keep the session in case of user activity, set these both to true.
-  rolling: false,//if you want to keep the session in case of user activity, set these both to true.
-  saveUninitialized: false,
-  cookie: {
-    maxAge: undefined,
-    httpOnly: true,
-  },
-});
-setUpPassport();
+
 app.use(
   cors({
     origin: "*",
@@ -65,6 +62,10 @@ app.use(
   setupLogger(),
   localVarMiddleware, //local variables setup
 );
+=======
+///////////////////////////////////////////////////////////////////////////////// middlewares
+app.use(middlewares);
+>>>>>>> Stashed changes:src/app/app.Application.ts
 
 ///////////////////////////////////////////////////////////////////////////////// Routing
 //app routes

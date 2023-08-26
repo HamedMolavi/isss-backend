@@ -2,7 +2,7 @@ import { expect } from "chai";
 import request from "supertest";
 import Departement from "../../db/mongo/models/department";
 import { IDepartment } from "../../interfaces/department.interface";
-import app from "../../apps/app.Application";
+import app from "../../app/app.Application";
 
 const token = process.env.sample_token;
 let _departement: IDepartment;

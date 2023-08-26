@@ -4,7 +4,7 @@ import User from "../../db/mongo/models/user";
 import { IUser, UserPasswordRequirements } from "../../types/interfaces/user.interface";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import { CreateUserBody, UpdateUserBody } from "../../validation/dto/user.dto";
-import { existCheck } from "../../validation/db/cameraRegister.validation";
+import { existCheck } from "../../validation/db";
 import { passwordValidator } from "../../validation/password";
 import { create } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";

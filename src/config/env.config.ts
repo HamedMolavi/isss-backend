@@ -25,7 +25,6 @@ export default function extraEnvConfigs() {
       ["REQUEST_LOG_DIR", "../logs"],
       ["RECORD_STREAM_TIME", "10"],
       ["SESSION_SECRET", "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4i"],
-      ["KAFKA_BOOTSTRAP", "localhost:9091"],
     ]
     allEnv.forEach(env_default => {
       if (!process.env[env_default[0]]) process.env[env_default[0]] = env_default[1];
@@ -38,17 +37,6 @@ export default function extraEnvConfigs() {
       key: key,
       cert: cert,
     });
-    //declare an empty consumers' map to be filled and updated over time
-    let CONSUMERS: Map<string, IConsumer> = new Map();
-    process["CONSUMERS"] = CONSUMERS;
-    // setting AI model categories into a global variable
-    read(Model).then((models: (IModel & { _id: Schema.Types.ObjectId; })[]) => {
-      process["MODELS"] = [];
-      for (const model of models) {
-        process["MODELS"].push(model.category);
-      };
-    });
-
   } catch (err) {
     console.error("Error in reading key and pem...");
     console.error(err);

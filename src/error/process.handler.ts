@@ -1,5 +1,5 @@
 //for get unhandeled error in express
-export function setExceptionHandler() {
+export default function setExceptionHandler() {
   const errorTypes = ['unhandledRejection', 'uncaughtException']
   const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2']
   errorTypes.forEach(type => {

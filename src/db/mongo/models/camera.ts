@@ -3,7 +3,6 @@ import Model from "./model";
 import ModelToCamera from "./modelToCamera";
 import Schedule from "./schedule";
 import { CameraTypes } from "../../../types/enums/camera.enum";
-import { updateRooms } from "../../../tools/rooms.tools";
 import { ICamera } from "../../../types/interfaces/camera.interface";
 
 //create camera model with schema for save in DB
@@ -40,8 +39,6 @@ CameraSchema.post('save', async function (doc) {
     });
     await _model2CameraSave.save();
   };
-  // update ROOMS
-  await updateRooms(doc);
 });
 
 
@@ -59,8 +56,7 @@ CameraSchema.post("remove", async (doc) => {
     let model_to_camera_deleted = await ModelToCamera.deleteMany({
       camera_id: doc._id,
     }).exec();
-  }
-  await updateRooms(doc);
+  };
 });
 
 

@@ -5,7 +5,7 @@ import Camera from "../../db/mongo/models/camera";
 import mongoose from "mongoose";
 import Section from "../../db/mongo/models/section";
 import { NextFunction } from "express";
-import app from "../../apps/app.Application";
+import app from "../../app/app.Application";
 
 
 const token = process.env.sample_token;

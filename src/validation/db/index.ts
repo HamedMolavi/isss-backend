@@ -3,10 +3,8 @@ import { Model } from "mongoose";
 import { ApiError } from "../../types/classes/error.class";
 
 
-{ $and: [{ ip: "ip" }, { nvr: "nvr" }] }
-
 export function existCheck(model: Model<any>, query: any, info?: string) {
-  return async function middleware(req: Request, res: Response, next: NextFunction) {
+  return async function middleware(req: Request, _res: Response, next: NextFunction) {
     //  query
     let state = Array.isArray(query) ? 1 : 0;
     if (!state) { // query is object -> { [{},{},...] }
