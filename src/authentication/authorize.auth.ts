@@ -24,6 +24,7 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
   });
 };
 
+<<<<<<< Updated upstream
 export function authHeaderExtraction(req: Request, _res: Response, next: NextFunction) {
   if (!req.cookies?.Bearer && !!req.headers["authorization"]) {
     let token: string | undefined = decodeURIComponent(req.headers["authorization"]?.split("Bearer ")[1]);
@@ -35,6 +36,8 @@ export function authHeaderExtraction(req: Request, _res: Response, next: NextFun
   return next();
 };
 
+=======
+>>>>>>> Stashed changes
 export function sendTokenToclient(req: Request, res: Response, next: NextFunction) {
   let token = encodeURIComponent("s:" + cookie.sign(req.sessionID, process.env["SESSION_SECRET"] as string));
   if (!req.sessionID) next(new ApiError(500, "Internal Error!"));
@@ -44,6 +47,7 @@ export function sendTokenToclient(req: Request, res: Response, next: NextFunctio
       data: { token,...req.user }, //TODO: ...req.user,
     });
   };
+<<<<<<< Updated upstream
 };
 
 export const sessionMiddleware = session({
@@ -58,3 +62,11 @@ export const sessionMiddleware = session({
     httpOnly: true,
   },
 });
+=======
+<<<<<<< Updated upstream
+};
+=======
+};
+
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
