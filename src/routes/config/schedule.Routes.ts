@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { IGetParams } from "../../types/interfaces/temp.interface";
+import { IGetParams } from "../../types/interfaces/schedule.interface";
 import Schedule from "../../db/mongo/models/schedule";
 import {
   compareTime,

@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { ApiError } from "../types/classes/error.class";
 import passport from "passport";
 import cookie from "cookie-signature";
+import session from "express-session";
+import redisStore from "../db/redis/store.database";
 
 export function passportGate(req: Request, _res: Response, next: NextFunction) {
   const ip = req.ip ?? req.socket.remoteAddress; //TODO
@@ -28,7 +30,7 @@ export function authHeaderExtraction(req: Request, _res: Response, next: NextFun
     if (!!req.cookies) req.cookies["Bearer"] = token; // TODO: also write it to req.headers.cookie
     else req.cookies = { "Bearer": token };
   } else {
-    // new guy or it has cookie.Bearer;
+    // TODO: new guy or it has cookie.Bearer;
   };
   return next();
 };
@@ -43,3 +45,16 @@ export function sendTokenToclient(req: Request, res: Response, next: NextFunctio
     });
   };
 };
+
+export const sessionMiddleware = session({
+  store: redisStore(),
+  name: "Bearer",
+  secret: process.env["SESSION_SECRET"] as string, // TODO: remove as string
+  resave: false,//if you want to keep the session in case of user activity, set these both to true.
+  rolling: false,//if you want to keep the session in case of user activity, set these both to true.
+  saveUninitialized: false,
+  cookie: {
+    maxAge: undefined,
+    httpOnly: true,
+  },
+});

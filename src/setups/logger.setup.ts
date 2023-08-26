@@ -2,7 +2,7 @@ import logger from "morgan";
 import { Request, Response } from "express";
 import rfs = require("rotating-file-stream");
 import { join } from "path";
-import { randomUuid } from "../tools/index.tools";
+import { randomUuid } from "../tools/utils.tools";
 import { mkdirSync, statSync } from "fs";
 
 const requestLogDir = join(__dirname, process.env["REQUEST_LOG_DIR"] as string)

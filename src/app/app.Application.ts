@@ -12,25 +12,13 @@ import { ApiError } from "../types/classes/error.class";
 import localVarMiddleware from "../setups/localVar.setup";
 import { setupLogger } from "../setups/logger.setup";
 import redisStore from "../db/redis/store.database";
-import { authHeaderExtraction } from "../authentication/authorize.auth";
+import { authHeaderExtraction, sessionMiddleware } from "../authentication/authorize.auth";
 
 //create express app
 const app: Application = express();
 
 ///////////////////////////////////////////////////////////////////////////////// Credentials
-export const sessionMiddleware = session({
-  store: redisStore(),
-  name: "Bearer",
-  secret: process.env["SESSION_SECRET"] as string, // TODO: remove as string
-  resave: false,//if you want to keep the session in case of user activity, set these both to true.
-  rolling: false,//if you want to keep the session in case of user activity, set these both to true.
-  saveUninitialized: false,
-  cookie: {
-    maxAge: undefined,
-    httpOnly: true,
-  },
-});
-setUpPassport();
+
 app.use(
   cors({
     origin: "*",

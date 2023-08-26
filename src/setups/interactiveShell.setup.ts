@@ -1,9 +1,8 @@
-var stdin = process.stdin;
 export async function setupInteractive(): Promise<void> {
   // Setup Interactive stdin
-  stdin.resume();
-  stdin.setEncoding('utf8');
-  stdin.on('data', function (key: string) {
+  process.stdin.resume();
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', function (key: string) {
     act(key.trim());
   });
 };

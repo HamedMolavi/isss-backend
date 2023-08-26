@@ -3,7 +3,7 @@ import { ApiError } from "../../types/classes/error.class";
 import Camera from "../../db/mongo/models/camera";
 import Departement from "../../db/mongo/models/department";
 import Section from "../../db/mongo/models/section";
-import { IChildrenCamera, IChildrenSection, IResponseJson } from "../../types/interfaces/temp.interface";
+import { IChildrenCamera, IChildrenSection, IResponseJson } from "../../types/interfaces/department.interface";
 import { IDepartment } from "../../types/interfaces/department.interface";
 import { ICamera } from "../../types/interfaces/camera.interface";
 import { ISection } from "../../types/interfaces/section.interface";
