@@ -1,8 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { eventDepartmentLogResponse } from "../../tools/createlogReport";
-import { date2Epokh } from "../../tools/convertTime";
+import { eventDepartmentLogResponse } from "../../tools/log.tools";
 import { ApiError } from "../../types/classes/error.class";
 import { Access } from "../../types/enums/access.enum";
+import Time from "../../tools/time.tools";
+import { Clock } from "../../types/interfaces/time.interface";
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || "user";
@@ -27,10 +28,10 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     //get model from url request
     //let model = req.params.model;
     //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
+    //  let token = getTokenAndVerify(req, const_role, next);
+    //  if (!token) {
+    //    return null;
+    //  }
     //get page from url
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -55,8 +56,8 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       _cameras = cameras ?? [];
       if (time_start && time_end && date_start && date_end) {
         //convet time to timeStamp
-        timeEpokhStart = date2Epokh(date_start, time_start, "");
-        timeEpokhEnd = date2Epokh(date_end, time_end, "");
+        timeEpokhStart = String(Time.toTimestamp(date_start, time_start as Clock));
+        timeEpokhEnd = String(Time.toTimestamp(date_end, time_end as Clock));
       }
     }
 

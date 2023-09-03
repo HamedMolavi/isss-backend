@@ -70,7 +70,6 @@ app.use(middlewares);
 ///////////////////////////////////////////////////////////////////////////////// Routing
 //app routes
 app.use("/api/v1", routes);
-app.get("/test", (_req, res)=> res.send("ok"))
 
 //404 route
 app.use(function notFound(req: Request, _res: Response, next: NextFunction) {

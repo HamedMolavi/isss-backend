@@ -17,10 +17,14 @@ declare global {
       SESSION_SECRET: string
       ELASTIC_SEARCH: string
       REQUEST_LOG_FORMAT: string
-      NODE_ENV: string
+      NODE_ENV: "development" | "production"
       WEB_STREAM: string
       REQUEST_LOG_FILE: string
       KAFKA_BOOTSTRAP: string
+      SAMPLE_STREAM_URI: string
+      WORD_BEFORE_REPLACE_STREAM: string
+      WORD_AFTER_REPLACE_STREAM: string
     }
   }
 }
+

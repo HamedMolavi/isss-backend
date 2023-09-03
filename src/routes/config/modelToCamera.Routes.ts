@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import ModelToCamera from "../../db/mongo/models/modelToCamera";
-import { convertToCron, convertToCronDay } from "../../tools/convertTime";
+import Time from "../../tools/time.tools";
 
 //create router for add to server file
 const router: Router = Router();
@@ -18,10 +18,8 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
     };
 
     //convert input time to cron format
-    let start_cron: string = convertToCron(start);
-    start_cron = convertToCronDay(start_cron, dayOfWeek.toString());
-    let stop_cron: string = convertToCron(stop);
-    stop_cron = convertToCronDay(stop_cron, dayOfWeek.toString());
+    let start_cron = Time.toCronDay(Time.toCron(start), dayOfWeek.toString());
+    let stop_cron = Time.toCronDay(Time.toCron(stop), dayOfWeek.toString());
 
     //query for save new schedule in DB
     let modelToCamera = await ModelToCamera.findOne({

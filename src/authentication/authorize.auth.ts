@@ -18,7 +18,7 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
       const maxAge = req.body.is_remember ? 8 * 60 * 60 * 1000 : 15 * 60 * 1000;
       //             if remeber     8 hours       else    15 minutes
       req.session.cookie.maxAge = maxAge;
-      req.session.ip = req.ip;
+      req.session.ip = req.ip ?? req.socket.remoteAddress;;
       next(err ? err : null);
     });
   });
@@ -44,7 +44,7 @@ export function sendTokenToclient(req: Request, res: Response, next: NextFunctio
   else {
     return res.status(200).json({
       success: true,
-      data: { token,...req.user }, //TODO: ...req.user,
+      data: { token }, //TODO: ...req.user,
     });
   };
 <<<<<<< Updated upstream

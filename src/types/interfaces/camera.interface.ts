@@ -19,11 +19,11 @@ export interface ICamera extends Document {
 }
 
 export interface ICameraInfo {
-  [key: string]: string
-  ip: string;
-  username: string;
-  password: string;
-  nvr: string;
+  [key: string]: string | undefined;
+  ip?: string | undefined;
+  username?: string | undefined;
+  password?: string | undefined;
+  nvr?: string | undefined;
 };
 
 export const CameraInfoKeys: ICameraInfo = {

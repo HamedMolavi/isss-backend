@@ -2,7 +2,7 @@ import app from "../../server.ts";
 import { expect } from "chai";
 import request from "supertest";
 import Car, { ICar } from "../../db/mongo/models/car.js";
-import toPersianPlate from "../../tools/EnglishToPersianPlate";
+import { persianPlateDict } from "../../tools/plate.tools.js";
 import Personnel from "../../db/mongo/models/personnel.js";
 import { Schema } from "mongoose";
 import CarBrand from "../../db/mongo/models/carBrand.js";
@@ -103,7 +103,7 @@ describe("server run and crud car", function () {
           let response = res.body.data;
           let _number_plate = {
             first: Number(response.number_plate.substr(0, 2)).toLocaleString("fa-IR"),
-            second: toPersianPlate[response.number_plate.substr(2, 1)],
+            second: persianPlateDict[response.number_plate.substr(2, 1)],
             third: Number(response.number_plate.substr(3, 3)).toLocaleString("fa-IR"),
             fourth: "ایران",
             fifth: Number(response.number_plate.substr(6, 2)).toLocaleString("fa-IR"),

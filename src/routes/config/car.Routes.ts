@@ -3,7 +3,7 @@ import { ApiError } from "../../types/classes/error.class";
 import CarBrand from "../../db/mongo/models/carBrand";
 import CarColor from "../../db/mongo/models/carColor";
 import Personnel from "../../db/mongo/models/personnel";
-import toPersianPlate, { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
+import { persianPlateDict, englishPlateDict } from "../../tools/plate.tools";
 import Car from "../../db/mongo/models/car";
 
 //create router for add to routes file
@@ -27,7 +27,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
       fifth: number_plate.fifth,
     };
 
-    let plate_number_engglish = `${plateNumber.first}${toEnglishPLate[plateNumber.second]}${plateNumber.third}${plateNumber.fifth}`;
+    let plate_number_engglish = `${plateNumber.first}${englishPlateDict[plateNumber.second]}${plateNumber.third}${plateNumber.fifth}`;
 
     //query for save new car in DB
     let car = await Car.findOne({ number_plate: plate_number_engglish }).exec();
@@ -57,7 +57,7 @@ router.post("", async function (req: Request, res: Response, next: NextFunction)
         owner: newCar.owner,
         number_plate: {
           first: Number(newCar.number_plate.substr(0, 2)),
-          second: toPersianPlate[newCar.number_plate.substr(2, 1)],
+          second: persianPlateDict[newCar.number_plate.substr(2, 1)],
           third: Number(newCar.number_plate.substr(3, 3)),
           fourth: "ایران",
           fifth: Number(newCar.number_plate.substr(6, 2)),
@@ -123,7 +123,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         owner: _owner,
         number_plate: {
           first: cars[i].number_plate != null ? Number(cars[i].number_plate.substr(0, 2)) : "",
-          second: cars[i].number_plate != null ? toPersianPlate[cars[i].number_plate.substr(2, 1)] : "",
+          second: cars[i].number_plate != null ? persianPlateDict[cars[i].number_plate.substr(2, 1)] : "",
           third: cars[i].number_plate != null ? Number(cars[i].number_plate.substr(3, 3)) : "",
           fourth: "ایران",
           fifth: cars[i].number_plate != null ? Number(cars[i].number_plate.substr(6, 2)) : "",
@@ -181,7 +181,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
         owner: car.owner,
         number_plate: {
           first: Number(car.number_plate.substr(0, 2)),
-          second: toPersianPlate[car.number_plate.substr(2, 1)],
+          second: persianPlateDict[car.number_plate.substr(2, 1)],
           third: Number(car.number_plate.substr(3, 3)),
           fourth: "ایران",
           fifth: Number(car.number_plate.substr(6, 2)),
@@ -221,7 +221,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
         fourth: carBody.number_plate.fourth,
         fifth: carBody.number_plate.fifth,
       };
-      let plate_number_engglish = `${plateNumber.first}${toEnglishPLate[plateNumber.second]}${plateNumber.third}${plateNumber.fifth}`;
+      let plate_number_engglish = `${plateNumber.first}${englishPlateDict[plateNumber.second]}${plateNumber.third}${plateNumber.fifth}`;
       carBody.number_plate = plate_number_engglish;
     }
 
@@ -240,7 +240,7 @@ router.patch("/:id", async function (req: Request, res: Response, next: NextFunc
         owner: car.owner,
         number_plate: {
           first: Number(car.number_plate.substr(0, 2)),
-          second: toPersianPlate[car.number_plate.substr(2, 1)],
+          second: persianPlateDict[car.number_plate.substr(2, 1)],
           third: Number(car.number_plate.substr(3, 3)),
           fourth: "ایران",
           fifth: Number(car.number_plate.substr(6, 2)),
@@ -283,7 +283,7 @@ router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
         owner: car.owner,
         number_plate: {
           first: Number(car.number_plate.substr(0, 2)),
-          second: toPersianPlate[car.number_plate.substr(2, 1)],
+          second: persianPlateDict[car.number_plate.substr(2, 1)],
           third: Number(car.number_plate.substr(3, 3)),
           fourth: "ایران",
           fifth: Number(car.number_plate.substr(6, 2)),

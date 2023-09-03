@@ -6,7 +6,7 @@ import { IUserDocument, IUserModel } from "../../../types/interfaces/user.interf
 const UserSchema: Schema<IUserDocument> = new Schema(
   {
     username: { type: String, required: true },
-    password: { type: String, required: true },
+    password: { type: String, required: true, select: false },
     phone_number: { type: String, required: true },
     event: { type: Boolean, default: false },
     camera: { type: Boolean, default: false },
@@ -18,6 +18,12 @@ const UserSchema: Schema<IUserDocument> = new Schema(
   },
   {
     collection: "User",
+    toJSON: {
+      transform(_doc, ret) {
+        delete ret["password"];
+        return ret;
+      },
+    }
   }
 );
 

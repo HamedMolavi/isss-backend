@@ -1,9 +1,10 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { eventLogResponse, faceLogResponse, fireLogResponse, humanLogResponse, plateLogResponse, sabotageLogResponse } from "../../tools/createlogReport";
-import { date2Epokh, getEpochList } from "../../tools/convertTime";
+import { eventLogResponse, faceLogResponse, fireLogResponse, humanLogResponse, plateLogResponse, sabotageLogResponse } from "../../tools/log.tools";
+import Time from "../../tools/time.tools";
 import { ApiError } from "../../types/classes/error.class";
 import { dynamicRequestToElasticSearch } from "../../db/elastic/connect.database";
-import { toEnglishPLate } from "../../tools/EnglishToPersianPlate";
+import { englishPlateDict } from "../../tools/plate.tools";
+import { Clock } from "../../types/interfaces/time.interface";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -107,15 +108,15 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
           req.flash("error", "Date format is not correct");
           next(new ApiError(400, "Date format is not correct"));
         }
-        epoch.start = date2Epokh(input.date_start, input.time_start, _timezone);
-        epoch.end = date2Epokh(input.date_end, input.time_end, _timezone);
-        times_epoch = getEpochList(input.date_start, input.date_end, input.time_start, input.time_end, _timezone);
+        epoch.start = String(Time.toTimestamp(input.date_start, input.time_start as Clock));
+        epoch.end = String(Time.toTimestamp(input.date_end, input.time_end as Clock));
+        times_epoch = Time.getEpochList(input.date_start, input.date_end, input.time_start as Clock, input.time_end as Clock, _timezone);
         //let timesEpokhEnd = getEpochList();
       }
     }
     let plate_number_engglish: string = "";
     if (input.plate) {
-      plate_number_engglish = `${input.plate.first}${toEnglishPLate[input.plate.second]}${input.plate.third}${input.plate.fifth}`;
+      plate_number_engglish = `${input.plate.first}${englishPlateDict[input.plate.second]}${input.plate.third}${input.plate.fifth}`;
       console.log(plate_number_engglish)
     }
 
