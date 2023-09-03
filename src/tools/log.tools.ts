@@ -45,8 +45,6 @@ export async function plateLogResponse(
   owner: string[] | undefined,
   allowed: boolean | undefined,
   search: boolean,
-  time_start: string,
-  time_end: string,
   timezone: string
 ): Promise<plateLogResult> {
   let cars: (ICar & { _id: Types.ObjectId; })[] =
