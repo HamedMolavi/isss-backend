@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 
 export function authHeaderExtraction(req: Request, _res: Response, next: NextFunction) {
   if (!req.cookies?.Bearer && !!req.headers["authorization"]) {

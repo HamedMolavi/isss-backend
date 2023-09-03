@@ -12,7 +12,6 @@ import reportDepartments from "./report/departmentReport.Routes";
 import { passportGate } from "../authentication/authorize.auth";
 import accessCheck from "../authentication/accessCheck.auth";
 import { Access } from "../types/enums/access.enum";
-import { endHere, printMiddleware } from "../test/endpointTest/endhere.test";
 
 const router: Router = Router();
 
