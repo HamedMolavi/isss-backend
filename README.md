@@ -149,4 +149,35 @@ server.ts
 
 # Database
 
-# 
+# Migrate
+```
+/api/v1/users/login => /api/v1/auth/login
+
+/api/v1/cameras ===========> /api/v1/config/user/cameras
+/api/v1/files -------------> /api/v1/config/user/files
+/api/v1/departments =======> /api/v1/config/user/departments
+/api/v1/sections ----------> /api/v1/config/user/sections
+/api/v1/jobtitles =========> /api/v1/config/user/jobtitles
+/api/v1/personnels --------> /api/v1/config/user/personnels
+/api/v1/cars ==============> /api/v1/config/user/cars
+/api/v1/schedules ---------> /api/v1/config/user/schedules
+/api/v1/models ============> /api/v1/config/user/models
+/api/v1/carcolors ---------> /api/v1/config/user/carcolors
+/api/v1/carbrands =========> /api/v1/config/user/carbrands
+/api/v1/modelToCameras ----> /api/v1/config/user/modelToCameras
+/api/v1/departementfiles ==> /api/v1/config/user/departementfiles
+/api/v1/personImage -------> /api/v1/config/user/personImage
+/api/v1/notifications =====> /api/v1/config/user/notifications
+/api/v1/testsms -----------> /api/v1/config/user/testsms
+/api/v1/testemail =========> /api/v1/config/user/testemail
+/api/v1/snapshot ----------> /api/v1/config/user/snapshot
+
+/api/v1/users =============> /api/v1/config/admin/users
+
+/api/v1/reports ----------> Same
+/api/v1/reportDepartmets => Same
+/api/v1/schedulesreport --> Same
+/api/v1/downloadVideo ====> Same
+
+/api/v1/alerts => Deprecated
+```
