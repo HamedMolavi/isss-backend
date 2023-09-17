@@ -1,13 +1,18 @@
+# Structure
+
 ```js
-│┌┬┐║╔╦╗
-─├┼┤═╠╬╣
-│└┴┘║╚╩╝
-
-
 server.ts
   ├ /types/index => globalize custom-defined types
+  │ ├ global
+  │ ├ express-session
+  │ └ http
+  │
   ├ /config/env.config => read and set env variables
+  │ ├ defaultEnvVars
+  │ └ dotenv
+  │
   ├ /setups/index => setupInteractive, connectToDBs, setUpPassport
+  │
   └ app => Create httpServer, httpsServer
     │
     ├ middlewares
@@ -67,33 +72,81 @@ server.ts
     │   │  │    │   ├ redis.middlewareWraper(redis.redisGet, { save: "redisData", isInReq: true }, "id"),
     │   │  │    │   ├ ?
     │   │  │
-    │   │  │
     │   │  ├ /departments
+    │   │  │    ├ [CRUD]
+    │   │  │
     │   │  ├ /sections
+    │   │  │    ├ [CRUD]
+    │   │  │
     │   │  ├ /jobtitles
+    │   │  │    ├ [CRUD]
+    │   │  │
     │   │  ├ /personnels
+    │   │  │    ├ [CRUD]
+    │   │  │    ├ [SEARCH]
+    │   │  │
     │   │  ├ /cars
+    │   │  │    ├ [CRUD]
+    │   │  │
     │   │  ├ /schedules
+    │   │  │    ├ [CRUD]
+    │   │  │
     │   │  ├ /models
+    │   │  │    ├ [GET] [/] => read models
+    │   │  │    ├ [GET] [/:category] => read by category
+    │   │  │
     │   │  ├ /carcolors
+    │   │  │    ├ [CRUD]
+    │   │  │
     │   │  ├ /carbrands
+    │   │  │    ├ [CRUD]
+    │   │  │
     │   │  ├ /modelToCameras
+    │   │  │    ├ [CRUD]
+    │   │  │
     │   │  ├ /departementfiles
+    │   │  │    ├ [GET] => read
+    │   │  │
     │   │  ├ /personImage
+    │   │  │    ├ [GET] [/:id] => base64 of person images in local storage
+    │   │  │    ├ [DELETE] [/:hashid] => delete image from folder assets\image by hashid
+    │   │  │
     │   │  ├ /notifications
+    │   │  │    ├ [CRUD]
+    │   │  │
     │   │  ├ /testsms
+    │   │  │    ├ [GET] [/:phone_number] => test send sms
+    │   │  │
     │   │  ├ /testemail
+    │   │  │    ├ [GET] [/:email] => test send email
+    │   │  │
     │   │  ├ /snapshot
+    │   │  │    ├ [GET] [/:id] => get snapshot from camera with ip+username+password and send snapshotBase64
+    │   │
     │   │
     │   ├ /config/admin => routes/config/adminConfig.Routes
     │   │  ├ accessCheck
-    │   │       ├ Access.Configuration => /types/enums/access.enum
+    │   │  │     Access.Configuration => /types/enums/access.enum
+    │   │  │
+    │   │  └ /users
+    │   │       ├ [CRUD]
+    │   │
+    │   ├ /reports => routes/report/report.Routes
+    │   │  ├ [POST] [/:model] => get logs of model based on time from ElasticSearch
     │   │
     │   ├ /reportDepartmets => routes/report/departmentReport.Routes
-    │   ├ /reports => routes/report/report.Routes
+    │   │  ├ [POST] [/] => WTF?
+    │   │
     │   ├ /schedulesreport => routes/report/schedulesReport.Routes
-    │   ├ /downloadVideo => routes/report/videoDownload.Routes
-    │
+    │   │  ├ [GET] [/] => [Schedule[modelToCamera] for Camera[Model][modelToCamera] in Camera] but sends cameras and their models
+    │   │  ├ [GET] [/:id] => Exactly as above!
+    │   │
+    │   └ /downloadVideo => routes/report/videoDownload.Routes
+    │      ├ [GET] [/:id] => Reads a video file, converts it to mp4 (using ffmpeg) and sends it chunk by chunk
     │
     └ notFound
 ```
+
+# Database
+
+# 
