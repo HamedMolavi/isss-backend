@@ -13,7 +13,7 @@ if coockie session detected -> deserializeUser() => authenticate() => serializeU
 export function setUpPassport() {
   // persistent login sessions for authenticated user
   passport.serializeUser(function (user: any, done: Function) {
-    done(null, user.id); // which data of the user object should be stored in the session
+    done(null, user._id); // which data of the user object should be stored in the session
     // saved to session -> req.session.passport.user = {id:"xyz"}.
   });
   passport.deserializeUser(function (id: string, done: Function) { // uses the key (id) to retrive user object
@@ -29,7 +29,12 @@ export function setUpPassport() {
       function auth(username: string, password: string, done: Function) {
         User.findOne({ username: username })
           .then(async user => user ? await user.checkPassword(password) ? user : null : null)
-          .then(user => user ? done(null, user) : done(null, false, { message: "username or password incorrect." }))
+          .then(user=>{
+            console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+            console.log(user?.toJSON());
+            return user;
+          })
+          .then(user => user ? done(null, user.toJSON()) : done(null, false, { message: "username or password incorrect." }))
           .catch(err => done(err));
       }
     )

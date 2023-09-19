@@ -2,7 +2,7 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import { Document, Model } from "mongoose";
 
-export function updateById(model: Model<any, any, any, any, any>): RequestHandler {
+export function updateById(model: Model<any, any, any, any>): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get id from url
