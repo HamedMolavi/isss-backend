@@ -6,6 +6,7 @@ export type cameraInfo = {
   ip: string;
   username: string;
   password: string;
+  nvr?:string;
 };
 //take snapshot from camera with ip , username , password
 async function takeSnapshot(camInfo: cameraInfo) {

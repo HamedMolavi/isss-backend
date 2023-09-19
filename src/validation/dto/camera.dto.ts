@@ -20,3 +20,12 @@ export class CreateCameraBody {
   public is_enabled?: boolean;
   public camera_type?: any; // CameraTypes
 };
+
+export class CameraInfoBody {
+  @IsString()
+  public ip?: mongoose.Types.ObjectId;
+  @IsString()
+  public username?: string;
+  @IsString()
+  public password?: string;
+};
