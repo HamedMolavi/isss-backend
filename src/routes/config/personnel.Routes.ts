@@ -79,6 +79,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
     let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
     let search = (req.query.search as string) || "";
     //query for get user by personnels from DB
+
     let personnels: IPersonnel[] = [];
     if (!(search && search.length > 0)) {
       personnels = await Personnel.find({
@@ -104,6 +105,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
       // data =personnels.map(async(person) => {
       let per = _personnel.toJSON();
 
+      // TODO: fetch last location from normalizer server.
       let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
 
       let _camera;

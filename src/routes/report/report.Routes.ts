@@ -61,10 +61,10 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       return next(new ApiError(404, "Model not found"));
     }
     //get token from header request and verify
-  //  let token = getTokenAndVerify(req, const_role, next);
-  //  if (!token) {
-  //    return null;
-  //  }
+    //  let token = getTokenAndVerify(req, const_role, next);
+    //  if (!token) {
+    //    return null;
+    //  }
     //get page from url
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -112,13 +112,13 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
         epoch.end = String(Time.toTimestamp(input.date_end, input.time_end as Clock));
         times_epoch = Time.getEpochList(input.date_start, input.date_end, input.time_start as Clock, input.time_end as Clock, _timezone);
         //let timesEpokhEnd = getEpochList();
-      }
-    }
+      };
+    };
     let plate_number_engglish: string = "";
     if (input.plate) {
       plate_number_engglish = `${input.plate.first}${englishPlateDict[input.plate.second]}${input.plate.third}${input.plate.fifth}`;
       console.log(plate_number_engglish)
-    }
+    };
 
     let _data: object[] = [];
     //get log for other models data from elastic
@@ -148,13 +148,13 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       // if ((input.car_brand === null || input.car_color === null || input.owner === null) && search) {
       //   return next(new ApiError(400, `car_brand, car_color, owner is required`));
       // }
-      _data = await plateLogResponse(response, input.car_brand, input.car_color, input.owner,Boolean(input.allowed),Boolean(search) ,_timezone);
+      _data = await plateLogResponse(response, input.car_brand, input.car_color, input.owner, Boolean(input.allowed), Boolean(search), _timezone);
     } else if (model === "human") {
       _data = await humanLogResponse(response, input.allowed, Boolean(search), _timezone);
     } else if (model === "fire") {
       _data = await fireLogResponse(response, _timezone);
     } else if (model === "face") {
-      let x = Boolean(search) 
+      let x = Boolean(search)
       _data = await faceLogResponse(response, input.allowed, Boolean(search), _timezone);
     } else if (model === "event") {
       _data = await eventLogResponse(response, _timezone);

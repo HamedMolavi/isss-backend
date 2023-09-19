@@ -55,7 +55,7 @@ PersonnelSchema.methods.toJSON =function () {
     is_dismissed: this.is_dismissed,
     create_date: this.create_date,
     tracked:this.tracked,
-    image_url: have_avatar === true ? BASE_URL + "/files/download/" + this._id : BASE_URL + "/files/download/default"
+    image_url: have_avatar === true ? BASE_URL + "/config/user/files/download/" + this._id : BASE_URL + "/config/user/files/download/default"
   };
 };
 
