@@ -1,4 +1,4 @@
-type DefaultEnv = {
+export type DefaultEnv = {
   PORT_HTTP: string
   PORT_HTTPS: string
   HOST: string
