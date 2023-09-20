@@ -101,25 +101,30 @@ export function uploadAvatar(imagePropertyName: string, idPropertyName: string, 
   */
   return async function middleware(req: Request, res: Response, next: NextFunction) {
     try {
+      //avatarStr id data
       const imageStr = req.body[imagePropertyName];
       const id = req.body[idPropertyName];
       //move file to buffer
       let image = Buffer.from(imageStr, "base64");
+
+      // PATH CEHCK
       //get path for save file
-      let dirPath = path.join(__dirname, "./../..") + "/assets/image/";
-      let dirPersonnelAvatar = dirPath + id;
-      //if path not exist, create path
-      if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath);
-      //define path for save image
-      if (!fs.existsSync(dirPersonnelAvatar)) fs.mkdirSync(dirPersonnelAvatar);
+      let imageDir = path.join(__dirname, "./../..");
+      for (const step of ["assets", "image", id]) {
+        imageDir = path.join(imageDir, step)
+        //if path not exist, create path
+        if (!fs.existsSync(imageDir)) fs.mkdirSync(imageDir);
+      };
+      const imagePath = path.join(imageDir, "avatar.jpeg");
+
       //write image in path
-      fs.writeFileSync(dirPersonnelAvatar + "/avatar.jpeg", image);
+      fs.writeFileSync(imagePath, image);
       if (!!resultPropertyName) {
         return res.status(201).json({
           success: true,
           data: {
             name: "avatar.jpeg",
-            location: dirPersonnelAvatar + id + ".jpeg",
+            location: imagePath,//TOD: shouldn't it be relative
             message: "Uploaded the file successfully: ",
           }
         });

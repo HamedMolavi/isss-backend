@@ -16,15 +16,21 @@ const router: Router = Router();
 router.post("",
   async function (req: Request, res: Response, next: NextFunction) {
     try {
+      for (const key of ["job_id", "section_id"]) {
+        if (req.body[key] === "") delete req.body[key]
+      };
+
       //get json from body request
       const { first_name, last_name, national_code, email, phone_number, job_id, tracked, personnel_code, section_id, camera_whitelist, is_active, is_employee, is_dismissed, avatar_str } =
         req.body;
 
       //verify body request
-      if (!first_name || !last_name || !national_code || !email || !phone_number || !job_id || !personnel_code || !section_id || !camera_whitelist) {
+      //|| !email || !job_id || !section_id || !camera_whitelist
+      if (!first_name || !last_name || !national_code || !phone_number || !personnel_code) {
         req.flash("error", "Please fill all fields");
         return next(new ApiError(400, "Please fill all fields"));
       };
+
       //query for save new personnel in DB
       let personnel = await Personnel.findOne({
         $or: [{ national_code: national_code }, { personnel_code: personnel_code }],
@@ -214,42 +220,48 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
 });
 
 //add route for edit personnel
-router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-    //get id from url
-    let id: string = req.params.id;
+router.patch("/:id",
+  async function (req: Request, res: Response, next: NextFunction) {
+    try {
+      //get id from url
+      let id: string = req.params.id;
 
-    if (!id) {
-      req.flash("error", "Please enter id");
-      return next(new ApiError(400, "Please enter id"));
-    }
+      if (!id) {
+        req.flash("error", "Please enter id");
+        return next(new ApiError(400, "Please enter id"));
+      }
 
-    const personnelBody = req.body;
-    //query for get personnel by id from DB
-    let personnel = await Personnel.findByIdAndUpdate(id, personnelBody, {
-      new: true,
-    }).exec();
+      const personnelBody = req.body;
+      //query for get personnel by id from DB
+      let personnel = await Personnel.findByIdAndUpdate(id, personnelBody, {
+        new: true,
+      }).exec();
 
-    //send not found if personnel not found
-    if (!personnel) {
-      req.flash("error", "Personnel not found");
-      return next(new ApiError(404, "Personnel not found"));
-    }
-    if (personnelBody.avatar_str) {
-      //save personnel avatar in hardDisk
-      let avatarStr = personnelBody.avatar_str.split(",")[1];
-      let result = await uploadAvatar(avatarStr, personnel._id.toString());
-    }
+      //send not found if personnel not found
+      if (!personnel) {
+        req.flash("error", "Personnel not found");
+        return next(new ApiError(404, "Personnel not found"));
+      }
 
-    //send response
-    return res.status(201).json({
-      success: true,
-      data: personnel.toJSON(),
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "Internal server error , " + err.message));
-  }
-});
+      if (personnelBody.avatar_str) {
+        //save personnel avatar in hardDisk
+        let avatarStr = personnelBody.avatar_str.split(",")[1];
+        req.body["avatarStr"] = avatarStr;
+        req.body["id"] = personnel._id.toString();
+        req.body["data"] = personnel.toJSON();
+        return next();
+      } else {
+        return res.status(201).json({
+          success: true,
+          data: personnel.toJSON(),
+        });
+      };
+    } catch (err: any) {
+      return next(new ApiError(500, "Internal server error , " + err.message));
+    };
+  },
+  uploadAvatar("avatarStr", "id", "data")
+);
 
 //add route for delete personnel
 router.delete("/:id", async function (req: Request, res: Response, next: NextFunction) {

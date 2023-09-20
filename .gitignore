@@ -138,3 +138,6 @@ tmp_Dockerfile
 # setting
 .dependencygraph
 .vs
+
+# files
+assets
