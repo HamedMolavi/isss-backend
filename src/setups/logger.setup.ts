@@ -48,7 +48,7 @@ export function setupLogger() {
   });
   const middlewares = [
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
-    logger(":id :user-agent :remote-addr :date[web] :url :method :status"), // log all
+    // logger(":id :user-agent :remote-addr :date[web] :url :method :status"), // log all
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     logger((tokens, req: Request, res: Response) => {
       console.log(tokens["remote-addr"](req, res))
@@ -70,7 +70,7 @@ export function setupLogger() {
         ].join('\n\t');
     }, {
       skip: (_req, res) => res.statusCode < 400,
-      stream: deniedLogStream,
+      // stream: deniedLogStream,
     }),
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
   ];
