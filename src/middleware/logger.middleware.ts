@@ -58,12 +58,12 @@ export function setupLogger() {
     logger((tokens, req: Request, res: Response) => {
       return !!process.env["REQUEST_LOG_FORMAT"] ? process.env["REQUEST_LOG_FORMAT"]
         : [
-          tokens.id(req, res),
-          tokens["remote-addr"](req, res),
+          Date.now(),
           tokens.status(req, res),
           tokens.method(req, res),
           tokens.url(req, res),
           "user id: " + req.user?._id,
+          "errors: " + JSON.stringify(req.flash("error")),
           "headers: " + JSON.stringify(req.headers),
           "cookies: " + JSON.stringify(req.cookies),
           "request body: " + JSON.stringify(req.body),
