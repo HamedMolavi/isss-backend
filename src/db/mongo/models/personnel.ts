@@ -26,12 +26,14 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
   }
 );
 
+
 //get personnel data jason for auth
 PersonnelSchema.methods.toJSON = function () {
   //get url AI for send request
   const BASE_URL: string = process.env["BASE_URL"] as string;
   //define path for save image
-  let pathSave = path.join(__dirname, `./../../assets/image/${this._id}/avatar.jpeg`);
+  let pathSave = path.join(__dirname, `./../../../../assets/image/${this._id}/avatar.jpeg`);
+  console.log(pathSave)
   let have_avatar: Boolean = false;
   //if path not exist, create path
   if (fs.existsSync(pathSave)) {

@@ -210,6 +210,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     }
 
     //send response
+    // personnel.toJSON()
     return res.status(200).json({
       success: true,
       data: personnel.toJSON(),
