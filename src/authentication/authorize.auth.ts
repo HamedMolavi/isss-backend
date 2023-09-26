@@ -4,9 +4,8 @@ import passport from "passport";
 import cookie from "cookie-signature";
 
 export function passportGate(req: Request, _res: Response, next: NextFunction) {
-  const ip = req.ip ?? req.socket.remoteAddress; //TODO
-  console.log("ip Un authorize", req.session.ip !== ip)
-  if (!req.user) return next(new ApiError(401, "Unauthorized")); // || req.session.ip !== ip
+  //TODO: check ip too
+  if (!req.user) return next(new ApiError(401, "Unauthorized"));
   return next();
 };
 

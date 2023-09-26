@@ -21,12 +21,14 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
 
+      if (!!query) console.log(query(search))
+      console.log(search)
       let docs: Document[] = !!query
-      ? await model.find(query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
-      : await model.find({}).limit(perPage).skip(perPage * (page - 1)).exec()
-        
-        
-        
+        ? await model.find(query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
+        : await model.find({}).limit(perPage).skip(perPage * (page - 1)).exec()
+
+
+
 
       //return response not found to client if not found cameras
       if (!docs) {
