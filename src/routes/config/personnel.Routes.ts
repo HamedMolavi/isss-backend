@@ -72,7 +72,7 @@ router.post("",
       return next(new ApiError(500, "Internal server error , " + err.message));
     };
   },
-  fs.uploadAvatar("avatarStr", "id", "data"),
+  fs.uploadAvatarMiddleware("avatarStr", "id", "data"),
 );
 
 //route for get personnels list
@@ -262,7 +262,7 @@ router.patch("/:id",
       return next(new ApiError(500, "Internal server error , " + err.message));
     };
   },
-  fs.uploadAvatar("avatarStr", "id", "data"),
+  fs.uploadAvatarMiddleware("avatarStr", "id", "data"),
 );
 
 //add route for delete personnel

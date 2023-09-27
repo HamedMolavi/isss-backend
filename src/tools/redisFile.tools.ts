@@ -13,13 +13,13 @@ import { IPersonnel } from "../types/interfaces/personnel.interface";
 export class FileRedis {
   redisClient: RedisClientType | undefined
   secret: string
-  middlewareWraper: (f: Function, options: { resultPropertyName?: string | undefined, isInReq?: boolean, save?: string | undefined }, ...args: any[]) => RequestHandler
+  middlewareWraper: (f: Function, options: { resultPropertyName?: string | undefined, isInReq?: boolean, save?: string | undefined, next?: boolean }, ...args: any[]) => RequestHandler
   json: Function
   hash: (json: { [key: string]: string }) => string
   constructor() {
     this.secret = process.env["SESSION_SECRET"];
     this.hash = (json: { [key: string]: string }) => hashJson(json, this.secret);
-    this.middlewareWraper = (f: Function, options: { resultPropertyName?: string | undefined, isInReq?: boolean, save?: string | undefined }, ...args: any[]) => ((req: Request, res: Response) => {
+    this.middlewareWraper = (f: Function, options: { resultPropertyName?: string | undefined, isInReq?: boolean, save?: string | undefined, next?: boolean }, ...args: any[]) => ((req: Request, res: Response, next: NextFunction) => {
       /*
       takes an function to wrap it with RequestHandler.
       Inside it will call the function with the given args.
@@ -34,7 +34,7 @@ export class FileRedis {
           success: true,
           data: req.body[options.resultPropertyName as string],
         });
-      };
+      } else if (!!options.next) return next();
       return res.status(201).json({
         success: true,
         data: result,
@@ -102,17 +102,24 @@ export class FileSystem {
     this.preCreateDirectories();
   };
 
-  uploadAvatar(imagePropertyName: string, idPropertyName: string, resultPropertyName: string = "") {
+  uploadAvatarMiddleware(imagePropertyName: string | Array<string>, idPropertyName: string, options?: { next?: boolean }, resultPropertyName: string = "") {
     /*
     use result property name to identify wether you want to send a customized result to the user.
     */
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
         //avatarStr id data
-        const imageStr = req.body[imagePropertyName];
+        let imageStr: string | Array<any>;
+        if (typeof imagePropertyName === "string") imageStr = req.body[imagePropertyName as string] as string
+        else {
+          imageStr = req.body[(imagePropertyName as Array<string>).shift() as string] as Array<any>;
+          //@ts-ignore
+          for (const name of imagePropertyName) imageStr = imageStr[name];
+        };
+
         const id = req.body[idPropertyName];
         //move file to buffer
-        let image = Buffer.from(imageStr, "base64");
+        let image = Buffer.from(imageStr as string, "base64");
 
         //get path for save file
         const imageDir = this.makeAndReturnNewDirectoryForUser(id);
@@ -129,13 +136,69 @@ export class FileSystem {
               message: "Uploaded the file successfully: ",
             }
           });
-        };
+        } else if (!!options?.next) return next();
         return res.status(201).json({
           success: true,
           data: req.body[resultPropertyName],
         });
       } catch (e: any) {
         return next(new ApiError(500, "Internal Error!"));
+      };
+    };
+  };
+
+  downloadAvatarMiddleware(imagePropertyName: string) {
+    return (req: Request, res: Response, next: NextFunction) => {
+      try {
+        //get file name from request params
+        const fileName = req.params[imagePropertyName];
+
+        //get directory path
+        const imagePath = path.join(this.baseDir, this.imageDir, fileName, "avatar.jpeg");
+
+        //send image to client
+        return res.download(imagePath, fileName, (err) => {
+          if (err) {
+            req.flash("error", "File not found");
+            return next(new ApiError(404, "File not found"));
+          }
+        });
+      } catch (err: any) {
+        return next(new ApiError(500, "internal server error" + err.message));
+      }
+    }
+  };
+
+  listMiddleware() {
+    return (req: Request, res: Response, next: NextFunction) => {
+      try {
+        let fileInfos: object[] = [];
+        //get directory path
+        const directoryPath = path.join(this.baseDir, this.imageDir);
+        //get list directory images in directory path
+        let imageFolders = fs.readdirSync(directoryPath);
+        //loop through list directory images and get file info in each directory
+        for (const imageFolder of imageFolders) {
+          //get file info in each directory
+          let imageFiles = fs.readdirSync(directoryPath + "/" + imageFolder);
+          //loop through list file in each directory and get file info
+          for (const image of imageFiles) {
+            //get file info
+            let fileInfo = fs.statSync(directoryPath + "/" + imageFolder + "/" + image);
+            //push file info to array
+            fileInfos.push({
+              name: image,
+              size: fileInfo.size,
+              path: directoryPath + imageFolder + "/" + image,
+            });
+          }
+        }
+        //send response to client
+        res.status(200).send(fileInfos);
+
+        // const baseUrl = process.env["BaseUrl"] as string;
+      } catch (err: any) {
+        return next(new ApiError(500, "internal server error" + err.message));
       };
     };
   };

@@ -5,7 +5,7 @@ import { dtoValidationMiddleware } from "../../validation/dto";
 import { CameraInfoBody, CreateCameraBody } from "../../validation/dto/camera.dto";
 import { existCheck } from "../../validation/db";
 import { CameraInfoKeys } from "../../types/interfaces/camera.interface";
-import { create } from "../../db/mongo/create.database";
+import { createMiddleware } from "../../db/mongo/create.database";
 import { readMiddleware, readByIdMiddleware } from "../../db/mongo/read.database";
 import { updateById } from "../../db/mongo/update.database";
 import { deleteById } from "../../db/mongo/delete.database";
@@ -20,7 +20,7 @@ router.post(
   dtoValidationMiddleware(CreateCameraBody, { skipMissingProperties: false, detailedMassage: false, info: "please fill all fields" }),
   existCheck(Camera, { $and: [{ ip: "ip" }, { nvr: "nvr" }], }, "Camera already exists!"),
   getStreamUri(CameraInfoKeys), //get live stream uri(rtsp link from camera)
-  create(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "muted", "camera_type", "url"], Camera)
+  createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "muted", "camera_type", "url"], Camera)
 );
 
 //route for get id camera with ip from back RTSPtoWEBRTC
@@ -32,26 +32,22 @@ router.post(
 );
 
 //route for get cameras list
-router.get(
-  "",
+router.get("",
   readMiddleware(Camera, (search) => { return { ip: { $regex: search, $options: "i" } } })
 );
 
 //route for get camera by id from DB
-router.get(
-  "/:id",
+router.get("/:id",
   readByIdMiddleware(Camera)
 );
 
 //add route for edit camera
-router.patch(
-  "/:id",
+router.patch("/:id",
   updateById(Camera) // TODO: test for edit
 );
 
 //add route for delete camera
-router.delete(
-  "/:id",
+router.delete("/:id",
   deleteById(Camera) // delete also triggers the remove post function of Camera schema
 );
 

@@ -6,7 +6,7 @@ import { dtoValidationMiddleware } from "../../validation/dto";
 import { CreateUserBody, UpdateUserBody } from "../../validation/dto/user.dto";
 import { existCheck } from "../../validation/db";
 import { passwordValidator } from "../../validation/password";
-import { create } from "../../db/mongo/create.database";
+import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { updateById } from "../../db/mongo/update.database";
 import { deleteById } from "../../db/mongo/delete.database";
@@ -20,7 +20,7 @@ router.post("",
   existCheck(User, { $or: [{ username: "username" }, { phone_number: "phone_number" }] }, "User or Phone number already exists!"),
   //verify password strength
   passwordValidator(UserPasswordRequirements),
-  create(["username", "password", "phone_number", "role", "event", "camera", "report", "configuration", "camera_access"], User),
+  createMiddleware(["username", "password", "phone_number", "role", "event", "camera", "report", "configuration", "camera_access"], User),
 );
 
 //route for get users list

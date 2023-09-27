@@ -2,187 +2,43 @@ import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import Departement from "../../db/mongo/models/department";
 import { IDepartment } from "../../types/interfaces/department.interface";
+import { dtoValidationMiddleware } from "../../validation/dto";
+import { CreateDepartmentBody } from "../../validation/dto/department.dto";
+import { existCheck } from "../../validation/db";
+import Department from "../../db/mongo/models/department";
+import { createMiddleware } from "../../db/mongo/create.database";
+import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
+import { updateById } from "../../db/mongo/update.database";
+import { deleteById } from "../../db/mongo/delete.database";
 
 //create router for add to server file
 const router: Router = Router();
 
 //add route for register new departement
-router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-    //get json from body request
-    const { name, created_date } = req.body;
-    //verify body request
-    if (!name) {
-      req.flash("error", "Departement name is required");
-      return next(new ApiError(400, "Departement name is required"));
-    }
-    let newDepartement = new Departement();
-    //query for save new departement in DB
-    let departement = await Departement.findOne({ name: name }).exec();
-    //retrun error if departement already exists
-    if (departement) {
-      req.flash("error", "Departement already exists");
-      return next(new ApiError(400, "Departement already exists"));
-    }
-    //fill new departement
-    newDepartement = new Departement({
-      name: name,
-      created_date: created_date,
-    });
-    //query for save new departement in DB
-    await newDepartement.save();
-    req.flash("info", "Departement added");
-    return res.status(201).json({
-      success: true,
-      data: newDepartement,
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error" + err.message));
-  }
-}
+router.post("",
+  dtoValidationMiddleware(CreateDepartmentBody, { skipMissingProperties: false, detailedMassage: false, info: "please fill all fields" }),
+  existCheck(Department, { $and: [{ name: "name" }], }, "Department already exists!"),
+  createMiddleware(["name", "created_date"], Department),
 );
 
 //route for get departements list
-router.get(
-  "",
-  async function (req: Request, res: Response, next: NextFunction) {
-    try {
-      //get page from url
-      let strPage = req.query.page as string;
-      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-      //get perPage from url
-      let strPerPage = req.query.perPage as string;
-      let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-      let search = (req.query.search as string) || "";
-
-      //query for get departements list
-      let departements: IDepartment[] = [];
-      if (!(search && search.length > 0)) {
-        departements = await Departement.find({
-          name: { $regex: search, $options: "i" },
-        })
-          .limit(perPage)
-          .skip(perPage * (page - 1))
-          .exec();
-      } else {
-        departements = await Departement.find({})
-          .limit(perPage)
-          .skip(perPage * (page - 1))
-          .exec();
-      }
-
-      //return response not found to client if not found departements
-      if (!departements) {
-        req.flash("error", "Departement not found");
-        return next(new ApiError(404, "Departement not found"));
-      }
-
-      //return response to client with departements list
-      return res.status(200).json({
-        success: true,
-        data: departements,
-        page: page,
-        perPage: perPage,
-        total: await Departement.countDocuments().exec(),
-        pages: Math.ceil((await Departement.countDocuments().exec()) / perPage),
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "internal server error" + err.message));
-    }
-  }
+router.get("",
+  readMiddleware(Department, (search) => { return { name: { $regex: search, $options: "i" } } }),
 );
 
 //route for get departement by id from DB
-router.get(
-  "/:id",
-  async function (req: Request, res: Response, next: NextFunction) {
-    try {
-      let id: string = req.params.id;
-      //verify body request
-      if (!id) {
-        req.flash("error", "Departement id is required");
-        return next(new ApiError(400, "Departement id is required"));
-      }
-      //query for get departement by id from DB
-      let departement = await Departement.findById(id).exec();
-
-      //return response not found to client if not found departement
-      if (!departement) {
-        req.flash("error", "Departement not found");
-        return next(new ApiError(404, "Departement not found"));
-      }
-      //return response to client with departement
-      return res.status(200).json({
-        success: true,
-        data: departement,
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "internal server error" + err.message));
-    }
-  }
+router.get("/:id",
+  readByIdMiddleware(Departement),
 );
 
 //add route for edit departement
-router.patch(
-  "/:id",
-  async function (req: Request, res: Response, next: NextFunction) {
-    try {
-      //get id from url
-      let id: string = req.params.id;
-
-      //verify body request
-      if (!id) {
-        req.flash("error", "Departement id is required");
-        return next(new ApiError(400, "Department id is required"));
-      }
-
-      const departementBody = req.body;
-      //query for get camera by id from DB and update
-      let departement = await Departement.findByIdAndUpdate(
-        id,
-        departementBody,
-        { new: true }
-      ).exec();
-      //return response not found to client if not found departement
-      if (!departement) {
-        req.flash("error", "Departement not found");
-        return next(new ApiError(404, "Departement not found"));
-      }
-      //return response to client with departement
-      return res.status(201).json({
-        success: true,
-        data: departement,
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "internal server error" + err.message));
-    }
-  }
+router.patch("/:id", // TODO: dto needed
+  updateById(Departement)
 );
 
 //add route for delete departement
-router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
-  try {
-    let id: string = req.params.id;
-    //verify body request
-    if (!id) {
-      req.flash("error", "Departement id is required");
-      return next(new ApiError(400, "Departement id is required"));
-    }
-    //query for get departement by id from DB
-    let departement = await Departement.findByIdAndDelete(id).exec();
-    //return response not found to client if not found departement
-    if (!departement) {
-      req.flash("error", "Departement not found");
-      return next(new ApiError(404, "Departement not found"));
-    }
-    //return response to client with departement
-    return res.status(201).json({
-      success: true,
-      data: departement,
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error" + err.message));
-  }
-});
+router.delete("/:id",
+  deleteById(Departement)
+);
 
 export default router;
