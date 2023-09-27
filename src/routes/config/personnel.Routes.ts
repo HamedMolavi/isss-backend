@@ -3,12 +3,13 @@ import path from "path";
 import { requestForGetPersonnel } from "../../db/elastic/connect.database";
 import { ApiError } from "../../types/classes/error.class";
 import Camera from "../../db/mongo/models/camera";
-import url from "url"
+import url from "url";
 import PersonImage from "../../db/mongo/models/personImage";
-import { deleteDirectory, uploadAvatar } from "../../tools/redisFile.tools";
+import { FileSystem } from "../../tools/redisFile.tools";
 import Personnel from "../../db/mongo/models/personnel";
 import { IPersonnel } from "../../types/interfaces/personnel.interface";
 
+const fs = new FileSystem();
 //create router for add to routes file
 const router: Router = Router();
 
@@ -71,7 +72,7 @@ router.post("",
       return next(new ApiError(500, "Internal server error , " + err.message));
     };
   },
-  uploadAvatar("avatarStr", "id", "data"),
+  fs.uploadAvatar("avatarStr", "id", "data"),
 );
 
 //route for get personnels list
@@ -261,7 +262,7 @@ router.patch("/:id",
       return next(new ApiError(500, "Internal server error , " + err.message));
     };
   },
-  uploadAvatar("avatarStr", "id", "data")
+  fs.uploadAvatar("avatarStr", "id", "data"),
 );
 
 //add route for delete personnel
@@ -288,7 +289,7 @@ router.delete("/:id", async function (req: Request, res: Response, next: NextFun
     //define path folder fo read files
     let pathDelete = path.join(__dirname, `./../../../assets/image/${id}`);
     //delete face image directory
-    deleteDirectory(pathDelete, true);
+    fs.deleteDirectory(pathDelete, true);
     //send response
     return res.status(201).json({
       success: true,

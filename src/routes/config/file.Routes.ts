@@ -1,12 +1,13 @@
-import { uploadAvatar, FileRedis } from "../../tools/redisFile.tools";
+import {  FileRedis, FileSystem } from "../../tools/redisFile.tools";
 import { NextFunction, Router, Request, Response } from "express";
 import fs from "fs";
 import axios from "axios";
 import path from "path";
 import PersonImage from "../../db/mongo/models/personImage";
-import { hashJson } from "./../../tools/hash";
 import { ApiError } from "../../types/classes/error.class";
 
+//create customized redis client
+const cfs = new FileSystem();
 //create customized redis client
 const redis = new FileRedis();
 //create router for add to server
@@ -15,7 +16,7 @@ const router: Router = Router();
 //create api for upload image
 router.post(
   "/upload",
-  uploadAvatar("image_str", "perssonel_id")
+  cfs.uploadAvatar("image_str", "perssonel_id"),
 );
 
 //create api for download image

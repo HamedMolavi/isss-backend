@@ -2,8 +2,10 @@ import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
 import { ApiError } from "../../types/classes/error.class";
 import PersonImage from "../../db/mongo/models/personImage";
-import { deleteFiles, readFiles } from "../../tools/redisFile.tools";
+import {  FileSystem } from "../../tools/redisFile.tools";
 
+//create customized filesystem
+const fs = new FileSystem();
 //create router for add to routes file
 const router: Router = Router();
 
@@ -30,7 +32,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
     let pathRead = path.join(__dirname, `./../../../assets/image/${id}/`);
     let faces_base64: Object[] | null = [];
     //check for exist path
-    faces_base64 = await readFiles(pathRead); //read all file in directory path an convert to base62 and get list base64
+    faces_base64 = fs.readFiles(pathRead); //read all file in directory path an convert to base62 and get list base64
     if (faces_base64 == null) {
       req.flash("error", "path not found");
       return next(new ApiError(404, "not found"));
@@ -64,7 +66,7 @@ router.delete("/:hashid", async function (req: Request, res: Response, next: Nex
     let fileName = `${personimage.person_id.toString()}-${hashid}.jpeg`;
     //define path folder fo read files
     let pathDelete = path.join(__dirname, `./../../../assets/image/${personimage.person_id.toString()}/`);
-    let result = await deleteFiles(fileName, pathDelete); //delete file in assets folder
+    let result = fs.deleteFiles(fileName, pathDelete); //delete file in assets folder
     if (!result) {
       req.flash("error", "image not found");
       return next(new ApiError(404, "image not found"));

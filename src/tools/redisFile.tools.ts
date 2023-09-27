@@ -2,10 +2,12 @@ import { RedisClientType } from "redis"
 import connect from "../db/redis/connect.database";
 import path from "path";
 import fs from "fs";
-import { IFileInRedis } from "../types/interfaces/file.interface";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../types/classes/error.class";
 import { hashJson } from "./hash";
+import { read } from "../db/mongo/read.database";
+import Personnel from "../db/mongo/models/personnel";
+import { IPersonnel } from "../types/interfaces/personnel.interface";
 // TODO: clean this shit up.
 
 export class FileRedis {
@@ -92,109 +94,118 @@ export class FileRedis {
 
 };
 
+export class FileSystem {
+  baseDir = path.join(__dirname, "./../..");
+  imageDir = "./assets/image"
+  constructor() {
+    this.updateRootDirectories();
+    this.preCreateDirectories();
+  };
 
+  uploadAvatar(imagePropertyName: string, idPropertyName: string, resultPropertyName: string = "") {
+    /*
+    use result property name to identify wether you want to send a customized result to the user.
+    */
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        //avatarStr id data
+        const imageStr = req.body[imagePropertyName];
+        const id = req.body[idPropertyName];
+        //move file to buffer
+        let image = Buffer.from(imageStr, "base64");
 
+        //get path for save file
+        const imageDir = this.makeAndReturnNewDirectoryForUser(id);
+        const imagePath = path.join(imageDir, "avatar.jpeg");
+        //write image in path
+        fs.writeFileSync(imagePath, image);
 
-export function uploadAvatar(imagePropertyName: string, idPropertyName: string, resultPropertyName: string = "") {
-  /*
-  use result property name to identify wether you want to send a customized result to the user.
-  */
-  return async function middleware(req: Request, res: Response, next: NextFunction) {
-    try {
-      //avatarStr id data
-      const imageStr = req.body[imagePropertyName];
-      const id = req.body[idPropertyName];
-      //move file to buffer
-      let image = Buffer.from(imageStr, "base64");
-
-      // PATH CEHCK
-      //get path for save file
-      let imageDir = path.join(__dirname, "./../..");
-      for (const step of ["assets", "image", id]) {
-        imageDir = path.join(imageDir, step)
-        //if path not exist, create path
-        if (!fs.existsSync(imageDir)) fs.mkdirSync(imageDir);
-      };
-      const imagePath = path.join(imageDir, "avatar.jpeg");
-
-      //write image in path
-      fs.writeFileSync(imagePath, image);
-      if (!!resultPropertyName) {
+        if (!resultPropertyName) {
+          return res.status(201).json({
+            success: true,
+            data: {
+              name: "avatar.jpeg",
+              location: imagePath,//TODO: shouldn't it be relative
+              message: "Uploaded the file successfully: ",
+            }
+          });
+        };
         return res.status(201).json({
           success: true,
-          data: {
-            name: "avatar.jpeg",
-            location: imagePath,//TOD: shouldn't it be relative
-            message: "Uploaded the file successfully: ",
-          }
+          data: req.body[resultPropertyName],
         });
+      } catch (e: any) {
+        return next(new ApiError(500, "Internal Error!"));
       };
-      return res.status(201).json({
-        success: true,
-        data: req.body[resultPropertyName],
-      });
-    } catch (e: any) {
-      return next(new ApiError(500, "Internal Error!"));
     };
   };
-};
 
-
-//function for read all image in assets and convert to base64 and return list base64
-export async function readFiles(dirname: string): Promise<object[] | null> {
-  //check for exist path
-  if (!fs.existsSync(dirname)) {
-    return null;
-  }
-  //read all file in dirname
-  let filenames = await fs.promises.readdir(dirname);
-  let response: object[] = [];
-  //read file and convert to base 64 and return list base64
-  for (let i = 0; i < filenames.length; i++) {
-    //read file and convert to base64
-    let hash_id = (filenames[i]?.split("-")[1]).split(".")[0];
-    let content = await fs.promises.readFile(dirname + filenames[i], "base64");
-    let result = {
-      hash_id: hash_id,
-      faces_base64: content,
-    };
-    response.push(result); //add to list
-  }
-  return response;
-}
-//function for delete image in assets
-export async function deleteFiles(fileName: string, dirname: string): Promise<Boolean | null> {
-  //check for exist path
-  if (!fs.existsSync(dirname)) {
-    return null;
-  }
-  let result: Boolean = false;
-  //read all file in dirname
-  let filenames = await fs.promises.readdir(dirname);
-  //delete file if exist
-  for (let i = 0; i < filenames.length; i++) {
-    if (fileName == filenames[i]) {
-      await fs.promises.unlink(dirname + filenames[i]); //delete file if exist
-      result = true;
+  readFiles(dirname: string): object[] | null {
+    //check for exist path
+    if (!fs.existsSync(dirname)) return null;
+    //read all file in dirname
+    let filenames = fs.readdirSync(dirname);
+    let response: object[] = [];
+    //read file and convert to base 64 and return list base64
+    for (const filename of filenames) {
+      //read file and convert to base64
+      let hash_id = (filename?.split("-")[1]).split(".")[0];
+      let content = fs.readFileSync(dirname + filename, "base64");
+      let result = {
+        hash_id: hash_id,
+        faces_base64: content,
+      };
+      response.push(result); //add to list
     }
-  }
-  await deleteDirectory(dirname, false);
-  return result;
-}
+    return response;
+  };
 
-export async function deleteDirectory(dirname: string, force: boolean): Promise<Boolean | null> {
-  //check for exist path
-  if (!fs.existsSync(dirname)) {
-    return null;
-  }
-  let result: boolean = false;
-  let filenames = await fs.promises.readdir(dirname);
-  if (filenames.length > 0 && !force) {
-    return false;
-  }
-  await fs.promises.rm(dirname, { recursive: true, force: true }); //delete file if exist
-  result = true;
-  return result;
-}
+
+  //function for delete image in assets
+  deleteFiles(fileName: string, dirname: string): Boolean | null {
+    //check for exist path
+    if (!fs.existsSync(dirname)) return null;
+    //read all file in dirname
+    let filenames = fs.readdirSync(dirname);
+    //delete file if exist
+    for (const filename of filenames) if (fileName == filename) fs.unlinkSync(dirname + filename); //delete file if exist
+    this.deleteDirectory(dirname, false);
+    return true;
+  };
+
+  deleteDirectory(dirname: string, force: boolean): Boolean | null {
+    //check for exist path
+    if (!fs.existsSync(dirname)) return null;
+    let filenames = fs.readdirSync(dirname);
+    if (filenames.length > 0 && !force) return false;
+    fs.rmSync(dirname, { recursive: true, force: true }); //delete file if exist
+    return true;
+  };
+
+  private updateRootDirectories() {
+    // PATH CEHCK
+    for (const step of this.imageDir.split("/")) {
+      this.baseDir = path.join(this.baseDir, step)
+      //if path not exist, create path
+      if (!fs.existsSync(this.baseDir)) fs.mkdirSync(this.baseDir);
+    };
+  };
+  private async preCreateDirectories() {
+    const personnel: IPersonnel[] = await read(Personnel);
+    for (const person of personnel) {
+      try {
+        fs.mkdirSync(path.join(this.baseDir, this.imageDir, person.id));
+      } catch (_) { };
+    };
+  };
+  private makeAndReturnNewDirectoryForUser(id: string) {
+    const p = path.join(this.baseDir, this.imageDir, id)
+    if (!fs.existsSync(p)) {
+      fs.mkdirSync(p);
+      return p;
+    };
+    return p;
+  };
+};
 
 
