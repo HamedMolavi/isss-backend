@@ -1,4 +1,4 @@
-import { FileRedis, FileSystem } from "../../tools/redisFile.tools";
+import { FileRedis, ImageFileSystem } from "../../tools/redisFile.tools";
 import { NextFunction, Router, Request, Response } from "express";
 import fs from "fs";
 import axios from "axios";
@@ -9,7 +9,7 @@ import { createMiddleware } from "../../db/mongo/create.database";
 import { readMiddleware } from "../../db/mongo/read.database";
 
 //create customized redis client
-const cfs = new FileSystem();
+const cfs = new ImageFileSystem();
 //create customized redis client
 const redis = new FileRedis();
 //create router for add to server

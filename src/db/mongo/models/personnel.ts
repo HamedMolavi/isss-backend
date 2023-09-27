@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import path from "path";
 import fs from "fs";
 import { IPersonnel } from "../../../types/interfaces/personnel.interface";
+import PersonImage from "./personImage";
 
 //create personnel model with schema for save in DB
 const PersonnelSchema: Schema<IPersonnel> = new Schema(
@@ -33,7 +34,7 @@ PersonnelSchema.methods.toJSON = function () {
   const BASE_URL: string = process.env["BASE_URL"] as string;
   //define path for save image
   let pathSave = path.join(__dirname, `./../../../../assets/image/${this._id}/avatar.jpeg`);
-  console.log(pathSave)
+  console.log("toJSON", pathSave)
   let have_avatar: Boolean = false;
   //if path not exist, create path
   if (fs.existsSync(pathSave)) {
@@ -60,6 +61,16 @@ PersonnelSchema.methods.toJSON = function () {
     image_url: have_avatar === true ? BASE_URL + "/config/user/files/download/" + this._id : BASE_URL + "/config/user/files/download/default"
   };
 };
+
+
+
+PersonnelSchema.post("remove", async (doc) => await PersonImage.deleteMany({ person_id: doc._id }).exec());
+
+
+
+
+
+
 
 // Compile model from schema
 const Personnel = mongoose.model("Personnel", PersonnelSchema);

@@ -2,10 +2,10 @@ import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
 import { ApiError } from "../../types/classes/error.class";
 import PersonImage from "../../db/mongo/models/personImage";
-import {  FileSystem } from "../../tools/redisFile.tools";
+import {  ImageFileSystem } from "../../tools/redisFile.tools";
 
 //create customized filesystem
-const fs = new FileSystem();
+const fs = new ImageFileSystem();
 //create router for add to routes file
 const router: Router = Router();
 

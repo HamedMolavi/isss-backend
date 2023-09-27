@@ -8,15 +8,15 @@ import { existCheck } from "../../validation/db";
 import Department from "../../db/mongo/models/department";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
-import { updateById } from "../../db/mongo/update.database";
-import { deleteById } from "../../db/mongo/delete.database";
+import { updateByIdMiddleware } from "../../db/mongo/update.database";
+import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 
 //create router for add to server file
 const router: Router = Router();
 
 //add route for register new departement
 router.post("",
-  dtoValidationMiddleware(CreateDepartmentBody, { skipMissingProperties: false, detailedMassage: false, info: "please fill all fields" }),
+  dtoValidationMiddleware(CreateDepartmentBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: "please fill all fields" }),
   existCheck(Department, { $and: [{ name: "name" }], }, "Department already exists!"),
   createMiddleware(["name", "created_date"], Department),
 );
@@ -33,12 +33,12 @@ router.get("/:id",
 
 //add route for edit departement
 router.patch("/:id", // TODO: dto needed
-  updateById(Departement)
+  updateByIdMiddleware(Departement)
 );
 
 //add route for delete departement
 router.delete("/:id",
-  deleteById(Departement)
+  deleteByIdMiddleware(Departement)
 );
 
 export default router;

@@ -94,21 +94,21 @@ export class FileRedis {
 
 };
 
-export class FileSystem {
+export class ImageFileSystem {
   baseDir = path.join(__dirname, "./../..");
   imageDir = "./assets/image"
   constructor() {
-    this.updateRootDirectories();
+    this.updateRootDirectories(); // this also updates the baseDir :/ just for your confusion
     this.preCreateDirectories();
   };
 
-  uploadAvatarMiddleware(imagePropertyName: string | Array<string>, idPropertyName: string, options?: { next?: boolean }, resultPropertyName: string = "") {
+  uploadAvatarMiddleware(imagePropertyName: string | Array<string>, idPropertyName: string | Array<string>, options?: { next?: boolean }, resultPropertyName: string = "") {
     /*
     use result property name to identify wether you want to send a customized result to the user.
     */
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
-        //avatarStr id data
+        //avatarStr data
         let imageStr: string | Array<any>;
         if (typeof imagePropertyName === "string") imageStr = req.body[imagePropertyName as string] as string
         else {
@@ -116,13 +116,24 @@ export class FileSystem {
           //@ts-ignore
           for (const name of imagePropertyName) imageStr = imageStr[name];
         };
+        //@ts-ignore
+        imageStr = imageStr.split(",")[1];
 
-        const id = req.body[idPropertyName];
+
+        //id data
+        let id: string | Array<any>;
+        if (typeof idPropertyName === "string") id = req.body[idPropertyName as string] as string
+        else {
+          id = req.body[(idPropertyName as Array<string>).shift() as string] as Array<any>;
+          //@ts-ignore
+          for (const name of idPropertyName) id = id[name];
+        };
+
+        id = String(id);
         //move file to buffer
         let image = Buffer.from(imageStr as string, "base64");
-
         //get path for save file
-        const imageDir = this.makeAndReturnNewDirectoryForUser(id);
+        const imageDir = this.makeAndReturnNewDirectoryForUser(id as string);
         const imagePath = path.join(imageDir, "avatar.jpeg");
         //write image in path
         fs.writeFileSync(imagePath, image);
@@ -154,7 +165,7 @@ export class FileSystem {
         const fileName = req.params[imagePropertyName];
 
         //get directory path
-        const imagePath = path.join(this.baseDir, this.imageDir, fileName, "avatar.jpeg");
+        const imagePath = path.join(this.baseDir, fileName, "avatar.jpeg");
 
         //send image to client
         return res.download(imagePath, fileName, (err) => {
@@ -170,7 +181,7 @@ export class FileSystem {
   };
 
   listMiddleware() {
-    return (req: Request, res: Response, next: NextFunction) => {
+    return (_req: Request, res: Response, next: NextFunction) => {
       try {
         let fileInfos: object[] = [];
         //get directory path
@@ -232,17 +243,42 @@ export class FileSystem {
     let filenames = fs.readdirSync(dirname);
     //delete file if exist
     for (const filename of filenames) if (fileName == filename) fs.unlinkSync(dirname + filename); //delete file if exist
-    this.deleteDirectory(dirname, false);
+    if (!!fs.existsSync(dirname)) fs.rmSync(dirname, { recursive: true, force: true }); //delete file if exist
     return true;
   };
 
-  deleteDirectory(dirname: string, force: boolean): Boolean | null {
-    //check for exist path
-    if (!fs.existsSync(dirname)) return null;
-    let filenames = fs.readdirSync(dirname);
-    if (filenames.length > 0 && !force) return false;
-    fs.rmSync(dirname, { recursive: true, force: true }); //delete file if exist
-    return true;
+  deleteDirectoryMiddleware(idPropertyName: string | Array<string>, options?: { force?: boolean, next?: boolean, save?: string, send?: string }) {
+    return (req: Request, res: Response, next: NextFunction) => {
+      //id data
+      let id: string | Array<any>;
+      if (typeof idPropertyName === "string") id = req.body[idPropertyName as string] as string
+      else {
+        id = req.body[(idPropertyName as Array<string>).shift() as string] as Array<any>;
+        //@ts-ignore
+        for (const name of idPropertyName) id = id[name];
+      };
+      id = String(id);
+      const dirname = path.join(this.baseDir, id);
+      //check for exist path
+      let result: boolean | null;
+      if (!fs.existsSync(dirname)) result = null;
+      let filenames = fs.readdirSync(dirname);
+      if (filenames.length > 0 && !options?.force) result = false;
+      fs.rmSync(dirname, { recursive: true, force: true }); //delete file if exist
+      result = true;
+
+
+      if (!!options?.next) {
+        if (options?.save) req.body[options.save] = result
+        else req.body["doc"] = result
+        return next();
+      };
+      //send response to client with user
+      return res.status(201).json({
+        success: true,
+        data: !!options?.send ? req.body[options?.send] : result,
+      });
+    };
   };
 
   private updateRootDirectories() {
@@ -262,7 +298,7 @@ export class FileSystem {
     };
   };
   private makeAndReturnNewDirectoryForUser(id: string) {
-    const p = path.join(this.baseDir, this.imageDir, id)
+    const p = path.join(this.baseDir, id);
     if (!fs.existsSync(p)) {
       fs.mkdirSync(p);
       return p;

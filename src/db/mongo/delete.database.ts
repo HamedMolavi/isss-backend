@@ -3,7 +3,7 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import { Document } from "mongoose";
 
-export function deleteById(model: any): RequestHandler {
+export function deleteByIdMiddleware(model: any, options?: { next?: boolean, save?: string }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get id from url
@@ -13,10 +13,15 @@ export function deleteById(model: any): RequestHandler {
       let doc: Document = await model.findByIdAndDelete(id).exec();
       //return error if doc not found
       if (!doc) {
-        req.flash("error", "camera not found");
-        return next(new ApiError(404, "camera not found"));
+        req.flash("error", model.name + "not found");
+        return next(new ApiError(404, model.name + "not found"));
       };
-      //send response to client with camera
+      if (!!options?.next) {
+        if (options?.save) req.body[options.save] = doc
+        else req.body["doc"] = doc
+        return next();
+      };
+      //send response to client
       return res.status(201).json({
         success: true,
         data: doc,

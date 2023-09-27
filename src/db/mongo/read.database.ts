@@ -9,7 +9,7 @@ export async function read(model: any, options?: { query?: FilterQuery<any>, pop
   return docs;
 };
 
-export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any>): RequestHandler {
+export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any>, options?: { next?: boolean, save?: string }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get page from url
@@ -28,12 +28,17 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
 
 
 
-      //return response not found to client if not found cameras
+      //return response not found to client if not found
       if (!docs) {
-        req.flash("error", "Cameras not found");
-        return next(new ApiError(404, "Cameras not found"));
+        req.flash("error", model.name + " not found");
+        return next(new ApiError(404, model.name + " not found"));
       };
 
+      if (!!options?.next) {
+        if (!!options.save) req.body[options.save] = docs;
+        else req.body["docs"] = docs;
+        return next();
+      };
       //return response to client
       return res.status(200).json({
         success: true,
@@ -54,16 +59,16 @@ export function readByIdMiddleware(model: any): RequestHandler {
     try {
       //get id from params in url
       let id: string = req.params.id;
-      //query for get camera by id from DB
+      //query for get docs by id from DB
       let doc = await model.findById(id).exec();
 
-      //return error if camera not found
+      //return error if docs not found
       if (!doc) {
-        req.flash("error", "camera not found");
-        return next(new ApiError(404, "camera not found"));
+        req.flash("error", model.name + " not found");
+        return next(new ApiError(404, model.name + " not found"));
       };
 
-      //send response to client with camera
+      //send response to client
       return res.status(200).json({
         success: true,
         data: doc,

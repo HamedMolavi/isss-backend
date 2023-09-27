@@ -7,15 +7,15 @@ import { CreateSectionBody } from "../../validation/dto/section.dto";
 import { existCheck } from "../../validation/db";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
-import { updateById } from "../../db/mongo/update.database";
-import { deleteById } from "../../db/mongo/delete.database";
+import { updateByIdMiddleware } from "../../db/mongo/update.database";
+import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 
 //create router for add to routes file
 const router: Router = Router();
 
 //add route for register new section
 router.post("",
-  dtoValidationMiddleware(CreateSectionBody, { skipMissingProperties: false, detailedMassage: false, info: "please fill all fields" }),
+  dtoValidationMiddleware(CreateSectionBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: "please fill all fields" }),
   existCheck(Section, { $and: [{ name: "name" }, { department_id: "department_id" }] }, "Camera already exists!"),
   createMiddleware(["name", "department_id"], Section),
 );
@@ -32,12 +32,12 @@ router.get("/:id",
 
 //add route for edit section
 router.patch("/:id",
-  updateById(Section),
+  updateByIdMiddleware(Section),
 );
 
 //add route for delete section
 router.delete("/:id",
-  deleteById(Section),
+  deleteByIdMiddleware(Section),
 );
 
 export default router;

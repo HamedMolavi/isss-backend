@@ -19,7 +19,7 @@ export function createMiddleware(keys: string[], model: any, options?: { next?: 
       };
       return res.status(201).json({
         success: true,
-        data: doc,
+        data: doc.toJSON(),
       });
     } catch (err: any) {
       return next(new ApiError(500, "Internal server error , " + err.message));

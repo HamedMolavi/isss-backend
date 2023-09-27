@@ -7,8 +7,8 @@ import { existCheck } from "../../validation/db";
 import { CameraInfoKeys } from "../../types/interfaces/camera.interface";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { readMiddleware, readByIdMiddleware } from "../../db/mongo/read.database";
-import { updateById } from "../../db/mongo/update.database";
-import { deleteById } from "../../db/mongo/delete.database";
+import { updateByIdMiddleware } from "../../db/mongo/update.database";
+import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 import { ApiError } from "../../types/classes/error.class";
 
 //create router for add to server
@@ -17,7 +17,7 @@ const router: Router = Router();
 //add route for register new camera
 router.post(
   "",
-  dtoValidationMiddleware(CreateCameraBody, { skipMissingProperties: false, detailedMassage: false, info: "please fill all fields" }),
+  dtoValidationMiddleware(CreateCameraBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(Camera, { $and: [{ ip: "ip" }, { nvr: "nvr" }], }, "Camera already exists!"),
   getStreamUri(CameraInfoKeys), //get live stream uri(rtsp link from camera)
   createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "muted", "camera_type", "url"], Camera)
@@ -27,7 +27,7 @@ router.post(
 router.post(
   "/getIdStream",
   //verify body request
-  dtoValidationMiddleware(CameraInfoBody, { skipMissingProperties: false, detailedMassage: false, info: "please fill all fields" }),
+  dtoValidationMiddleware(CameraInfoBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   testCameraMiddleware
 );
 
@@ -43,12 +43,12 @@ router.get("/:id",
 
 //add route for edit camera
 router.patch("/:id",
-  updateById(Camera) // TODO: test for edit
+  updateByIdMiddleware(Camera) // TODO: test for edit
 );
 
 //add route for delete camera
 router.delete("/:id",
-  deleteById(Camera) // delete also triggers the remove post function of Camera schema
+  deleteByIdMiddleware(Camera) // delete also triggers the remove post function of Camera schema
 );
 
 export default router;

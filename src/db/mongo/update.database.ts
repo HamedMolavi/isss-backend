@@ -2,7 +2,7 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import { Document, Model } from "mongoose";
 
-export function updateById(model: Model<any, any, any, any>): RequestHandler {
+export function updateByIdMiddleware(model: Model<any, any, any, any>, options?: { next?: boolean, save?: string }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get id from url
@@ -23,6 +23,11 @@ export function updateById(model: Model<any, any, any, any>): RequestHandler {
       if (!doc) {
         req.flash("error", "camera not found");
         return next(new ApiError(404, "camera not found"));
+      };
+      if (!!options?.next){
+        if (options?.save) req.body[options.save] = doc
+        else req.body["doc"] = doc
+        return next();
       };
       //send response to client with user
       return res.status(201).json({
