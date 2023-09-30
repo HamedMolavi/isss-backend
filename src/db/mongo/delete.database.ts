@@ -3,7 +3,7 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import { Document } from "mongoose";
 
-export function deleteByIdMiddleware(model: any, options?: { next?: boolean, save?: string }): RequestHandler {
+export function deleteByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get id from url
@@ -24,7 +24,7 @@ export function deleteByIdMiddleware(model: any, options?: { next?: boolean, sav
       //send response to client
       return res.status(201).json({
         success: true,
-        data: doc,
+        data: !!options?.send ? options.send(doc) : doc,
       });
     } catch (err: any) {
       return next(new ApiError(500, "internal server error , " + err.message));

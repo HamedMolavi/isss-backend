@@ -5,299 +5,66 @@ import CarColor from "../../db/mongo/models/carColor";
 import Personnel from "../../db/mongo/models/personnel";
 import { persianPlateDict, englishPlateDict } from "../../tools/plate.tools";
 import Car from "../../db/mongo/models/car";
+import { dtoValidationMiddleware } from "../../validation/dto";
+import { CreateCarBody } from "../../validation/dto/car.dto";
+import { existCheck } from "../../validation/db";
+import { createMiddleware } from "../../db/mongo/create.database";
+import { ICar } from "../../types/interfaces/car.interface";
+import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
+import { updateByIdMiddleware } from "../../db/mongo/update.database";
+import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 
 //create router for add to routes file
 const router: Router = Router();
 
 //add route for register new car
-router.post("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-    //get json from body request
-    const { owner, number_plate, brand, color, camera_whitelist, tracked } = req.body;
-    if (!owner || !number_plate || !brand || !color || !camera_whitelist) {
-      req.flash("error", "Car is required");
-      return next(new ApiError(400, "Car is required"));
-    };
-    //add plate number to json response for sort persian format in font end
-    let plateNumber = {
-      first: number_plate.first,
-      second: number_plate.second,
-      third: number_plate.third,
-      fourth: number_plate.fourth,
-      fifth: number_plate.fifth,
-    };
-
-    let plate_number_engglish = `${plateNumber.first}${englishPlateDict[plateNumber.second]}${plateNumber.third}${plateNumber.fifth}`;
-
-    //query for save new car in DB
-    let car = await Car.findOne({ number_plate: plate_number_engglish }).exec();
-
-    //retrun error if car already exists
-    if (car) {
-      req.flash("error", "Car already exists");
-      return next(new ApiError(400, "Car already exists"));
-    };
-
-    //fill new car
-    let newCar = new Car({
-      owner: owner,
-      number_plate: plate_number_engglish,
-      brand: brand,
-      color: color,
-      camera_whitelist: camera_whitelist,
-      tracked: tracked
-    });
-    //query for save new car in DB
-    await newCar.save();
-    req.flash("info", "Car added");
-    //send response to client
-    return res.status(201).json({
-      success: true,
-      data: {
-        owner: newCar.owner,
-        number_plate: {
-          first: Number(newCar.number_plate.substr(0, 2)),
-          second: persianPlateDict[newCar.number_plate.substr(2, 1)],
-          third: Number(newCar.number_plate.substr(3, 3)),
-          fourth: "ایران",
-          fifth: Number(newCar.number_plate.substr(6, 2)),
-        },
-        brand: newCar.brand,
-        color: newCar.color,
-        camera_whitelist: camera_whitelist,
-
-      },
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error" + err.message));
-  }
-});
+router.post("",
+  dtoValidationMiddleware(CreateCarBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  existCheck(Car, (body: { [key: string]: any }) => { return { number_plate: stringifyPlate(body.number_plate) } }, "Car already exists!"),
+  createMiddleware(["owner", { "number_plate": (body: { [key: string]: any }) => stringifyPlate(body.number_plate) }, "brand", "color", "camera_whitelist", "tracked"], Car, {
+    send: sendFunction
+  }),
+);
 
 //route for get car list
-router.get("", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-    //get page from url
-    let strPage = req.query.page as string;
-    let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-    let search = (req.query.search as string) || "";
-    //get perPage from url
-    let strPerPage = req.query.perPage as string;
-    let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-
-    //query for get car list from DB
-    let cars: any[] = [];
-    if (search && search.length > 0) {
-      cars = await Car.find({
-        number_plate: { $regex: search, $options: "i" },
-      })
-        .limit(perPage)
-        .skip(perPage * (page - 1))
-        .exec();
-    } else {
-      cars = await Car.find({})
-        .limit(perPage)
-        .skip(perPage * (page - 1))
-        .exec();
-    }
-
-    //return response not found to client if not found cars
-    if (!cars) {
-      req.flash("error", "car not found");
-      return next(new ApiError(404, "car not found"));
-    }
-    let newCars: any[] = [];
-    for (let i = 0; i < cars.length; ++i) {
-      let personnel = await Personnel.findById(cars[i].owner).exec();
-      let _brand;
-      let _color;
-      if (cars[i].brand) {
-        _brand = await CarBrand.findById(cars[i].brand).exec();
-      }
-      if (cars[i].color) {
-        _color = await CarColor.findById(cars[i].color).exec();
-      }
-
-      let _owner = personnel != null ? `${personnel?.first_name} ${personnel?.last_name}` : "";
-      let result = {
-        _id: cars[i]._id,
-        owner: _owner,
-        number_plate: {
-          first: cars[i].number_plate != null ? Number(cars[i].number_plate.substr(0, 2)) : "",
-          second: cars[i].number_plate != null ? persianPlateDict[cars[i].number_plate.substr(2, 1)] : "",
-          third: cars[i].number_plate != null ? Number(cars[i].number_plate.substr(3, 3)) : "",
-          fourth: "ایران",
-          fifth: cars[i].number_plate != null ? Number(cars[i].number_plate.substr(6, 2)) : "",
-        },
-        brand: _brand != null ? _brand.name : "",
-        color: _color != null ? _color.name : "",
-        camera_whitelist: cars[i].camera_whitelist,
-        time: cars[i].create_date,
-        __v: cars[i].__v,
-      };
-      newCars.push(result);
-    }
-    //return response to client with cars list
-    return res.status(200).json({
-      success: true,
-      data: newCars,
-      page: page,
-      perPage: perPage,
-      total: await Car.countDocuments().exec(),
-      pages: Math.ceil((await Car.countDocuments().exec()) / perPage),
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error" + err.message));
-  }
-});
+router.get("",
+  readMiddleware(Car, (search) => { return { number_plate: { $regex: search, $options: "i" } } }, { populates: ["brand", "owner", "color"] })
+);
 
 //route for get car by id from DB
-router.get("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-
-    //get id from url
-    let id: string = req.params.id;
-    if (!id) {
-      req.flash("error", "Car id is required");
-      return next(new ApiError(400, "Car id is required"));
-    }
-
-
-    // let s;
-    // let test = await Car.find().populate("owner").populate("brand").populate("color");
-    // console.log(test);
-    //query for get car by id from DB
-    let car: any = await Car.findById(id).exec();
-
-    //return response not found to client if not found car
-    if (!car) {
-      req.flash("error", "Car not found");
-      return next(new ApiError(404, "Car not found"));
-    }
-    //return response to client with departemen
-    return res.status(200).json({
-      success: true,
-      data: {
-        _id: car._id,
-        owner: car.owner,
-        number_plate: {
-          first: Number(car.number_plate.substr(0, 2)),
-          second: persianPlateDict[car.number_plate.substr(2, 1)],
-          third: Number(car.number_plate.substr(3, 3)),
-          fourth: "ایران",
-          fifth: Number(car.number_plate.substr(6, 2)),
-        },
-        brand: car.brand,
-        color: car.color,
-        camera_whitelist: car.camera_whitelist,
-        time: car.create_date,
-        __v: car.__v,
-      },
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error" + err.message));
-  }
-});
+router.get("/:id",
+  readByIdMiddleware(Car, { send: sendFunction }),
+);
 
 //add route for edit car
-router.patch("/:id", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-    //get id from url
-    let id: string = req.params.id;
-
-    //verify body request
-    if (!id) {
-      req.flash("error", "Car id is required");
-      return next(new ApiError(400, "Car id is required"));
-    }
-    //get body request
-    const carBody = req.body;
-    let plateNumber: any | null = {};
-    if (carBody.number_plate) {
-      //add plate number to json response for sort persian format in font end
-      plateNumber = {
-        first: carBody.number_plate.first,
-        second: carBody.number_plate.second,
-        third: carBody.number_plate.third,
-        fourth: carBody.number_plate.fourth,
-        fifth: carBody.number_plate.fifth,
-      };
-      let plate_number_engglish = `${plateNumber.first}${englishPlateDict[plateNumber.second]}${plateNumber.third}${plateNumber.fifth}`;
-      carBody.number_plate = plate_number_engglish;
-    }
-
-    //query for get car by id from DB and update
-    let car: any = await Car.findByIdAndUpdate(id, carBody, { new: true }).exec();
-    //return response not found to client if not found car
-    if (!car) {
-      req.flash("error", "Car not found");
-      return next(new ApiError(404, "Car not found"));
-    }
-    //return response to client with car
-    return res.status(201).json({
-      success: true,
-      data: {
-        _id: car._id,
-        owner: car.owner,
-        number_plate: {
-          first: Number(car.number_plate.substr(0, 2)),
-          second: persianPlateDict[car.number_plate.substr(2, 1)],
-          third: Number(car.number_plate.substr(3, 3)),
-          fourth: "ایران",
-          fifth: Number(car.number_plate.substr(6, 2)),
-        },
-        brand: car.brand,
-        color: car.color,
-        camera_whitelist: car.camera_whitelist,
-        time: car.create_date,
-        __v: car.__v,
-      },
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error" + err.message));
-  }
-});
+router.patch("/:id",
+  updateByIdMiddleware(Car, { update: { "number_plate": stringifyPlate }, send: sendFunction }),
+);
 
 //add route for delete car
-router.delete("/:id", async function (req: any, res: any, next: NextFunction) {
-  try {
-    let id: string = req.params.id;
-    //verify body request
-    if (!id) {
-      req.flash("error", "Car id is required");
-      return next(new ApiError(400, "Car id is required"));
-    }
-
-
-    //query for get car by id from DB
-    let car: any = await Car.findByIdAndDelete(id).exec();
-    //return response not found to client if not found car
-    if (!car) {
-      req.flash("error", "Car not found");
-      return next(new ApiError(404, "Car not found"));
-    }
-    //return response to client with car
-    return res.status(201).json({
-      success: true,
-      data: {
-        _id: car._id,
-        owner: car.owner,
-        number_plate: {
-          first: Number(car.number_plate.substr(0, 2)),
-          second: persianPlateDict[car.number_plate.substr(2, 1)],
-          third: Number(car.number_plate.substr(3, 3)),
-          fourth: "ایران",
-          fifth: Number(car.number_plate.substr(6, 2)),
-        },
-        brand: car.brand,
-        color: car.color,
-        camera_whitelist: car.camera_whitelist,
-        time: car.create_date,
-        __v: car.__v,
-      },
-    });
-  } catch (err: any) {
-    return next(new ApiError(500, "internal server error" + err.message));
-  }
-});
+router.delete("/:id",
+  deleteByIdMiddleware(Car, { send: sendFunction }),
+);
 
 export default router;
+
+
+function sendFunction(doc: ICar) {
+  return {
+    owner: doc.owner,
+    number_plate: {
+      first: Number(doc.number_plate.substr(0, 2)),
+      second: persianPlateDict[doc.number_plate.substr(2, 1)],
+      third: Number(doc.number_plate.substr(3, 3)),
+      fourth: "ایران",
+      fifth: Number(doc.number_plate.substr(6, 2)),
+    },
+    brand: doc.brand,
+    color: doc.color,
+    camera_whitelist: doc.camera_whitelist,
+
+  }
+};
+function stringifyPlate(plateObj: { [key: string]: string }) {
+  return `${plateObj.first}${englishPlateDict[plateObj.second]}${plateObj.third}${plateObj.fifth}`
+};
