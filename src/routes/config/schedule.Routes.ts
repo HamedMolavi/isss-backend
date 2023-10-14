@@ -6,13 +6,20 @@ import ModelToCamera from "../../db/mongo/models/modelToCamera";
 import { ApiError } from "../../types/classes/error.class";
 import { ISchedule } from "../../types/interfaces/schedule.interface";
 import { Clock, CronDay, DayOfWeek } from "../../types/interfaces/time.interface";
+import { dtoValidationMiddleware } from "../../validation/dto";
+import { CreateScheduleBody } from "../../validation/dto/schedule.dto";
+import { existCheck } from "../../validation/db";
+import { createMiddleware } from "../../db/mongo/create.database";
 
 //create router for add to server file
 const router: Router = Router();
 
 //add route for register new schedule
-router.post(
-  "",
+router.post("",
+  
+  dtoValidationMiddleware(CreateScheduleBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  existCheck(Schedule, {$and: [{ model_id: "model_id" }, { camera_id: "camera_id" }],}, "Schedule already exists!"),
+  createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "muted", "camera_type", "url"], Schedule),
   async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get json from body request
@@ -40,9 +47,7 @@ router.post(
         return next(new ApiError(400, "Invalid time"));
       }
       //search for model in DB
-      let model2Camera = await ModelToCamera.findOne({
-        $and: [{ model_id: model_id }, { camera_id: camera_id }],
-      }).exec();
+      let model2Camera = await ModelToCamera.findOne({$and: [{ model_id: model_id }, { camera_id: camera_id }],}).exec();
       // let model2Camera = await ModelToCamera.findOneAndUpdate(
       //   {
       //     $and: [{ model_id: model_id }, { camera_id: camera_id }],

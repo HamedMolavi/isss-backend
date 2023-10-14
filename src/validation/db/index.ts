@@ -7,17 +7,17 @@ export function existCheck(model: Model<any>, query: any, info?: string) {
   return async function middleware(req: Request, _res: Response, next: NextFunction) {
     let newQuery: { [key: string]: any } = {};
     //  query
-    let state = Array.isArray(query) ? 2
+    let state = Array.isArray(query) ? 0
       : typeof (query) === "function" ? 1
-        : 0;
+        : 2;
 
     switch (state) {
       case 2: // query is object -> { [{},{},...] }
         for (const key in query) {
-          newQuery[key] = {};
+          newQuery[key] = [];
           for (const [index, element] of query[key].entries()) {
             newQuery[key][index] = {};
-            for (const item in element) {
+              for (const item in element) {
               newQuery[key][index][item] = req.body[item];
             };
           };

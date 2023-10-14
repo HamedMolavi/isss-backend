@@ -34,7 +34,6 @@ PersonnelSchema.methods.toJSON = function () {
   const BASE_URL: string = process.env["BASE_URL"] as string;
   //define path for save image
   let pathSave = path.join(__dirname, `./../../../../assets/image/${this._id}/avatar.jpeg`);
-  console.log("toJSON", pathSave)
   let have_avatar: Boolean = false;
   //if path not exist, create path
   if (fs.existsSync(pathSave)) {

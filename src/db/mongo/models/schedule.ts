@@ -11,6 +11,11 @@ const ScheduleSchema: Schema<ISchedule> = new Schema({
     collection: "Schedule"
 });
 
+
+ScheduleSchema.pre('save', async function (next, opts:mongoose.SaveOptions) {
+    
+});
+
 // Compile model from schema
 const Schedule = mongoose.model("Schedule", ScheduleSchema);
 
