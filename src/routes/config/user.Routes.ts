@@ -6,21 +6,21 @@ import { dtoValidationMiddleware } from "../../validation/dto";
 import { CreateUserBody, UpdateUserBody } from "../../validation/dto/user.dto";
 import { existCheck } from "../../validation/db";
 import { passwordValidator } from "../../validation/password";
-import { create } from "../../db/mongo/create.database";
+import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
-import { updateById } from "../../db/mongo/update.database";
-import { deleteById } from "../../db/mongo/delete.database";
+import { updateByIdMiddleware } from "../../db/mongo/update.database";
+import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 
 //create router for add to server
 const router: Router = Router();
 
 //add route for register new user
 router.post("",
-  dtoValidationMiddleware(CreateUserBody, { skipMissingProperties: false, detailedMassage: false, info: "please fill all fields" }),
+  dtoValidationMiddleware(CreateUserBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: "please fill all fields" }),
   existCheck(User, { $or: [{ username: "username" }, { phone_number: "phone_number" }] }, "User or Phone number already exists!"),
   //verify password strength
   passwordValidator(UserPasswordRequirements),
-  create(["username", "password", "phone_number", "role", "event", "camera", "report", "configuration", "camera_access"], User),
+  createMiddleware(["username", "password", "phone_number", "role", "event", "camera", "report", "configuration", "camera_access"], User),
 );
 
 //route for get users list
@@ -34,16 +34,16 @@ router.get("/:id",
 
 //add route for edit user
 router.patch("/:id",
-  dtoValidationMiddleware(UpdateUserBody, { skipMissingProperties: true, detailedMassage: false, info: "please fill all fields" }),
+  dtoValidationMiddleware(UpdateUserBody, { skipMissingProperties: true, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: "please fill all fields" }),
   (req, res, next) => {
     if (!req.body["password"]) next();
     else passwordValidator(UserPasswordRequirements)(req, res, next);
   },
-  updateById(User), // TODO: test for edit
+  updateByIdMiddleware(User), // TODO: test for edit
 );
 //add route for delete user
 router.delete("/:id",
-  deleteById(User)
+  deleteByIdMiddleware(User)
 );
 
 /*

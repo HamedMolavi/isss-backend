@@ -197,7 +197,7 @@ export async function eventLogResponse(response: any, timezone: string): Promise
       number_plate = english2Persian(log?._source?.log?.plate_number);
     };
     let result = {
-      camera_type: cameras.find((cam) => cam._id.toString() === log._source.camera_id.toString())?.camera_type ?? "",
+      camera_type: cameras.find((cam) => cam._id.toString() === log._source?.log.camera_id.toString())?.camera_type ?? "",
       title: personnel != null ? "Alerting" : "Warnings",
       type: log._source.type as string,
       cause: log._source.cause as string,
@@ -207,20 +207,20 @@ export async function eventLogResponse(response: any, timezone: string): Promise
       peopleCounting: log?._source?.log?.number_of_people ?? "" as string,
       plate_number: number_plate ?? "",
       owner: owner != null ? owner?.owner?.first_name + " " + owner?.owner?.last_name : "",
-      name: cameras.find((cam) => cam._id.toString() === log._source.log.camera_id.toString())?.name ?? "",
+      name: cameras.find((cam) => cam._id.toString() === log._source.log.camera_id?.toString())?.name ?? "",
       time: log._source.log?.timestamp ? new Date(log._source.log.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
       ai: model != undefined ? model.category : "",
       section: sections.find((sec) => {
-        let camera = cameras.find((cam) => cam._id.toString() === log._source.log.camera_id.toString());
+        let camera = cameras.find((cam) => cam._id.toString() === log._source.log.camera_id?.toString());
         return (camera?.section_id.toString() === sec._id.toString())
       })?.name ?? "",
       department: departments.find((dep) => {
-        let camera = cameras.find((cam) => cam._id.toString() === log._source.log.camera_id.toString());
-        let section = sections.find((sec) => sec._id.toString() === camera?.section_id.toString());
+        let camera = cameras.find((cam) => cam._id.toString() === log._source.log.camera_id?.toString());
+        let section = sections.find((sec) => sec._id.toString() === camera?.section_id?.toString());
         return section?.department_id.toString() === dep._id.toString()
       })?.name ?? "",
       description: "",
-      video: cameras.find((cam) => cam._id.toString() === log._source.log.camera_id.toString())?.url ?? "",
+      video: cameras.find((cam) => cam._id.toString() === log._source.log.camera_id?.toString())?.url ?? "",
     };
     //TODO
     // result.description = extended_description({

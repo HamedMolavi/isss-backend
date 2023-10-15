@@ -3,6 +3,7 @@ import { dtoValidationMiddleware } from "../../validation/dto";
 import { LoginBodyDto } from "../../validation/dto/login.dto";
 import {
   assignPassport,
+  reLogin,
   sendTokenToclient,
 } from "../../authentication/authorize.auth";
 
@@ -12,6 +13,7 @@ const router: Router = Router();
 //api for login user
 router.post(
   "",
+  reLogin,
   dtoValidationMiddleware(LoginBodyDto, {
     skipMissingProperties: true,
     detailedMassage: true,

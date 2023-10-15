@@ -1,20 +1,28 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 
-export function create(keys: string[], model: any): RequestHandler {
+export function createMiddleware(keys: Array<string | { [key: string]: CallableFunction }>, model: any, options?: { next?: boolean, save?: string, send?: CallableFunction }): RequestHandler {
   return async function middleware(req: Request, res: Response, next: NextFunction) {
     try {
       //get json from body request
       let payload: { [key: string]: string } = {};
-      for (const key of keys) payload[key] = req.body[key];
+      for (const key of keys) {
+        if (typeof (key) === "string") payload[key] = req.body[key];
+        else if (typeof (key) === "object") payload[Object.keys(key)[0]] = Object.values(key)[0](req.body);
+      };
       //create
       let doc = new model(payload);
       await doc.save();
       //return success
       req.flash("info", `${model.collection.collectionName} added.`);
+      if (!!options?.next) {
+        if (!!options.save) req.body[options.save] = doc;
+        else req.body["data"] = doc;
+        return next();
+      };
       return res.status(201).json({
         success: true,
-        data: doc,
+        data: !!options?.send ? options.send(doc) : doc.toJSON(),
       });
     } catch (err: any) {
       return next(new ApiError(500, "Internal server error , " + err.message));

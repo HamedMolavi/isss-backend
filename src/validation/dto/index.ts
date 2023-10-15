@@ -5,7 +5,7 @@ import { validate, ValidationError } from "class-validator";
 import { ApiError } from "../../types/classes/error.class";
 
 export function dtoValidationMiddleware(type: any, options?: { skipMissingProperties?: boolean, detailedMassage?: boolean, info?: string }): RequestHandler {
-  let defaultOpt = { skipMissingProperties: false, detailedMassage: false, info: undefined };
+  let defaultOpt = { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: undefined };
   //@ts-ignore
   for (const key in options) defaultOpt[key] = options[key];
   return async (req: Request, _res: Response, next: NextFunction) => {
@@ -19,7 +19,7 @@ export function dtoValidationMiddleware(type: any, options?: { skipMissingProper
           if (!!defaultOpt["info"]) req.flash("error", defaultOpt["info"]);
           next(new ApiError(400, dtoErrorsString));
         } else {
-          //sanitize the object and call the next middleware
+          //TODO: sanitize the object and call the next middleware
           // sanitize(dtoObj);
           // req.body = dtoObj;
           next();

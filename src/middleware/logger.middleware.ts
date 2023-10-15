@@ -58,19 +58,18 @@ export function setupLogger() {
     logger((tokens, req: Request, res: Response) => {
       return !!process.env["REQUEST_LOG_FORMAT"] ? process.env["REQUEST_LOG_FORMAT"]
         : [
-          tokens.id,
-          tokens["remote-addr"],
+          Date.now(),
           tokens.status(req, res),
           tokens.method(req, res),
           tokens.url(req, res),
-          "user: " + tokens["remote-user"],
+          "user id: " + req.user?._id,
+          "errors: " + JSON.stringify(req.flash("error")),
           "headers: " + JSON.stringify(req.headers),
           "cookies: " + JSON.stringify(req.cookies),
           "request body: " + JSON.stringify(req.body),
-          "query: " + req.query,
-          "params: " + req.params,
-          "route: " + req.route,
-          "user.id: " + req.user,
+          "query: " + JSON.stringify(req.query),
+          "params: " + JSON.stringify(req.params),
+          "route: " + JSON.stringify(req.originalUrl),
         ].join('\n\t');
     }, {
       skip: (_req, res) => res.statusCode < 400,

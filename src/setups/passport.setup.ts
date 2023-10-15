@@ -19,7 +19,7 @@ export function setUpPassport() {
   passport.deserializeUser(function (id: string, done: Function) { // uses the key (id) to retrive user object
     User.findById(id)
       // user object attaches to the request as req.user
-      .then(user => user ? done(null, user) : done(null, false, { message: "Bad Request" })) // TODO: delete password property from user.
+      .then(user => user ? done(null, user.toJSON()) : done(null, false, { message: "Bad Request" })) // TODO: delete password property from user.
       .catch(err => done(err, null))
   });
   passport.use(
@@ -29,11 +29,6 @@ export function setUpPassport() {
       function auth(username: string, password: string, done: Function) {
         User.findOne({ username: username })
           .then(async user => user ? await user.checkPassword(password) ? user : null : null)
-          .then(user=>{
-            console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-            console.log(user?.toJSON());
-            return user;
-          })
           .then(user => user ? done(null, user.toJSON()) : done(null, false, { message: "username or password incorrect." }))
           .catch(err => done(err));
       }

@@ -2,19 +2,16 @@ import { Request, Response, NextFunction } from "express";
 import { ApiError } from "../types/classes/error.class";
 import passport from "passport";
 import cookie from "cookie-signature";
-import session from "express-session";
-import redisStore from "../db/redis/store.database";
 
 export function passportGate(req: Request, _res: Response, next: NextFunction) {
-  const ip = req.ip ?? req.socket.remoteAddress; //TODO
-  if (!req.user) return next(new ApiError(401, "Unauthorized")); // || req.session.ip !== ip
+  //TODO: check ip too
+  if (!req.user) return next(new ApiError(401, "Unauthorized"));
   return next();
 };
 
-
 export function assignPassport(req: Request, res: Response, next: NextFunction) {
   passport.authenticate('login')(req, res, () => {
-    
+
     req.session.save((err: Error) => {
       const maxAge = req.body.is_remember ? 8 * 60 * 60 * 1000 : 15 * 60 * 1000;
       //             if remeber     8 hours       else    15 minutes
@@ -31,7 +28,12 @@ export function sendTokenToclient(req: Request, res: Response, next: NextFunctio
   else {
     return res.status(200).json({
       success: true,
-      data: { token ,...req.user}, //TODO: ...req.user,
+      data: { token, ...req.user }, //TODO: ...req.user,
     });
   };
+};
+
+export function reLogin(req: Request, res: Response, next: NextFunction) {
+  if (req.user) return sendTokenToclient(req, res, next)
+  next()
 };

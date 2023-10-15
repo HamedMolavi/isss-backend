@@ -60,8 +60,11 @@ export default class Time {
     )).getTime();
   };
 
-  static toString(date: string, time: Clock, isReverse = false): string {
-    if (isReverse) date = date.split("/").reverse().join("/");
+  static toString(date: string, time: Clock, isUS = false): string {
+    if (isUS) {
+      let temp = date.split("/").reverse().join("/");
+      date = [temp[2], temp[0], temp[1]].join("/");
+    };
     date = Time.makeTwoDigits(date);
     time = Time.makeTwoDigits(time) as TwoDigitsClock;
     return new Date(new Date([date, time, "+0"].join(" "))).toISOString();
@@ -73,10 +76,11 @@ export default class Time {
   };
 
   static getEpochList(startDate: string, stopDate: string, start_time: Clock, stop_time: Clock, timezone: string): object[] {
-    let start_date_iso: string = this.toString(startDate, start_time);
-    let start_date = new Date(start_date_iso);
-    let stop_date_iso: string = this.toString(stopDate, stop_time);
-    let stop_date = new Date(stop_date_iso);
+    let start_date_iso: string = this.toString(startDate, start_time);// 2023-09-13T00:00:00.000Z
+    let start_date = new Date(start_date_iso);// 2023-09-13T00:00:00.000Z
+    let stop_date_iso: string = this.toString(stopDate, stop_time);// 2023-09-13T23:59:00.000Z
+    let stop_date = new Date(stop_date_iso);// 2023-09-13T23:59:00.000Z
+
     let epoch_list: object[] = [];
     let start_ens_epoch = {
       gte: "", lte: "" // representing the start and end times of that day in epoch time
