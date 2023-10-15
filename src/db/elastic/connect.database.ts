@@ -26,8 +26,9 @@ export async function dynamicRequestToElasticSearch(
   try {
     //create json response for client
     let jsonResuest: any = {};
-    jsonResuest.size = perPage;
-    jsonResuest.from = perPage * (page - 1) - 1;
+    jsonResuest["size"] = perPage;
+    jsonResuest["from"] = perPage * (page - 1) - 1;
+    //jsonResuest["from"] = perPage > 0 ? perPage  :0;
     //create json query for elastic search
     jsonResuest.query = {
       bool: {
@@ -45,8 +46,8 @@ export async function dynamicRequestToElasticSearch(
       if (cameras.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            camera_id: cameras,
-          },
+            camera_id: cameras
+          }
         });
       }
       //add filter for personnels if personnels is not empty and model is not event
@@ -54,8 +55,8 @@ export async function dynamicRequestToElasticSearch(
       if (personnels && personnels!.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            personnel_id: personnels,
-          },
+            personnel_id: personnels
+          }
         });
       }
 
@@ -64,8 +65,8 @@ export async function dynamicRequestToElasticSearch(
       if (models.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            model: models,
-          },
+            model: models
+          }
         });
       }
 
@@ -76,16 +77,16 @@ export async function dynamicRequestToElasticSearch(
           range: {
             confidence: {
               gte: probability[0],
-              lte: probability[1],
-            },
-          },
+              lte: probability[1]
+            }
+          }
         });
       }
 
       if (plate !== "") {
         jsonResuest.query.bool.filter.push({
           term: {
-            "plate_number.keyword": plate,
+            "plate_number.keyword": plate
           }
         });
       }
@@ -95,8 +96,8 @@ export async function dynamicRequestToElasticSearch(
       if (humanCounts.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            number_of_people: humanCounts,
-          },
+            number_of_people: humanCounts
+          }
         });
       }
 
@@ -107,9 +108,9 @@ export async function dynamicRequestToElasticSearch(
             range: {
               timestamp: {
                 gte: t.gte,
-                lte: t.lte,
-              },
-            },
+                lte: t.lte
+              }
+            }
           });
         }
 
@@ -154,9 +155,9 @@ export async function dynamicRequestToElasticSearch(
       jsonResuest.sort = [
         {
           timestamp: {
-            order: "desc",
-          },
-        },
+            order: "desc"
+          }
+        }
       ];
 
       //create url for elastic search with model for name table in elastic search
@@ -167,8 +168,8 @@ export async function dynamicRequestToElasticSearch(
       if (cameras.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            "log.camera_id": cameras,
-          },
+            "log.camera_id": cameras
+          }
         });
       }
       //add filter for personnels if personnels is not empty and model is not event
@@ -176,8 +177,8 @@ export async function dynamicRequestToElasticSearch(
       if (personnels && personnels.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            logpersonnel_id: personnels,
-          },
+            logpersonnel_id: personnels
+          }
         });
       }
       //add filter for models if models is not empty and model is not event and model is not event
@@ -196,8 +197,8 @@ export async function dynamicRequestToElasticSearch(
         }
         jsonResuest.query.bool.filter.push({
           terms: {
-            type: model_name,
-          },
+            type: model_name
+          }
         });
       }
 
@@ -206,8 +207,8 @@ export async function dynamicRequestToElasticSearch(
       if (probability.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            "log.confidence": probability,
-          },
+            "log.confidence": probability
+          }
         });
       }
 
@@ -216,8 +217,8 @@ export async function dynamicRequestToElasticSearch(
       if (humanCounts.length > 0) {
         jsonResuest.query.bool.filter.push({
           terms: {
-            "log.number_of_people": humanCounts,
-          },
+            "log.number_of_people": humanCounts
+          }
         });
       }
 
@@ -228,9 +229,9 @@ export async function dynamicRequestToElasticSearch(
             range: {
               "log.timestamp": {
                 gte: t.gte,
-                lte: t.lte,
-              },
-            },
+                lte: t.lte
+              }
+            }
           });
         }
         // jsonResuest.query.bool.filter.push({
@@ -274,9 +275,9 @@ export async function dynamicRequestToElasticSearch(
       jsonResuest.sort = [
         {
           "log.timestamp": {
-            order: "desc",
-          },
-        },
+            order: "desc"
+          }
+        }
       ];
 
       baseurl = dbUri + "/alerts/_search";
@@ -284,9 +285,9 @@ export async function dynamicRequestToElasticSearch(
     //send request to elastic search for get all  data with pagination
     response = await axios.get(baseurl, {
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      data: jsonResuest,
+      data: jsonResuest
     });
     return response;
   } catch (err: any) {

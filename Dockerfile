@@ -27,6 +27,6 @@ COPY tsconfig.json ./
 COPY src ./src 
 # RUN npm run build
 
-EXPOSE 5000
+EXPOSE 3000
 
 CMD [ "ts-node" , "./src/server.ts" ]   
