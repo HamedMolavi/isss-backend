@@ -1,14 +1,17 @@
 import mongoose from "mongoose";
+import Camera from "./models/camera";
 
 // Connect to the database 
 async function connect(dbUri: string): Promise<mongoose.Connection> {
     //connect to the database
     try {
         await mongoose.connect(dbUri);
+        await Camera.find();
         console.log("Mongoose connection established: " + dbUri);
     } catch (error) {
-        console.log("Mongoose default connection error: " + error);
-        process.exit(1);
+        await mongoose.disconnect()
+        console.log("Mongoose default connection error: " + dbUri);
+        throw Error(String(error))
     };
     //listen for connection events
     mongoose.connection.on("connected", () => {
