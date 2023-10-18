@@ -9,8 +9,8 @@ async function connect(dbUri: string): Promise<mongoose.Connection> {
         await Camera.find();
         console.log("Mongoose connection established: " + dbUri);
     } catch (error) {
-        await mongoose.disconnect()
         console.log("Mongoose default connection error: " + dbUri);
+        await mongoose.disconnect()
         throw Error(String(error))
     };
     //listen for connection events
