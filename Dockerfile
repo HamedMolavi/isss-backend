@@ -1,4 +1,4 @@
-FROM node:alpine as builder
+FROM node:18.16.0-slim as builder
 WORKDIR /isss-backend
 #COPY --from=mwader/static-ffmpeg:5.1.2 /ffmpeg /usr/local/bin/
 #COPY --from=mwader/static-ffmpeg:5.1.2 /ffprobe /usr/local/bin/
@@ -25,8 +25,9 @@ WORKDIR /isss-backend
 COPY --from=builder /isss-backend /isss-backend
 COPY tsconfig.json ./
 COPY src ./src 
+COPY security ./security
 # RUN npm run build
 
 EXPOSE 3000
 
-CMD [ "ts-node" , "./src/server.ts" ]   
+CMD [ "ts-node" , "./src/server.ts" ]

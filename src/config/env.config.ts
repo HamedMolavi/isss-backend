@@ -14,8 +14,8 @@ export default function extraEnvConfigs() {
     dotenv.config({ path: join(__dirname, "../../.env"), encoding: 'utf8', debug: false, override: true });
     //console.log(dotenv.config({ path: join(__dirname, "../../.env"), encoding: 'utf8', debug: false, override: true }))
     //read key and cert from files for certificate in https server
-    const key = fs.readFileSync(__dirname + "/../../security/sslconfig/key.pem", "utf-8");
-    const cert = fs.readFileSync(__dirname + "/../../security/sslconfig/cert.pem", "utf-8");
+    const key = fs.readFileSync(join(__dirname, "./../../security/sslconfig/key.pem"), "utf-8");
+    const cert = fs.readFileSync(join(__dirname, "./../../security/sslconfig/cert.pem"), "utf-8");
     process.env["OPTIONS"] = JSON.stringify({
       key: key,
       cert: cert,
