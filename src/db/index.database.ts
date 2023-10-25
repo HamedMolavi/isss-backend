@@ -5,7 +5,7 @@ async function connectToDBs(urls: { mongo: undefined | string[], redis: undefine
   let results: { [key: string]: any } = {};
   let connected = false;
   if (!!urls["mongo"]) {
-    for (const url of urls["mongo"]) {
+    for await (const url of urls["mongo"]) {
       try {
         results["mongo"] = await connectToMongo(url);
         connected = true;

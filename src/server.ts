@@ -2,9 +2,8 @@
 import { } from "./types/index";
 //initial file .env
 require("./config/env.config")["default"](); //sync
-const { OPTIONS, PORT_HTTPS, PORT_HTTP, HOST } = process.env;
 //process error handling
-// require("./error/process.handler")["default"](); //sync
+require("./error/process.handler")["default"](); //sync
 //imports
 import http from "http";
 import https from "https";
@@ -12,6 +11,7 @@ import app from "./app/app.Application";
 import setup from "./setups/index";
 
 setup().then(_ => {
+  const { OPTIONS, PORT_HTTPS, PORT_HTTP, HOST } = process.env;
   //                             SETUP YOUR SERVERS
   ////////////////////////////////////////////////////////////////////////////
   // run https server on port PORT_HTTPS
