@@ -37,7 +37,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       //return response to client
       return res.status(200).json({
         success: true,
-        data: !!options?.send ? options.send(docs) : docs,
+        data: !!options?.send ? docs.map(options.send as (value: Document<any, any, any>, index: number, array: Document<any, any, any>[]) => unknown) : docs,
         page: page,
         perPage: perPage,
         total: await model.countDocuments().exec(),
@@ -62,7 +62,7 @@ export function readByIdMiddleware(model: any, options?: { next?: boolean, save?
         req.flash("error", model.name + " not found");
         return next(new ApiError(404, model.name + " not found"));
       };
-      if (!!options?.populates) for (const populate of options.populates)  doc.populate(populate);
+      if (!!options?.populates) for (const populate of options.populates) doc.populate(populate);
 
       if (!!options?.next) {
         if (!!options.save) req.body[options.save] = doc;

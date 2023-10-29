@@ -28,7 +28,7 @@ router.post("",
 
 //route for get car list
 router.get("",
-  readMiddleware(Car, (search) => { return { number_plate: { $regex: search, $options: "i" } } }, { populates: ["brand", "owner", "color"] })
+  readMiddleware(Car, (search) => { return { number_plate: { $regex: search, $options: "i" } } }, { populates: ["brand", "owner", "color"], send: sendFunction })
 );
 
 //route for get car by id from DB
