@@ -27,7 +27,12 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         req.flash("error", model.name + " not found");
         return next(new ApiError(404, model.name + " not found"));
       };
-      if (!!options?.populates) for (const populate of options.populates) docs.map((doc) => doc.populate(populate));
+      if (!!options?.populates) for (const populate of options.populates) {
+        for (let i = 0; i < docs.length; i++) {
+          const doc = await docs[i].populate(populate);
+          docs[i] = doc
+        }
+      };
 
       if (!!options?.next) {
         if (!!options.save) req.body[options.save] = docs;
