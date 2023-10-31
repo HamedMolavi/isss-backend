@@ -43,6 +43,7 @@ router.get("/:id",
 
 //add route for edit camera
 router.patch("/:id",
+//{ update: { "number_plate": stringifyPlate }, send: sendFunction }
   updateByIdMiddleware(Camera) // TODO: test for edit
 );
 

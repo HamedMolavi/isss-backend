@@ -18,8 +18,10 @@ const CameraSchema: Schema<ICamera> = new Schema(
     password: { type: String, required: true },
     muted: [Schema.Types.ObjectId],
     is_enabled: { type: Boolean, required: true },
+    damaged: { type: Boolean, required: false },
     create_date: { type: Date, default: Date.now },
-    camera_type: { type: String, required: true, enum: Object.values(CameraTypes) }
+   // camera_type: { type: String, required: true, enum: Object.values(CameraTypes) }
+    camera_type: { type: String, required: true, enum:Object.values(CameraTypes)as string[]  , default : CameraTypes.enter }
   },
   {
     collection: "Camera",
