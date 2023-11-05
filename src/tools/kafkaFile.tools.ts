@@ -2,6 +2,7 @@ import { RedisClientType } from "redis"
 import connect from "../db/redis/connect.database";
 import path from "path";
 import fs from "fs";
+import { Admin, Consumer, EachMessagePayload, Kafka, Producer, logLevel } from 'kafkajs';
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../types/classes/error.class";
 import { hashJson } from "./hash";
@@ -10,15 +11,43 @@ import Personnel from "../db/mongo/models/personnel";
 import { IPersonnel } from "../types/interfaces/personnel.interface";
 // TODO: clean this shit up.
 
-export class FileRedis {
-  redisClient: RedisClientType | undefined
-  secret: string
+export class SnapshotKafka {
+  buffer: {[key:string]:{[key:string]:string}}
+  consumer: Consumer
+  producer: Producer
+  //redisClient: RedisClientType | undefined
+ // secret: string
   middlewareWraper: (f: Function, options: { resultPropertyName?: string | undefined, isInReq?: boolean, save?: string | undefined, next?: boolean }, ...args: any[]) => RequestHandler
-  json: Function
-  hash: (json: { [key: string]: string }) => string
-  constructor() {
-    this.secret = process.env["SESSION_SECRET"];
-    this.hash = (json: { [key: string]: string }) => hashJson(json, this.secret);
+  // json: Function
+ // hash: (json: { [key: string]: string }) => string
+ constructor() {
+    this.buffer = {};
+    this.consumer = new Kafka({logLevel: logLevel.ERROR,brokers: ["192.168.1.20:9092"]}).consumer({groupId: "sdgfsdfgas",});
+    this.consumer.subscribe({ topic: "snapshot", fromBeginning: false }).then(()=>{
+      this.consumer.run({
+        eachMessage: async ({message}) =>{
+            const msg = JSON.parse(message.value?.toString("utf8") as string);
+            if (message.key?.toString() === "asghar") this.buffer[msg["personnel_id"]] = {
+              "personnel_id": msg["personnel_id"],
+              "face":msg["face_crop"] as string,
+              "masked_face":msg["face_crop"] as string,
+              "embedding":msg["face_crop"] as string,
+              "has_face":msg["has_face"] as string,
+              "multi_face":msg["multi_face"] as string,
+            }
+          }
+      });
+    });
+
+    this.producer = new Kafka({logLevel: logLevel.ERROR,brokers: ["192.168.1.20:9092"]}).producer({
+      retry: { restartOnFailure: async (err) => !Boolean(console.log("Kafka Connect Failure:", err)) },
+      allowAutoTopicCreation: true, // TODO: should be false.
+    });
+    this.producer.connect();
+
+
+   // this.secret = process.env["SESSION_SECRET"];
+   // this.hash = (json: { [key: string]: string }) => hashJson(json, this.secret);
     this.middlewareWraper = (f: Function, options: { resultPropertyName?: string | undefined, isInReq?: boolean, save?: string | undefined, next?: boolean }, ...args: any[]) => ((req: Request, res: Response, next: NextFunction) => {
       /*
       takes an function to wrap it with RequestHandler.
@@ -26,7 +55,7 @@ export class FileRedis {
       If isInReq is true, you can give property names of req.body in args.
       If resultPropertyName is not undefiend, the result sent to the user will be req.body[resultPropertyName]
       */
-      const inputs = options.isInReq ? args : Object.entries(req.body).filter(el => args.includes(el[0])).map(el => el[1])
+      const inputs = options.isInReq ? Object.entries(req.body).filter(el => args.includes(el[0])).map(el => el[1]) : args
       const result = f(...inputs);
       if (!!options.save) return req.body[options.save] = result;
       if (!!options.resultPropertyName) {
@@ -40,57 +69,69 @@ export class FileRedis {
         data: result,
       });
     });
-    this.json = function recursive(o: { [key: string]: string } | undefined = undefined, kwargs: Array<[string, string]> | undefined = undefined) {
-      if (!o) {
-        let json: { [key: string]: string } = {};
-        if (!!kwargs)
-          for (const kwarg of kwargs) json[kwarg[0]] = kwarg[1];
-        else
-          json = { "key": "value" } //TODO: default version of this
-        recursive(json, undefined);
-      } else {
-        const id = this.hash(o);
-        return { id, ...o };
-      };
-    };
-    connect(process.env["REDIS_URL"])
-      .then(client => this.redisClient = client);
+    // this.json = function recursive(o: { [key: string]: string } | undefined = undefined, kwargs: Array<[string, string]> | undefined = undefined) {
+    //   if (!o) {
+    //     let json: { [key: string]: string } = {};
+    //     if (!!kwargs)
+    //       for (const kwarg of kwargs) json[kwarg[0]] = kwarg[1];
+    //     else
+    //       json = { "key": "value" } //TODO: default version of this
+    //     recursive(json, undefined);
+    //   } else {
+    //     const id = this.hash(o);
+    //     return { id, ...o };
+    //   };
+    // };
+   // connect(process.env["REDIS_URL"])
+    //  .then(client => this.redisClient = client);
   };
 
-  async redisSave(personnel_id: string, full_frame: string) {
+  kafkaProduce= async(personnel_id: string, full_frame: string) =>{
+    const personnel = await Personnel.findById(personnel_id).exec();
     //define object for save in redis
-    let fileInRedis = this.json({
+    let fileInRedis: {[key:string]:string} = {
       personnel_id,
+      personnel_name:personnel?.first_name + " " + personnel?.last_name,
       full_frame,
-      face: "",//TODO: why empty?
+      face: "",
       embedding: "",
       has_face: "0",
       timestamp: new Date(new Date().toLocaleString() + "+0").toISOString(),
-    });
+    }
+    // this.json({
+    //   personnel_id,
+    //   full_frame,
+    //   face: "",//TODO: why empty?
+    //   embedding: "",
+    //   has_face: "0",
+    //   timestamp: new Date(new Date().toLocaleString() + "+0").toISOString(),
+    // });
     //insert to redis
-    await this.redisClient?.set(fileInRedis?.id as string, JSON.stringify(fileInRedis));
+    // await this.redisClient?.set(fileInRedis?.id as string, JSON.stringify(fileInRedis));
+    const msg = Buffer.from(JSON.stringify(fileInRedis), "utf8");
+    this.producer.send({
+      topic: "snapshot",
+      messages: [{
+        key:"soghra",
+        value: msg
+      }]
+    })
     //close redis connection
     return {
       message: "Uploaded the file successfully",
-      id: fileInRedis?.id
+      id: fileInRedis.personnel_id
     };
   };
 
-  async redisGet(id: string) {
-    const result = await this.redisClient?.get(id) as string;
-    const replaced = result?.replace("'", '"');
-    const json = JSON.parse(replaced);
+  kafkaGet = async (id: string) => {
+    const result = {
+      ...this.buffer[id],
+      timestamp: new Date(new Date().toLocaleString() + "+0").toISOString(),
+    };
     //return file
-    return json;
+    return result;
   };
 
-  async redisDelete(id: string) {
-    let result = await this.redisClient?.del(id);
-    return {
-      message: "Deleted the file successfully",
-      data: result
-    };
-  };
 
 };
 

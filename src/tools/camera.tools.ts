@@ -38,7 +38,7 @@ async function oldGetStreamUri(camInfo: cameraInfo): Promise<string | undefined>
     let url: string = device.getUdpStreamUrl();
     url = url.replace(
       /\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,
-      "{username}:{password}@{ip}:554"
+      "{username}:{password}@{ip}"
     );
     return url;
   } catch (error) {

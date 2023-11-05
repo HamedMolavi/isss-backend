@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import path from "path";
 import { ApiError } from "../../types/classes/error.class";
 import PersonImage from "../../db/mongo/models/personImage";
-import {  ImageFileSystem } from "../../tools/redisFile.tools";
+import {  ImageFileSystem } from "../../tools/kafkaFile.tools";
 
 //create customized filesystem
 const fs = new ImageFileSystem();
