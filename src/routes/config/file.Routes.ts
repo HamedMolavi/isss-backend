@@ -1,12 +1,7 @@
 import { SnapshotKafka, ImageFileSystem } from "../../tools/kafkaFile.tools";
 import { NextFunction, Router, Request, Response } from "express";
-import fs from "fs";
-import axios from "axios";
-import path from "path";
 import PersonImage from "../../db/mongo/models/personImage";
-import { ApiError } from "../../types/classes/error.class";
 import { createMiddleware } from "../../db/mongo/create.database";
-import { readMiddleware } from "../../db/mongo/read.database";
 
 //create customized redis client
 const cfs = new ImageFileSystem();
