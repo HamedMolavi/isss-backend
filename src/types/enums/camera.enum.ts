@@ -1,5 +1,5 @@
 export enum CameraTypes {
-  enter,
-  exit,
-  null
+  enter = "enter",
+  exit = "exit",
+  null = "null",
 }

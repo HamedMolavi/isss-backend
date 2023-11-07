@@ -5,7 +5,7 @@ import { ApiError } from "../../types/classes/error.class";
 import Camera from "../../db/mongo/models/camera";
 import url from "url";
 import PersonImage from "../../db/mongo/models/personImage";
-import { ImageFileSystem } from "../../tools/redisFile.tools";
+import { ImageFileSystem } from "../../tools/kafkaFile.tools";
 import Personnel from "../../db/mongo/models/personnel";
 import { IPersonnel } from "../../types/interfaces/personnel.interface";
 import { dtoValidationMiddleware } from "../../validation/dto";
@@ -26,7 +26,7 @@ router.post("",
   dtoValidationMiddleware(CreatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(Personnel, { $or: [{ national_code: "national_code" }, { personnel_code: "personnel_code" }] }, "Personnel already exists!"),
   createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "section_id", "camera_whitelist", "is_active", "is_employee", "is_dismissed"], Personnel, { next: true, save: "doc" }),
-  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], {}, "doc"),
+  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], {name:"avatar"}, "doc"),
 );
 
 // //add route for delete jobTitle
@@ -109,7 +109,7 @@ router.get("/:id",
 //add route for edit personnel
 router.patch("/:id",
   updateByIdMiddleware(Personnel, { next: true, save: "doc" }),
-  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], {}, "doc"),
+  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], {name:"avatar"}, "doc"),
 );
 
 //add route for delete personnel
