@@ -20,22 +20,25 @@ app.use(function notFound(req: Request, _res: Response, next: NextFunction) {
 });
 
 //app stack error handler
-app.use(function errorHandler(err: ApiError, _req: Request, res: Response, _next: NextFunction) {
+app.use(function errorHandler(
+  err: ApiError,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+) {
   const statusCode = err.statusCode || 500;
-  console.log(
-    "Error in endpoint: ",
-    {
+  if (err.message !== "File not found") {
+    console.log("Error in endpoint: ", {
       success: false,
       message: err.message,
       stack: err.stack,
-    }
-  );
+    });
+  }
   return res.status(statusCode).send({
     success: false,
     message: err.message,
     stack: process.env.NODE_ENV === "development" ? err.stack : "",
   });
 });
-
 
 export default app;

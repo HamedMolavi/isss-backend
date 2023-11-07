@@ -31,18 +31,20 @@ router.post("/kafka",
 router.post("/verify", //TODO: clean this further
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "id"),
   //error check
-  (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == 1 ? next() : res.status(406).send({ message: "No face found", }),
+  (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == true ? next() : res.status(406).send({ message: "No face found", }),
   //save base64 file in assets
-  cfs.uploadAvatarMiddleware(["redisData", "face"], "id", { next: true }),
+  cfs.uploadAvatarMiddleware(["redisData", "face" , "masked_face"], "id", { next: true }),
   //project redisData in req.body
   (req: Request, res: Response, next: NextFunction) => {
-    req.body["personnel_id"] = req.body["redisData"]["personnel_id"];
-    req.body["embedding"] = req.body["redisData"]["embedding"];
-    req.body["hash_id"] = req.body["id"];
+    req.body["person_id"] = req.body["redisData"]["personnel_id"];
+    req.body["vector"] = req.body["redisData"]["embedding"];
+    req.body["masked_embd"] = req.body["redisData"]["masked_embd"];
+    req.body["hash_id"] = req.body["redisData"]["face"];
+    req.body["masked_face_id"] = req.body["redisData"]["masked_face"];
     return next();
   },
   //create PersonImage document
-  createMiddleware(["person_id", "vector", "hash_id"], PersonImage, { next: true })
+  createMiddleware(["person_id", "vector", "hash_id","masked_embd","masked_face_id"], PersonImage, { next: true })
   );
 
 export default router;

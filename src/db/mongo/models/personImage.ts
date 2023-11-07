@@ -5,13 +5,15 @@ import { IPersonImage } from "../../../types/interfaces/personImage.interface";
 const PersonImageSchema: Schema<IPersonImage> = new Schema({
     person_id: { type: Schema.Types.ObjectId, ref: "Personnel" },
     hash_id : {type:String, required:true},
-    vector: [Number]
+    masked_face_id :{type : String , required : false},
+    vector: [Number],
+    masked_embd:[Number]
 },{
-    collection: "Person_Image"
+    collection: "Person_Image_2"
 });
 
 // Compile Model from schema
-const PersonImage = mongoose.model("Person_Image", PersonImageSchema);
+const PersonImage = mongoose.model("Person_Image_2", PersonImageSchema);
 export default PersonImage;
 
 
