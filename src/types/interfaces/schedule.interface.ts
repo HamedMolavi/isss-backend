@@ -7,16 +7,16 @@ export interface ISchedule extends Document {
   start_cron: string;
   stop_cron: string;
   config: IConfig;
+  is_runnig: boolean;
 }
 //define config type
 interface IConfig {
-  timeDuplicationDiagnoses : number;
+  timeDuplicationDiagnoses: number;
   threshold: number;
   min_people: number;
   max_people: number;
   zones: [[number, number, number, number]];
-};
-
+}
 
 //define type of schedule for request body
 export interface IGetParams {
