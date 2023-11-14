@@ -2,19 +2,27 @@ import mongoose, { Schema, Document } from "mongoose";
 import { ISchedule } from "../../../types/interfaces/schedule.interface";
 
 //create Schedule with schema for save in DB
-const ScheduleSchema: Schema<ISchedule> = new Schema({
+const ScheduleSchema: Schema<ISchedule> = new Schema(
+  {
     start_cron: { type: String, required: true },
     stop_cron: { type: String, required: true },
-    model_camera_id: { type: Schema.Types.ObjectId, ref: 'ModelToCamera', required: true },
-    config: { type: Object }
-},{
-    collection: "Schedule"
-});
+    model_camera_id: {
+      type: Schema.Types.ObjectId,
+      ref: "ModelToCamera",
+      required: true,
+    },
+    config: { type: Object },
+    is_runnig: { type: Boolean, default: false },
+  },
+  {
+    collection: "Schedule",
+  }
+);
 
-
-ScheduleSchema.pre('save', async function (next, opts:mongoose.SaveOptions) {
-    
-});
+ScheduleSchema.pre(
+  "save",
+  async function (next, opts: mongoose.SaveOptions) {}
+);
 
 // Compile model from schema
 const Schedule = mongoose.model("Schedule", ScheduleSchema);
