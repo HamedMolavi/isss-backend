@@ -4,8 +4,8 @@ import { Document, FilterQuery } from "mongoose";
 
 export async function read(model: any, options?: { query?: FilterQuery<any>, populate?: string }) {
   let docs: Document[] | any = !!options?.populate
-    ? model.find(!!options?.query ? options?.query : {}).exec()
-    : model.find(!!options?.query ? options?.query : {}).populate(options?.populate).exec();
+    ? await model.find(!!options?.query ? options?.query : {}).exec()
+    : await model.find(!!options?.query ? options?.query : {}).populate(options?.populate).exec();
   return docs;
 };
 
