@@ -12,7 +12,7 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
       required: true,
     },
     config: { type: Object },
-    is_runnig: { type: Boolean, default: false },
+    is_running: { type: Boolean, default: false },
   },
   {
     collection: "Schedule",

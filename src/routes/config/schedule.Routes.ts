@@ -16,10 +16,9 @@ const router: Router = Router();
 
 //add route for register new schedule
 router.post("",
-  
-  dtoValidationMiddleware(CreateScheduleBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  existCheck(Schedule, {$and: [{ model_id: "model_id" }, { camera_id: "camera_id" }],}, "Schedule already exists!"),
-  createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "muted", "camera_type", "url"], Schedule),
+  // dtoValidationMiddleware(CreateScheduleBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  // existCheck(Schedule, {$and: [{ model_id: "model_id" }, { camera_id: "camera_id" }],}, "Schedule already exists!"), // TODO: this is not correct
+  // createMiddleware([], Schedule),
   async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get json from body request

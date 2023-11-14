@@ -5,6 +5,11 @@ import { ApiError } from "../../types/classes/error.class";
 
 export function existCheck(model: Model<any>, query: any, info?: string) {
   return async function middleware(req: Request, _res: Response, next: NextFunction) {
+    // query can be:
+    //    Array => state 0
+    //    function => state 1
+    //    object { [{},{},...] } => state 2
+    
     let newQuery: { [key: string]: any } = {};
     //  query
     let state = Array.isArray(query) ? 0
