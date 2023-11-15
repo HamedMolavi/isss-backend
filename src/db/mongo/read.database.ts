@@ -68,7 +68,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
   }
 };
 
-export function readByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction, populates?: Array<string> }): RequestHandler {
+export function readByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: Array<string> }): RequestHandler {
   return async function middleware(req: Request, res: Response, next: NextFunction) {
     try {
       //get id from params in url
@@ -81,7 +81,24 @@ export function readByIdMiddleware(model: any, options?: { next?: boolean, save?
         req.flash("error", model.name + " not found");
         return next(new ApiError(404, model.name + " not found"));
       };
-      if (!!options?.populates) for (const populate of options.populates) doc.populate(populate);
+
+
+      if (!!options?.populate && !!req.query.populate) {
+        let populates = req.query.populate instanceof String
+          ? req.query.populate.split(",").map((el) => el.trim())
+          : (req.query.populate as string[]).map((el) => el.trim());
+        let idx = populates.length - 1;
+        while (!!populates.length && idx >= 0) {
+          const populate = populates[idx];
+          let keys = getAllKeys(doc.toObject());
+          let populatePath = keys.find((key) => key === populate || key.split(".").some((el) => el === populate));
+          if (!!populatePath) {
+            doc = await doc.populate(populatePath);
+            populates.splice(idx, 1);
+            idx = populates.length - 1;
+          } else idx--;
+        };
+      };
 
       if (!!options?.next) {
         if (!!options.save) req.body[options.save] = doc;
@@ -108,7 +125,3 @@ function getAllKeys(obj: { [key: string]: any }) {
   };
   return keys;
 };
-
-// async function populate(doc: Document<any, any, any>){
-//   await doc.populate()
-// }
