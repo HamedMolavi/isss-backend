@@ -245,6 +245,7 @@ router.patch(
           max_people:
             scheduleBody.max_people ?? old_schedule?.config?.max_people,
         },
+        is_running: old_schedule?.is_running
       };
 
       //query for get schedule by id from DB and update
