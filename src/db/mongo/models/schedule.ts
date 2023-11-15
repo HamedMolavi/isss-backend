@@ -18,6 +18,8 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
     collection: "Schedule",
   }
 );
+
+
 //get Schedule data json
 ScheduleSchema.methods.toJSON = function () {
   return {
