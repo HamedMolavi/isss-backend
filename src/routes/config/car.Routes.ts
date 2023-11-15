@@ -62,7 +62,7 @@ function sendFunction(doc: ICar) {
     brand: doc.brand,
     color: doc.color,
     camera_whitelist: doc.camera_whitelist,
-
+    _id: doc._id,
   }
 };
 function stringifyPlate(plateObj: { [key: string]: string }) {
