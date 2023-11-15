@@ -10,6 +10,7 @@ import { dtoValidationMiddleware } from "../../validation/dto";
 import { CreateScheduleBody } from "../../validation/dto/schedule.dto";
 import { existCheck } from "../../validation/db";
 import { createMiddleware } from "../../db/mongo/create.database";
+import { readMiddleware } from "../../db/mongo/read.database";
 
 //create router for add to server file
 const router: Router = Router();
@@ -46,7 +47,7 @@ router.post("",
         return next(new ApiError(400, "Invalid time"));
       }
       //search for model in DB
-      let model2Camera = await ModelToCamera.findOne({$and: [{ model_id: model_id }, { camera_id: camera_id }],}).exec();
+      let model2Camera = await ModelToCamera.findOne({ $and: [{ model_id: model_id }, { camera_id: camera_id }], }).exec();
       // let model2Camera = await ModelToCamera.findOneAndUpdate(
       //   {
       //     $and: [{ model_id: model_id }, { camera_id: camera_id }],
@@ -113,67 +114,9 @@ router.post("",
   }
 );
 
-//route for get schedule list
 router.get(
   "",
-  async function (req: Request, res: Response, next: NextFunction) {
-    try {
-      //get page from url
-      let strPage = req.query.page as string;
-      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-      //get perPage from url
-      let strPerPage = req.query.PerPage as string;
-      let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-
-      //query for get schedule from DB
-      let schedules: ISchedule[] | null = await Schedule.find({})
-        .limit(perPage)
-        .skip(perPage * (page - 1))
-        .exec();
-
-      let response_list = schedules.map((_schedule) => {
-        let data = {
-          _id: _schedule._id,
-          start_cron: {
-            min: _schedule.start_cron.split(" ")[0],
-            hour: _schedule.start_cron.split(" ")[1],
-            dow: _schedule.start_cron.split(" ")[4].split(",") ?? ["*"],
-          },
-          stop_cron: {
-            min: _schedule.stop_cron.split(" ")[0],
-            hour: _schedule.stop_cron.split(" ")[1],
-            dow: _schedule.stop_cron.split(" ")[4].split(",") ?? ["*"],
-          },
-          model_camera_id: _schedule.model_camera_id,
-          config: {
-            timeDuplicationDiagnoses:
-              _schedule.config.timeDuplicationDiagnoses ?? 0,
-            threshold:
-              _schedule.config?.threshold != 0
-                ? _schedule.config?.threshold * 100
-                : 0,
-            zones: _schedule.config.zones ?? null,
-            min_people: _schedule.config.min_people ?? 0,
-            max_people: _schedule.config.max_people ?? 0,
-          },
-        };
-        return data;
-      });
-      //return success
-      req.flash("info", "schedule list");
-      //send response to client with schedules
-      return res.status(200).json({
-        success: true,
-        data: response_list,
-        page: page,
-        perPage: perPage,
-        total: await Schedule.countDocuments().exec(),
-        pages: Math.ceil((await Schedule.countDocuments().exec()) / perPage),
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "Internal server error , " + err.message));
-    }
-  }
+  readMiddleware(Schedule, undefined, { populate: true })
 );
 
 //route for get schedule by id from DB

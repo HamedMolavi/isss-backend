@@ -9,8 +9,9 @@ export async function read(model: any, options?: { query?: FilterQuery<any>, pop
   return docs;
 };
 
-export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any>, options?: { next?: boolean, save?: string, send?: CallableFunction, populates?: Array<string> }): RequestHandler {
+export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any>, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: boolean }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
+
     try {
       //get page from url
       let strPage = req.query.page as string;
@@ -18,7 +19,9 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       let search = (req.query.search as string) || "";
       //get perPage from url
       let strPerPage = req.query.perPage as string;
-      let perPage = parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+      let perPage = strPerPage?.toLowerCase() === "all"
+        ? 10000
+        : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let docs: Document[] = !!query
         ? await model.find(query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
         : await model.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
@@ -27,11 +30,22 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         req.flash("error", model.name + " not found");
         return next(new ApiError(404, model.name + " not found"));
       };
-      if (!!options?.populates) for (const populate of options.populates) {
-        for (let i = 0; i < docs.length; i++) {
-          const doc = await docs[i].populate(populate);
-          docs[i] = doc
-        }
+
+      if (!!options?.populate && !!req.query.populate) {
+        let populates = req.query.populate instanceof String
+          ? req.query.populate.split(",").map((el) => el.trim())
+          : (req.query.populate as string[]).map((el) => el.trim());
+        let idx = populates.length - 1;
+        while (!!populates.length && idx >= 0) {
+          const populate = populates[idx];
+          let keys = getAllKeys(docs[0].toObject());
+          let populatePath = keys.find((key) => key === populate || key.split(".").some((el) => el === populate));
+          if (!!populatePath) {
+            for (let i = 0; i < docs.length; i++) docs[i] = await docs[i].populate(populatePath);
+            populates.splice(idx, 1);
+            idx = populates.length - 1;
+          } else idx--;
+        };
       };
 
       if (!!options?.next) {
@@ -85,3 +99,16 @@ export function readByIdMiddleware(model: any, options?: { next?: boolean, save?
     }
   }
 };
+
+function getAllKeys(obj: { [key: string]: any }) {
+  let keys: string[] = [];
+  Object.keys(obj).forEach(el => keys.push(el));
+  for (const key in obj) {
+    if (obj[key] instanceof Object && !(obj[key] instanceof Array)) getAllKeys(obj[key]).forEach(el => keys.push(`${key}.${el}`))
+  };
+  return keys;
+};
+
+// async function populate(doc: Document<any, any, any>){
+//   await doc.populate()
+// }

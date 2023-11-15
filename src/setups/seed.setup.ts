@@ -1,4 +1,3 @@
-import { Model } from "mongoose";
 import { create } from "../db/mongo/create.database";
 import Department from "../db/mongo/models/department";
 import JobTitle from "../db/mongo/models/jobTitle";
@@ -10,6 +9,7 @@ import { IJobTitle } from "../types/interfaces/jobTitle.interface";
 import { ISection } from "../types/interfaces/section.interface";
 import { IUser } from "../types/interfaces/user.interface";
 import { IModel } from "../types/interfaces/model.interface";
+import Model from "../db/mongo/models/model";
 
 export default async () => {
   if (!(await read(User, { query: { role: 'admin' } })).length) {
@@ -46,7 +46,7 @@ export default async () => {
     });
     console.log("\t++ Seed data Section: name=default");
   };
-  for (const modelCategory of process.env["MODELS"]) {
+  for (const modelCategory of process.env["MODELS"].split(",").map((el) => el.trim())) {
     if (!(await read(Model, { query: { category: modelCategory } })).length) {
       const models: IModel[] = await create(Model, {
         name: modelCategory,
