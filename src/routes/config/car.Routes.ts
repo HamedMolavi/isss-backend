@@ -27,8 +27,8 @@ router.post("",
 );
 
 //route for get car list
-router.get("",
-  readMiddleware(Car, (search) => { return { number_plate: { $regex: search, $options: "i" } } }, { populates: ["brand", "owner", "color"], send: sendFunction })
+router.get("",//["brand", "owner", "color"]
+  readMiddleware(Car, (search) => { return { number_plate: { $regex: search, $options: "i" } } }, { populate: true, send: sendFunction })
 );
 
 //route for get car by id from DB
@@ -62,7 +62,7 @@ function sendFunction(doc: ICar) {
     brand: doc.brand,
     color: doc.color,
     camera_whitelist: doc.camera_whitelist,
-
+    _id: doc._id,
   }
 };
 function stringifyPlate(plateObj: { [key: string]: string }) {

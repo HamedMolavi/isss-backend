@@ -7,7 +7,7 @@ export interface ISchedule extends Document {
   start_cron: string;
   stop_cron: string;
   config: IConfig;
-  is_runnig: boolean;
+  is_running: boolean;
 }
 //define config type
 interface IConfig {

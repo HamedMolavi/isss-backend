@@ -30,3 +30,16 @@ export function createMiddleware(keys: Array<string | { [key: string]: CallableF
   }
 };
 
+export async function create(model: any, payloads: { [key: string]: any } | Array<{ [key: string]: any }>) {
+  if (payloads instanceof Object) payloads = [payloads as { [key: string]: any }];
+  let docs = [];
+  for (const payload of payloads as Array<{ [key: string]: any }>) {
+    //create
+    let doc = new model(payload);
+    await doc.save();
+    docs.push(doc)
+    //return success
+  };
+  return docs;
+};
+

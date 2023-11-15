@@ -9,8 +9,9 @@ export type DefaultEnv = {
   ELASTIC_SEARCH: string
   REQUEST_LOG_FORMAT: string
   NODE_ENV: "development" | "production"
-  REQUEST_LOG_DIR: string,
+  REQUEST_LOG_DIR: string
   RECORD_STREAM_TIME: string
+  MODELS: string
 }
 
 const defaults: DefaultEnv = {
@@ -25,6 +26,7 @@ const defaults: DefaultEnv = {
   "REQUEST_LOG_FORMAT": "",
   "REQUEST_LOG_DIR": "../logs",
   "RECORD_STREAM_TIME": "10",
-  "SESSION_SECRET": "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4i"
+  "SESSION_SECRET": "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4i",
+  "MODELS": "plate,human,face,sabotage,fire"
 };
 export default defaults;

@@ -24,6 +24,7 @@ declare global {
       SAMPLE_STREAM_URI: string
       WORD_BEFORE_REPLACE_STREAM: string
       WORD_AFTER_REPLACE_STREAM: string
+      MODELS: string
     }
   }
 }
