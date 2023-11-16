@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { IModelToCamera } from "../../../types/interfaces/modelToCamera.interface";
+import Schedule from "./schedule";
 
 //create Model ModelToCamera with schema for save in DB
 const ModelToCameraSchema: Schema<IModelToCamera> = new Schema(
@@ -12,6 +13,12 @@ const ModelToCameraSchema: Schema<IModelToCamera> = new Schema(
     collection: "Model_Camera",
   }
 );
+
+ModelToCameraSchema.post("remove", async (doc) => {
+  let deleted_schedules = await Schedule.deleteMany({
+      model_camera_id: doc._id,
+  }, { returnDocument: "after" }).exec();
+});
 
 // Compile Model from schema
 const ModelToCamera = mongoose.model("ModelToCamera", ModelToCameraSchema);
