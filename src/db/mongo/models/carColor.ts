@@ -1,5 +1,6 @@
 import mongoose, { Schema , Document } from "mongoose";
 import { ICarColor } from "../../../types/interfaces/car.interface";
+import Car from "./car";
 
 
 
@@ -8,6 +9,13 @@ const CarColorSchema: Schema<ICarColor> = new Schema({
     name: { type: String, required: true },
 },{
     collection: "Car_Color"
+});
+
+CarColorSchema.post("remove", async (doc) => {
+    const defaultCarColorId = (await CarColor.findOne({ name: "default" }))?._id;
+    let updated_cars = await Car.updateMany({
+        color: doc._id,
+    }, { $set: { color: defaultCarColorId } }, { returnDocument: "after" }).exec();
 });
 
 // Compile model from schema
