@@ -7,12 +7,14 @@ import { ApiError } from "../../types/classes/error.class";
 import { ISchedule } from "../../types/interfaces/schedule.interface";
 import { Clock, CronDay, DayOfWeek } from "../../types/interfaces/time.interface";
 import { dtoValidationMiddleware } from "../../validation/dto";
-import { CreateScheduleBody } from "../../validation/dto/schedule.dto";
+import { CreateScheduleBody, UpdateScheduleBody } from "../../validation/dto/schedule.dto";
 import { existCheck } from "../../validation/db";
 import { createMiddleware } from "../../db/mongo/create.database";
-import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
+import { read, readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { Schema } from "mongoose";
 import { injectDataMiddleware } from "../../tools/request.tools";
+import { updateByIdMiddleware } from "../../db/mongo/update.database";
+import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 
 //create router for add to server file
 const router: Router = Router();
@@ -44,157 +46,38 @@ router.get(
 //add route for edit schedule
 router.patch(
   "/:id",
-  async function (req: Request, res: Response, next: NextFunction) {
-    try {
-      //get id from url
-      let id: string = req.params.id;
-      if (!id) {
-        req.flash("error", "schedule id is required");
-        return next(new ApiError(400, "schedule id is required"));
+  dtoValidationMiddleware(UpdateScheduleBody, { detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  Time.compareTimeMiddleware("start", "stop"),
+  updateByIdMiddleware(Schedule, {
+    update: {
+      "start": {
+        name: "start_cron",
+        fn: (payload) => Time.toCronDay(Time.toCron(payload.start as Clock), payload.dayOfWeek.toString() as DayOfWeek)
+      },
+      "stop": {
+        name: "stop_cron",
+        fn: (payload) => Time.toCronDay(Time.toCron(payload.stop as Clock), payload.dayOfWeek.toString() as DayOfWeek)
+      },
+      "zones": { name: "config.zones" },
+      "timeDuplicationDiagnoses": { name: "config.timeDuplicationDiagnoses" },
+      "threshold": { name: "config.threshold" },
+      "min_people": { name: "config.min_people" },
+      "max_people": { name: "config.max_people" },
+      "montionDetection": { name: "config.montionDetection" },
+      // TODO: Do we need to let user change the model to camera?
+      "model_id": {
+        name: "model_camera_id",
+        fn: async (payload) => (await ModelToCamera.findOne({ "model_id": payload.model_id, "camera_id": payload.camera_id }).exec())?._id
       }
-      //get body from request
-      const scheduleBody: IGetParams = req.body;
-
-      if (!scheduleBody.start && !scheduleBody.stop && scheduleBody.dayOfWeek) {
-        req.flash("error", "start and stop is required");
-        return next(new ApiError(400, "start and stop is required"));
-      }
-
-      if (scheduleBody.start && !scheduleBody.stop && !scheduleBody.dayOfWeek) {
-        req.flash("error", "start and stop is required");
-        return next(new ApiError(400, "start and stop is required"));
-      }
-
-      if (!scheduleBody.start && scheduleBody.stop && !scheduleBody.dayOfWeek) {
-        req.flash("error", "start and stop is required");
-        return next(new ApiError(400, "start and stop is required"));
-      }
-      let start_cron: CronDay | "" = "",
-        stop_cron: CronDay | "" = "";
-      if (scheduleBody.start && scheduleBody.stop) {
-        //check for valid time
-        if (!Time.compareTime(scheduleBody.start as Clock, scheduleBody.stop as Clock)) {
-          req.flash("error", "Invalid time");
-          return next(new ApiError(400, "Invalid time"));
-        }
-
-        //convert input time to cron format
-        start_cron = Time.toCronDay(
-          Time.toCron(scheduleBody.start as Clock),
-          scheduleBody.dayOfWeek.toString() as DayOfWeek
-        );
-        stop_cron = Time.toCronDay(
-          Time.toCron(scheduleBody.stop as Clock),
-          scheduleBody.dayOfWeek.toString() as DayOfWeek
-        );
-      }
-
-      let old_schedule = await Schedule.findById(id).exec();
-
-      let update_schedule = {
-        start_cron: start_cron != "" ? start_cron : old_schedule!.start_cron,
-        stop_cron: stop_cron != "" ? stop_cron : old_schedule!.stop_cron,
-        model_camera_id:
-          scheduleBody.model_camera_id ?? old_schedule?.model_camera_id,
-        config: {
-          timeDuplicationDiagnoses:
-            scheduleBody.timeDuplicationDiagnoses ??
-            old_schedule?.config.timeDuplicationDiagnoses,
-          threshold:
-            scheduleBody?.threshold / 100 ?? old_schedule?.config?.threshold,
-          zones:
-            scheduleBody.zones.length > 0
-              ? scheduleBody.zones
-              : old_schedule?.config?.zones,
-          min_people:
-            scheduleBody.min_people ?? old_schedule?.config?.min_people,
-          max_people:
-            scheduleBody.max_people ?? old_schedule?.config?.max_people,
-        },
-        is_running: old_schedule?.is_running
-      };
-
-      //query for get schedule by id from DB and update
-      let schedule = await Schedule.findByIdAndUpdate(id, update_schedule, {
-        new: true,
-      }).exec();
-
-      //return response not found to client if not found schedule
-      if (!schedule) {
-        req.flash("error", "schedule not found");
-        return next(new ApiError(404, "schedule not found"));
-      }
-
-      //return response to client with schedule
-      return res.status(201).json({
-        message: "Success",
-        schedule: {
-          _id: schedule._id,
-          start_cron: {
-            min: schedule.start_cron.split(" ")[0],
-            hour: schedule.start_cron.split(" ")[1],
-            dow: schedule.start_cron.split(" ")[4].split(",") ?? ["*"],
-          },
-          stop_cron: {
-            min: schedule.stop_cron.split(" ")[0],
-            hour: schedule.stop_cron.split(" ")[1],
-            dow: schedule.stop_cron.split(" ")[4].split(",") ?? ["*"],
-          },
-          model_camera_id: schedule.model_camera_id,
-          config: {
-            timeDuplicationDiagnoses:
-              schedule.config.timeDuplicationDiagnoses ?? 0,
-            threshold:
-              schedule.config?.threshold != 0
-                ? schedule.config?.threshold * 100
-                : 0,
-            zones: schedule.config.zones ?? null,
-            min_people: schedule.config.min_people ?? 0,
-            max_people: schedule.config.max_people ?? 0,
-          },
-        },
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "Internal server error , " + err.message));
-    }
-  }
+    },
+    ignore: ["dayOfWeek", "camera_id", "is_running"],
+  })
 );
 
 //add route for delete schedule
 router.delete("/:id",
-  async function (req: any, res: any, next: NextFunction) {
-    try {
-      //get id from url
-      let id: string = req.params.id;
-      if (!id) {
-        req.flash("error", "schedule id is required");
-        return next(new ApiError(400, "schedule id is required"));
-      }
-
-      //query for get schedule by id from DB
-      let schedule = await Schedule.findByIdAndDelete(id).exec();
-      //return response not found to client if not found schedule
-      if (!schedule) {
-        req.flash("error", "schedule not found");
-        return next(new ApiError(404, "schedule not found"));
-      }
-
-      // let model2Camera = await ModelToCamera.findByIdAndUpdate(
-      //   schedule.model_camera_id,
-      //   { is_enabled: false },
-      //   { new: true }
-      // ).exec();
-
-      // let model2Camera = await ModelToCamera.findOneAndDelete({sche})
-      //return response to client with schedule
-      return res.status(201).json({
-        message: "Success",
-        schedule: schedule,
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "Internal server error , " + err.message));
-    }
-  });
+  deleteByIdMiddleware(Schedule)
+);
 
 
 function convertPlaiBodyToSchedule(body: any) {

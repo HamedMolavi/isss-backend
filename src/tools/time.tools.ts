@@ -56,7 +56,7 @@ export default class Time {
   };
   static compareTimeMiddleware(startNamePropery: string, stopNamePropery: string) {
     return (req: Request, res: Response, next: NextFunction) => {
-      if (!this.compareTime(req.body[startNamePropery], req.body[stopNamePropery])) {
+      if (!!req.body[startNamePropery] && !!req.body[stopNamePropery] && !this.compareTime(req.body[startNamePropery], req.body[stopNamePropery])) {
         req.flash("error", "Invalid time");
         return next(new ApiError(400, "Invalid time"));
       };

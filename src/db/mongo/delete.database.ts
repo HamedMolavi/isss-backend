@@ -22,7 +22,7 @@ export function deleteByIdMiddleware(model: any, options?: { next?: boolean, sav
         return next();
       };
       //send response to client
-      return res.status(201).json({
+      return res.status(204).json({
         success: true,
         data: !!options?.send ? options.send(doc) : doc,
       });
