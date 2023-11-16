@@ -16,7 +16,7 @@ SectionSchema.post("remove", async (doc) => {
     const defaultSectionId = (await Section.findOne({ name: "default" }))?._id;
     let updated_personnel = await Personnel.updateMany({
         section_id: doc._id,
-    }, { $set: { department_id: defaultSectionId } }, { returnDocument: "after" }).exec();
+    }, { $set: { section_id: defaultSectionId } }, { returnDocument: "after" }).exec();
 });
 
 // Compile model from schema
