@@ -12,7 +12,7 @@ const CameraSchema: Schema<ICamera> = new Schema(
     url: { type: String, required: true },
     nvr: { type: String, required: false },
     ip: { type: String, required: true },
-    network: { type: String, default:"255.255.255.255" },
+    network: { type: String, default: "255.255.255.255" },
     name: { type: String, required: true },
     username: { type: String, required: true },
     password: { type: String, required: true },
@@ -20,8 +20,8 @@ const CameraSchema: Schema<ICamera> = new Schema(
     is_enabled: { type: Boolean, required: true },
     damaged: { type: Boolean, required: false },
     create_date: { type: Date, default: Date.now },
-   // camera_type: { type: String, required: true, enum: Object.values(CameraTypes) }
-    camera_type: { type: String, required: true, enum:Object.values(CameraTypes)as string[]  , default : CameraTypes.enter }
+    // camera_type: { type: String, required: true, enum: Object.values(CameraTypes) }
+    camera_type: { type: String, required: true, enum: Object.values(CameraTypes) as string[], default: CameraTypes.enter }
   },
   {
     collection: "Camera",
@@ -46,19 +46,9 @@ CameraSchema.post('save', async function (doc) {
 
 
 CameraSchema.post("remove", async (doc) => {
-  let model_to_camera = await ModelToCamera.find({
+  let deleted_model_to_cameras = await ModelToCamera.deleteMany({
     camera_id: doc._id,
-  }).exec();
-  if (!!model_to_camera) {
-    for (let model of model_to_camera) {
-      let schedule = await Schedule.findOneAndDelete({
-        model_camera_id: model._id,
-      }).exec();
-    };
-    let model_to_camera_deleted = await ModelToCamera.deleteMany({
-      camera_id: doc._id,
-    }).exec();
-  };
+  }, { returnDocument: "after" }).exec();
 });
 
 

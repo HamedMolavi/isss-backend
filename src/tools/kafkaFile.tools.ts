@@ -84,31 +84,31 @@ export class SnapshotKafka {
         },
         ...args: any[]
       ) =>
-      async (req: Request, res: Response, next: NextFunction) => {
-        /*
-      takes an function to wrap it with RequestHandler.
-      Inside it will call the function with the given args.
-      If isInReq is true, you can give property names of req.body in args.
-      If resultPropertyName is not undefiend, the result sent to the user will be req.body[resultPropertyName]
-      */
-        const inputs = options.isInReq
-          ? Object.entries(req.body)
+        async (req: Request, res: Response, next: NextFunction) => {
+          /*
+        takes an function to wrap it with RequestHandler.
+        Inside it will call the function with the given args.
+        If isInReq is true, you can give property names of req.body in args.
+        If resultPropertyName is not undefiend, the result sent to the user will be req.body[resultPropertyName]
+        */
+          const inputs = options.isInReq
+            ? Object.entries(req.body)
               .filter((el) => args.includes(el[0]))
               .map((el) => el[1])
-          : args;
-        const result = await f(...inputs);
-        if (!!options.save) req.body[options.save] = result;
-        if (!!options.resultPropertyName) {
+            : args;
+          const result = await f(...inputs);
+          if (!!options.save) req.body[options.save] = result;
+          if (!!options.resultPropertyName) {
+            return res.status(201).json({
+              success: true,
+              data: req.body[options.resultPropertyName as string],
+            });
+          } else if (!!options.next) return next();
           return res.status(201).json({
             success: true,
-            data: req.body[options.resultPropertyName as string],
+            data: result,
           });
-        } else if (!!options.next) return next();
-        return res.status(201).json({
-          success: true,
-          data: result,
-        });
-      };
+        };
     // this.json = function recursive(o: { [key: string]: string } | undefined = undefined, kwargs: Array<[string, string]> | undefined = undefined) {
     //   if (!o) {
     //     let json: { [key: string]: string } = {};
@@ -382,10 +382,14 @@ export class ImageFileSystem {
       //check for exist path
       let result: boolean | null;
       if (!fs.existsSync(dirname)) result = null;
-      let filenames = fs.readdirSync(dirname);
-      if (filenames.length > 0 && !options?.force) result = false;
-      fs.rmSync(dirname, { recursive: true, force: true }); //delete file if exist
-      result = true;
+      else {
+        let filenames = fs.readdirSync(dirname);
+        if (filenames.length > 0 && !options?.force) result = false;
+        else {
+          fs.rmSync(dirname, { recursive: true, force: true }); //delete file if exist
+          result = true;
+        }
+      }
 
       if (!!options?.next) {
         if (options?.save) req.body[options.save] = result;
@@ -413,7 +417,7 @@ export class ImageFileSystem {
     for (const person of personnel) {
       try {
         fs.mkdirSync(path.join(this.baseDir, this.imageDir, person.id));
-      } catch (_) {}
+      } catch (_) { }
     }
   }
   private makeAndReturnNewDirectoryForUser(id: string) {
