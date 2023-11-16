@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { ISection } from "../../../types/interfaces/section.interface";
+import Personnel from "./personnel";
 
 //create section model with schema for save in DB
 const SectionSchema: Schema<ISection> = new Schema({
@@ -9,6 +10,13 @@ const SectionSchema: Schema<ISection> = new Schema({
     create_date: { type: Date, default: Date.now }
 }, {
     collection: "Section"
+});
+
+SectionSchema.post("remove", async (doc) => {
+    const defaultSectionId = (await Section.findOne({ name: "default" }))?._id;
+    let updated_personnel = await Personnel.updateMany({
+        section_id: doc._id,
+    }, { $set: { department_id: defaultSectionId } }, { returnDocument: "after" }).exec();
 });
 
 // Compile model from schema
