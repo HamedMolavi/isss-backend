@@ -67,12 +67,14 @@ PersonnelSchema.methods.toJSON = function () {
 PersonnelSchema.post("remove", async (doc: (IPersonnel & Required<{ _id: Schema.Types.ObjectId; }>)) => {
   let images = await PersonImage.find({ person_id: doc._id }).exec();
   for (const image of images) {
-    const masked_embd = image.masked_embd;
     const vector = image.vector;
     const vectorFilePath = `../../../assets/backupImages/${doc.first_name}_${doc.last_name}_${image.hash_id}.txt`;
-    const maskedFilePath = `../../../assets/backupImages/${doc.first_name}_${doc.last_name}_${image.masked_face_id}.txt`;
     fs.writeFile(vectorFilePath, JSON.stringify(vector));
-    fs.writeFile(maskedFilePath, JSON.stringify(masked_embd));
+    if (!!image.masked_embd) {
+      const masked_embd = image.masked_embd;
+      const maskedFilePath = `../../../assets/backupImages/${doc.first_name}_${doc.last_name}_${image.masked_face_id}.txt`;
+      fs.writeFile(maskedFilePath, JSON.stringify(masked_embd));
+    };
     await image.delete();
   };
   await PersonImage.deleteMany({ person_id: doc._id }).exec(); // to ensure
