@@ -1,5 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { ISchedule } from "../../../types/interfaces/schedule.interface";
+import Time from "../../../tools/time.tools";
+import { Clock, DayOfWeek } from "../../../types/interfaces/time.interface";
 
 //create Schedule with schema for save in DB
 const ScheduleSchema: Schema<ISchedule> = new Schema(
@@ -48,10 +50,7 @@ ScheduleSchema.methods.toJSON = function () {
     },
   };
 };
-ScheduleSchema.pre(
-  "save",
-  async function (next, opts: mongoose.SaveOptions) {next()}
-);
+
 
 // Compile model from schema
 const Schedule = mongoose.model("Schedule", ScheduleSchema);

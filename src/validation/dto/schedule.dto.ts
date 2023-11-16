@@ -7,22 +7,46 @@ export class CreateScheduleBody {
   public start?: string;
   @IsString()
   public stop?: string;
-  @IsString()
+  @IsArray()
   public dayOfWeek?: string;
   @IsString()
   public camera_id?: Schema.Types.ObjectId;
   @IsString()
   public model_id?: Schema.Types.ObjectId;
-  @IsBoolean()
-  public montionDetection?: boolean;
+};
+
+export class UpdateScheduleBody {
   @IsOptional()
-  public threshold?: number;
+  @IsString()
+  start?: string;
+  @IsOptional()
+  @IsString()
+  stop?: string;
+  @IsOptional()
+  @IsString()
+  model_id?: string;
+  @IsOptional()
+  @IsString()
+  camera_id?: string;
+  @IsOptional()
+  @IsBoolean()
+  montionDetection?: boolean;
+  @IsOptional()
+  @IsNumber()
+  timeDuplicationDiagnoses?: number;
+  @IsOptional()
+  @IsNumber()
+  threshold?: number;
+  @IsOptional()
   @IsArray()
-  public zones?: Array<number>;
+  dayOfWeek?: string[];
+  @IsOptional()
+  @IsArray()
+  zones?: [[number, number, number, number]];
+  @IsOptional()
   @IsNumber()
-  public min_people?: number;
+  min_people?: number;
+  @IsOptional()
   @IsNumber()
-  public max_people?: number;
-  @IsNumber()
-  public timeDuplicationDiagnoses?: number;
+  max_people?: number;
 };

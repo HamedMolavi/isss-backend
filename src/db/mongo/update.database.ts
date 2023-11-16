@@ -1,8 +1,13 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import { Document, Model } from "mongoose";
+import { setNestedObjectValue } from "../../tools/utils.tools";
 
-export function updateByIdMiddleware(model: Model<any, any, any, any>, options?: { next?: boolean, save?: string, update?: { [key: string]: CallableFunction }, send?: CallableFunction }): RequestHandler {
+type FirstUpdateType = (payload: { [key: string]: any }) => any
+type SecondUpdateType = { name: string, fn?: (payload: { [key: string]: any }) => any }
+type UpdateType = { [key: string]: FirstUpdateType | SecondUpdateType }
+
+export function updateByIdMiddleware(model: Model<any, any, any, any>, options?: { next?: boolean, save?: string, update?: UpdateType, send?: CallableFunction, ignore?: string[] }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get id from url
@@ -16,17 +21,36 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
       //query for get user by id from DB
       // let doc: Document = await model.updateOne({ _id: id }, payload, { new: true }).exec();
       //update document manually using save => to use save midllewares (pre, post)
-      let doc = await model.findById(id).exec();
-      for (const key in payload) if (Object.prototype.hasOwnProperty.call(payload, key)) {
-        if (!!options?.update && Object.keys(options?.update).includes(key)) doc[key] = options.update[key](payload[key])
-        else doc[key] = payload[key];
-      };
-      await doc.save();
+      let doc: Document = await model.findById(id).exec();
       //return error if user not found
       if (!doc) {
         req.flash("error", "camera not found");
         return next(new ApiError(404, "camera not found"));
       };
+      let keys = Object.keys(payload).filter((el) => !options?.ignore || !options?.ignore?.includes(el));
+      let updateObject: { [key: string]: any } = {};
+      for (const key of keys) if (Object.prototype.hasOwnProperty.call(payload, key)) {
+        if (!!options?.update && Object.keys(options?.update).includes(key)) {
+          switch (typeof options.update[key]) {
+            case 'function':
+              updateObject[key] = await (options.update[key] as FirstUpdateType)(payload)
+              break;
+            case 'object':
+              let path = options.update[key].name.split(".");
+              if (!!(options.update[key] as SecondUpdateType).fn) {
+                setNestedObjectValue(updateObject, path, await (options.update[key] as SecondUpdateType).fn?.(payload));
+              } else {
+                setNestedObjectValue(updateObject, path, payload[key]);
+              };
+              break;
+          };
+        } else updateObject[key] = payload[key];
+      };
+      doc = await model.findByIdAndUpdate(id, { $set: updateObject }, {
+        new: true,
+        overwrite: true
+      }).exec();
+
       if (!!options?.next) {
         if (options?.save) req.body[options.save] = doc
         else req.body["doc"] = doc

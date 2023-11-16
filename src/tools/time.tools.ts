@@ -1,7 +1,10 @@
+import { ISchedule } from "../types/interfaces/schedule.interface";
+import { NextFunction, Request, Response } from "express";
 import { Clock, Cron, CronDay, DayOfWeek, Hours, Minutes, TwoDigitsClock, TwoDigitsHours, TwoDigitsMinutes } from "../types/interfaces/time.interface";
 //TODO: clean this up
 import reverseString from "./reverseString";
 import momentTimezone from "moment-timezone";
+import { ApiError } from "../types/classes/error.class";
 let persianDate = require("persian-date");
 let jalaali = require("jalaali-js");
 let moment = require("jalali-moment");
@@ -15,7 +18,6 @@ outputs => utc/locale => should return locale with format of ISO string
                   the locale date: new Date(t.toLocaleString() + "+0")
 re-input => shoul be locale right?
 */
-
 export default class Time {
   //the most common usage of custom time format
   constructor() { };
@@ -50,8 +52,21 @@ export default class Time {
   static toCronDay(time_cron: Cron, dayOfWeek: DayOfWeek): CronDay { return `${time_cron}${dayOfWeek}` as CronDay; };
   //for compare time
   static compareTime(start: Clock, stop: Clock): boolean {
-    return new Date(`14/6/1998 ${stop}`) > new Date(`14/6/1998 ${start}`); // 1/1/1998 is arbitrary
+    return new Date(`6/14/1998 ${stop}`) > new Date(`6/14/1998 ${start}`); // 1/1/1998 is arbitrary
   };
+  static compareTimeMiddleware(startNamePropery: string, stopNamePropery: string) {
+    return (req: Request, res: Response, next: NextFunction) => {
+      if (!!req.body[startNamePropery] && !!req.body[stopNamePropery] && !this.compareTime(req.body[startNamePropery], req.body[stopNamePropery])) {
+        req.flash("error", "Invalid time");
+        return next(new ApiError(400, "Invalid time"));
+      };
+      next();
+    }
+  }
+  static fromCron(cron: Cron) {
+    let time = cron.split(" ");
+    return `${time[1]}:${time[0]}`;
+  }
 
   //convert date to epoch
   static toTimestamp(date: string, time: Clock): number {
@@ -102,4 +117,29 @@ export default class Time {
     return epoch_list;
   };
 
+  //for overlap validation of schedules
+  static validateTime(newStart: Clock, newStop: Clock, newDayOfWeek: Array<string>, schedules: ISchedule[]) {
+    return schedules.every((schedule) => { // all of schedules must let new schedule pass (no overlap)
+      let oldDayOfweek = schedule.start_cron.split(" ").pop() as string;
+      return newDayOfWeek.every((el) => {
+        if (!oldDayOfweek.split(",").includes(el)) return true;
+        let oldStart = this.fromCron(schedule.start_cron as Cron) as Clock;
+        let oldStop = this.fromCron(schedule.stop_cron as Cron) as Clock;
+        if (this.compareTime(newStart, oldStart)) { // oldStart > newStart
+          return this.compareTime(newStop, oldStart) // should be like (oldStart > newStop)
+        } else { // newStart >= oldStart
+          return this.compareTime(oldStop, newStart) // should be like (newStart > oldStop)
+        };
+      });
+    });
+  };
+
+  //for overlap validation of schedules
+  static validateTimeMiddleware(startNamePropery: string, stopNamePropery: string, dayOfWeekNameProperty: string, scheduleListNamePropery: string) {
+    return (req: Request, res: Response, next: NextFunction) => {
+      if (this.validateTime(req.body[startNamePropery], req.body[stopNamePropery], req.body[dayOfWeekNameProperty], req.body[scheduleListNamePropery])) return next();
+      req.flash("error", "Overlaped Schedule!");
+      return next(new ApiError(400, "Overlaped Schedule!"));
+    };
+  };
 };

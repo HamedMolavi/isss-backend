@@ -9,14 +9,14 @@ export async function read(model: any, options?: { query?: FilterQuery<any>, pop
   return docs;
 };
 
-export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any>, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: boolean }): RequestHandler {
+export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any>, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: boolean, searchFromBody?: (body: { [key: string]: any }) => string }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
 
     try {
       //get page from url
       let strPage = req.query.page as string;
       let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-      let search = (req.query.search as string) || "";
+      let search = (req.query.search as string) || options?.searchFromBody?.(req.body) || "";
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = strPerPage?.toLowerCase() === "all"
@@ -68,11 +68,11 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
   }
 };
 
-export function readByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: Array<string> }): RequestHandler {
+export function readByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: boolean }, _id?: string): RequestHandler {
   return async function middleware(req: Request, res: Response, next: NextFunction) {
     try {
       //get id from params in url
-      let id: string = req.params.id;
+      let id: string = _id || req.params.id;
       //query for get docs by id from DB
       let doc = await model.findById(id).exec();
 
