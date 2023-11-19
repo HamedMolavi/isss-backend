@@ -7,58 +7,58 @@ import Time from "../../tools/time.tools";
 const router: Router = Router();
 
 //add route for register modelToCamera
-router.post(
-  "",
-  async function (req: Request, res: Response, next: NextFunction) {
-    try {
-      //get json from body request
-      const { camera_id, start, stop, dayOfWeek, model_id } = req.body;
-      //verify body request
-      if (!camera_id || start || stop || !dayOfWeek || !model_id) {
-        req.flash("error", "Departement name is required");
-        return next(new ApiError(400, "Departement name is required"));
-      }
+// router.post(
+//   "",
+//   async function (req: Request, res: Response, next: NextFunction) {
+//     try {
+//       //get json from body request
+//       const { camera_id, start, stop, dayOfWeek, model_id } = req.body;
+//       //verify body request
+//       if (!camera_id || start || stop || !dayOfWeek || !model_id) {
+//         req.flash("error", "Departement name is required");
+//         return next(new ApiError(400, "Departement name is required"));
+//       }
 
-      //convert input time to cron format
-      let start_cron = Time.toCronDay(Time.toCron(start), dayOfWeek.toString());
-      let stop_cron = Time.toCronDay(Time.toCron(stop), dayOfWeek.toString());
+//       //convert input time to cron format
+//       let start_cron = Time.toCronDay(Time.toCron(start), dayOfWeek.toString());
+//       let stop_cron = Time.toCronDay(Time.toCron(stop), dayOfWeek.toString());
 
-      //query for save new schedule in DB
-      let modelToCamera = await ModelToCamera.findOne({
-        $and: [
-          { start_cron: start_cron },
-          { stop_cron: stop_cron },
-          { model_id: model_id },
-          { camera_id: camera_id },
-        ],
-      }).exec();
+//       //query for save new schedule in DB
+//       let modelToCamera = await ModelToCamera.findOne({
+//         $and: [
+//           { start_cron: start_cron },
+//           { stop_cron: stop_cron },
+//           { model_id: model_id },
+//           { camera_id: camera_id },
+//         ],
+//       }).exec();
 
-      if (modelToCamera) {
-        req.flash("error", "This modelToCamera is already exist");
-        return next(new ApiError(400, "This schedule is already exist"));
-      }
+//       if (modelToCamera) {
+//         req.flash("error", "This modelToCamera is already exist");
+//         return next(new ApiError(400, "This schedule is already exist"));
+//       }
 
-      //create new modelToCamera
-      modelToCamera = new ModelToCamera({
-        camera_id: camera_id,
-        start_cron: start_cron,
-        stop_cron: stop_cron,
-        model_id: model_id,
-      });
+//       //create new modelToCamera
+//       modelToCamera = new ModelToCamera({
+//         camera_id: camera_id,
+//         start_cron: start_cron,
+//         stop_cron: stop_cron,
+//         model_id: model_id,
+//       });
 
-      //save modelToCamera
-      await modelToCamera.save();
+//       //save modelToCamera
+//       await modelToCamera.save();
 
-      //send response
-      res.status(201).json({
-        success: true,
-        data: modelToCamera,
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "internal server error" + err.message));
-    }
-  }
-);
+//       //send response
+//       res.status(201).json({
+//         success: true,
+//         data: modelToCamera,
+//       });
+//     } catch (err: any) {
+//       return next(new ApiError(500, "internal server error" + err.message));
+//     }
+//   }
+// );
 
 // //route for get modelsToCamera list
 // router.get("", async function (req: Request, res: Response, next: NextFunction) {

@@ -16,7 +16,7 @@ const router: Router = Router();
 
 //add route for register new user
 router.post("",
-  dtoValidationMiddleware(CreateUserBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: "please fill all fields" }),
+  dtoValidationMiddleware(CreateUserBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(User, { $or: [{ username: "username" }, { phone_number: "phone_number" }] }, "User or Phone number already exists!"),
   //verify password strength
   passwordValidator(UserPasswordRequirements),
@@ -25,16 +25,16 @@ router.post("",
 
 //route for get users list
 router.get("",
-  readMiddleware(User, (search) => { return { ip: { $regex: search, $options: "i" } } })
+  readMiddleware(User, (search) => { return { ip: { $regex: search, $options: "i" } } }, { populate: true })
 );
 //route for get user by id from DB
 router.get("/:id",
-  readByIdMiddleware(User),
+  readByIdMiddleware(User,  { populate: true }),
 );
 
 //add route for edit user
 router.patch("/:id",
-  dtoValidationMiddleware(UpdateUserBody, { skipMissingProperties: true, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: "please fill all fields" }),
+  dtoValidationMiddleware(UpdateUserBody, { skipMissingProperties: true, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   (req, res, next) => {
     if (!req.body["password"]) next();
     else passwordValidator(UserPasswordRequirements)(req, res, next);

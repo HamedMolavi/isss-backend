@@ -33,7 +33,7 @@ router.post(
 
 //route for get cameras list
 router.get("",
-  readMiddleware(Camera, (search) => { return { ip: { $regex: search, $options: "i" } } })
+  readMiddleware(Camera, (search) => { return { ip: { $regex: search, $options: "i" } } }, { populate: true })
 );
 
 //route for get camera by id from DB
@@ -43,7 +43,7 @@ router.get("/:id",
 
 //add route for edit camera
 router.patch("/:id",
-//{ update: { "number_plate": stringifyPlate }, send: sendFunction }
+  //{ update: { "number_plate": stringifyPlate }, send: sendFunction }
   updateByIdMiddleware(Camera) // TODO: test for edit
 );
 
