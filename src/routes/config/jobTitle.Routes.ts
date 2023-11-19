@@ -23,7 +23,7 @@ createMiddleware(["name"], JobTitle)
 
 //route for get jobTitle list
 router.get("",
-  readMiddleware(JobTitle, (search) => { return { ip: { $regex: search, $options: "i" } } })
+  readMiddleware(JobTitle, (search) => { return { name: { $regex: search, $options: "i" } } })
 );
 
 //route for get jobTitle by id from DB

@@ -27,7 +27,7 @@ router.post("",
 );
 
 //route for get car list
-router.get("",//["brand", "owner", "color"]
+router.get("",
   readMiddleware(Car, (search) => { return { number_plate: { $regex: search, $options: "i" } } }, { populate: true, send: sendFunction })
 );
 

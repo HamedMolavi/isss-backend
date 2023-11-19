@@ -11,7 +11,7 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get id from url
-      let id: string = req.params.id;
+      let id: string = req.params.id || req.body.id;
       if (!id) {
         req.flash("error", "id not found");
         return next(new ApiError(400, "Bad request"));

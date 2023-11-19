@@ -25,7 +25,7 @@ router.post("",
 
 //route for get users list
 router.get("",
-  readMiddleware(User, (search) => { return { ip: { $regex: search, $options: "i" } } }, { populate: true })
+  readMiddleware(User, (search) => { return { username: { $regex: search, $options: "i" } } }, { populate: true })
 );
 //route for get user by id from DB
 router.get("/:id",

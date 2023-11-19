@@ -26,7 +26,7 @@ router.post("",
   dtoValidationMiddleware(CreatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(Personnel, { $or: [{ national_code: "national_code" }, { personnel_code: "personnel_code" }] }, "Personnel already exists!"),
   createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "section_id", "camera_whitelist", "is_active", "is_employee", "is_dismissed"], Personnel, { next: true, save: "doc" }),
-  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], {name:"avatar"}, "doc"),
+  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { name: "avatar" }, "doc"),
 );
 
 // //add route for delete jobTitle
@@ -38,7 +38,16 @@ router.post("",
 
 //route for get personnels list
 router.get("",
-  readMiddleware(Personnel, (search) => { return { ip: { $regex: search, $options: "i" } } }, { next: true }),
+  readMiddleware(Personnel, (search) => {
+    return {
+      $or: [
+        { first_name: { $regex: search } },
+        { last_name: { $regex: search } },
+        { national_code: { $regex: search } },
+        { personnel_code: { $regex: search } },
+        { phone_number: { $regex: search } }]
+    }
+  }, { next: true }),
   async function (req: Request, res: Response, next: NextFunction) {
     try {
       let data: object[] = [];
@@ -109,7 +118,7 @@ router.get("/:id",
 //add route for edit personnel
 router.patch("/:id",
   updateByIdMiddleware(Personnel, { next: true, save: "doc" }),
-  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], {name:"avatar"}, "doc"),
+  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { name: "avatar" }, "doc"),
 );
 
 //add route for delete personnel
