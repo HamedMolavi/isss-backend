@@ -22,12 +22,12 @@ router.post("",
 
 //route for get sections list
 router.get("",
-  readMiddleware(Section, (search) => { return { ip: { $regex: search, $options: "i" } } })
+  readMiddleware(Section, (search) => { return { ip: { $regex: search, $options: "i" } } }, { populate: true })
 );
 
 //route for get section by id from DB
 router.get("/:id",
-  readByIdMiddleware(Section)
+  readByIdMiddleware(Section,  { populate: true })
 );
 
 //add route for edit section

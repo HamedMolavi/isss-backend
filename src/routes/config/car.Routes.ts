@@ -33,7 +33,7 @@ router.get("",//["brand", "owner", "color"]
 
 //route for get car by id from DB
 router.get("/:id",
-  readByIdMiddleware(Car, { send: sendFunction }),
+  readByIdMiddleware(Car, { send: sendFunction, populate: true }),
 );
 
 //add route for edit car
