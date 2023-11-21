@@ -166,6 +166,8 @@ export async function faceLogResponse(response: any, allowed: boolean | undefine
       time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
       allowed: personnel?.camera_whitelist.includes(log._source.camera_id) ?? false,
       video: cameras.find((cam) => cam._id.toString() === log._source.camera_id.toString())?.url ?? "",
+      face_crop: log?._source?.face_crop,
+      confidence: log?._source?.confidence,
     };
     data.push(result);
   };
