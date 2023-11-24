@@ -295,26 +295,30 @@ export async function dynamicRequestToElasticSearch(
   }
 }
 
-export async function requestForGetPersonnel(personnelId: string) {
-  const response = await axios.get(trackerURL, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: {
-      size: 1,
-      query: {
-        match: {
-          personnel_id: personnelId,
-        },
+export async function requestForGetPersonnel(personnelId: string): Promise<any> {
+  try {
+    const response = await axios.get(trackerURL, {
+      headers: {
+        "Content-Type": "application/json",
       },
-      sort: [
-        {
-          timestamp: {
-            order: "desc",
+      data: {
+        size: 1,
+        query: {
+          match: {
+            personnel_id: personnelId,
           },
         },
-      ],
-    },
-  });
-  return response;
+        sort: [
+          {
+            timestamp: {
+              order: "desc",
+            },
+          },
+        ],
+      },
+    });
+    return response;
+  } catch (error) {
+    return {};
+  }
 }
