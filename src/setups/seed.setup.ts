@@ -75,6 +75,7 @@ async function makeSeedSection(department: IDepartment): Promise<ISection | unde
 }
 async function makeSeedModel(): Promise<IModel[]> {
   let models = [];
+  if (!process.env["MODELS"]) return [];
   for (const modelCategory of process.env["MODELS"].split(",").map((el) => el.trim())) {
     if (!(await read(Model, { query: { category: modelCategory } })).length) {
       models.push(...await create(Model, {

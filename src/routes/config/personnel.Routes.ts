@@ -60,7 +60,11 @@ router.get("",
 
         let _camera;
         if (logPersonnel?.data?.hits?.hits?.length > 0) {
-          _camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate("section_id").exec();
+          try {
+            _camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate("section_id").exec();
+          } catch (error: any) {
+            if (error.name.toString() === 'CastError') console.log(`!!! Elastic data error: ${logPersonnel.data.hits.hits[0]?._source?.camera_id} as camera._id is wrong`);
+          }
         }
         // else {
         //   data.push(per);
