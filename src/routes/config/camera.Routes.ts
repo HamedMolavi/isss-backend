@@ -4,12 +4,15 @@ import { getStreamUri, testCameraMiddleware } from "../../tools/camera.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import { CameraInfoBody, CreateCameraBody } from "../../validation/dto/camera.dto";
 import { existCheck } from "../../validation/db";
-import { CameraInfoKeys } from "../../types/interfaces/camera.interface";
+import { CameraInfoKeys, ICamera } from "../../types/interfaces/camera.interface";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { readMiddleware, readByIdMiddleware } from "../../db/mongo/read.database";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 import { ApiError } from "../../types/classes/error.class";
+import { Types } from "mongoose";
+import User from "../../db/mongo/models/user";
+import { IUser } from "../../types/interfaces/user.interface";
 
 //create router for add to server
 const router: Router = Router();
@@ -20,7 +23,19 @@ router.post(
   dtoValidationMiddleware(CreateCameraBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(Camera, { $and: [{ ip: "ip" }, { nvr: "nvr" }], }, "Camera already exists!"),
   getStreamUri(CameraInfoKeys), //get live stream uri(rtsp link from camera)
-  createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "muted", "camera_type", "url"], Camera)
+  createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "muted", "camera_type", "url"], Camera, { next: true, save: "addedCamera" }),
+  // TODO: clean this up => it should be handled in UI
+  async function middleware(req: Request, res: Response, next: NextFunction) {
+    const cam: ICamera & Required<{ _id: Types.ObjectId; }> = req.body["addedCamera"];
+    let user = await User.findById(req.user._id).exec() as IUser & Required<{ _id: Types.ObjectId; }>;
+    let accessedCameras = user.camera_access ?? [];
+    accessedCameras.push(cam._id);
+    user.camera_access = accessedCameras;
+    await User.findOneAndUpdate(req.user._id, { $set: { camera_access: accessedCameras } }, {
+      new: true,
+      overwrite: true
+    });
+  }
 );
 
 //route for get id camera with ip from back RTSPtoWEBRTC
