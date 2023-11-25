@@ -64,7 +64,7 @@ PersonnelSchema.methods.toJSON = function () {
 
 
 
-PersonnelSchema.post("remove", async (doc: (IPersonnel & Required<{ _id: Schema.Types.ObjectId; }>)) => {
+PersonnelSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc: (IPersonnel & Required<{ _id: Schema.Types.ObjectId; }>)) => {
   let images = await PersonImage.find({ person_id: doc._id }).exec();
   for (const image of images) {
     const vector = image.vector;

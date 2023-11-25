@@ -54,6 +54,9 @@ const strategies: ((...params: any[]) => any)[] = [
         uri = uri?.replace(WORD_BEFORE_REPLACE_STREAM, WORD_AFTER_REPLACE_STREAM + nvr);
         return uri;
     },
+    async function third(camInfo): Promise<string> {
+        return 'rtsp://{username}:{password}@{ip}:554/live'; // best guess
+    },
     async function error(next: NextFunction) {
         next(new ApiError(500, "Internal Error!"));
     }

@@ -45,7 +45,7 @@ CameraSchema.post('save', async function (doc) {
 
 
 
-CameraSchema.post("remove", async (doc) => {
+CameraSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
   let deleted_model_to_cameras = await ModelToCamera.deleteMany({
     camera_id: doc._id,
   }, { returnDocument: "after" }).exec();

@@ -11,7 +11,7 @@ const ModelSchema: Schema<IModel> = new Schema({
     collection: "Model"
 });
 
-ModelSchema.post("remove", async (doc) => {
+ModelSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
     let deleted_model_to_cameras = await ModelToCamera.deleteMany({
         model_id: doc._id,
     }, { returnDocument: "after" }).exec();

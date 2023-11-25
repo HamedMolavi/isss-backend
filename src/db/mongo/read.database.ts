@@ -34,12 +34,12 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         ? await model.find(query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
         : await model.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
       //return response not found to client if not found
-      if (!docs) {
+      if (!docs.length && !options?.next) {
         req.flash("error", model.name + " not found");
         return next(new ApiError(404, model.name + " not found"));
       };
 
-      if (!!options?.populate && !!req.query.populate) {
+      if (!!docs.length && !!options?.populate && !!req.query.populate) {
         let populates = req.query.populate instanceof String
           ? req.query.populate.split(",").map((el) => el.trim())
           : (req.query.populate as string[]).map((el) => el.trim());
@@ -113,14 +113,14 @@ export function readByIdMiddleware(model: any, options?: { next?: boolean, save?
         else req.body["doc"] = doc;
         return next();
       };
-
       //send response to client
       return res.status(200).json({
         success: true,
         data: !!options?.send ? options.send(doc) : doc,
       });
     } catch (err: any) {
-      return next(new ApiError(500, "internal server error , " + err.message));
+      if (err.kind === 'ObjectId') return next(new ApiError(400, `id must be valid: ${req.params.id}`));
+      else return next(new ApiError(500, "internal server error , " + err.message));
     }
   }
 };

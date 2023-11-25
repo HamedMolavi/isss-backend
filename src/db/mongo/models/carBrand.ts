@@ -9,7 +9,7 @@ const CarBrandSchema: Schema<ICarBrand> = new Schema({
     collection: "Car_Brand"
 });
 
-CarBrandSchema.post("remove", async (doc) => {
+CarBrandSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
     const defaultCarBrandId = (await CarBrand.findOne({ name: "default" }))?._id;
     let updated_cars = await Car.updateMany({
         brand: doc._id,

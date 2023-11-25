@@ -12,7 +12,7 @@ const SectionSchema: Schema<ISection> = new Schema({
     collection: "Section"
 });
 
-SectionSchema.post("remove", async (doc) => {
+SectionSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
     const defaultSectionId = (await Section.findOne({ name: "default" }))?._id;
     let updated_personnel = await Personnel.updateMany({
         section_id: doc._id,

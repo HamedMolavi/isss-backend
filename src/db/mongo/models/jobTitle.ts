@@ -10,7 +10,7 @@ const JobTitleSchema: Schema<IJobTitle> = new Schema({
     collection: "Job"
 });
 
-JobTitleSchema.post("remove", async (doc) => {
+JobTitleSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
     const defaultJobTitleId = (await JobTitle.findOne({ name: "default" }))?._id;
     let updated_personnel = await Personnel.updateMany({
         job_id: doc._id,

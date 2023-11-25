@@ -13,7 +13,7 @@ const DepartmentSchema: Schema<IDepartment> = new Schema({
     collection: "Department"
 });
 
-DepartmentSchema.post("remove", async (doc) => {
+DepartmentSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
     const defaultDepartmentId = (await Department.findOne({ name: "default" }))?._id
     let updated_sections = await Section.updateMany({
         department_id: doc._id,

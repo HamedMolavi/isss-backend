@@ -11,7 +11,7 @@ const CarColorSchema: Schema<ICarColor> = new Schema({
     collection: "Car_Color"
 });
 
-CarColorSchema.post("remove", async (doc) => {
+CarColorSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
     const defaultCarColorId = (await CarColor.findOne({ name: "default" }))?._id;
     let updated_cars = await Car.updateMany({
         color: doc._id,

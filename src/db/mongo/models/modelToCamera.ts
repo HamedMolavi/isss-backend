@@ -14,7 +14,7 @@ const ModelToCameraSchema: Schema<IModelToCamera> = new Schema(
   }
 );
 
-ModelToCameraSchema.post("remove", async (doc) => {
+ModelToCameraSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
   let deleted_schedules = await Schedule.deleteMany({
       model_camera_id: doc._id,
   }, { returnDocument: "after" }).exec();
