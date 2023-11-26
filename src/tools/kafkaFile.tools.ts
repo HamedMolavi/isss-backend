@@ -39,7 +39,7 @@ export class SnapshotKafka {
     this.buffer = {};
     this.consumer = new Kafka({
       logLevel: logLevel.ERROR,
-      brokers: ["192.168.1.20:9092"],
+      brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
     }).consumer({ groupId: "sdgfsdfgas" });
     this.consumer
       .subscribe({ topic: "snapshot", fromBeginning: false })
@@ -64,7 +64,7 @@ export class SnapshotKafka {
 
     this.producer = new Kafka({
       logLevel: logLevel.ERROR,
-      brokers: ["192.168.1.20:9092"],
+      brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
     }).producer({
       retry: {
         restartOnFailure: async (err) =>

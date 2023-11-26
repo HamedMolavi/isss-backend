@@ -9,7 +9,7 @@ import {
 
 let producer = new Kafka({
   logLevel: logLevel.ERROR,
-  brokers: ["192.168.1.20:9092"],
+  brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
 }).producer({
   retry: {
     restartOnFailure: async (err) =>
