@@ -18,7 +18,7 @@ const CameraSchema: Schema<ICamera> = new Schema(
     password: { type: String, required: true },
     muted: [Schema.Types.ObjectId],
     is_enabled: { type: Boolean, required: true },
-    damaged: { type: Boolean, required: false },
+    damaged: { type: Boolean, required: false, default: false },
     create_date: { type: Date, default: Date.now },
     // camera_type: { type: String, required: true, enum: Object.values(CameraTypes) }
     camera_type: { type: String, required: true, enum: Object.values(CameraTypes) as string[], default: CameraTypes.enter }
@@ -37,7 +37,7 @@ CameraSchema.post('save', async function (doc) {
       _id: new mongoose.Types.ObjectId(),
       model_id: model._id,
       camera_id: doc._id,
-      is_enabled: false,
+      is_enabled: true,
     });
     await _model2CameraSave.save();
   };
