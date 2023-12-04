@@ -13,6 +13,7 @@ import { ApiError } from "../../types/classes/error.class";
 import { Types } from "mongoose";
 import User from "../../db/mongo/models/user";
 import { IUser } from "../../types/interfaces/user.interface";
+import { injectDataMiddleware } from "../../tools/request.tools";
 
 //create router for add to server
 const router: Router = Router();
@@ -58,7 +59,7 @@ router.get("/:id",
 
 //add route for edit camera
 router.patch("/:id",
-  //{ update: { "number_plate": stringifyPlate }, send: sendFunction }
+  injectDataMiddleware((body: { [key: string]: any }) => body?.damaged ?? false, { injData: "damaged" }),
   updateByIdMiddleware(Camera) // TODO: test for edit
 );
 
