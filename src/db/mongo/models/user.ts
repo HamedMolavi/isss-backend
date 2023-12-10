@@ -12,7 +12,7 @@ const UserSchema: Schema<IUserDocument> = new Schema(
     camera: { type: Boolean, default: false },
     report: { type: Boolean, default: false },
     configuration: { type: Boolean, default: false },
-    role: { type: String, required: true },
+    role: { type: String, default: "user" },
     created_date: { type: Date, default: Date.now },
     camera_access: { type: Array<mongoose.Types.ObjectId>, ref: "Camera", default: [] }
   },
