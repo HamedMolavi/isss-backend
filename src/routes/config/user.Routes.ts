@@ -20,7 +20,7 @@ router.post("",
   existCheck(User, { $or: [{ username: "username" }, { phone_number: "phone_number" }] }, "User or Phone number already exists!"),
   //verify password strength
   passwordValidator(UserPasswordRequirements),
-  createMiddleware(["username", "password", "phone_number", "role", "event", "camera", "report", "configuration", "camera_access"], User),
+  createMiddleware(["username", "password", "phone_number", "event", "camera", "report", "configuration", "camera_access"], User),
 );
 
 //route for get users list
