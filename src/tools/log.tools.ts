@@ -87,6 +87,7 @@ export async function plateLogResponse(
       color: "",
       brand: "",
       allowed: false,
+      crop: log._source?.crop,
       video: cameras.find((cam) => cam._id.toString() === srcCamId)?.url ?? "",
     };
     //get compare plate_number from elastic search to cars plate_number and get owner, color, brand fore search api
