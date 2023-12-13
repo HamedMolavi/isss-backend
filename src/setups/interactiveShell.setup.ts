@@ -15,8 +15,8 @@ async function act(action: string) {
   switch (true) { // explicit actions
     //------------------------------------------------------------------//
     case action == '\u0003':// ctrl-c
-      console.log("EXITING")
-      process.exit(1);
+      console.log("EXITING!");
+      process.kill(process.ppid);
     //------------------------------------------------------------------//
     case action == 'clear':
       console.clear();
@@ -60,8 +60,11 @@ async function act(action: string) {
       let totalCpu = (process.cpuUsage().user + process.cpuUsage().system) / 10E6; //sec
       let uptime = process.uptime();
       let cpuPercentage = (totalCpu / uptime).toFixed(2);
+      const memoryUsage = process.memoryUsage();
+      const totalMemory = memoryUsage.rss + memoryUsage.heapTotal + memoryUsage.heapUsed + memoryUsage.external;
+      const totalMemoryInMB = (totalMemory / (1024 * 1024)).toFixed(2);
       console.log("parent PID\tPID\tCPU\t\tMEM\tUPtime");
-      console.log(`${process.ppid}\t\t${process.pid}\t${cpuPercentage}%\t\t${process.memoryUsage}\t${Math.floor(uptime)} s`)
+      console.log(`${process.ppid}\t\t${process.pid}\t${cpuPercentage}%\t\t${totalMemoryInMB}MB\t${Math.floor(uptime)} s`);
       break;
     //------------------------------------------------------------------//
     case action == "stop":
