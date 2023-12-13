@@ -7,9 +7,9 @@ export default function setExceptionHandler() {
       try {
         console.error(`process.on ${type}`)
         console.error(e)
-        process.exit(1)
+        process.kill(process.ppid);
       } catch (_) {
-        process.exit(1)
+        process.kill(process.ppid);
       };
     });
   });
