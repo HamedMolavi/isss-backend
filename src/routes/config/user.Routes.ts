@@ -38,10 +38,7 @@ router.get("/:id",
 //add route for edit user
 router.patch("/:id",
   dtoValidationMiddleware(UpdateUserBody, { skipMissingProperties: true, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  (req, res, next) => {
-    if (!req.body["password"]) next();
-    else passwordValidator(UserPasswordRequirements)(req, res, next);
-  },
+  passwordValidator(UserPasswordRequirements),
   updateByIdMiddleware(User, {
     ignore: ["role"], update: {
       "camera_access": {
