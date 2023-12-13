@@ -29,7 +29,7 @@ router.get("",
 );
 //route for get user by id from DB
 router.get("/:id",
-  readByIdMiddleware(User,  { populate: true }),
+  readByIdMiddleware(User, { populate: true }),
 );
 
 //add route for edit user
@@ -39,7 +39,7 @@ router.patch("/:id",
     if (!req.body["password"]) next();
     else passwordValidator(UserPasswordRequirements)(req, res, next);
   },
-  updateByIdMiddleware(User), // TODO: test for edit
+  updateByIdMiddleware(User, { ignore: ["role"] })
 );
 //add route for delete user
 router.delete("/:id",
