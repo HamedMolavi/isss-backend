@@ -64,7 +64,14 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       //return response to client
       return res.status(200).json({
         success: true,
-        data: !!options?.send ? docs.map(options.send as (value: Document<any, any, any>, index: number, array: Document<any, any, any>[]) => unknown) : docs,
+        data: !!options?.send
+          ? docs.reduce((pre, cur) => {
+            const fn = options.send as CallableFunction;
+            const el = fn(cur);
+            if (!!el) pre.push(el);
+            return pre;
+          }, [] as Document<any, any, any>[])
+          : docs,
         page: page,
         perPage: perPage,
         total: await model.countDocuments().exec(),

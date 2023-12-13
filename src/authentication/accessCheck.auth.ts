@@ -26,3 +26,17 @@ export default function accessCheck(access: Access, role: string) {
     return next();
   };
 };
+
+// export function cameraAccessCheck(req: Request, _res: Response, next: NextFunction) {
+//   const user = req.user;
+//   switch (user.role) {
+//     case "admin":
+//       break;
+//     case "user":
+//       user.camera_access
+//       break;
+//     default:
+//       break;
+//   }
+//   return next();
+// };
