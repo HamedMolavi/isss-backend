@@ -61,21 +61,22 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         else req.body["docs"] = docs;
         return next();
       };
+      let data = !!options?.send
+        ? docs.reduce((pre, cur) => {
+          const fn = options.send as CallableFunction;
+          const el = fn(cur, req);
+          if (!!el) pre.push(el);
+          return pre;
+        }, [] as Document<any, any, any>[])
+        : docs
       //return response to client
       return res.status(200).json({
         success: true,
-        data: !!options?.send
-          ? docs.reduce((pre, cur) => {
-            const fn = options.send as CallableFunction;
-            const el = fn(cur, req);
-            if (!!el) pre.push(el);
-            return pre;
-          }, [] as Document<any, any, any>[])
-          : docs,
+        data,
         page: page,
         perPage: perPage,
-        total: await model.countDocuments().exec(),
-        pages: Math.ceil((await model.countDocuments().exec()) / perPage),
+        total: data.length,
+        pages: Math.ceil((data.length) / perPage),
       });
     } catch (err: any) {
       return next(new ApiError(500, "internal server error , " + err.message));
