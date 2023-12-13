@@ -67,7 +67,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         data: !!options?.send
           ? docs.reduce((pre, cur) => {
             const fn = options.send as CallableFunction;
-            const el = fn(cur);
+            const el = fn(cur, req);
             if (!!el) pre.push(el);
             return pre;
           }, [] as Document<any, any, any>[])

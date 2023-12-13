@@ -10,6 +10,7 @@ import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
+import { Types } from "mongoose";
 
 //create router for add to server
 const router: Router = Router();
@@ -20,7 +21,9 @@ router.post("",
   existCheck(User, { $or: [{ username: "username" }, { phone_number: "phone_number" }] }, "User or Phone number already exists!"),
   //verify password strength
   passwordValidator(UserPasswordRequirements),
-  createMiddleware(["username", "password", "phone_number", "event", "camera", "report", "configuration", "camera_access"], User),
+  createMiddleware(["username", "password", "phone_number", "event", "camera", "report", "configuration",
+    "camera_access"], User),
+  // { "camera_access": (body: any) => body["camera_access"].map((str: string) => new Types.ObjectId(str)) }], User),
 );
 
 //route for get users list
@@ -39,7 +42,14 @@ router.patch("/:id",
     if (!req.body["password"]) next();
     else passwordValidator(UserPasswordRequirements)(req, res, next);
   },
-  updateByIdMiddleware(User, { ignore: ["role"] })
+  updateByIdMiddleware(User, {
+    ignore: ["role"], update: {
+      "camera_access": {
+        name: "camera_access",
+        fn: async (payload) => payload["camera_access"].map((str: string) => new Types.ObjectId(str))
+      }
+    }
+  })
 );
 //add route for delete user
 router.delete("/:id",

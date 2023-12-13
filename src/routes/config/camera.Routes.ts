@@ -10,7 +10,7 @@ import { readMiddleware, readByIdMiddleware } from "../../db/mongo/read.database
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 import { ApiError } from "../../types/classes/error.class";
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 import User from "../../db/mongo/models/user";
 import { IUser } from "../../types/interfaces/user.interface";
 import { injectDataMiddleware } from "../../tools/request.tools";
@@ -49,12 +49,12 @@ router.post(
 
 //route for get cameras list
 router.get("",
-  readMiddleware(Camera, (search) => { return { ip: { $regex: search, $options: "i" } } }, { populate: true })
+  readMiddleware(Camera, (search) => { return { ip: { $regex: search, $options: "i" } } }, { populate: true, send: sendFunction }),
 );
 
 //route for get camera by id from DB
 router.get("/:id",
-  readByIdMiddleware(Camera)
+  readByIdMiddleware(Camera, { populate: true })
 );
 
 //add route for edit camera
@@ -67,5 +67,12 @@ router.patch("/:id",
 router.delete("/:id",
   deleteByIdMiddleware(Camera) // delete also triggers the remove post function of Camera schema
 );
-
+function sendFunction(
+  camera: (Document<unknown, any, ICamera> & Omit<ICamera & Required<{ _id: Types.ObjectId; }>, never>),
+  req: Request) {
+  if (req.user.role === "admin") return camera
+  else if (req.user.role === "user") if (req.user.camera_access?.some(((id) => id == camera.id))) return camera;
+  // return undefined to skip if user has no access
+  return;
+};
 export default router;
