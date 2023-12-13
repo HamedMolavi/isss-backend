@@ -31,8 +31,12 @@ async function act(action: string) {
       if (!cmd) return console.log("command needed as argument of watch!");
       let args = action.split(" ").slice(1, -1);
       let timeout = args.includes("-n") ? parseInt(args[args.indexOf("-n") + 1]) * 1000 : 1000;
-      console.log(`running command ${cmd} each ${timeout / 1000} sec...`);
-      watchInterval = setInterval(() => { act(cmd as string) }, timeout);
+      let doClear = args.includes("-c") ? true : false;
+      console.log(`running command ${cmd} every ${timeout / 1000} sec...`);
+      watchInterval = setInterval(() => {
+        if (doClear) console.clear();
+        act(cmd as string);
+      }, timeout);
       break;
     //------------------------------------------------------------------//
     case action.startsWith("env"):
@@ -62,7 +66,7 @@ async function act(action: string) {
       let cpuPercentage = (totalCpu / uptime).toFixed(2);
       const memoryUsage = process.memoryUsage();
       const totalMemory = memoryUsage.rss + memoryUsage.heapTotal + memoryUsage.heapUsed + memoryUsage.external;
-      const totalMemoryInMB = (totalMemory / (1024 * 1024)).toFixed(2);
+      const totalMemoryInMB = (totalMemory / (1024 * 1024)).toFixed(1);
       console.log("parent PID\tPID\tCPU\t\tMEM\tUPtime");
       console.log(`${process.ppid}\t\t${process.pid}\t${cpuPercentage}%\t\t${totalMemoryInMB}MB\t${Math.floor(uptime)} s`);
       break;
@@ -81,9 +85,9 @@ async function act(action: string) {
       console.log("\tctrl-c");
       console.log("\tclear");
       console.log("\trs");
-      console.log("\twatch");
-      console.log("\tenv");
-      console.log("\texec");
+      console.log("\twatch [-n ?] [-c] command");
+      console.log("\tenv [name]");
+      console.log("\texec command");
       console.log("\tps");
       console.log("\tstop");
       break;
