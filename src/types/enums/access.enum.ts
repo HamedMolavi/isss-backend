@@ -3,4 +3,5 @@ export enum Access {
   Camera = "camera",
   Report = "report",
   Configuration = "configuration",
+  Extra = "extra",
 }

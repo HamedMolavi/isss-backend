@@ -10,7 +10,7 @@ import schedulesreport from "./report/schedulesReport.Routes";
 import reportDepartments from "./report/departmentReport.Routes";
 
 import { passportGate } from "../authentication/authorize.auth";
-import accessCheck from "../authentication/accessCheck.auth";
+import accessCheck, { userCanGetHisInfo } from "../authentication/accessCheck.auth";
 import { Access } from "../types/enums/access.enum";
 
 const router: Router = Router();
@@ -28,7 +28,8 @@ router.use(passportGate);
 
 //add rotes app
 router.use("/config/user", accessCheck(Access.Configuration, "user"), userConfig)
-router.use("/config/admin", accessCheck(Access.Configuration, "admin"), adminConfig)
+// this allows admin to pass thru, while checks extraFunction for "user" role.
+router.use("/config/admin", accessCheck(Access.Extra, "", { extraFunction: userCanGetHisInfo}), adminConfig)
 
 router.use("/reports", accessCheck(Access.Configuration, "user"), report);
 router.use("/reportDepartmets", reportDepartments);
