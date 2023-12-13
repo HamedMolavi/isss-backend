@@ -1,6 +1,7 @@
-import { log } from "../tools/util.tools";
+import { spawn } from "child_process";
 //TODO: add more commands
 const stdin = process.stdin;
+let watchInterval: NodeJS.Timer | undefined = undefined;
 export async function setupInteractive(): Promise<void> {
   // Setup Interactive stdin
   process.stdin.resume();
@@ -11,27 +12,79 @@ export async function setupInteractive(): Promise<void> {
 };
 
 async function act(action: string) {
-  switch (action) { // explicit actions
-    case '\u0003':// ctrl-c
-      process.exit(0);
-    case 'clear':
+  switch (true) { // explicit actions
+    //------------------------------------------------------------------//
+    case action == '\u0003':// ctrl-c
+      console.log("EXITING")
+      process.exit(1);
+    //------------------------------------------------------------------//
+    case action == 'clear':
       console.clear();
       break;
-
-
-    default: // implicit actions
-      if (action.startsWith("close consumer")) {
-        const consumerIds = action.split("close consumer ")[1];
-        for (const consumerId of consumerIds.split(" ")) {
-          const consumer = process["CONSUMERS"].get(consumerId);
-          await consumer?.delete().then(_ => log("consumer", consumerId, "deleted!"))
-        }
-      } else {
-        log("Unknown command!");
-        break;
-      }
+    //------------------------------------------------------------------//
+    case action == 'rs':
+      process.exit(0);
+      break;
+    //------------------------------------------------------------------//
+    case action.startsWith("watch"):
+      let cmd = action.split(" ").slice(1).at(-1);
+      if (!cmd) return console.log("command needed as argument of watch!");
+      let args = action.split(" ").slice(1, -1);
+      let timeout = args.includes("-n") ? parseInt(args[args.indexOf("-n") + 1]) * 1000 : 1000;
+      console.log(`running command ${cmd} each ${timeout / 1000} sec...`);
+      watchInterval = setInterval(() => { act(cmd as string) }, timeout);
+      break;
+    //------------------------------------------------------------------//
+    case action.startsWith("env"):
+      let name = action.split(" ").slice(1).at(-1);
+      console.log(!!name ? process.env[name] : process.env);
+      break;
+    //------------------------------------------------------------------//
+    case action.startsWith("exec"):
+      let command = action.split(" ").slice(1).at(-1);
+      if (!command) return console.log("command needed as argument of exec!");
+      let cArgs = action.split(" ").slice(1, -1);
+      let s = spawn(command, cArgs, { shell: true });
+      s.stdout.on('data', (data) => {
+        console.log(`stdout: ${data}`);
+      });
+      s.stderr.on('data', (data) => {
+        console.error(`stderr: ${data}`);
+      });
+      s.on('close', (code) => {
+        console.log(`child process exited with code ${code}`);
+      });
+      break;
+    //------------------------------------------------------------------//
+    case action == "ps":
+      let totalCpu = (process.cpuUsage().user + process.cpuUsage().system) / 10E6; //sec
+      let uptime = process.uptime();
+      let cpuPercentage = (totalCpu / uptime).toFixed(2);
+      console.log("parent PID\tPID\tCPU\t\tMEM\tUPtime");
+      console.log(`${process.ppid}\t\t${process.pid}\t${cpuPercentage}%\t\t${process.memoryUsage}\t${Math.floor(uptime)} s`)
+      break;
+    //------------------------------------------------------------------//
+    case action == "stop":
+      if (!!watchInterval) {
+        clearInterval(watchInterval);
+        watchInterval = undefined;
+      };
+      console.log("watch command stopped.")
+      break;
+    //------------------------------------------------------------------//
+    default:
+      console.log(`Unknown command (${action})!`);
+      console.log("List of commands:");
+      console.log("\tctrl-c");
+      console.log("\tclear");
+      console.log("\trs");
+      console.log("\twatch");
+      console.log("\tenv");
+      console.log("\texec");
+      console.log("\tps");
+      console.log("\tstop");
+      break;
   };
-
 
 
 
