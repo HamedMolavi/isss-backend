@@ -3,10 +3,8 @@ import { IConsumer } from "./interfaces/kafka.interface";
 export { };
 declare global {
   namespace NodeJS {
-    interface Process {
-      CONSUMERS: Map<string, IConsumer | undefined>;
-      MODELS: string[];
-    }
+    // interface Process {
+    // }
     interface ProcessEnv {
       PORT_HTTP: string
       PORT_HTTPS: string
