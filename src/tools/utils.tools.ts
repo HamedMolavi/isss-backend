@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import inspector from 'inspector';
 
 export function randomUuid(len: number = 12) {
   if (len > 36) throw new Error("Can't make a random string more than 36 character.")
@@ -15,4 +16,8 @@ export function setNestedObjectValue(obj: any, path: string[], value: any): void
     // Recurse with the rest of the path
     setNestedObjectValue(obj[key], path, value);
   };
+};
+
+export function isInDebugMode(): boolean {
+  return inspector.url() !== undefined;
 };
