@@ -115,9 +115,9 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       };
     };
     let plate_number_engglish: string = "";
-    // if (input.plate) {
-    //   plate_number_engglish = `${input.plate.first}${englishPlateDict[input.plate.second]}${input.plate.third}${input.plate.fifth}`;
-    // };
+    if (!!input.plate && Object.values(input.plate).reduce((pre, curr)=> pre + (!!curr ? 1:0), 0)) { // all of fields are there
+      plate_number_engglish = `${input.plate.first}${englishPlateDict[input.plate.second]}${input.plate.third}${input.plate.fifth}`;
+    };
 
     let _data: object[] = [];
     //get log for other models data from elastic
