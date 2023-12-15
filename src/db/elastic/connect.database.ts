@@ -33,7 +33,8 @@ export async function dynamicRequestToElasticSearch(
     jsonResuest.query = {
       bool: {
         filter: [],
-        should: []
+        should: [],
+        "minimum_should_match": 1
       },
     };
 

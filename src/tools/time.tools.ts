@@ -76,8 +76,8 @@ export default class Time {
   };
 
   static toString(date: string, time: Clock, isUS = false): string {
-    if (isUS) {
-      let temp = date.split("/").reverse().join("/");
+    if (isUS) {// month/day/year
+      let temp = date.split("/");
       date = [temp[2], temp[0], temp[1]].join("/");
     };
     date = Time.makeTwoDigits(date);
@@ -91,28 +91,21 @@ export default class Time {
   };
 
   static getEpochList(startDate: string, stopDate: string, start_time: Clock, stop_time: Clock, timezone: string): object[] {
-    let start_date_iso: string = this.toString(startDate, start_time);// 2023-09-13T00:00:00.000Z
-    let start_date = new Date(start_date_iso);// 2023-09-13T00:00:00.000Z
-    let stop_date_iso: string = this.toString(stopDate, stop_time);// 2023-09-13T23:59:00.000Z
-    let stop_date = new Date(stop_date_iso);// 2023-09-13T23:59:00.000Z
+    let start_date = new Date(startDate + " " + start_time + Time.getUtcOffset(timezone));// TODO: offset (+3:30) based on timezone
+    let stop_date = new Date(stopDate + " " + stop_time + Time.getUtcOffset(timezone));// TODO: offset (+3:30) based on timezone
 
     let epoch_list: object[] = [];
     let start_ens_epoch = {
       gte: "", lte: "" // representing the start and end times of that day in epoch time
     };
     for (let d = start_date; d <= stop_date; d.setDate(d.getDate() + 1)) { // incrementing the date by one day at each iteration.
-      let x1 = this.toString(d.toLocaleDateString("en-US", { timeZone: timezone }), start_time, true); // new Date(t.toLocaleString() + "+0")
-      let x = this.toList(x1);
-      let z1 = this.toString(d.toLocaleDateString("en-US", { timeZone: timezone }), stop_time, true);
-      let z = this.toList(z1);
-      start_ens_epoch.gte = new Date(Date.UTC(x[0], x[1], x[2], x[3], x[4], x[5])).getTime().toString();
-      start_ens_epoch.lte = new Date(Date.UTC(z[0], z[1], z[2], z[3], z[4], z[5])).getTime().toString();
-      // let r1 = new Date(Date.UTC(x[0],x[1],x[2],x[3],x[4],x[5])).getTime().toString();
-      // let r2 = new Date(Date.UTC(z[0],z[1],z[2],z[3],z[4],z[5])).getTime().toString();
-      // start_ens_epoch.gte = Date.UTC(start_date_daily[0],start_date_daily[1],start_date_daily[2],start_date_daily[3],start_date_daily[4],start_date_daily[5]).toString();
-      // start_ens_epoch.lte = Date.UTC(stop_date_daily[0],stop_date_daily[1],stop_date_daily[2],stop_date_daily[3],stop_date_daily[4],stop_date_daily[5]).toString();
+      start_ens_epoch.gte = String(d.getTime())
+      let f = new Date(d);
+      f.setHours(stop_date.getHours());
+      f.setMinutes(stop_date.getMinutes());
+      start_ens_epoch.lte = String(f.getTime())
       epoch_list.push(start_ens_epoch);
-      start_ens_epoch = { gte: "", lte: "" };
+      // start_ens_epoch = { gte: "", lte: "" };
     };
     return epoch_list;
   };
@@ -141,5 +134,16 @@ export default class Time {
       req.flash("error", "Overlaped Schedule!");
       return next(new ApiError(400, "Overlaped Schedule!"));
     };
+  };
+
+  static getUtcOffset(timeZone: string) {
+    const timeZoneName = Intl.DateTimeFormat("ia", {
+      timeZoneName: "short",
+      timeZone
+    }).formatToParts().find((i) => i.type === "timeZoneName")?.value;
+    if (!timeZoneName) return 0;
+    const offset = timeZoneName.slice(3);
+    if (!offset) return 0;
+    return offset;
   };
 };
