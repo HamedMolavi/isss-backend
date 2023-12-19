@@ -79,11 +79,11 @@ async function makeSeedModel(): Promise<IModel[]> {
   for (const modelCategory of process.env["MODELS"].split(",").map((el) => el.trim())) {
     if (!(await read(Model, { query: { category: modelCategory } })).length) {
       models.push(...await create(Model, {
-        name: modelCategory,
+        name: modelCategory+"0",
         category: modelCategory,
         uri: `models/${modelCategory}.onnx`
       }));
-      console.log(`\t++ Seed data Model: name=${modelCategory}`);
+      console.log(`\t++ Seed data Model: name=${modelCategory}0`);
     };
   }
   return models;
