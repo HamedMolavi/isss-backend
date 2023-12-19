@@ -12,7 +12,8 @@ export type DefaultEnv = {
   REQUEST_LOG_DIR: string
   RECORD_STREAM_TIME: string
   MODELS: string,
-  KAFKA_BOOTSTRAP:string
+  KAFKA_BOOTSTRAP: string
+  MAX_LOAD: string
 }
 
 const defaults: DefaultEnv = {
@@ -29,6 +30,7 @@ const defaults: DefaultEnv = {
   "RECORD_STREAM_TIME": "10",
   "SESSION_SECRET": "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4i",
   "MODELS": "plate,human,face,sabotage,fire",
-  "KAFKA_BOOTSTRAP":"localhost:9092"
+  "KAFKA_BOOTSTRAP": "localhost:9092",
+  "MAX_LOAD": "100"
 };
 export default defaults;
