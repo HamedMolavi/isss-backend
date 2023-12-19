@@ -86,14 +86,20 @@ async function act(action: string) {
       break;
     //------------------------------------------------------------------//
     case action == "ps":
-      let totalCpu = (process.cpuUsage().user + process.cpuUsage().system) / 10E6; //sec
-      let uptime = process.uptime();
-      let cpuPercentage = (totalCpu / uptime).toFixed(2);
-      const memoryUsage = process.memoryUsage();
-      const totalMemory = memoryUsage.rss + memoryUsage.heapTotal + memoryUsage.heapUsed + memoryUsage.external;
-      const totalMemoryInMB = (totalMemory / (1024 * 1024)).toFixed(1);
-      console.log("parent PID\tPID\tCPU\t\tMEM\tUPtime");
-      console.log(`${process.ppid}\t\t${process.pid}\t${cpuPercentage}%\t\t${totalMemoryInMB}MB\t${Math.floor(uptime)} s`);
+      let startCpuUsage = process.cpuUsage();
+      setTimeout(() => {
+        let totalCpu = (process.cpuUsage().user + process.cpuUsage().system) / 10E6; //sec
+        let uptime = process.uptime();
+        let cpuAveragePercentage = (totalCpu / uptime).toFixed(2);
+        let diffCpuUsage = process.cpuUsage(startCpuUsage);
+        let totalCpuDiff = (diffCpuUsage.user + diffCpuUsage.system) / 10E6; //sec
+        let cpuPercentage = (totalCpuDiff / 0.05).toFixed(3);
+        const memoryUsage = process.memoryUsage();
+        const totalMemory = memoryUsage.rss + memoryUsage.heapTotal + memoryUsage.heapUsed + memoryUsage.external;
+        const totalMemoryInMB = (totalMemory / (1024 * 1024)).toFixed(0);
+        console.log("PPID\tPID\tCPU\tACPU\tMEM\tUPtime");
+        console.log(`${process.ppid}\t${process.pid}\t${cpuPercentage}%\t${cpuAveragePercentage}%\t${totalMemoryInMB}MB\t${Math.floor(process.uptime())} s`);
+      }, 50);
       break;
     //------------------------------------------------------------------//
     case action == "stop":
