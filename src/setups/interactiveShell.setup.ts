@@ -27,16 +27,32 @@ async function act(action: string) {
       break;
     //------------------------------------------------------------------//
     case action.startsWith("watch"):
-      let cmd = action.split(" ").slice(1).at(-1);
-      if (!cmd) return console.log("command needed as argument of watch!");
-      let args = action.split(" ").slice(1, -1);
-      let timeout = args.includes("-n") ? parseInt(args[args.indexOf("-n") + 1]) * 1000 : 1000;
-      let doClear = args.includes("-c") ? true : false;
-      console.log(`running command ${cmd} every ${timeout / 1000} sec...`);
+      let actionList: string[] = action.split(" ").slice(1);
+      let commands: Array<string> = [];
+      let timeout = 1000;
+      let doClear = false;
+      while (actionList.includes("&")) {
+        let start = actionList.indexOf("&");
+        let count = actionList.indexOf("&", start + 1) !== -1 ? actionList.indexOf("&", start + 1) - start : actionList.length + 1;
+        commands.push(actionList.splice(start, count).slice(1).join(" "))
+      } if (actionList.includes("-n")) {
+        let start = actionList.indexOf("-n");
+        let count = 2;
+        timeout = parseInt(actionList.splice(start, count)[1]) * 1000;
+      } if (actionList.includes("-c")) {
+        let start = actionList.indexOf("-c");
+        let count = 1;
+        actionList.splice(start, count);
+        doClear = true;
+      } if (actionList.length > 0) {
+        commands.push(actionList.join(" "))
+      };
+      console.log(`running commands \n\t${commands.join("\n\t")}\nevery ${timeout / 1000} sec...`);
       watchInterval = setInterval(() => {
         if (doClear) console.clear();
-        act(cmd as string);
+        for (const cmd of commands) act(cmd);
       }, timeout);
+      break;
       break;
     //------------------------------------------------------------------//
     case action.startsWith("env"):
