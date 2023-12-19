@@ -36,6 +36,10 @@ router.post(
       new: true,
       overwrite: true
     });
+    return res.status(201).json({
+      success: true,
+      data: cam,
+    });
   }
 );
 
