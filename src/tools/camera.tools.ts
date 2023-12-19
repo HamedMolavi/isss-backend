@@ -9,7 +9,7 @@ import { CameraInfoBody } from "../validation/dto/camera.dto";
 export function getStreamUri(camInfo: ICameraInfo): RequestHandler {
   return async function middleware(req: Request, res: Response, next: NextFunction): Promise<void> {
     // setting up camInfo based on body
-    for (const key in camInfo) if (Object.prototype.hasOwnProperty.call(camInfo, key)) camInfo[key] = req.body[key];
+    for (const key in camInfo) if (Object.prototype.hasOwnProperty.call(req.body, key)) camInfo[key] = req.body[key];
     let uri: string | undefined = await new getStreamUriStrategy({ first: camInfo, second: camInfo.nvr, error: next }).do();
     if (!!uri) {
       req.body.url = uri;
