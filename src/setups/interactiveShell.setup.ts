@@ -55,10 +55,19 @@ async function act(action: string) {
       break;
       break;
     //------------------------------------------------------------------//
-    case action.startsWith("env"):
-      let name = action.split(" ").slice(1).at(-1);
-      console.log(!!name ? process.env[name] : process.env);
+    case action.startsWith("env"): {
+      if (["proc", "process", "p", "proces"].includes((action.split(" ").slice(1).at(-2) ?? "").toLowerCase())) {
+        let name = action.split(" ").slice(1).at(-1);
+        console.log(process[name as keyof NodeJS.Process]);
+      } else if (["proc", "process", "p", "proces"].includes((action.split(" ").slice(1).at(-1) ?? "").toLowerCase())) {
+        console.log(process);
+      } else {
+        let name = action.split(" ").slice(1).at(-1);
+        console.log(!!name ? process.env[name.toUpperCase() as keyof NodeJS.ProcessEnv] : process.env);
+      };
+      // let isInProcess = (action.split(" ").slice(1).at(-2) ?? action.split(" ").slice(1).at(-1) ?? "").toLowerCase() in ["proc", "process", "p", "proces"];
       break;
+    }
     //------------------------------------------------------------------//
     case action.startsWith("exec"):
       let command = action.split(" ").slice(1).at(-1);
