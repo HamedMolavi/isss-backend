@@ -24,8 +24,8 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
       let doc: Document = await model.findById(id).exec();
       //return error if user not found
       if (!doc) {
-        req.flash("error", "camera not found");
-        return next(new ApiError(404, "camera not found"));
+        req.flash("error", model.collection.name + " not found");
+        return next(new ApiError(404, model.collection.name + " not found"));
       };
       let keys = Object.keys(payload).filter((el) => !options?.ignore || !options?.ignore?.includes(el));
       let updateObject: { [key: string]: any } = {};
