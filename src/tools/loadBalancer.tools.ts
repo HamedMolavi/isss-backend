@@ -36,7 +36,7 @@ tree = {
           ? pre + 1
           : pre, 0);
   };
-  process.load = tree;
+  process.load = { ...tree };
 };
 
 export async function balanceNewCamera(camera: localTypeCamera) {

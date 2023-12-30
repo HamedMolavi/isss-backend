@@ -36,14 +36,13 @@ CameraSchema.post('save', balanceNewCamera);
 
 CameraSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc) => {
   let deleted_model_to_cameras = await ModelToCamera.find({ camera_id: doc._id, }).exec();
-  await ModelToCamera.deleteMany({
-    camera_id: doc._id,
-  }, { returnDocument: "before" }).exec();
-
   deleted_model_to_cameras.forEach(model_camera => Schedule.deleteMany({ model_camera_id: model_camera._id }).exec());
   let models = await Model.find({}).exec();
   models = models.filter((model) => deleted_model_to_cameras.some(m2c => m2c.model_id.toString() === model.id));
   models.forEach(model => process.load[model.category][model.name] -= 1);
+  await ModelToCamera.deleteMany({
+    camera_id: doc._id,
+  }, { returnDocument: "before" }).exec();
 });
 
 

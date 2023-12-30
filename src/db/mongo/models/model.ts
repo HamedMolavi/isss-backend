@@ -13,11 +13,12 @@ const ModelSchema: Schema<IModel> = new Schema({
 });
 
 ModelSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
-    let deleted_model_to_cameras = await ModelToCamera.find({ camera_id: doc._id, }).exec();
+    let deleted_model_to_cameras = await ModelToCamera.find({ model_id: doc._id, }).exec();
     await ModelToCamera.deleteMany({
-      camera_id: doc._id,
+      model_id: doc._id,
     }, { returnDocument: "before" }).exec();
     deleted_model_to_cameras.forEach(model_camera => Schedule.deleteMany({ model_camera_id: model_camera._id }).exec());
+    //TODO: do something about orphaned cameras
 });
 
 

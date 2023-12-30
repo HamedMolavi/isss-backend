@@ -19,6 +19,7 @@ ModelToCameraSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete
   await Schedule.deleteMany({
     model_camera_id: doc._id,
   }, { returnDocument: "after" }).exec();
+    //TODO: do something about orphaned camera
 });
 
 // Compile Model from schema
