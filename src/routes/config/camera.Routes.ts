@@ -17,6 +17,17 @@ import { injectDataMiddleware } from "../../tools/request.tools";
 
 //create router for add to server
 const router: Router = Router();
+let searchRaw = (search: string) => {
+  return {
+    $or: [
+      { ip: { $regex: search, $options: "i" } },
+      { nvr: { $regex: search, $options: "i" } },
+      { network: { $regex: search, $options: "i" } },
+      { damaged: search.toLowerCase() },
+      { name: { $regex: search, $options: "i" } }
+    ]
+  };
+};
 
 //add route for register new camera
 router.post(
@@ -49,7 +60,7 @@ router.post(
 
 //route for get cameras list
 router.get("",
-  readMiddleware(Camera, (search) => { return { ip: { $regex: search, $options: "i" } } }, { populate: true, send: sendFunction }),
+  readMiddleware(Camera, searchRaw, { populate: true, send: sendFunction }),
 );
 
 //route for get camera by id from DB
