@@ -18,12 +18,12 @@ import { injectDataMiddleware } from "../../tools/request.tools";
 //create router for add to server
 const router: Router = Router();
 let searchRaw = (search: string) => {
+  if (["true", "false"].includes(search.toLowerCase())) return { damaged: search.toLowerCase() === "true" }
   return {
     $or: [
       { ip: { $regex: search, $options: "i" } },
       { nvr: { $regex: search, $options: "i" } },
       { network: { $regex: search, $options: "i" } },
-      { damaged: search.toLowerCase() },
       { name: { $regex: search, $options: "i" } }
     ]
   };

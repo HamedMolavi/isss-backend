@@ -34,13 +34,13 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       let perPage = strPerPage?.toLowerCase() === "all"
         ? 10000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-      let docs: Document[] = !!query
+      let docs: Document[] = (!!query && !!search)
         ? await model.find(query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
         : await model.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
       //return response not found to client if not found
       if (!docs.length && !options?.next) {
-        req.flash("error", model.name + " not found");
-        return next(new ApiError(404, model.name + " not found"));
+        req.flash("error", model.collection.collectionName + " not found");
+        return next(new ApiError(404, model.collection.collectionName + " not found"));
       };
 
       if (!!docs.length && !!options?.populate && !!req.query.populate) {
@@ -98,8 +98,8 @@ export function readByIdMiddleware(model: any, options?: { next?: boolean, save?
 
       //return error if docs not found
       if (!doc) {
-        req.flash("error", model.name + " not found");
-        return next(new ApiError(404, model.name + " not found"));
+        req.flash("error", model.collection.collectionName + " not found");
+        return next(new ApiError(404, model.collection.collectionName + " not found"));
       };
 
 
