@@ -17,6 +17,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
     populate?: boolean,
     searchFromBody?: (body: { [key: string]: any }) => string,
     searchFromParams?: (params: { [key: string]: any }) => string
+    searchFromQuery?: (query: { [key: string]: any }) => string
   }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
 
@@ -24,7 +25,10 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       //get page from url
       let strPage = req.query.page as string;
       let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-      let search = (req.query.search as string) || options?.searchFromBody?.(req.body) || options?.searchFromParams?.(req.params) || "";
+      let search = (req.query.search as string)
+        || options?.searchFromBody?.(req.body)
+        || options?.searchFromParams?.(req.params)
+        || options?.searchFromQuery?.(req.query) || "";
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = strPerPage?.toLowerCase() === "all"
