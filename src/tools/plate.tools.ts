@@ -5,7 +5,7 @@ export const persianPlateDict: any = {
     "S": "س",
     "Y": "ی",
     "A": "الف",
-    "H": "ه",
+    "H": "ه‍",
     "J": "ج",
     "G": "ق",
     "M": "م",
@@ -29,7 +29,7 @@ export const englishPlateDict: any = {
     "س": "S",
     "ی": "Y",
     "الف": "A",
-    "ه": "H",
+    "ه‍": "H", // ascii code is 1607-8205
     "ج": "J",
     "ق": "G",
     "م": "M",

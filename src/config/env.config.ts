@@ -6,6 +6,7 @@ import defaultEnvVars, { DefaultEnv } from "./env.default";
 
 export default function extraEnvConfigs() {
   try {
+    //TODO: default doesn't work in docker container
     //read default values first.
     // for (const key in defaultEnvVars) {
     //   process.env[key] = defaultEnvVars[key as keyof DefaultEnv]
