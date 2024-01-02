@@ -47,6 +47,7 @@ const strategies: ((...params: any[]) => any)[] = [
         const SAMPLE_STREAM_URI = process.env["SAMPLE_STREAM_URI"];
         const WORD_BEFORE_REPLACE_STREAM = process.env["WORD_BEFORE_REPLACE_STREAM"];
         const WORD_AFTER_REPLACE_STREAM = process.env["WORD_AFTER_REPLACE_STREAM"];
+        if (!SAMPLE_STREAM_URI || !WORD_BEFORE_REPLACE_STREAM || !WORD_AFTER_REPLACE_STREAM) throw new Error();
         let uri = SAMPLE_STREAM_URI?.replace(
             /\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,
             "{username}:{password}@{ip}"

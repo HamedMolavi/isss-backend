@@ -4,6 +4,7 @@ import ModelToCamera from "./modelToCamera";
 import Schedule from "./schedule";
 import { CameraTypes } from "../../../types/enums/camera.enum";
 import { ICamera } from "../../../types/interfaces/camera.interface";
+import { balanceNewCamera } from "../../../tools/loadBalancer.tools";
 
 //create camera model with schema for save in DB
 const CameraSchema: Schema<ICamera> = new Schema(
@@ -29,28 +30,19 @@ const CameraSchema: Schema<ICamera> = new Schema(
 );
 
 
-CameraSchema.post('save', async function (doc) {
-  // update AI models related to the camera
-  let models = await Model.find({}).exec();
-  for (const model of models) {
-    let _model2CameraSave = new ModelToCamera({
-      _id: new mongoose.Types.ObjectId(),
-      model_id: model._id,
-      camera_id: doc._id,
-      is_enabled: true,
-    });
-    await _model2CameraSave.save();
-  };
-});
+CameraSchema.post('save', balanceNewCamera);
 
 
 
 CameraSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc) => {
   let deleted_model_to_cameras = await ModelToCamera.find({ camera_id: doc._id, }).exec();
+  deleted_model_to_cameras.forEach(model_camera => Schedule.deleteMany({ model_camera_id: model_camera._id }).exec());
+  let models = await Model.find({}).exec();
+  models = models.filter((model) => deleted_model_to_cameras.some(m2c => m2c.model_id.toString() === model.id));
+  models.forEach(model => process.load[model.category][model.name] -= 1);
   await ModelToCamera.deleteMany({
     camera_id: doc._id,
   }, { returnDocument: "before" }).exec();
-  deleted_model_to_cameras.forEach(model_camera => Schedule.deleteMany({ model_camera_id: model_camera._id }).exec());
 });
 
 

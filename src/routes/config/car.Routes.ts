@@ -66,6 +66,7 @@ function sendFunction(doc: ICar) {
     _id: doc._id,
   }
 };
-function stringifyPlate(plateObj: { [key: string]: string }) {
-  return `${plateObj.first}${englishPlateDict[plateObj.second]}${plateObj.third}${plateObj.fifth}`
+function stringifyPlate(plateObj: { "number_plate"?: { [key: string]: string } }) {
+  if (!plateObj?.number_plate) return undefined;
+  return `${plateObj.number_plate?.first}${englishPlateDict[plateObj.number_plate?.second]}${plateObj.number_plate?.third}${plateObj.number_plate?.fifth}`
 };
