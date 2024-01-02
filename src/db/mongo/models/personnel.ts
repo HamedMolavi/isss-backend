@@ -13,9 +13,9 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
     national_code: { type: String, required: true },
     email: { type: String, default: "" },
     phone_number: { type: String, required: true },
-    job_id: { type: Schema.Types.ObjectId, ref: "JobTitle", default: undefined },//TODO: default to feed
+    job_id: { type: Schema.Types.ObjectId, ref: "JobTitle", default: undefined },
     personnel_code: { type: String, required: false },
-    section_id: { type: Schema.Types.ObjectId, ref: "Section", default: undefined },//TODO: default to feed
+    section_id: { type: Schema.Types.ObjectId, ref: "Section", default: undefined },
     camera_whitelist: { type: [Schema.Types.ObjectId] },
     is_active: { type: Boolean, default: false },
     is_employee: { type: Boolean, default: false },

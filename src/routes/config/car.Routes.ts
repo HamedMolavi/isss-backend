@@ -20,6 +20,7 @@ const router: Router = Router();
 //add route for register new car
 router.post("",
   dtoValidationMiddleware(CreateCarBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  // TODO: validate plateObj.second is defined in englishPlateDict
   existCheck(Car, (body: { [key: string]: any }) => { return { number_plate: stringifyPlate(body.number_plate) } }, "Car already exists!"),
   createMiddleware(["owner", { "number_plate": (body: { [key: string]: any }) => stringifyPlate(body.number_plate) }, "brand", "color", "camera_whitelist", "tracked"], Car, {
     send: sendFunction

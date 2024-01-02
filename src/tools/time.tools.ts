@@ -1,7 +1,6 @@
 import { ISchedule } from "../types/interfaces/schedule.interface";
 import { NextFunction, Request, Response } from "express";
 import { Clock, Cron, CronDay, DayOfWeek, Hours, Minutes, TwoDigitsClock, TwoDigitsHours, TwoDigitsMinutes } from "../types/interfaces/time.interface";
-//TODO: clean this up
 import reverseString from "./reverseString";
 import momentTimezone from "moment-timezone";
 import { ApiError } from "../types/classes/error.class";
@@ -91,8 +90,8 @@ export default class Time {
   };
 
   static getEpochList(startDate: string, stopDate: string, start_time: Clock, stop_time: Clock, timezone: string): object[] {
-    let start_date = new Date(startDate + " " + start_time + Time.getUtcOffset(timezone));// TODO: offset (+3:30) based on timezone
-    let stop_date = new Date(stopDate + " " + stop_time + Time.getUtcOffset(timezone));// TODO: offset (+3:30) based on timezone
+    let start_date = new Date(startDate + " " + start_time + Time.getUtcOffset(timezone));
+    let stop_date = new Date(stopDate + " " + stop_time + Time.getUtcOffset(timezone));
 
     let epoch_list: object[] = [];
     let start_ens_epoch = {

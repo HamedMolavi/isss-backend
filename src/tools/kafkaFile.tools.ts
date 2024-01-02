@@ -115,7 +115,7 @@ export class SnapshotKafka {
     //     if (!!kwargs)
     //       for (const kwarg of kwargs) json[kwarg[0]] = kwarg[1];
     //     else
-    //       json = { "key": "value" } //TODO: default version of this
+    //       json = { "key": "value" }
     //     recursive(json, undefined);
     //   } else {
     //     const id = this.hash(o);
@@ -141,7 +141,7 @@ export class SnapshotKafka {
     // this.json({
     //   personnel_id,
     //   full_frame,
-    //   face: "",//TODO: why empty?
+    //   face: "",
     //   embedding: "",
     //   has_face: "0",
     //   timestamp: new Date(new Date().toLocaleString() + "+0").toISOString(),
@@ -254,7 +254,7 @@ export class ImageFileSystem {
             success: true,
             data: {
               name: "avatar.jpeg",
-              location: imagePath, //TODO: shouldn't it be relative
+              location: imagePath,
               message: "Uploaded the file successfully: ",
             },
           });

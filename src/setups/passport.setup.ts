@@ -19,7 +19,7 @@ export function setUpPassport() {
   passport.deserializeUser(function (id: string, done: Function) { // uses the key (id) to retrive user object
     User.findById(id)
       // user object attaches to the request as req.user
-      .then(user => user ? done(null, user.toJSON()) : done(null, false, { message: "Bad Request" })) // TODO: delete password property from user.
+      .then(user => user ? done(null, user.toJSON()) : done(null, false, { message: "Bad Request" }))
       .catch(err => done(err, null))
   });
   passport.use(

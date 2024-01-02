@@ -32,7 +32,7 @@ router.get("/:id",
 );
 
 //add route for edit departement
-router.patch("/:id", // TODO: dto needed
+router.patch("/:id",
   updateByIdMiddleware(Departement)
 );
 

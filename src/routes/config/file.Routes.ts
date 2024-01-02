@@ -28,7 +28,7 @@ router.post("/kafka",
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true }, "personnel_id", "image_str"));
 
 //route for verified image in redis
-router.post("/verify", //TODO: clean this further
+router.post("/verify",
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "id"),
   //error check
   (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == true ? next() : res.status(406).send({ message: "No face found", }),

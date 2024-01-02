@@ -15,7 +15,7 @@ let producer = new Kafka({
     restartOnFailure: async (err) =>
       !Boolean(console.log("Kafka Connect Failure:", err)),
   },
-  allowAutoTopicCreation: true, // TODO: should be false.
+  allowAutoTopicCreation: true,
 });
 producer.connect().then(_=>{
     const msg = Buffer.from(JSON.stringify({

@@ -225,7 +225,6 @@ export async function eventLogResponse(response: any, timezone: string): Promise
       description: "",
       video: cameras.find((cam) => cam._id.toString() === log._source.log.camera_id?.toString())?.url ?? "",
     };
-    //TODO
     // result.description = extended_description({
     //   description: log._source.description,
     //   camera: result.name,
@@ -239,7 +238,6 @@ export async function eventLogResponse(response: any, timezone: string): Promise
   }
   return data;
 };
-//TODO
 // //define function fore extended description on dend toclient with event report
 // function extended_description(_description: Description) {
 //   let notification_text: string = "";
