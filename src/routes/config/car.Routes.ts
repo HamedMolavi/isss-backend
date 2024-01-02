@@ -21,8 +21,8 @@ const router: Router = Router();
 router.post("",
   dtoValidationMiddleware(CreateCarBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   // TODO: validate plateObj.second is defined in englishPlateDict
-  existCheck(Car, (body: { [key: string]: any }) => { return { number_plate: stringifyPlate(body.number_plate) } }, "Car already exists!"),
-  createMiddleware(["owner", { "number_plate": (body: { [key: string]: any }) => stringifyPlate(body.number_plate) }, "brand", "color", "camera_whitelist", "tracked"], Car, {
+  existCheck(Car, (body: { [key: string]: any }) => { return { number_plate: stringifyPlate(body) } }, "Car already exists!"),
+  createMiddleware(["owner", { "number_plate": (body: { [key: string]: any }) => stringifyPlate(body) }, "brand", "color", "camera_whitelist", "tracked"], Car, {
     send: sendFunction
   }),
 );
@@ -66,7 +66,7 @@ function sendFunction(doc: ICar) {
     _id: doc._id,
   }
 };
-function stringifyPlate(plateObj: { "number_plate"?: { [key: string]: string } }) {
-  if (!plateObj?.number_plate) return undefined;
-  return `${plateObj.number_plate?.first}${englishPlateDict[plateObj.number_plate?.second]}${plateObj.number_plate?.third}${plateObj.number_plate?.fifth}`
+function stringifyPlate(body: { "number_plate"?: { [key: string]: string } }) {
+  if (!body?.number_plate) return undefined;
+  return `${body.number_plate?.first}${englishPlateDict[body.number_plate?.second]}${body.number_plate?.third}${body.number_plate?.fifth}`
 };

@@ -35,7 +35,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         ? 10000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let docs: Document[] = (!!query && !!search)
-        ? await model.find(query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
+        ? await model.find(await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
         : await model.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
       //return response not found to client if not found
       if (!docs.length && !options?.next) {
