@@ -13,15 +13,13 @@ const CameraSchema: Schema<ICamera> = new Schema(
     url: { type: String, required: true },
     nvr: { type: String, required: false },
     ip: { type: String, required: true },
-    network: { type: String, default: "255.255.255.255" },
+    network: { type: String, default: "255.255.255.0" },
     name: { type: String, required: true },
     username: { type: String, required: true },
     password: { type: String, required: true },
-    muted: [Schema.Types.ObjectId],
     is_enabled: { type: Boolean, required: true },
     damaged: { type: Boolean, required: false, default: false },
     create_date: { type: Date, default: Date.now },
-    // camera_type: { type: String, required: true, enum: Object.values(CameraTypes) }
     camera_type: { type: String, required: true, enum: Object.values(CameraTypes) as string[], default: CameraTypes.enter }
   },
   {

@@ -35,7 +35,7 @@ router.post(
   dtoValidationMiddleware(CreateCameraBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(Camera, { $and: [{ ip: "ip" }, { nvr: "nvr" }], }, "Camera already exists!"),
   getStreamUri(CameraInfoKeys), //get live stream uri(rtsp link from camera)
-  createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "muted", "camera_type", "url"], Camera, { next: true, save: "addedCamera" }),
+  createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "camera_type", "url"], Camera, { next: true, save: "addedCamera" }),
   // TODO: clean this up
   async function middleware(req: Request, res: Response, next: NextFunction) {
     const cam: ICamera & Required<{ _id: Types.ObjectId; }> = req.body["addedCamera"];

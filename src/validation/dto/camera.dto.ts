@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional } from "class-validator";
 import mongoose, { Schema } from "mongoose";
 
 
@@ -16,8 +16,9 @@ export class CreateCameraBody {
   public username?: string;
   @IsString()
   public password?: string;
-  public muted?: Schema.Types.ObjectId[];
+  @IsOptional()
   public is_enabled?: boolean;
+  @IsOptional()
   public camera_type?: any; // CameraTypes
 };
 

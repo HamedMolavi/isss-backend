@@ -13,11 +13,9 @@ export interface ICamera extends Document {
   name: string;
   username: string;
   password: string;
-  muted: Schema.Types.ObjectId[];
   is_enabled: boolean;
   create_date: Date;
   camera_type: string |any;
- // camera_type: Object.values(CameraTypes);
 }
 
 export interface ICameraInfo {
