@@ -19,9 +19,10 @@ import snapshot from "./snapshot.Routes";
 
 const router: Router = Router();
 import modelRoutes from "./model.Routes";
+import { testAccessCheck } from "../../authentication/accessCheck.auth";
 
 //add rotes
-router.use("/cameras", cameraRoutes);
+router.use("/cameras", testAccessCheck("camera"), cameraRoutes);
 router.use("/files", fileRoutes);
 router.use("/departments", departementRoutes);
 router.use("/sections", sectionRoutes);
