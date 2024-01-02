@@ -16,5 +16,5 @@ const AccessLevelSchema: Schema<IAccessLevel> = new Schema(
 // AccessLevelSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc) => { });
 
 // Compile model from schema
-const AccessLevel = mongoose.model("Camera", AccessLevelSchema);
+const AccessLevel = mongoose.model("AccessLevel", AccessLevelSchema);
 export default AccessLevel;
