@@ -81,11 +81,11 @@ async function makeSeedDepartment(): Promise<IDepartment> {
   return departments[0];
 }
 async function makeSeedJob(): Promise<IJobTitle | undefined> {
-  if (!(await read(JobTitle, { query: { name: 'default' } })).length) {
+  if (!(await read(JobTitle, { query: { name: 'guest' } })).length) {
     const jobs: IJobTitle[] = await create(JobTitle, {
-      name: 'default',
+      name: 'guest',
     });
-    console.log("\t++ Seed data JobTitle: name=default");
+    console.log("\t++ Seed data JobTitle: name=guest");
     return jobs[0];
   };
   return undefined;
