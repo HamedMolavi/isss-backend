@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional } from "class-validator";
 import mongoose, { Schema } from "mongoose";
 
 
@@ -16,8 +16,43 @@ export class CreateCameraBody {
   public username?: string;
   @IsString()
   public password?: string;
-  public muted?: Schema.Types.ObjectId[];
+  @IsOptional()
+  @IsBoolean()
   public is_enabled?: boolean;
+  @IsOptional()
+  @IsString()
+  public camera_type?: any; // CameraTypes
+};
+
+export class UpdateCameraBody {
+  @IsOptional()
+  public section_id?: mongoose.Types.ObjectId;
+  @IsOptional()
+  @IsString()
+  public network?: string;
+  @IsOptional()
+  @IsString()
+  public nvr?: string;
+  @IsOptional()
+  @IsString()
+  public ip?: string;
+  @IsOptional()
+  @IsString()
+  public name?: string;
+  @IsOptional()
+  @IsString()
+  public username?: string;
+  @IsOptional()
+  @IsString()
+  public password?: string;
+  @IsOptional()
+  @IsBoolean()
+  public is_enabled?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  public damaged?: boolean;
+  @IsOptional()
+  @IsString()
   public camera_type?: any; // CameraTypes
 };
 
