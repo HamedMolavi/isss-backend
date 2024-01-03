@@ -11,6 +11,12 @@ import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 import { UpdateCameraBody } from "../../validation/dto/camera.dto";
+import Section from "../../db/mongo/models/section";
+import mongoose from "mongoose";
+import Camera from "../../db/mongo/models/camera";
+import Personnel from "../../db/mongo/models/personnel";
+import Car from "../../db/mongo/models/car";
+import { docSendMiddleware } from "../../tools/request.tools";
 
 //create router for add to server file
 const router: Router = Router();
@@ -27,6 +33,24 @@ router.get("",
   readMiddleware(Department, (search) => { return { name: { $regex: search, $options: "i" } } }),
 );
 
+//route for get all information with this department from DB
+router.get(["/sections", "/cameras", "/white", "/white/personnel", "/white/cars"].map((el) => "/:id" + el),
+  // append sections
+  readMiddleware(Section, (search) => { return { department_id: new mongoose.Types.ObjectId(search) } }, { populate: true, next: true, save: "sections", searchFromParams: (params) => params.id }),
+  // append cameras
+  readMiddleware(Camera, makeSearchFnWithOr("section_id"), { populate: true, searchFromBody: makesearchFromBody("sections"), next: true, save: "cameras" }),
+  // append personnel
+  readMiddleware(Personnel, makeSearchFnWithOr("camera_whitelist", { includes: true }), { populate: true, searchFromBody: makesearchFromBody("cameras"), next: true, save: "personnel" }),
+  // append cars
+  readMiddleware(Car, makeSearchFnWithOr("camera_whitelist", { includes: true }), { populate: true, searchFromBody: makesearchFromBody("cameras"), next: true, save: "cars" }),
+);
+
+router.get("/:id/sections", docSendMiddleware("sections"));
+router.get("/:id/cameras", docSendMiddleware("cameras"));
+router.get("/:id/white/personnel", docSendMiddleware("personnel"));
+router.get("/:id/white/cars", docSendMiddleware("cars"));
+router.get("/:id/white", docSendMiddleware(["cars", "personnel"]));
+
 //route for get departement by id from DB
 router.get("/:id",
   readByIdMiddleware(Departement),
@@ -42,5 +66,23 @@ router.patch("/:id",
 router.delete("/:id",
   deleteByIdMiddleware(Departement)
 );
+
+function makeSearchFnWithOr(field: string, options?: { includes?: boolean }) {
+  return function searchFn(search: string) {
+    let query: { $or: Array<{ [key: string]: any }> } = { $or: [] };
+    for (const id of search.split(",")) if (!!id) query["$or"].push({
+      [field]: !!options?.includes ? { $in: [new mongoose.Types.ObjectId(search)] } : new mongoose.Types.ObjectId(id)
+    });
+    return query;
+  }
+};
+function makesearchFromBody(bodyFieldName: string) {
+  return function searchFromBody(body: any) {
+    let ids: string[] = [];
+    for (const doc of body[bodyFieldName]) ids.push(doc.id);
+    return ids.join(',');
+  }
+}
+
 
 export default router;
