@@ -109,10 +109,10 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
                 },
                 model_camera_id: schedules[k].model_camera_id,
                 config: {
-                  threshold: schedules[k].config.threshold > 0 ? schedules[k].config.threshold * 100 : schedules[k].config.threshold,
-                  zones: schedules[k].config.zones,
-                  min_people: schedules[k].config.min_people,
-                  max_people: schedules[k].config.max_people,
+                  threshold: schedules[k].operations[0].threshold > 0 ? schedules[k].operations[0].threshold * 100 : schedules[k].operations[0].threshold,
+                  zones: [schedules[k].operations[0].zone],
+                  min_people: schedules[k].operations[0].min_people,
+                  max_people: schedules[k].operations[0].max_people,
                 },
               });
             }
@@ -232,10 +232,10 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
                   },
                   model_camera_id: schedules[k].model_camera_id,
                   config: {
-                    threshold: schedules[k].config.threshold > 0 ? schedules[k].config.threshold * 100 : schedules[k].config.threshold,
-                    zones: schedules[k].config.zones,
-                    min_people: schedules[k].config.min_people,
-                    max_people: schedules[k].config.max_people,
+                    threshold: schedules[k].operations[0].threshold > 0 ? schedules[k].operations[0].threshold * 100 : schedules[k].operations[0].threshold,
+                    zones: [schedules[k].operations[0].zone],
+                    min_people: schedules[k].operations[0].min_people,
+                    max_people: schedules[k].operations[0].max_people,
                   },
                 });
               }

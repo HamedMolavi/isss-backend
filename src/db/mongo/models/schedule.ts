@@ -1,19 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
-import { ISchedule } from "../../../types/interfaces/schedule.interface";
-import Time from "../../../tools/time.tools";
-import { Clock, DayOfWeek } from "../../../types/interfaces/time.interface";
+import { ISchedule, IOperation } from "../../../types/interfaces/schedule.interface";
 
 //create Schedule with schema for save in DB
 const ScheduleSchema: Schema<ISchedule> = new Schema(
   {
     start_cron: { type: String, required: true },
     stop_cron: { type: String, required: true },
-    model_camera_id: {
-      type: Schema.Types.ObjectId,
-      ref: "ModelToCamera",
-      required: true,
-    },
-    config: { type: Object },
+    model_camera_id: { type: Schema.Types.ObjectId, ref: "ModelToCamera", required: true },
+    operations: { type: [Object], required: true },
     is_running: { type: Boolean, default: false },
   },
   {
@@ -23,7 +17,18 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
 
 
 //get Schedule data json
+//TODO: deprecated
 ScheduleSchema.methods.toJSON = function () {
+  let operations = this.operations.map((operation: IOperation) => {
+    return {
+      timeDuplicationDiagnoses: operation?.timeDuplicationDiagnoses ?? 0,
+      threshold: operation?.threshold != undefined ? operation?.threshold / 100 : 0,
+      zone: !!operation?.zone ? operation?.zone : [0, 0, 1, 1],
+      min_people: operation?.min_people ?? 0,
+      max_people: operation?.max_people ?? 0,
+      logs: operation.logs,
+    }
+  })
   return {
     _id: this._id,
     start_cron: {
@@ -37,17 +42,7 @@ ScheduleSchema.methods.toJSON = function () {
       dow: this.stop_cron.split(" ")[4].split(",") ?? ["*"],
     },
     model_camera_id: this.model_camera_id,
-    config: {
-      timeDuplicationDiagnoses:
-        this.config.timeDuplicationDiagnoses ?? 0,
-      threshold:
-        this.config?.threshold != 0
-          ? this.config?.threshold * 100
-          : 0,
-      zones: this.config.zones ?? null,
-      min_people: this.config.min_people ?? 0,
-      max_people: this.config.max_people ?? 0,
-    },
+    operations
   };
 };
 

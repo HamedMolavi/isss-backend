@@ -6,16 +6,23 @@ export interface ISchedule extends Document {
   model_camera_id: Schema.Types.ObjectId;
   start_cron: string;
   stop_cron: string;
-  config: IConfig;
+  operations: [IOperation]; // based on zones
   is_running: boolean;
 }
 //define config type
-interface IConfig {
+export interface IOperation {
   timeDuplicationDiagnoses: number;
   threshold: number;
   min_people: number;
   max_people: number;
-  zones: [[number, number, number, number]];
+  zone: [number, number, number, number];
+  logs: [ILogConfig]
+}
+
+export interface ILogConfig {
+  log_type: Schema.Types.ObjectId
+  log_name: Schema.Types.ObjectId
+  log_level: string
 }
 
 //define type of schedule for request body

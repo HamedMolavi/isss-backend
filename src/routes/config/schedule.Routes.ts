@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { IGetParams } from "../../types/interfaces/schedule.interface";
+import { IGetParams, IOperation } from "../../types/interfaces/schedule.interface";
 import Schedule from "../../db/mongo/models/schedule";
 import Time from "../../tools/time.tools";
 import ModelToCamera from "../../db/mongo/models/modelToCamera";
@@ -29,7 +29,7 @@ router.post("",
   readMiddleware(Schedule, (search: string) => { return { "model_camera_id": search } }, { next: true, save: "schedules", searchFromBody: (body) => body.model_camera_id._id }), //save schedule documents in req.body.schedules and hit next
   Time.validateTimeMiddleware("start", "stop", "dayOfWeek", "schedules"),
   injectDataMiddleware(convertPlaiBodyToSchedule, { spread: true }),
-  createMiddleware(["start_cron", "stop_cron", "montionDetection", "config", "model_camera_id"], Schedule),
+  createMiddleware(["start_cron", "stop_cron", "operations", "model_camera_id"], Schedule),
 );
 
 router.get(
@@ -63,7 +63,6 @@ router.patch(
       "threshold": { name: "config.threshold" },
       "min_people": { name: "config.min_people" },
       "max_people": { name: "config.max_people" },
-      "montionDetection": { name: "config.montionDetection" },
       "model_id": {
         name: "model_camera_id",
         fn: async (payload) => (await ModelToCamera.findOne({ "model_id": payload.model_id, "camera_id": payload.camera_id }).exec())?._id
@@ -80,32 +79,29 @@ router.delete("/:id",
 
 
 function convertPlaiBodyToSchedule(body: any) {
-  const {
+  let {
     start,
     stop,
     dayOfWeek,
-    montionDetection,
-    threshold,
-    zones,
-    min_people,
-    max_people,
-    timeDuplicationDiagnoses,
+    operations
   } = body;
+  operations = operations.map((operation: IOperation) => {
+    return {
+      timeDuplicationDiagnoses: operation?.timeDuplicationDiagnoses ?? 0,
+      threshold: operation?.threshold != undefined ? operation?.threshold / 100 : 0,
+      zone: !!operation?.zone ? operation?.zone : [0, 0, 1, 1],
+      min_people: operation?.min_people ?? 0,
+      max_people: operation?.max_people ?? 0,
+      logs: operation.logs,
+    }
+  })
   //convert input time to cron format
   let start_cron = Time.toCronDay(Time.toCron(start), dayOfWeek.toString());
   let stop_cron = Time.toCronDay(Time.toCron(stop), dayOfWeek.toString());
-
   return {
-    start_cron: start_cron,
-    stop_cron: stop_cron,
-    montionDetection: montionDetection,
-    config: {
-      timeDuplicationDiagnoses: timeDuplicationDiagnoses ?? 0,
-      threshold: threshold != undefined ? threshold / 100 : 0,
-      zones: zones && zones.length != 0 ? zones : [[0, 0, 1, 1]],
-      min_people: min_people ?? 0,
-      max_people: max_people ?? 0,
-    },
+    start_cron,
+    stop_cron,
+    operations
   };
 }
 
