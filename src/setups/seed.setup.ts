@@ -74,6 +74,7 @@ async function makeSeedDepartment(): Promise<IDepartment> {
   if (!departments.length) {
     departments = await create(Department, {
       name: 'default',
+      is_enabled: true,
     });
     console.log("\t++ Seed data department: name=default");
   };
@@ -94,6 +95,7 @@ async function makeSeedSection(department: IDepartment): Promise<ISection | unde
     const sections: ISection[] = await create(Section, {
       name: 'default',
       department_id: department._id,
+      is_enabled: true,
     });
     console.log("\t++ Seed data Section: name=default");
     return sections[0];
