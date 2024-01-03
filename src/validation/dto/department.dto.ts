@@ -11,3 +11,13 @@ export class CreateDepartmentBody {
   @IsString()
   public created_date?: string;
 };
+
+
+export class UpdateDepartmentBody {
+  @IsOptional()
+  @IsString()
+  public name?: string;
+  @IsOptional()
+  @IsBoolean()
+  public is_enabled?: string;
+};

@@ -10,13 +10,14 @@ import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
+import { UpdateCameraBody } from "../../validation/dto/camera.dto";
 
 //create router for add to server file
 const router: Router = Router();
 
 //add route for register new departement
 router.post("",
-  dtoValidationMiddleware(CreateDepartmentBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: "please fill all fields" }),
+  dtoValidationMiddleware(CreateDepartmentBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(Department, { $and: [{ name: "name" }], }, "Department already exists!"),
   createMiddleware(["name", "created_date", "is_enabled"], Department),
 );
@@ -33,7 +34,8 @@ router.get("/:id",
 
 //add route for edit departement
 router.patch("/:id",
-  updateByIdMiddleware(Departement)
+  dtoValidationMiddleware(UpdateCameraBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  updateByIdMiddleware(Departement, { ignore: ["created_date"] })
 );
 
 //add route for delete departement
