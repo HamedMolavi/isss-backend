@@ -8,7 +8,11 @@ export interface ICar extends Document {
   brand: Schema.Types.ObjectId;
   color: Schema.Types.ObjectId;
   camera_whitelist: Schema.Types.ObjectId[];
-  tracked:boolean;
+  section_whitelist: Schema.Types.ObjectId[];
+  department_whitelist: Schema.Types.ObjectId[];
+  schedule_whitelist: Schema.Types.ObjectId[];
+  tracked: boolean;
+  allowed_pass: number | undefined;
   create_date: Date;
 }
 //define car_brand type
@@ -19,6 +23,6 @@ export interface ICarBrand extends Document {
 }
 //define car_color type
 export interface ICarColor extends Document {
-    _id: mongoose.Types.ObjectId;
-    name: string;
+  _id: mongoose.Types.ObjectId;
+  name: string;
 }

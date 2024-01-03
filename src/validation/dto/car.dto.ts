@@ -16,8 +16,18 @@ export class CreateCarBody {
   public brand?: mongoose.Types.ObjectId;
   @IsString()
   public color?: mongoose.Types.ObjectId;
+  @IsOptional()
   @IsArray()
   public camera_whitelist?: string[];
+  @IsOptional()
+  @IsArray()
+  public section_whitelist?: string[];
+  @IsOptional()
+  @IsArray()
+  public schedule_whitelist?: string[];
+  @IsOptional()
+  @IsArray()
+  public department_whitelist?: string[];
   @IsOptional()
   @IsBoolean()
   public tracked?: boolean;

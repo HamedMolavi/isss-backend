@@ -1,8 +1,4 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../types/classes/error.class";
-import CarBrand from "../../db/mongo/models/carBrand";
-import CarColor from "../../db/mongo/models/carColor";
-import Personnel from "../../db/mongo/models/personnel";
 import { persianPlateDict, englishPlateDict } from "../../tools/plate.tools";
 import Car from "../../db/mongo/models/car";
 import { dtoValidationMiddleware } from "../../validation/dto";

@@ -13,8 +13,8 @@ export function deleteByIdMiddleware(model: any, options?: { next?: boolean, sav
       let doc: Document = await model.findByIdAndDelete(id).exec();
       //return error if doc not found
       if (!doc) {
-        req.flash("error", model.name + "not found");
-        return next(new ApiError(404, model.name + "not found"));
+        req.flash("error", model.collection.collectionName + "not found");
+        return next(new ApiError(404, model.collection.collectionName + "not found"));
       };
       if (!!options?.next) {
         if (options?.save) req.body[options.save] = doc
