@@ -12,9 +12,10 @@ export interface IPersonnel extends Document {
   personnel_code: string;
   section_id: Schema.Types.ObjectId;
   camera_whitelist: Schema.Types.ObjectId[];
+  department_whitelist: Schema.Types.ObjectId[];
+  section_whitelist: Schema.Types.ObjectId[];
+  schedule_whitelist: Schema.Types.ObjectId[];
   is_active: boolean;
-  is_employee: boolean;
-  is_dismissed: boolean;
-  tracked:boolean;
+  tracked: boolean;
   create_date: Date;
 };
