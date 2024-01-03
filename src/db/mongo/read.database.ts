@@ -15,6 +15,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
     save?: string,
     send?: CallableFunction,
     populate?: boolean,
+    forcePopulate?: string[],
     searchFromBody?: (body: { [key: string]: any }) => string,
     searchFromParams?: (params: { [key: string]: any }) => string
     searchFromQuery?: (query: { [key: string]: any }) => string
@@ -47,6 +48,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         let populates = req.query.populate instanceof String
           ? req.query.populate.split(",").map((el) => el.trim())
           : (req.query.populate as string[]).map((el) => el.trim());
+        if (!!options?.forcePopulate) options.forcePopulate.forEach((p) => { if (!populates.includes(p)) populates.push(p) });
         let idx = populates.length - 1;
         while (!!populates.length && idx >= 0) {
           const populate = populates[idx];

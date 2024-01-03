@@ -17,3 +17,32 @@ export function injectDataMiddleware(fn: CallableFunction, options?: { params?: 
     };
   };
 };
+
+export function docSendMiddleware(bodyFieldName: string | string[]) {
+  return async function docSendHandler(req: Request, res: Response, next: NextFunction) {
+    //get page from url
+    let strPage = req.query.page as string;
+    let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+    //get perPage from url
+    let strPerPage = req.query.perPage as string;
+    let perPage = strPerPage?.toLowerCase() === "all"
+      ? 10000
+      : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+    //return response not found to client if not found
+    let data: any[] = [];
+    if (typeof bodyFieldName === "string") data = req.body?.[bodyFieldName];
+    else for (const fieldName of bodyFieldName) data = [...data, ...req.body?.[fieldName]];
+    if (!data || !data.length) {
+      req.flash("error", bodyFieldName + " not found");
+      return next(new ApiError(404, bodyFieldName + " not found"));
+    };
+    return res.status(200).json({
+      success: true,
+      data: data,
+      page: page,
+      perPage: perPage,
+      total: data.length,
+      pages: Math.ceil((data.length) / perPage),
+    });
+  }
+}
