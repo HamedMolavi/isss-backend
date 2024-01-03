@@ -6,3 +6,9 @@ export class CreateCarBrandBody {
   @IsString()
   name?: string;
 };
+
+export class UpdateCarBrandBody {
+  @IsString()
+  @IsOptional()
+  name?: string;
+};
