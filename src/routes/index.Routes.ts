@@ -27,11 +27,10 @@ router.use(passportGate);
 // router.use(endHere(["url", "originalUrl", "params", "query", "session", "headers", "user"]));
 
 //add rotes app
-router.use("/config/user", accessCheck(Access.Configuration, "user"), userConfig)
-// this allows admin to pass thru, while checks extraFunction for "user" role.
-router.use("/config/admin", accessCheck(Access.Extra, "", { extraFunction: userCanGetHisInfo}), adminConfig)
+router.use("/config/user", userConfig)
+router.use("/config/admin", adminConfig)
 
-router.use("/reports", accessCheck(Access.Configuration, "user"), report);
+router.use("/reports", report);
 router.use("/reportDepartmets", reportDepartments);
 router.use("/schedulesreport", schedulesreport);
 router.use("/downloadVideo", downloadVideo);
