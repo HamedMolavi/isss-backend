@@ -1,16 +1,13 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../types/classes/error.class";
 import Departement from "../../db/mongo/models/department";
-import { IDepartment } from "../../types/interfaces/department.interface";
 import { dtoValidationMiddleware } from "../../validation/dto";
-import { CreateDepartmentBody } from "../../validation/dto/department.dto";
+import { CreateDepartmentBody, UpdateDepartmentBody } from "../../validation/dto/department.dto";
 import { existCheck } from "../../validation/db";
 import Department from "../../db/mongo/models/department";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
-import { UpdateCameraBody } from "../../validation/dto/camera.dto";
 import Section from "../../db/mongo/models/section";
 import mongoose from "mongoose";
 import Camera from "../../db/mongo/models/camera";
@@ -58,7 +55,7 @@ router.get("/:id",
 
 //add route for edit departement
 router.patch("/:id",
-  dtoValidationMiddleware(UpdateCameraBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  dtoValidationMiddleware(UpdateDepartmentBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   updateByIdMiddleware(Departement, { ignore: ["created_date"] })
 );
 
