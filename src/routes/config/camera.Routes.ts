@@ -2,7 +2,7 @@ import { NextFunction, Router, Request, Response } from "express";
 import Camera from "../../db/mongo/models/camera";
 import { getStreamUri, testCameraMiddleware } from "../../tools/camera.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
-import { CameraInfoBody, CreateCameraBody } from "../../validation/dto/camera.dto";
+import { CameraInfoBody, CreateCameraBody, UpdateCameraBody } from "../../validation/dto/camera.dto";
 import { existCheck } from "../../validation/db";
 import { CameraInfoKeys, ICamera } from "../../types/interfaces/camera.interface";
 import { createMiddleware } from "../../db/mongo/create.database";
@@ -110,6 +110,7 @@ router.get("/:id",
 
 //add route for edit camera
 router.patch("/:id",
+  dtoValidationMiddleware(UpdateCameraBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   injectDataMiddleware((body: { [key: string]: any }) => body?.damaged ?? false, { injData: "damaged" }),
   updateByIdMiddleware(Camera)
 );
