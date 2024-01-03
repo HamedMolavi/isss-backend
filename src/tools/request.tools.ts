@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../types/classes/error.class";
+import mongoose from "mongoose";
 
 export function injectDataMiddleware(fn: CallableFunction, options?: { params?: boolean, injData?: string, spread?: boolean }) {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -44,5 +45,21 @@ export function docSendMiddleware(bodyFieldName: string | string[]) {
       total: data.length,
       pages: Math.ceil((data.length) / perPage),
     });
+  }
+}
+export function makeSearchFnWithOr(field: string, options?: { includes?: boolean }) {
+  return function searchFn(search: string) {
+    let query: { $or: Array<{ [key: string]: any }> } = { $or: [] };
+    for (const id of search.split(",")) if (!!id) query["$or"].push({
+      [field]: !!options?.includes ? { $in: [new mongoose.Types.ObjectId(search)] } : new mongoose.Types.ObjectId(id)
+    });
+    return query;
+  }
+};
+export function makesearchFromBody(bodyFieldName: string) {
+  return function searchFromBody(body: any) {
+    let ids: string[] = [];
+    for (const doc of body[bodyFieldName]) ids.push(doc.id);
+    return ids.join(',');
   }
 }

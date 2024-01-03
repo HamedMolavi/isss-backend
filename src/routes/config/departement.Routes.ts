@@ -13,7 +13,7 @@ import mongoose from "mongoose";
 import Camera from "../../db/mongo/models/camera";
 import Personnel from "../../db/mongo/models/personnel";
 import Car from "../../db/mongo/models/car";
-import { docSendMiddleware } from "../../tools/request.tools";
+import { docSendMiddleware, makeSearchFnWithOr, makesearchFromBody } from "../../tools/request.tools";
 
 //create router for add to server file
 const router: Router = Router();
@@ -63,23 +63,6 @@ router.patch("/:id",
 router.delete("/:id",
   deleteByIdMiddleware(Departement)
 );
-
-function makeSearchFnWithOr(field: string, options?: { includes?: boolean }) {
-  return function searchFn(search: string) {
-    let query: { $or: Array<{ [key: string]: any }> } = { $or: [] };
-    for (const id of search.split(",")) if (!!id) query["$or"].push({
-      [field]: !!options?.includes ? { $in: [new mongoose.Types.ObjectId(search)] } : new mongoose.Types.ObjectId(id)
-    });
-    return query;
-  }
-};
-function makesearchFromBody(bodyFieldName: string) {
-  return function searchFromBody(body: any) {
-    let ids: string[] = [];
-    for (const doc of body[bodyFieldName]) ids.push(doc.id);
-    return ids.join(',');
-  }
-}
 
 
 export default router;

@@ -7,6 +7,7 @@ const SectionSchema: Schema<ISection> = new Schema({
     name: { type: String, required: true },
     //add relational document to department
     department_id: { type: Schema.Types.ObjectId, ref: "Department" },
+    is_enabled: { type: Boolean, default: true },
     create_date: { type: Date, default: Date.now }
 }, {
     collection: "Section"
