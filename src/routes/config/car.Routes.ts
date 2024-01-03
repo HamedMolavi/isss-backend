@@ -13,6 +13,7 @@ import { ICar } from "../../types/interfaces/car.interface";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
+import { carSendFunction, stringifyPlate } from "../../tools/car.tools";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -23,50 +24,30 @@ router.post("",
   // TODO: validate plateObj.second is defined in englishPlateDict
   existCheck(Car, (body: { [key: string]: any }) => { return { number_plate: stringifyPlate(body) } }, "Car already exists!"),
   createMiddleware(["owner", { "number_plate": (body: { [key: string]: any }) => stringifyPlate(body) }, "brand", "color", "camera_whitelist", "tracked"], Car, {
-    send: sendFunction
+    send: carSendFunction
   }),
 );
 
 //route for get car list
 router.get("",
-  readMiddleware(Car, (search) => { return { number_plate: { $regex: search, $options: "i" } } }, { populate: true, send: sendFunction })
+  readMiddleware(Car, (search) => { return { number_plate: { $regex: search, $options: "i" } } }, { populate: true, send: carSendFunction })
 );
 
 //route for get car by id from DB
 router.get("/:id",
-  readByIdMiddleware(Car, { send: sendFunction, populate: true }),
+  readByIdMiddleware(Car, { send: carSendFunction, populate: true }),
 );
 
 //add route for edit car
 router.patch("/:id",
-  updateByIdMiddleware(Car, { update: { "number_plate": stringifyPlate }, send: sendFunction }),
+  updateByIdMiddleware(Car, { update: { "number_plate": stringifyPlate }, send: carSendFunction }),
 );
 
 //add route for delete car
 router.delete("/:id",
-  deleteByIdMiddleware(Car, { send: sendFunction }),
+  deleteByIdMiddleware(Car, { send: carSendFunction }),
 );
 
 export default router;
 
 
-function sendFunction(doc: ICar) {
-  return {
-    owner: doc.owner,
-    number_plate: {
-      first: Number(doc.number_plate.substr(0, 2)),
-      second: persianPlateDict[doc.number_plate.substr(2, 1)],
-      third: Number(doc.number_plate.substr(3, 3)),
-      fourth: "ایران",
-      fifth: Number(doc.number_plate.substr(6, 2)),
-    },
-    brand: doc.brand,
-    color: doc.color,
-    camera_whitelist: doc.camera_whitelist,
-    _id: doc._id,
-  }
-};
-function stringifyPlate(body: { "number_plate"?: { [key: string]: string } }) {
-  if (!body?.number_plate) return undefined;
-  return `${body.number_plate?.first}${englishPlateDict[body.number_plate?.second]}${body.number_plate?.third}${body.number_plate?.fifth}`
-};
