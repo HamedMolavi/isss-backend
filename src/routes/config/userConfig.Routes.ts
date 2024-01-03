@@ -23,12 +23,12 @@ import { testAccessCheck } from "../../authentication/accessCheck.auth";
 
 //add rotes
 router.use("/cameras", testAccessCheck("camera"), cameraRoutes);
+router.use("/cars", testAccessCheck("car"), carRoutes);
 router.use("/files", fileRoutes);
 router.use("/departments", departementRoutes);
 router.use("/sections", sectionRoutes);
 router.use("/jobtitles", jobTitleRoutes);
 router.use("/personnels", personnelRoutes);
-router.use("/cars", carRoutes);
 router.use("/schedules", scheduleRoutes);
 router.use("/models", modelRoutes);
 router.use("/carcolors", carColorRoutes);

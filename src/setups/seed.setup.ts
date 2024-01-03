@@ -33,6 +33,7 @@ async function makeSeedAccessLevel(): Promise<IAccessLevel> {
     const accessLevels: IAccessLevel[] = await create(AccessLevel, {
       name: "admin",
       camera: 15,
+      car: 15,
     });
     console.log("\t++ Seed data access level: name=admin");
     return accessLevels[0];

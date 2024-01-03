@@ -66,32 +66,29 @@ export function userCanGetHisInfo(req: Request) {
 
 
 
-export function testAccessCheck(access: keyof IAccessLevel) {
+export function testAccessCheck(access: keyof IAccessLevel, bitMapNumberFromRight?: number) {
+  /**
+   * @access
+   * @bitMapNumberFromRight
+   */
   return async function middleware(req: Request, _res: Response, next: NextFunction) {
     const user = req.user;
     const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level)) as IAccessLevel & { _id: mongoose.Types.ObjectId; };
     const userAccess = userAccessLevel[access] as number;
     const method = req.method as "GET" | "POST" | "DELETE" | "PATCH";
-    switch (user.role) {
-      // case "admin":
-      //   break;
-      case "admin":
-        if (!hasAccess(userAccess, method)) {
-          req.flash("error", `No [${access} ${accessTranslation[method]}] access!`);
-          return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
-        } else break;
-      default:
-        return next(new ApiError(500, "What kind of a user are you ?  " + user.role));
+    if (!hasAccess(userAccess, bitMapNumberFromRight ?? method)) {
+      req.flash("error", `No [${access} ${accessTranslation[method]}] access!`);
+      return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
     }
     return next();
   };
 };
 
 
-function hasAccess(userAccess: number, method: "GET" | "POST" | "DELETE" | "PATCH"): boolean {
-  const binUserAccess = ("000" + (userAccess >>> 0).toString(2)).slice(-4);
-  binUserAccess.at(accessCharPositions[method])
-  return binUserAccess.at(accessCharPositions[method]) == "1";
+function hasAccess(userAccess: number, methodOrNumber: "GET" | "POST" | "DELETE" | "PATCH" | number): boolean {
+  const binUserAccess = (userAccess >>> 0).toString(2).slice(-4);
+  if (typeof methodOrNumber === 'number') return binUserAccess.at(-methodOrNumber) == "1";
+  return binUserAccess.at(accessCharPositions[methodOrNumber]) == "1";
 }
 
 // export function cameraAccessCheck(camerasFieldName: string, options?: {

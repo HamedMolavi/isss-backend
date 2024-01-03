@@ -6,6 +6,7 @@ const AccessLevelSchema: Schema<IAccessLevel> = new Schema(
   {
     name: { type: String, required: true },
     camera: { type: Number, default: 0, min: 0, max: 15 },
+    car: { type: Number, default: 0, min: 0, max: 15 },
   },
   {
     collection: "AccessLevel",
