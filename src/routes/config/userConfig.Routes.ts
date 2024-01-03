@@ -19,19 +19,20 @@ import snapshot from "./snapshot.Routes";
 
 const router: Router = Router();
 import modelRoutes from "./model.Routes";
+import { testAccessCheck } from "../../authentication/accessCheck.auth";
 
 //add rotes
-router.use("/cameras", cameraRoutes);
+router.use("/cameras", testAccessCheck("camera"), cameraRoutes);
+router.use("/cars", testAccessCheck("car"), carRoutes);
+router.use("/carcolors", testAccessCheck("color"), carColorRoutes);
+router.use("/carbrands", testAccessCheck("brand"), carBrandRoutes);
+router.use("/departments", testAccessCheck("department"), departementRoutes);
+router.use("/sections", testAccessCheck("section"), sectionRoutes);
+router.use("/jobtitles", testAccessCheck("job"), jobTitleRoutes);
+router.use("/personnels", testAccessCheck("personnel"), personnelRoutes);
+router.use("/schedules", testAccessCheck("schedule"), scheduleRoutes);
 router.use("/files", fileRoutes);
-router.use("/departments", departementRoutes);
-router.use("/sections", sectionRoutes);
-router.use("/jobtitles", jobTitleRoutes);
-router.use("/personnels", personnelRoutes);
-router.use("/cars", carRoutes);
-router.use("/schedules", scheduleRoutes);
 router.use("/models", modelRoutes);
-router.use("/carcolors", carColorRoutes);
-router.use("/carbrands", carBrandRoutes);
 router.use("/modelToCameras", modelToCamera);
 router.use("/departementfiles", reportDepartementfiles);
 router.use("/personImage", PersonImage);

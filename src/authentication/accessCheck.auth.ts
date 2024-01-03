@@ -1,11 +1,28 @@
 import { Request, Response, NextFunction } from "express";
 import { ApiError } from "../types/classes/error.class";
 import { Access } from "../types/enums/access.enum";
-import { Document, Types, isObjectIdOrHexString } from "mongoose";
+import mongoose, { Document, Types, isObjectIdOrHexString } from "mongoose";
 import { ICamera } from "../types/interfaces/camera.interface";
 import Camera from "../db/mongo/models/camera";
+import { read } from "../db/mongo/read.database";
+import AccessLevel from "../db/mongo/models/accessLevel";
+import { IAccessLevel } from "../types/interfaces/accessLevel.interface";
 
 
+// CRUD => Create, Read, Update, Delete
+const accessTranslation = {
+  "POST": "Create",
+  "GET": "Read",
+  "PATCH": "Update",
+  "DELETE": "Delete"
+};
+// PGPD => POST, GET, PATCH, DELETE
+const accessCharPositions = {
+  "POST": -4, // minus for reversing
+  "GET": -3,
+  "PATCH": -2,
+  "DELETE": -1
+};
 
 export default function accessCheck(access: Access, role: string, options?: { extraFunction?: (req: Request) => boolean }) {
   return function middleware(req: Request, _res: Response, next: NextFunction) {
@@ -45,6 +62,33 @@ export function userCanGetHisInfo(req: Request) {
     return true;
   };
   return false; // no access
+};
+
+
+
+export function testAccessCheck(access: keyof IAccessLevel, bitMapNumberFromRight?: number) {
+  /**
+   * @access
+   * @bitMapNumberFromRight
+   */
+  return async function middleware(req: Request, _res: Response, next: NextFunction) {
+    const user = req.user;
+    const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level));
+    const userAccess = userAccessLevel?.[access] as number | undefined;
+    const method = req.method as "GET" | "POST" | "DELETE" | "PATCH";
+    if (!userAccessLevel || !userAccess || !hasAccess(userAccess, bitMapNumberFromRight ?? method)) {
+      req.flash("error", `No [${access} ${accessTranslation[method]}] access!`);
+      return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
+    }
+    return next();
+  };
+};
+
+
+function hasAccess(userAccess: number, methodOrNumber: "GET" | "POST" | "DELETE" | "PATCH" | number): boolean {
+  const binUserAccess = (userAccess >>> 0).toString(2).slice(-4);
+  if (typeof methodOrNumber === 'number') return binUserAccess.at(-methodOrNumber) == "1";
+  return binUserAccess.at(accessCharPositions[methodOrNumber]) == "1";
 }
 
 // export function cameraAccessCheck(camerasFieldName: string, options?: {

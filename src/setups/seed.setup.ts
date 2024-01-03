@@ -13,9 +13,12 @@ import Model from "../db/mongo/models/model";
 import CarBrand from "../db/mongo/models/carBrand";
 import { ICarBrand, ICarColor } from "../types/interfaces/car.interface";
 import CarColor from "../db/mongo/models/carColor";
+import AccessLevel from "../db/mongo/models/accessLevel";
+import { IAccessLevel } from "../types/interfaces/accessLevel.interface";
 
 export default async () => {
-  let user = await makeSeedUser();
+  let accessLevel = await makeSeedAccessLevel();
+  let admin = await makeSeedUser(accessLevel);
   let Department = await makeSeedDepartment();
   let Section = await makeSeedSection(Department);
   let Job = await makeSeedJob();
@@ -24,7 +27,30 @@ export default async () => {
   let CarColor = await makeSeedCarColor();
 };
 
-async function makeSeedUser(): Promise<IUser | undefined> {
+async function makeSeedAccessLevel(): Promise<IAccessLevel> {
+  const levels = await read(AccessLevel, { query: { name: 'admin' } })
+  if (!levels.length) {
+    const accessLevels: IAccessLevel[] = await create(AccessLevel, {
+      name: "admin",
+      camera: 15,
+      car: 15,
+      color: 15,
+      brand: 15,
+      section: 15,
+      department: 15,
+      job: 15,
+      personnel: 15,
+      schedule: 15,
+      user: 15,
+      typeName: 15,
+      systemLog: 15
+    });
+    console.log("\t++ Seed data access level: name=admin");
+    return accessLevels[0];
+  };
+  return levels[0];
+}
+async function makeSeedUser(accessLevel: IAccessLevel): Promise<IUser | undefined> {
   if (!(await read(User, { query: { role: 'admin' } })).length) {
     const users: IUser[] = await create(User, {
       event: true,
@@ -33,6 +59,7 @@ async function makeSeedUser(): Promise<IUser | undefined> {
       configuration: true,
       username: 'test',
       password: '123',
+      access_level: accessLevel._id,
       phone_number: '09330379999',
       role: 'admin',
       camera_access: []
@@ -79,7 +106,7 @@ async function makeSeedModel(): Promise<IModel[]> {
   for (const modelCategory of process.env["MODELS"].split(",").map((el) => el.trim())) {
     if (!(await read(Model, { query: { category: modelCategory } })).length) {
       models.push(...await create(Model, {
-        name: modelCategory+"0",
+        name: modelCategory + "0",
         category: modelCategory,
         uri: `models/${modelCategory}.onnx`
       }));
