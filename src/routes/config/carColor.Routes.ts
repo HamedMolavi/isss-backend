@@ -28,7 +28,7 @@ router.get("",
   readMiddleware(CarColor, (search) => { return { name: { $regex: search, $options: "i" } } })
 );
 
-//route for get car_color by id from DB 
+//route for get all cars with this color from DB 
 router.get("/:id/cars",
   readMiddleware(Car, (search) => { return { color: new mongoose.Types.ObjectId(search) } }, { populate: true, searchFromParams: (params) => params.id, send: carSendFunction })
 );

@@ -15,6 +15,7 @@ export interface ICar extends Document {
 export interface ICarBrand extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
+  system: boolean;
 }
 //define car_color type
 export interface ICarColor extends Document {
