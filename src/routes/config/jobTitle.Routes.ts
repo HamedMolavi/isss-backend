@@ -1,14 +1,14 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ApiError } from "../../types/classes/error.class";
 import JobTitle from "../../db/mongo/models/jobTitle";
-import { IJobTitle } from "../../types/interfaces/jobTitle.interface";
 import { dtoValidationMiddleware } from "../../validation/dto";
-import { CreateJobTitleBody } from "../../validation/dto/jobTitle.dto";
+import { CreateJobTitleBody, UpdateJobTitleBody } from "../../validation/dto/jobTitle.dto";
 import { existCheck } from "../../validation/db";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
+import Personnel from "../../db/mongo/models/personnel";
+import mongoose from "mongoose";
 
 //create router for add to server file
 const router: Router = Router();
@@ -16,14 +16,19 @@ const router: Router = Router();
 
 //add route for register new jobTitle
 router.post("",
-dtoValidationMiddleware(CreateJobTitleBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: "please fill all fields" }),
-existCheck(JobTitle, { $and: [{ name: "name" }], }, "JobTitle already exists!"),
-createMiddleware(["name"], JobTitle)
+  dtoValidationMiddleware(CreateJobTitleBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  existCheck(JobTitle, { $and: [{ name: "name" }], }, "JobTitle already exists!"),
+  createMiddleware(["name"], JobTitle)
 );
 
 //route for get jobTitle list
 router.get("",
   readMiddleware(JobTitle, (search) => { return { name: { $regex: search, $options: "i" } } })
+);
+
+//listing routes
+router.get("/:id/personnel",
+  readMiddleware(Personnel, (search) => { return { job_id: new mongoose.Types.ObjectId(search) } }, { populate: true, searchFromParams: (params) => params.id })
 );
 
 //route for get jobTitle by id from DB
@@ -33,6 +38,7 @@ router.get("/:id",
 
 //add route for edit jobTitle
 router.patch("/:id",
+  dtoValidationMiddleware(UpdateJobTitleBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   updateByIdMiddleware(JobTitle)
 );
 
