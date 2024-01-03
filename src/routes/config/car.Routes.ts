@@ -23,7 +23,7 @@ router.post("",
   dtoValidationMiddleware(CreateCarBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   // TODO: validate plateObj.second is defined in englishPlateDict
   existCheck(Car, (body: { [key: string]: any }) => { return { number_plate: stringifyPlate(body) } }, "Car already exists!"),
-  createMiddleware(["owner", { "number_plate": (body: { [key: string]: any }) => stringifyPlate(body) }, "brand", "color", "camera_whitelist", "tracked"], Car, {
+  createMiddleware(["owner", { "number_plate": (body: { [key: string]: any }) => stringifyPlate(body) }, "brand", "color", "camera_whitelist", "schedule_whitelist", "section_whitelist", "department_whitelist", "tracked"], Car, {
     send: carSendFunction
   }),
 );
