@@ -73,10 +73,10 @@ export function testAccessCheck(access: keyof IAccessLevel, bitMapNumberFromRigh
    */
   return async function middleware(req: Request, _res: Response, next: NextFunction) {
     const user = req.user;
-    const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level)) as IAccessLevel & { _id: mongoose.Types.ObjectId; };
-    const userAccess = userAccessLevel[access] as number;
+    const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level));
+    const userAccess = userAccessLevel?.[access] as number | undefined;
     const method = req.method as "GET" | "POST" | "DELETE" | "PATCH";
-    if (!hasAccess(userAccess, bitMapNumberFromRight ?? method)) {
+    if (!userAccessLevel || !userAccess || !hasAccess(userAccess, bitMapNumberFromRight ?? method)) {
       req.flash("error", `No [${access} ${accessTranslation[method]}] access!`);
       return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
     }
