@@ -13,7 +13,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
   options?: {
     next?: boolean,
     save?: string,
-    send?: CallableFunction,
+    send?: (doc: any, req: Request) => any | void | Promise<any | void>,
     populate?: boolean,
     forcePopulate?: string[],
     searchFromBody?: (body: { [key: string]: any }) => string,
@@ -67,14 +67,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         else req.body["docs"] = docs;
         return next();
       };
-      let data = !!options?.send
-        ? docs.reduce((pre, cur) => {
-          const fn = options.send as CallableFunction;
-          const el = fn(cur, req);
-          if (!!el) pre.push(el);
-          return pre;
-        }, [] as Document<any, any, any>[])
-        : docs
+      let data = (await Promise.all(docs.map((doc) => !!options?.send ? options.send(doc, req) : doc))).filter((doc) => doc !== undefined);
       //return response to client
       return res.status(200).json({
         success: true,

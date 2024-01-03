@@ -15,10 +15,21 @@ import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
+import mongoose, { Document } from "mongoose";
 
 const fs = new ImageFileSystem();
 //create router for add to routes file
 const router: Router = Router();
+const rawSearch = (search: string) => {
+  return {
+    $or: [
+      { first_name: { $regex: search } },
+      { last_name: { $regex: search } },
+      { national_code: { $regex: search } },
+      { personnel_code: { $regex: search } },
+      { phone_number: { $regex: search } }]
+  }
+};
 
 
 //add route for register new personnel
@@ -29,90 +40,9 @@ router.post("",
   fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { name: "avatar" }, "doc"),
 );
 
-// //add route for delete jobTitle
-// router.delete("/:id",
-//   deleteById(JobTitle)
-// );
-
-// export default router;
-
 //route for get personnels list
-router.get("",
-  readMiddleware(Personnel, (search) => {
-    return {
-      $or: [
-        { first_name: { $regex: search } },
-        { last_name: { $regex: search } },
-        { national_code: { $regex: search } },
-        { personnel_code: { $regex: search } },
-        { phone_number: { $regex: search } }]
-    }
-  }, { next: true }),
-  async function (req: Request, res: Response, next: NextFunction) {
-    try {
-      let data: object[] = [];
-      for (let _personnel of req.body["docs"]) {
-        // data =personnels.map(async(person) => {
-        let per = _personnel.toJSON();
-
-        // TODO: fetch last location from normalizer server.
-        let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
-
-        let _camera;
-        if (logPersonnel?.data?.hits?.hits?.length > 0) {
-          try {
-            _camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate("section_id").exec();
-          } catch (error: any) {
-            if (error.name.toString() === 'CastError') console.log(`!!! Elastic data error: ${logPersonnel.data.hits.hits[0]?._source?.camera_id} as camera._id is wrong`);
-          }
-        }
-        // else {
-        //   data.push(per);
-        //   continue;
-        // }
-
-        (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
-        per.lastTimeSeen = new Date(logPersonnel.data?.hits?.hits[0]?._source?.timestamp);
-        // per.lastTimeSeen = randomDate('02/13/2020', '01/01/2022');
-        data.push(per);
-      }
-      //send response
-      return res.status(200).json({
-        success: true,
-        data: data,
-        page: parseInt(req.query.page as string) > 0 ? parseInt(req.query.page as string) : 1,
-        perPage: req.query.search as string,
-        total: await Personnel.countDocuments().exec(),
-        pages: Math.ceil((await Personnel.countDocuments().exec()) / Number(req.query.search as string)),
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "Internal server error , " + err.message));
-    }
-  });
-
-router.get("/search", async function (req: Request, res: Response, next: NextFunction) {
-  try {
-    var query = url.parse(req.url, true).query.params as string;
-
-    const regex = new RegExp(query, 'i')
-    let personnel = await Personnel.find({
-      $or: [
-        { first_name: { $regex: regex } },
-        { last_name: { $regex: regex } },
-        { national_code: { $regex: regex } },
-        { personnel_code: { $regex: regex } },
-        { phone_number: { $regex: regex } }]
-    })
-      .exec();
-    return res.status(200).json({
-      success: true,
-      data: personnel,
-    });
-
-  } catch (err: any) {
-    return next(new ApiError(500, "Internal server error , " + err.message));
-  }
-});
+router.get(["", "/search"],
+  readMiddleware(Personnel, rawSearch, { next: true, send: personnelSendFunction }));
 
 //route for get personnel by id from DB
 router.get("/:id",
@@ -130,5 +60,22 @@ router.delete("/:id",
   deleteByIdMiddleware(Personnel, { next: true, save: "doc" }), //also deletes image vector in post remove schema
   fs.deleteDirectoryMiddleware(["doc", "_id"], { force: true, send: "doc" })
 );
+
+async function personnelSendFunction(_personnel: any) {
+  let per = _personnel.toJSON();
+  // TODO: fetch last location from normalizer server.
+  let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
+  let _camera;
+  if (logPersonnel?.data?.hits?.hits?.length > 0) {
+    try {
+      _camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate("section_id").exec();
+    } catch (error: any) {
+      if (error.name.toString() === 'CastError') console.log(`!!! Elastic data error: ${logPersonnel.data.hits.hits[0]?._source?.camera_id} as camera._id is wrong`);
+    }
+    per.lastTimeSeen = new Date(logPersonnel.data?.hits?.hits[0]?._source?.timestamp);
+  }
+  (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
+  return per;
+};
 
 export default router;
