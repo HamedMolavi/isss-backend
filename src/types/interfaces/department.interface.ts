@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 export interface IDepartment extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
+  is_enabled: boolean;
   created_date: Date;
 };
 

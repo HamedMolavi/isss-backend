@@ -8,6 +8,7 @@ import Section from "./section";
 //create department model with schema for save in DB
 const DepartmentSchema: Schema<IDepartment> = new Schema({
     name: { type: String, required: true },
+    is_enabled: { type: Boolean, default: true },
     created_date: { type: Date, default: Date.now }
 }, {
     collection: "Department"

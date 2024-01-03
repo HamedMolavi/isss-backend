@@ -18,7 +18,7 @@ const router: Router = Router();
 router.post("",
   dtoValidationMiddleware(CreateDepartmentBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: "please fill all fields" }),
   existCheck(Department, { $and: [{ name: "name" }], }, "Department already exists!"),
-  createMiddleware(["name", "created_date"], Department),
+  createMiddleware(["name", "created_date", "is_enabled"], Department),
 );
 
 //route for get departements list
