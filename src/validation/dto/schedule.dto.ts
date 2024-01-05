@@ -26,10 +26,10 @@ class Operation {
   @IsOptional()
   @IsArray()
   public zone?: [number, number, number, number] | [];
-  // @Type(() => LogConfig)
+  @Type(() => LogConfig)
+  @ValidateNested({each: true})
   @ArrayNotEmpty()
   @IsArray()
-  // @ValidateNested({each: true})
   public logs?: LogConfig[]
 }
 export class CreateScheduleBody {
@@ -38,14 +38,14 @@ export class CreateScheduleBody {
   @IsString()
   public stop?: string;
   @IsArray()
-  public dayOfWeek?: string;
+  public dayOfWeek?: string[];
   @IsString()
   public camera_id?: Schema.Types.ObjectId;
   @IsString()
   public model_id?: Schema.Types.ObjectId;
-  // @Type(() => Operation)
+  @Type(() => Operation)
+  @ValidateNested({each: true})
   @IsArray()
-  // @ValidateNested()
   public operations?: Operation[]
 };
 

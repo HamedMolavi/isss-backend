@@ -11,7 +11,7 @@ import { CreateScheduleBody, UpdateScheduleBody } from "../../validation/dto/sch
 import { existCheck } from "../../validation/db";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { read, readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
-import { Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { injectDataMiddleware } from "../../tools/request.tools";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
@@ -24,9 +24,9 @@ router.post("",
   dtoValidationMiddleware(CreateScheduleBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   Time.compareTimeMiddleware("start", "stop"),
   injectDataMiddleware(async (body: any) => {
-    return (await ModelToCamera.findOne({ "model_id": body.model_id, "camera_id": body.camera_id }).exec())?._id;
+    return (await ModelToCamera.findOne({ "model_id": body.model_id, "camera_id": body.camera_id }).exec())?.id;
   }, { injData: "model_camera_id" }),
-  readMiddleware(Schedule, (search: string) => { return { "model_camera_id": search } }, { next: true, save: "schedules", searchFromBody: (body) => body.model_camera_id._id }), //save schedule documents in req.body.schedules and hit next
+  readMiddleware(Schedule, (search: string) => { return { "model_camera_id": new mongoose.Types.ObjectId(search) } }, { next: true, save: "schedules", searchFromBody: (body) => body.model_camera_id }), //save schedule documents in req.body.schedules and hit next
   Time.validateTimeMiddleware("start", "stop", "dayOfWeek", "schedules"),
   injectDataMiddleware(convertPlaiBodyToSchedule, { spread: true }),
   createMiddleware(["start_cron", "stop_cron", "operations", "model_camera_id"], Schedule),
@@ -96,7 +96,7 @@ function convertPlaiBodyToSchedule(body: any) {
     dayOfWeek,
     operations
   } = body;
-  operations = operations.map((operation: IOperation) => {
+  operations = operations.map((operation: IOperation) => { // fill all required fields except "logs"
     return {
       timeDuplicationDiagnoses: operation?.timeDuplicationDiagnoses ?? 0,
       threshold: operation?.threshold != undefined ? operation?.threshold / 100 : 0,
