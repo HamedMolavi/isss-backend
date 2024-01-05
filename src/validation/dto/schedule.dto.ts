@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber, IsObject, ValidateNested, IsNotEmpty, ArrayNotEmpty } from "class-validator";
 import mongoose, { Schema } from "mongoose";
+import 'reflect-metadata';
 
 class LogConfig {
   @IsString()
