@@ -6,14 +6,16 @@ import { makeSeedJob } from "../db/mongo/seeds/jobTitle.seed";
 import { makeSeedModel } from "../db/mongo/seeds/model.seed";
 import { makeSeedCarBrand } from "../db/mongo/seeds/brand.seed";
 import { makeSeedCarColor } from "../db/mongo/seeds/color.seed";
+import { makeSeedLogType } from "../db/mongo/seeds/logType.seed";
 
 export default async () => {
   let accessLevel = await makeSeedAccessLevel();
   let admin = await makeSeedUser(accessLevel);
-  let Department = await makeSeedDepartment();
-  let Section = await makeSeedSection(Department);
-  let Job = await makeSeedJob();
-  let Model = await makeSeedModel();
-  let CarBrand = await makeSeedCarBrand();
-  let CarColor = await makeSeedCarColor();
+  let department = await makeSeedDepartment();
+  let dection = await makeSeedSection(department);
+  let job = await makeSeedJob();
+  let model = await makeSeedModel();
+  let carBrand = await makeSeedCarBrand();
+  let carColor = await makeSeedCarColor();
+  let logTypes = await makeSeedLogType();
 };
