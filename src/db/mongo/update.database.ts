@@ -46,6 +46,10 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
           };
         } else updateObject[key] = payload[key];
       };
+      updateObject = Object.keys(model.schema.paths).reduce((result, preKey)=>{
+        if (Object.keys(model.schema.paths).includes(preKey)) result[preKey] = updateObject[preKey];
+        return result;
+      },{} as typeof updateObject)
       doc = await model.findByIdAndUpdate(id, { $set: updateObject }, {
         new: true,
         overwrite: true

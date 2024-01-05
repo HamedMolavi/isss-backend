@@ -42,16 +42,16 @@ router.get(
   "/:id",
   readByIdMiddleware(Schedule, { populate: true }),
 );
-
+Schedule.schema.paths
 //add route for edit schedule
 router.patch(
   "/:id",
   dtoValidationMiddleware(UpdateScheduleBody, { detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   Time.compareTimeMiddleware("start", "stop"),
   injectDataMiddleware(async (body: any) => {
-    return (await ModelToCamera.findOne({ "model_id": body.model_id, "camera_id": body.camera_id }).exec())?._id;
+    return (await ModelToCamera.findOne({ "model_id": body.model_id, "camera_id": body.camera_id }).exec())?.id;
   }, { injData: "model_camera_id" }),
-  readMiddleware(Schedule, (search: string) => { return { "model_camera_id": search } }, { next: true, save: "schedules", searchFromBody: (body) => body.model_camera_id._id }), //save schedule documents in req.body.schedules and hit next
+  readMiddleware(Schedule, (search: string) => { return { "model_camera_id": new mongoose.Types.ObjectId(search) } }, { next: true, save: "schedules", searchFromBody: (body) => body.model_camera_id }), //save schedule documents in req.body.schedules and hit next
   Time.validateTimeMiddleware("start", "stop", "dayOfWeek", "schedules"),
   updateByIdMiddleware(Schedule, {
     update: {
@@ -63,17 +63,19 @@ router.patch(
         name: "stop_cron",
         fn: (payload) => Time.toCronDay(Time.toCron(payload.stop as Clock), payload.dayOfWeek.toString() as DayOfWeek)
       },
-      "operation":{
-        name: "operation",
-        fn(payload) {
-            
-        },
+      "operations":{
+        name: "operations",
+        fn: (payload) => payload.operations.map((operation: IOperation) => { // fill all required fields except "logs"
+            return {
+              timeDuplicationDiagnoses: operation?.timeDuplicationDiagnoses ?? 0,
+              threshold: operation?.threshold != undefined ? operation?.threshold / 100 : 0,
+              zone: !!operation?.zone ? operation?.zone : [0, 0, 1, 1],
+              min_people: operation?.min_people ?? 0,
+              max_people: operation?.max_people ?? 0,
+              logs: operation.logs,
+            }
+          })
       },
-      "zones": { name: "config.zones" },
-      "timeDuplicationDiagnoses": { name: "config.timeDuplicationDiagnoses" },
-      "threshold": { name: "config.threshold" },
-      "min_people": { name: "config.min_people" },
-      "max_people": { name: "config.max_people" },
       "model_id": {
         name: "model_camera_id",
         fn: async (payload) => (await ModelToCamera.findOne({ "model_id": payload.model_id, "camera_id": payload.camera_id }).exec())?._id
