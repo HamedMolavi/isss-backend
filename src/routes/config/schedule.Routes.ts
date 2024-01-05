@@ -48,6 +48,11 @@ router.patch(
   "/:id",
   dtoValidationMiddleware(UpdateScheduleBody, { detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   Time.compareTimeMiddleware("start", "stop"),
+  injectDataMiddleware(async (body: any) => {
+    return (await ModelToCamera.findOne({ "model_id": body.model_id, "camera_id": body.camera_id }).exec())?._id;
+  }, { injData: "model_camera_id" }),
+  readMiddleware(Schedule, (search: string) => { return { "model_camera_id": search } }, { next: true, save: "schedules", searchFromBody: (body) => body.model_camera_id._id }), //save schedule documents in req.body.schedules and hit next
+  Time.validateTimeMiddleware("start", "stop", "dayOfWeek", "schedules"),
   updateByIdMiddleware(Schedule, {
     update: {
       "start": {
@@ -57,6 +62,12 @@ router.patch(
       "stop": {
         name: "stop_cron",
         fn: (payload) => Time.toCronDay(Time.toCron(payload.stop as Clock), payload.dayOfWeek.toString() as DayOfWeek)
+      },
+      "operation":{
+        name: "operation",
+        fn(payload) {
+            
+        },
       },
       "zones": { name: "config.zones" },
       "timeDuplicationDiagnoses": { name: "config.timeDuplicationDiagnoses" },

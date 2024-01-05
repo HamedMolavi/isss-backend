@@ -53,32 +53,22 @@ export class CreateScheduleBody {
 export class UpdateScheduleBody {
   @IsOptional()
   @IsString()
-  start?: string;
+  public start?: string;
   @IsOptional()
   @IsString()
-  stop?: string;
-  @IsOptional()
-  @IsString()
-  model_id?: string;
-  @IsOptional()
-  @IsString()
-  camera_id?: string;
-  @IsOptional()
-  @IsNumber()
-  timeDuplicationDiagnoses?: number;
-  @IsOptional()
-  @IsNumber()
-  threshold?: number;
+  public stop?: string;
   @IsOptional()
   @IsArray()
-  dayOfWeek?: string[];
+  public dayOfWeek?: string;
   @IsOptional()
+  @IsString()
+  public camera_id?: Schema.Types.ObjectId;
+  @IsOptional()
+  @IsString()
+  public model_id?: Schema.Types.ObjectId;
+  @IsOptional()
+  // @Type(() => Operation)
   @IsArray()
-  zones?: [[number, number, number, number]];
-  @IsOptional()
-  @IsNumber()
-  min_people?: number;
-  @IsOptional()
-  @IsNumber()
-  max_people?: number;
+  // @ValidateNested()
+  public operations?: Operation[]
 };
