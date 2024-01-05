@@ -63,8 +63,8 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       };
       let data = (await Promise.all(docs.map((doc) => !!options?.send ? options.send(doc, req) : doc))).filter((doc) => doc !== undefined);
       if (!!options?.next) {
-        if (!!options.save) req.body[options.save] = docs;
-        else req.body["docs"] = docs;
+        if (!!options.save) req.body[options.save] = data;
+        else req.body["docs"] = data;
         return next();
       };
       //return response to client
