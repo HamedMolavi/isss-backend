@@ -1,11 +1,16 @@
 import logger from "morgan";
 import { Request, Response } from "express";
 import rfs = require("rotating-file-stream");
-import { join } from "path";
+import { isAbsolute, join } from "path";
 import { randomUuid } from "../tools/utils.tools";
 import { mkdirSync, statSync } from "fs";
 
-const requestLogDir = join(__dirname, process.env["REQUEST_LOG_DIR"] as string)
+const requestLogDir = 
+  !!process.env.REQUEST_LOG_DIR
+    ? !!isAbsolute(process.env.REQUEST_LOG_DIR)
+      ? process.env.REQUEST_LOG_DIR
+      : join(__dirname, process.env.REQUEST_LOG_DIR)
+    : join(__dirname, "../../logs");
 // Pre Configs
 logger.token('id', function getId() { // log id
   return randomUuid();

@@ -26,7 +26,7 @@ const defaults: DefaultEnv = {
   "REDIS_URL": "redis://localhost:6379",
   "ELASTIC_SEARCH": "https://localhost:9200",
   "REQUEST_LOG_FORMAT": "",
-  "REQUEST_LOG_DIR": "../logs",
+  "REQUEST_LOG_DIR": "./logs",
   "RECORD_STREAM_TIME": "10",
   "SESSION_SECRET": "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4i",
   "MODELS": "plate,human,face,sabotage,fire",
