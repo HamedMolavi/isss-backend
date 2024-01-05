@@ -69,6 +69,7 @@ services:
       - ./logs:/isss-backend/logs
       - ./assets:/isss-backend/assets
       - ./security:/isss-backend/security
+      - ./metadata:/isss-backend/metadata
 
     # external_links:
     #   - mongo1

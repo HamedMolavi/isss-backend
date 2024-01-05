@@ -26,6 +26,7 @@ declare global {
       WORD_AFTER_REPLACE_STREAM: string
       MODELS: string
       LOGTYPES: string
+      MDPATH: string
     }
   }
 }
