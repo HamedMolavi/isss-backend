@@ -61,13 +61,12 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
           } else idx--;
         };
       };
-
+      let data = (await Promise.all(docs.map((doc) => !!options?.send ? options.send(doc, req) : doc))).filter((doc) => doc !== undefined);
       if (!!options?.next) {
         if (!!options.save) req.body[options.save] = docs;
         else req.body["docs"] = docs;
         return next();
       };
-      let data = (await Promise.all(docs.map((doc) => !!options?.send ? options.send(doc, req) : doc))).filter((doc) => doc !== undefined);
       //return response to client
       return res.status(200).json({
         success: true,
