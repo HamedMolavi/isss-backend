@@ -22,7 +22,7 @@ export async function recordLastOperation(req: Request, res: Response, next: Nex
           username: req.user.username,
           method: req.method,
           collection: collection,
-          success: JSON.parse(data).success,
+          success: typeof data === "string" ? JSON.parse(data)?.success : data?.success,
         }
       }
     }).exec();
