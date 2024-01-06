@@ -41,7 +41,8 @@ ScheduleSchema.methods.toJSON = function () {
       dow: this.stop_cron.split(" ")[4].split(",") ?? ["*"],
     },
     model_camera_id: this.model_camera_id,
-    operations
+    operations,
+    is_running: this.is_running
   };
 };
 
