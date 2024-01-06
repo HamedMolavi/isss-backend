@@ -21,9 +21,7 @@ router.post("",
   existCheck(User, { $or: [{ username: "username" }, { phone_number: "phone_number" }] }, "User or Phone number already exists!"),
   //verify password strength
   passwordValidator(UserPasswordRequirements),
-  createMiddleware(["username", "password", "phone_number", "event", "camera", "report", "configuration",
-    "camera_access"], User),
-  // { "camera_access": (body: any) => body["camera_access"].map((str: string) => new Types.ObjectId(str)) }], User),
+  createMiddleware(["username", "password", "phone_number", "camera_access", "access_level", "role"], User),
 );
 
 //route for get users list
@@ -40,7 +38,7 @@ router.patch("/:id",
   dtoValidationMiddleware(UpdateUserBody, { skipMissingProperties: true, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   passwordValidator(UserPasswordRequirements),
   updateByIdMiddleware(User, {
-    ignore: ["role"], update: {
+    update: {
       "camera_access": {
         name: "camera_access",
         fn: async (payload) => payload["camera_access"].map((str: string) => new Types.ObjectId(str))
