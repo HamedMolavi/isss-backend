@@ -19,18 +19,18 @@ import snapshot from "./snapshot.Routes";
 
 const router: Router = Router();
 import modelRoutes from "./model.Routes";
-import { testAccessCheck } from "../../authentication/accessCheck.auth";
+import { accessCheck } from "../../authentication/accessCheck.auth";
 
 //add rotes
-router.use("/cameras", testAccessCheck("camera"), cameraRoutes);
-router.use("/cars", testAccessCheck("car"), carRoutes);
-router.use("/carcolors", testAccessCheck("color"), carColorRoutes);
-router.use("/carbrands", testAccessCheck("brand"), carBrandRoutes);
-router.use("/departments", testAccessCheck("department"), departementRoutes);
-router.use("/sections", testAccessCheck("section"), sectionRoutes);
-router.use("/jobtitles", testAccessCheck("job"), jobTitleRoutes);
-router.use("/personnels", testAccessCheck("personnel"), personnelRoutes);
-router.use("/schedules", testAccessCheck("schedule"), scheduleRoutes);
+router.use("/cameras", accessCheck("camera"), cameraRoutes);
+router.use("/cars", accessCheck("car"), carRoutes);
+router.use("/carcolors", accessCheck("color"), carColorRoutes);
+router.use("/carbrands", accessCheck("brand"), carBrandRoutes);
+router.use("/departments", accessCheck("department"), departementRoutes);
+router.use("/sections", accessCheck("section"), sectionRoutes);
+router.use("/jobtitles", accessCheck("job"), jobTitleRoutes);
+router.use("/personnels", accessCheck("personnel"), personnelRoutes);
+router.use("/schedules", accessCheck("schedule"), scheduleRoutes);
 router.use("/files", fileRoutes);
 router.use("/models", modelRoutes);
 router.use("/modelToCameras", modelToCamera);

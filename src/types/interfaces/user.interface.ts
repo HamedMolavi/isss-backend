@@ -9,12 +9,10 @@ export interface IUser {
   phone_number: string;
   access_level: mongoose.Types.ObjectId;
   role: string;
-  event: boolean;
-  camera: boolean;
-  report: boolean;
-  configuration: boolean;
   created_date: Date;
   camera_access?: Array<mongoose.Types.ObjectId>;
+  last_login: Date;
+  last_operation: object;
 };
 
 export interface IUserDocument extends IUser, Document {
