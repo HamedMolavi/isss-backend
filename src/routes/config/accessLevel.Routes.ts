@@ -50,8 +50,8 @@ router.delete("/:id",
   readMiddleware(AccessLevel, (search: string) => { return { name: "admin", _id: new mongoose.Types.ObjectId(search) } }, { searchFromParams: (params) => params.id, next: true, save: 'adminAL' }),
   (req, res, next) => {
     if (!!req.body["adminAL"].length) {
-      req.flash("error", "Can't change admin access level.");
-      return next(new ApiError(404, "Can't change admin access level."));
+      req.flash("error", "Can't delete admin access level.");
+      return next(new ApiError(404, "Can't delete admin access level."));
     };
     return next();
   },
