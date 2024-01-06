@@ -27,8 +27,12 @@ export function setUpPassport() {
     new LocalStrategy(
       //for authentication user with username and password
       function auth(username: string, password: string, done: Function) {
-        User.findOne({ username: username })
-          .then(async user => user ? await user.checkPassword(password) ? user : null : null)
+        User.findOne({ username: username }) // find user by username
+          .then(async user => user ? await user.checkPassword(password) ? user : null : null) // examine the password
+          .then(async user => {
+            if (!!user) await User.updateOne({ _id: user._id }, { $set: { last_login: new Date() } }, { new: false, returnDocument: "after" });
+            return user;
+          }) // examine the password
           .then(user => user ? done(null, user.toJSON()) : done(null, false, { message: "username or password incorrect." }))
           .catch(err => done(err));
       }

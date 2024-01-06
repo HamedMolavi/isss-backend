@@ -1,6 +1,5 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import { ApiError } from "../types/classes/error.class";
-import { Access } from "../types/enums/access.enum";
 import mongoose, { Document, Types, isObjectIdOrHexString } from "mongoose";
 import { ICamera } from "../types/interfaces/camera.interface";
 import Camera from "../db/mongo/models/camera";
@@ -24,40 +23,11 @@ const accessCharPositions = {
   "DELETE": -1
 };
 
-export default function accessCheck(access: Access, role: string, options?: { extraFunction?: (req: Request) => boolean }) {
-  return function middleware(req: Request, _res: Response, next: NextFunction) {
-    const user = req.user;
-    switch (user.role) {
-      case "admin":
-        break;
-      case "user":
-        if (access === "extra") {
-          if (!options?.extraFunction || !options.extraFunction(req)) {
-            req.flash("error", "No access!");
-            return next(new ApiError(403, "No access!"));
-          } else break;
-        }
-        if (user[access] !== true) {
-          req.flash("error", "No access => " + access + " access needed.");
-          return next(new ApiError(403, "No access => " + access + " access needed."));
-        };
-        if (role === "admin") {
-          req.flash("error", "You are not admin");
-          return next(new ApiError(403, "You are not admin"));
-        };
-        break;
-      default:
-        break;
-    }
-    return next();
-  };
-};
-
-export function userCanGetHisInfo(req: Request) {
-  const probableParamId = req.path.split('/').at(-1);
-  if (req.method == 'GET' &&
+export function userCanGetHisInfo(req: Request, res?: Response) {
+  let probableParamId = req.path.split('/').find((el) => isObjectIdOrHexString(el));
+  if (['GET', 'PATCH'].includes(req.method) &&
     !!req.originalUrl.match("/api/v1/config/admin/users/") &&
-    isObjectIdOrHexString(probableParamId) &&
+    !!probableParamId &&
     probableParamId === req.user._id.toString()) {
     return true;
   };
@@ -66,30 +36,39 @@ export function userCanGetHisInfo(req: Request) {
 
 
 
-export function testAccessCheck(access: keyof IAccessLevel, bitMapNumberFromRight?: number) {
+export function accessCheck(access: keyof IAccessLevel, options?: { bitMapNumberFromRight?: number, extraFunction?: (req: Request, res: Response) => boolean }) {
   /**
    * @access
    * @bitMapNumberFromRight
    */
-  return async function middleware(req: Request, _res: Response, next: NextFunction) {
+  return async function middleware(req: Request, res: Response, next: NextFunction) {
     const user = req.user;
     const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level));
     const userAccess = userAccessLevel?.[access] as number | undefined;
     const method = req.method as "GET" | "POST" | "DELETE" | "PATCH";
-    if (!userAccessLevel || !userAccess || !hasAccess(userAccess, bitMapNumberFromRight ?? method)) {
-      req.flash("error", `No [${access} ${accessTranslation[method]}] access!`);
-      return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
-    }
-    return next();
+    if (userAccessLevel && userAccess && hasAccess(userAccess, options?.bitMapNumberFromRight ?? method)) return next(); // first: check the role
+    if (!!options?.extraFunction && options.extraFunction(req, res)) return next(); // second: check manual pass function
+    req.flash("error", `No [${access} ${accessTranslation[method]}] access!`);
+    return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
   };
 };
 
 
 function hasAccess(userAccess: number, methodOrNumber: "GET" | "POST" | "DELETE" | "PATCH" | number): boolean {
-  const binUserAccess = (userAccess >>> 0).toString(2).slice(-4);
+  const binUserAccess = "0000" + (userAccess >>> 0).toString(2);
   if (typeof methodOrNumber === 'number') return binUserAccess.at(-methodOrNumber) == "1";
   return binUserAccess.at(accessCharPositions[methodOrNumber]) == "1";
-}
+};
+
+export function roleCheck(role: string, options?: { extraFunction?: (req: Request, res: Response) => boolean }) {
+  return async function middleware(req: Request, res: Response, next: NextFunction) {
+    const user = req.user;
+    if (user.role === role) return next(); // first: check the role
+    if (!!options?.extraFunction && options.extraFunction(req, res)) return next(); // second: check manual pass function
+    req.flash("error", `No access!`);
+    return next(new ApiError(403, `No access!`));
+  };
+};
 
 // export function cameraAccessCheck(camerasFieldName: string, options?: {
 //   next?: boolean,

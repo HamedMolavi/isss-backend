@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import userConfig from "./config/userConfig.Routes";
 import adminConfig from "./config/adminConfig.Routes";
 import login from "./auth/login.Routes";
@@ -10,8 +10,7 @@ import schedulesreport from "./report/schedulesReport.Routes";
 import reportDepartments from "./report/departmentReport.Routes";
 
 import { passportGate } from "../authentication/authorize.auth";
-import accessCheck, { userCanGetHisInfo } from "../authentication/accessCheck.auth";
-import { Access } from "../types/enums/access.enum";
+import { recordLastOperation } from "../middleware/userOperations.middleware";
 
 const router: Router = Router();
 
@@ -20,6 +19,7 @@ router.use("/auth/login", login);
 
 //middleware for check and verify token
 router.use(passportGate);
+router.use(recordLastOperation);
 
 
 
