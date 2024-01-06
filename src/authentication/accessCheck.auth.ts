@@ -29,7 +29,10 @@ export function userCanGetHisInfo(req: Request, res?: Response) {
     !!req.originalUrl.match("/api/v1/config/admin/users/") &&
     !!probableParamId &&
     probableParamId === req.user._id.toString()) {
-    return true;
+      //user can not change his "role" or "access_level"
+      req.body.role = undefined;
+      req.body.access_level = undefined;
+      return true;
   };
   return false; // no access
 };
