@@ -9,11 +9,11 @@ const PersonImageSchema: Schema<IPersonImage> = new Schema({
     vector: [Number],
     masked_embd:[Number]
 },{
-    collection: "Person_Image_2"
+    collection: "Person_Image"
 });
 
 // Compile Model from schema
-const PersonImage = mongoose.model("Person_Image_2", PersonImageSchema);
+const PersonImage = mongoose.model("Person_Image", PersonImageSchema);
 export default PersonImage;
 
 

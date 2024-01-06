@@ -17,7 +17,6 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
 
 
 //get Schedule data json
-//TODO: deprecated
 ScheduleSchema.methods.toJSON = function () {
   let operations = this.operations.map((operation: IOperation) => {
     return {
