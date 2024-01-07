@@ -11,7 +11,7 @@ import Car from "../../db/mongo/models/car";
 import mongoose from "mongoose";
 import { carSendFunction } from "../../tools/car.tools";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
-import { injectDataMiddleware } from "../../tools/request.tools";
+import { DoNotAllowOnDefault, injectDataMiddleware } from "../../tools/request.tools";
 //create router for add to server file 
 const router: Router = Router();
 
@@ -39,6 +39,7 @@ router.get("/:id",
 
 //add route for delete car_brand by id from DB
 router.patch("/:id",
+  DoNotAllowOnDefault(CarBrand, { name: "unknown" }),
   dtoValidationMiddleware(UpdateCarBrandBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   injectDataMiddleware((params: { [key: string]: string }) => params.id, { params: true, injData: "id" }), // inject id from params into body
   existCheck(CarBrand, (body: { [key: string]: string }) => { return { "_id": new mongoose.Types.ObjectId(body.id), "system": true } }, "You can't change a system car brand!"),
@@ -47,6 +48,7 @@ router.patch("/:id",
 
 //add route for delete car_brand by id from DB
 router.delete("/:id",
+  DoNotAllowOnDefault(CarBrand, { name: "unknown" }),
   deleteByIdMiddleware(CarBrand)
 );
 

@@ -9,6 +9,7 @@ import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 import Personnel from "../../db/mongo/models/personnel";
 import mongoose from "mongoose";
+import { DoNotAllowOnDefault } from "../../tools/request.tools";
 
 //create router for add to server file
 const router: Router = Router();
@@ -38,12 +39,14 @@ router.get("/:id",
 
 //add route for edit jobTitle
 router.patch("/:id",
+  DoNotAllowOnDefault(JobTitle, { name: "guest" }),
   dtoValidationMiddleware(UpdateJobTitleBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   updateByIdMiddleware(JobTitle)
 );
 
 //add route for delete jobTitle
 router.delete("/:id",
+  DoNotAllowOnDefault(JobTitle, { name: "guest" }),
   deleteByIdMiddleware(JobTitle)
 );
 

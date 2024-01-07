@@ -9,6 +9,7 @@ import mongoose, { Document } from "mongoose";
 import AccessLevel from "../../db/mongo/models/accessLevel";
 import { CreateAccessLevelBody } from "../../validation/dto/accessLevel.dto";
 import { ApiError } from "../../types/classes/error.class";
+import { DoNotAllowOnDefault } from "../../tools/request.tools";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -32,29 +33,13 @@ router.get("/:id",
 
 //add route for edit personnel
 router.patch("/:id",
-  // $and: [{ _id: new mongoose.Types.ObjectId(search) }, { name: "admin" }] 
-  readMiddleware(AccessLevel, (search: string) => { return { name: "admin", _id: new mongoose.Types.ObjectId(search) } }, { searchFromParams: (params) => params.id, next: true, save: 'adminAL' }),
-  (req, res, next) => {
-    if (!!req.body["adminAL"].length) {
-      req.flash("error", "Can't change admin access level.");
-      return next(new ApiError(404, "Can't change admin access level."));
-    };
-    return next();
-  },
+  DoNotAllowOnDefault(AccessLevel, { name: "admin" }),
   updateByIdMiddleware(AccessLevel),
 );
 
 //add route for delete personnel
 router.delete("/:id",
-  // $and: [{ _id: new mongoose.Types.ObjectId(search) }, { name: "admin" }] 
-  readMiddleware(AccessLevel, (search: string) => { return { name: "admin", _id: new mongoose.Types.ObjectId(search) } }, { searchFromParams: (params) => params.id, next: true, save: 'adminAL' }),
-  (req, res, next) => {
-    if (!!req.body["adminAL"].length) {
-      req.flash("error", "Can't delete admin access level.");
-      return next(new ApiError(404, "Can't delete admin access level."));
-    };
-    return next();
-  },
+  DoNotAllowOnDefault(AccessLevel, { name: "admin" }),
   deleteByIdMiddleware(AccessLevel),
 );
 

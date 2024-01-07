@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ApiError } from "../types/classes/error.class";
-import mongoose from "mongoose";
+import mongoose, { FilterQuery } from "mongoose";
+import { readMiddleware } from "../db/mongo/read.database";
 
 export function injectDataMiddleware(fn: CallableFunction, options?: { params?: boolean, injData?: string, spread?: boolean }) {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -46,7 +47,7 @@ export function docSendMiddleware(bodyFieldName: string | string[]) {
       pages: Math.ceil((data.length) / perPage),
     });
   }
-}
+};
 export function makeSearchFnWithOr(field: string, options?: { includes?: boolean }) {
   return function searchFn(search: string) {
     let query: { $or: Array<{ [key: string]: any }> } = { $or: [] };
@@ -62,4 +63,17 @@ export function makesearchFromBody(bodyFieldName: string) {
     for (const doc of body[bodyFieldName]) ids.push(doc.id);
     return ids.join(',');
   }
-}
+};
+
+export function DoNotAllowOnDefault(model: any, query: FilterQuery<any>) {
+  return [
+    readMiddleware(model, (search: string) => { return { _id: new mongoose.Types.ObjectId(search), ...query } }, { searchFromParams: (params) => params.id, next: true, save: 'docs' }),
+    (req: Request, res: Response, next: NextFunction) => {
+      if (!!req.body["docs"].length) {
+        req.flash("error", "Can't change default " + model.collection.collectionName + "!");
+        return next(new ApiError(401, "Can't change default " + model.collection.collectionName + "!"));
+      };
+      return next();
+    }
+  ];
+};

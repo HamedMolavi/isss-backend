@@ -5,13 +5,13 @@ import Section from "../models/section";
 import { read } from "../read.database";
 
 export async function makeSeedSection(department: IDepartment): Promise<ISection | undefined> {
-  if (!(await read(Section, { query: { name: 'default' } })).length) {
+  if (!(await read(Section, { query: { name: 'Section' } })).length) {
     const sections: ISection[] = await create(Section, {
-      name: 'default',
+      name: 'Section',
       department_id: department._id,
       is_enabled: true,
     });
-    console.log("\t++ Seed data Section: name=default");
+    console.log("\t++ Seed data Section: name=Section");
     return sections[0];
   };
   return undefined;
