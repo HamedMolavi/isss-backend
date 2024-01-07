@@ -21,7 +21,7 @@ const router: Router = Router();
 
 //add route for register new schedule
 router.post("",
-  dtoValidationMiddleware(CreateScheduleBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  dtoValidationMiddleware(CreateScheduleBody, { skipMissingProperties: true, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   Time.compareTimeMiddleware("start", "stop"),
   injectDataMiddleware(async (body: any) => {
     return (await ModelToCamera.findOne({ "model_id": body.model_id, "camera_id": body.camera_id }).exec())?.id;

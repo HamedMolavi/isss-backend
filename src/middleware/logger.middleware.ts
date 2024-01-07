@@ -1,5 +1,5 @@
 import logger from "morgan";
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import rfs = require("rotating-file-stream");
 import { isAbsolute, join } from "path";
 import { randomUuid } from "../tools/utils.tools";
@@ -84,3 +84,40 @@ export function setupLogger() {
   ];
   return middlewares;
 }
+
+
+export function loggingMiddleware(req: Request, res: Response): string {
+
+  const reqData = {
+    url: req.url,
+    headers: req.headers
+  };
+
+  const resData: {sent?: any} = {};
+
+  const origSend = res.send;
+
+  res.send = function(chunk?: any) {
+
+    // Convert arguments to array
+    const args = Array.prototype.slice.call(arguments);
+  
+    resData.sent = chunk;
+  
+    origSend.apply(this as Response, [chunk]);
+  
+    return res;
+  
+  };
+  console.log(reqData)
+  return JSON.stringify(reqData);
+
+}
+
+
+export function operationLog(req: Request, res: Response){
+  let result  ={}
+  
+}
+
+

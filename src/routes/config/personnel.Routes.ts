@@ -42,7 +42,7 @@ router.post("",
 
 //route for get personnels list
 router.get(["", "/search"],
-  readMiddleware(Personnel, rawSearch, { next: true, send: personnelSendFunction }));
+  readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction }));
 
 //route for get personnel by id from DB
 router.get("/:id",
