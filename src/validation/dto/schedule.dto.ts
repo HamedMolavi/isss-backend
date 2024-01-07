@@ -1,75 +1,52 @@
-import { Type } from "class-transformer";
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber, IsObject, ValidateNested, IsNotEmpty, ArrayNotEmpty } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber } from "class-validator";
 import mongoose, { Schema } from "mongoose";
-import 'reflect-metadata';
 
-class LogConfig {
-  @IsString()
-  public log_type?: Schema.Types.ObjectId
-  @IsString()
-  public log_name?: Schema.Types.ObjectId
-  @IsString()
-  public log_level?: string
-}
-class Operation {
-  @IsOptional()
-  @IsNumber()
-  public timeDuplicationDiagnoses?: number;
-  @IsOptional()
-  @IsNumber()
-  public threshold?: number;
-  @IsOptional()
-  @IsNumber()
-  public min_people?: number;
-  @IsOptional()
-  @IsNumber()
-  public max_people?: number;
-  @IsOptional()
-  @IsArray()
-  public zone?: [number, number, number, number] | [];
-  @Type(() => LogConfig)
-  @ValidateNested({each: true})
-  @ArrayNotEmpty()
-  @IsArray()
-  public logs?: LogConfig[]
-}
+
 export class CreateScheduleBody {
   @IsString()
   public start?: string;
   @IsString()
   public stop?: string;
   @IsArray()
-  public dayOfWeek?: string[];
+  public dayOfWeek?: string;
   @IsString()
   public camera_id?: Schema.Types.ObjectId;
   @IsString()
   public model_id?: Schema.Types.ObjectId;
-  @Type(() => Operation)
-  @ValidateNested({each: true})
-  @IsArray()
-  public operations?: Operation[]
 };
-
 
 export class UpdateScheduleBody {
   @IsOptional()
   @IsString()
-  public start?: string;
+  start?: string;
   @IsOptional()
   @IsString()
-  public stop?: string;
+  stop?: string;
+  @IsOptional()
+  @IsString()
+  model_id?: string;
+  @IsOptional()
+  @IsString()
+  camera_id?: string;
+  @IsOptional()
+  @IsBoolean()
+  montionDetection?: boolean;
+  @IsOptional()
+  @IsNumber()
+  timeDuplicationDiagnoses?: number;
+  @IsOptional()
+  @IsNumber()
+  threshold?: number;
   @IsOptional()
   @IsArray()
-  public dayOfWeek?: string;
+  dayOfWeek?: string[];
   @IsOptional()
-  @IsString()
-  public camera_id?: Schema.Types.ObjectId;
-  @IsOptional()
-  @IsString()
-  public model_id?: Schema.Types.ObjectId;
-  @IsOptional()
-  // @Type(() => Operation)
   @IsArray()
-  // @ValidateNested()
-  public operations?: Operation[]
+  zones?: [[number, number, number, number]];
+  @IsOptional()
+  @IsNumber()
+  min_people?: number;
+  @IsOptional()
+  @IsNumber()
+  max_people?: number;
 };

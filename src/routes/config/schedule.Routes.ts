@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { IGetParams, IOperation } from "../../types/interfaces/schedule.interface";
+import { IGetParams } from "../../types/interfaces/schedule.interface";
 import Schedule from "../../db/mongo/models/schedule";
 import Time from "../../tools/time.tools";
 import ModelToCamera from "../../db/mongo/models/modelToCamera";
@@ -11,7 +11,7 @@ import { CreateScheduleBody, UpdateScheduleBody } from "../../validation/dto/sch
 import { existCheck } from "../../validation/db";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { read, readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
-import mongoose, { Schema } from "mongoose";
+import { Schema } from "mongoose";
 import { injectDataMiddleware } from "../../tools/request.tools";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
@@ -21,15 +21,15 @@ const router: Router = Router();
 
 //add route for register new schedule
 router.post("",
-  dtoValidationMiddleware(CreateScheduleBody, { skipMissingProperties: true, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  dtoValidationMiddleware(CreateScheduleBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   Time.compareTimeMiddleware("start", "stop"),
   injectDataMiddleware(async (body: any) => {
-    return (await ModelToCamera.findOne({ "model_id": body.model_id, "camera_id": body.camera_id }).exec())?.id;
+    return (await ModelToCamera.findOne({ "model_id": body.model_id, "camera_id": body.camera_id }).exec())?._id;
   }, { injData: "model_camera_id" }),
-  readMiddleware(Schedule, (search: string) => { return { "model_camera_id": new mongoose.Types.ObjectId(search) } }, { next: true, save: "schedules", searchFromBody: (body) => body.model_camera_id }), //save schedule documents in req.body.schedules and hit next
+  readMiddleware(Schedule, (search: string) => { return { "model_camera_id": search } }, { next: true, save: "schedules", searchFromBody: (body) => body.model_camera_id._id }), //save schedule documents in req.body.schedules and hit next
   Time.validateTimeMiddleware("start", "stop", "dayOfWeek", "schedules"),
   injectDataMiddleware(convertPlaiBodyToSchedule, { spread: true }),
-  createMiddleware(["start_cron", "stop_cron", "operations", "model_camera_id"], Schedule),
+  createMiddleware(["start_cron", "stop_cron", "montionDetection", "config", "model_camera_id"], Schedule),
 );
 
 router.get(
@@ -42,17 +42,12 @@ router.get(
   "/:id",
   readByIdMiddleware(Schedule, { populate: true }),
 );
-Schedule.schema.paths
+
 //add route for edit schedule
 router.patch(
   "/:id",
   dtoValidationMiddleware(UpdateScheduleBody, { detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   Time.compareTimeMiddleware("start", "stop"),
-  injectDataMiddleware(async (body: any) => {
-    return (await ModelToCamera.findOne({ "model_id": body.model_id, "camera_id": body.camera_id }).exec())?.id;
-  }, { injData: "model_camera_id" }),
-  readMiddleware(Schedule, (search: string) => { return { "model_camera_id": new mongoose.Types.ObjectId(search) } }, { next: true, save: "schedules", send: (doc, req) => doc.id.toString() != req.params.id ? doc : undefined, searchFromBody: (body) => body.model_camera_id }), //save schedule documents in req.body.schedules and hit next
-  Time.validateTimeMiddleware("start", "stop", "dayOfWeek", "schedules"),
   updateByIdMiddleware(Schedule, {
     update: {
       "start": {
@@ -63,19 +58,12 @@ router.patch(
         name: "stop_cron",
         fn: (payload) => Time.toCronDay(Time.toCron(payload.stop as Clock), payload.dayOfWeek.toString() as DayOfWeek)
       },
-      "operations": {
-        name: "operations",
-        fn: (payload) => payload.operations.map((operation: IOperation) => { // fill all required fields except "logs"
-          return {
-            timeDuplicationDiagnoses: operation?.timeDuplicationDiagnoses ?? 0,
-            threshold: operation?.threshold != undefined ? operation?.threshold / 100 : 0,
-            zone: !!operation?.zone ? operation?.zone : [0, 0, 1, 1],
-            min_people: operation?.min_people ?? 0,
-            max_people: operation?.max_people ?? 0,
-            logs: operation.logs,
-          }
-        })
-      },
+      "zones": { name: "config.zones" },
+      "timeDuplicationDiagnoses": { name: "config.timeDuplicationDiagnoses" },
+      "threshold": { name: "config.threshold" },
+      "min_people": { name: "config.min_people" },
+      "max_people": { name: "config.max_people" },
+      "montionDetection": { name: "config.montionDetection" },
       "model_id": {
         name: "model_camera_id",
         fn: async (payload) => (await ModelToCamera.findOne({ "model_id": payload.model_id, "camera_id": payload.camera_id }).exec())?._id
@@ -92,31 +80,33 @@ router.delete("/:id",
 
 
 function convertPlaiBodyToSchedule(body: any) {
-  let {
+  const {
     start,
     stop,
     dayOfWeek,
-    operations
+    montionDetection,
+    threshold,
+    zones,
+    min_people,
+    max_people,
+    timeDuplicationDiagnoses,
   } = body;
-  operations = operations.map((operation: IOperation) => { // fill all required fields except "logs"
-    return {
-      timeDuplicationDiagnoses: operation?.timeDuplicationDiagnoses ?? 0,
-      threshold: operation?.threshold != undefined ? operation?.threshold / 100 : 0,
-      zone: !!operation?.zone ? operation?.zone : [0, 0, 1, 1],
-      min_people: operation?.min_people ?? 0,
-      max_people: operation?.max_people ?? 0,
-      logs: operation.logs,
-    }
-  })
   //convert input time to cron format
   let start_cron = Time.toCronDay(Time.toCron(start), dayOfWeek.toString());
   let stop_cron = Time.toCronDay(Time.toCron(stop), dayOfWeek.toString());
+
   return {
-    start_cron,
-    stop_cron,
-    operations
+    start_cron: start_cron,
+    stop_cron: stop_cron,
+    montionDetection: montionDetection,
+    config: {
+      timeDuplicationDiagnoses: timeDuplicationDiagnoses ?? 0,
+      threshold: threshold != undefined ? threshold / 100 : 0,
+      zones: zones && zones.length != 0 ? zones : [[0, 0, 1, 1]],
+      min_people: min_people ?? 0,
+      max_people: max_people ?? 0,
+    },
   };
 }
 
 export default router;
-
