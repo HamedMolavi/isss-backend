@@ -3,7 +3,7 @@ export default function setExceptionHandler() {
   const errorTypes = ['unhandledRejection', 'uncaughtException']
   const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2']
   errorTypes.forEach(type => {
-    process.on(type, async (e: any) => {
+    process.once(type, async (e: any) => {
       try {
         console.error(`process.on ${type}`)
         console.error(e)
