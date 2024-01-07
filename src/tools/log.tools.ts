@@ -124,8 +124,7 @@ export async function humanLogResponse(response: any, allowed: boolean | undefin
       camera: cameras.find((cam) => cam._id.toString() === log._source.camera_id.toString())?.name ?? "",
       time: log._source?.timestamp ? new Date(log._source.timestamp).toLocaleString("en-US", { timeZone: timezone }) : "",
       numberOfPeople: log._source.number_of_people,
-      //TODO: deprecated
-      allowed: (schedule && schedule.operations[0].max_people >= log._source.number_of_people && schedule!.operations[0]!.min_people <= log._source.number_of_people) ?? false,
+      allowed: (schedule && schedule.config.max_people >= log._source.number_of_people && schedule!.config!.min_people <= log._source.number_of_people) ?? false,
       video: cameras.find((cam) => cam._id.toString() == log._source.camera_id.toString())?.url ?? "",
     };
     data.push(result);
