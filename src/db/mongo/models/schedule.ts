@@ -11,7 +11,7 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
     is_running: { type: Boolean, default: false },
   },
   {
-    collection: "Schedule",
+    collection: "Schedule", //test
   }
 );
 
