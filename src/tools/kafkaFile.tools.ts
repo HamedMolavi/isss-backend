@@ -68,7 +68,7 @@ export class SnapshotKafka {
     }).producer({
       retry: {
         restartOnFailure: async (err) =>
-          !Boolean(console.log("Kafka Connect Failure:", err)),
+        !Boolean(console.log("Kafka Connect Failure:", err)),
       },
       allowAutoTopicCreation: true, // TODO: should be false.
     });
