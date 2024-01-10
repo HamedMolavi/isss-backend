@@ -48,6 +48,7 @@ ScheduleSchema.methods.toJSON = function () {
       min_people: this.config.min_people ?? 0,
       max_people: this.config.max_people ?? 0,
     },
+    is_running: this.is_running
   };
 };
 
