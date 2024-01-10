@@ -130,7 +130,7 @@ router.post("/:model", async function (req: Request, res: Response, next: NextFu
       times_epoch,
       // epoch.start,
       // epoch.end,
-      model === "face" ? model + "ys1" : model,
+      model === "face" ? model + "ys" : model,
       page,
       perPage,
       plate_number_engglish,

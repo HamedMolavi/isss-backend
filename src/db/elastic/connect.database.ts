@@ -27,7 +27,8 @@ export async function dynamicRequestToElasticSearch(
     //create json response for client
     let jsonResuest: any = {};
     jsonResuest["size"] = perPage;
-    jsonResuest["from"] = perPage * (page - 1) - 1;
+    jsonResuest["from"] = perPage * (page - 1) ;
+   // jsonResuest["from"] = perPage * (page - 1) - 1;
     //jsonResuest["from"] = perPage > 0 ? perPage  :0;
     //create json query for elastic search
     jsonResuest.query = {
