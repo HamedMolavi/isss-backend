@@ -502,15 +502,10 @@
     semver "^7.3.5"
     tar "^6.1.11"
 
-"@napi-rs/snappy-linux-x64-gnu@7.1.1":
+"@napi-rs/snappy-win32-ia32-msvc@7.1.1":
   version "7.1.1"
-  resolved "https://registry.npmjs.org/@napi-rs/snappy-linux-x64-gnu/-/snappy-linux-x64-gnu-7.1.1.tgz"
-  integrity sha512-41DPoAUFAU9VNrj/96qKfStH2Xq88ZYIsSz8BlITDm2ScoeDGOGbmaWguCXU7I+bC2uKWTmUVMXKqk6tVY6LEg==
-
-"@napi-rs/snappy-linux-x64-musl@7.1.1":
-  version "7.1.1"
-  resolved "https://registry.npmjs.org/@napi-rs/snappy-linux-x64-musl/-/snappy-linux-x64-musl-7.1.1.tgz"
-  integrity sha512-xR4hzFQqVq6J8Zf6XyUVtFJBaRgDyAQYUoBsCr92tZ7gI/0RlWCV6Q6JMO/wP5CSsvyFJIAtSUXXqlzIpw0GPA==
+  resolved "https://registry.npmjs.org/@napi-rs/snappy-win32-ia32-msvc/-/snappy-win32-ia32-msvc-7.1.1.tgz"
+  integrity sha512-FOMgs9W71hdgjyl3T9F7b/WEIuoryfgBqsyhtHjAaa/98R0BUHl0bOoHg8ka0b5GgnhLBHkX2Yd6VD+Si9Q2ww==
 
 "@protobufjs/aspromise@^1.1.1", "@protobufjs/aspromise@^1.1.2":
   version "1.1.2"
@@ -3338,6 +3333,13 @@ node-fetch@^2.6.7:
   dependencies:
     whatwg-url "^5.0.0"
 
+node-nvidia-smi@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.npmjs.org/node-nvidia-smi/-/node-nvidia-smi-1.0.0.tgz"
+  integrity sha512-vjgWll2M/FWihNPKKbhWKSfbk57WrpVv1XOR5iuIxIHNieTUuJ0HrDIZj5gsJ63dx2eTbm/dWm+fWIPfYm+D3Q==
+  dependencies:
+    xml2js "^0.4.17"
+
 node-onvif@^0.1.7:
   version "0.1.7"
   resolved "https://registry.npmjs.org/node-onvif/-/node-onvif-0.1.7.tgz"
@@ -4214,6 +4216,11 @@ supports-color@8.1.1:
   dependencies:
     has-flag "^4.0.0"
 
+systeminformation@^5.21.23:
+  version "5.21.23"
+  resolved "https://registry.npmjs.org/systeminformation/-/systeminformation-5.21.23.tgz"
+  integrity sha512-hI8W9WoPKgRAahVsfqfqg7H6JyIQXoA5RKOohUSOeyZwG+D0vnLOdXaKAUvdaMaL6CCsfN4x3mQYUIY4Qaalcg==
+
 tar@^6.1.11:
   version "6.1.15"
   resolved "https://registry.npmjs.org/tar/-/tar-6.1.15.tgz"
@@ -4563,6 +4570,14 @@ xml-crypto@^1.4.0:
   dependencies:
     "@xmldom/xmldom" "^0.7.0"
     xpath "0.0.32"
+
+xml2js@^0.4.17:
+  version "0.4.23"
+  resolved "https://registry.npmjs.org/xml2js/-/xml2js-0.4.23.tgz"
+  integrity sha512-ySPiMjM0+pLDftHgXY4By0uswI3SPKLDw/i3UXbnO8M/p28zqexCUoPmQFrYD+/1BzhGJSs2i1ERWKJAtiLrug==
+  dependencies:
+    sax ">=0.6.0"
+    xmlbuilder "~11.0.0"
 
 xml2js@>=0.4.17:
   version "0.6.2"
