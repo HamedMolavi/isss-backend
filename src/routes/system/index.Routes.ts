@@ -1,9 +1,10 @@
 import { Router } from "express";
-import systemResource from "./system.Routes"
+import resourceRoutes from "./resource.Routes"
+import signalRoutes from "./resource.Routes"
 
 const router: Router = Router();
 
-router.use("/info", systemResource)
-// router.use("/restart", )
+router.use("/info", resourceRoutes);
+router.use("/signal", signalRoutes);
 
 export default router;
