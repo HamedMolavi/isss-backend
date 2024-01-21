@@ -152,7 +152,7 @@ export async function dockerInfo(containers?: Array<string>) {
 };
 
 
-export async function networkInfo(containers?: Array<string>) {
+export async function networkInfo() {
   //   await si.networkConnections()
   // [
   //   {
