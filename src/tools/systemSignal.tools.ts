@@ -23,7 +23,7 @@ export class SignalProducer {
       messages: [
         {
           key: process.env["SIGNAL_KEY"],
-          value: "restart",
+          value: JSON.stringify({ signal: "restart", origin: "back", sender: "back" }),
         },
       ],
     })
