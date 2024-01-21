@@ -93,7 +93,8 @@ export async function gpuInfo() {
         vram: ctrl.vram
       }
     }),
-    displays: graphics.displays.map((monitor) => { return { "model": monitor.model } })
+    displays: graphics.displays.map((monitor) => { return { "model": monitor.model } }),
+    description: gpuDescription
   };
 };
 
@@ -137,7 +138,7 @@ export async function dockerInfo(containers?: Array<string>) {
   if (!!containers && !!containers.length) {
     const userContainerInfo = await si.dockerAll().then((dockers: Container[]) => {
       if (!!dockers && !!dockers?.length) {
-        return dockers.filter((docker) => containers.some((container) => container.match(docker.name)))
+        return dockers.filter((docker) => containers.some((container) => new RegExp(docker.name).test(container)))
       } else return []
     });
     userContainerInfo.forEach(container => dockerDescription.push(`Container ${container.name} ${container.state} Image ${container.image} cpu ${container.cpuPercent}% mem ${container.memUsage}`));
