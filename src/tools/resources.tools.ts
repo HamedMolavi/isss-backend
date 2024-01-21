@@ -1,4 +1,5 @@
 import si from 'systeminformation';
+import { Container, DockerInfoResult, ProcessInfoResult } from '../types/interfaces/systemInfo.interface';
 
 export async function cpuInfo() {
   const cpu = await si.cpu();
@@ -9,7 +10,7 @@ export async function cpuInfo() {
     [cpu.brand, ": Total speed", cpu.speed].join(" "),
     [cpu.cores, "cores"].join(" "),
     [cpu.physicalCores, "phisical cores"].join(" "),
-    [cpuSpeed.avg, "speed in use"].join(" "),
+    [cpuSpeed.avg, "GHz speed in use"].join(" "),
     [(cpuLoad.currentLoad).toFixed(2), "% total cpu usage"].join(" "),
     [(cpuLoad.currentLoadUser).toFixed(2), "% user cpu usage"].join(" "),
     [(cpuLoad.currentLoadSystem).toFixed(2), "% system cpu usage"].join(" "),
@@ -19,7 +20,9 @@ export async function cpuInfo() {
     brand: cpu.brand,
     cores: cpu.cores,
     physicalCores: cpu.physicalCores,
-    avg: cpuSpeed.avg,
+    total: cpu.speed,
+    used: cpuSpeed.avg,
+    free: cpu.speed - cpuSpeed.avg,
     currentLoad: cpuLoad.currentLoad,
     currentLoadUser: cpuLoad.currentLoadUser,
     currentLoadSystem: cpuLoad.currentLoadSystem,
@@ -96,16 +99,8 @@ export async function gpuInfo() {
 
 export async function processInfo(processesOrServices?: Array<string>) {
   const processes = await si.processes();
-  type ResultType = {
-    all: number
-    running: number
-    blocked: number
-    sleeping: number
-    processes?: si.Systeminformation.ProcessesProcessLoadData[]
-    services?: si.Systeminformation.ServicesData[]
-    description: string
-  };
-  let result: ResultType = {
+
+  let result: ProcessInfoResult = {
     all: processes.all,
     running: processes.running,
     blocked: processes.blocked,
@@ -128,28 +123,8 @@ export async function processInfo(processesOrServices?: Array<string>) {
 
 export async function dockerInfo(containers?: Array<string>) {
   const dockers = await si.dockerInfo();
-  type Container = {
-    name: string
-    image: string
-    state: string
-    restartCount: number,
-    ports: [Object],
-    memUsage: number,
-    cpuPercent: number,
-    netIO: { rx: number, wx: number },
-    networks: { [key: string]: Object },
-  };
-  type ResultType = {
-    totalContainers: number,
-    totalContainersRunning: number,
-    totalContainersPaused: number,
-    totalContainersStopped: number,
-    totalImages: number,
-    memTotal: number,
-    containers?: Container[]
-    description: string
-  };
-  let result: ResultType = {
+
+  let result: DockerInfoResult = {
     totalContainers: dockers.containers,
     totalContainersRunning: dockers.containersRunning,
     totalContainersPaused: dockers.containersPaused,
@@ -162,7 +137,7 @@ export async function dockerInfo(containers?: Array<string>) {
   if (!!containers && !!containers.length) {
     const userContainerInfo = await si.dockerAll().then((dockers: Container[]) => {
       if (!!dockers && !!dockers?.length) {
-        return dockers.filter((container) => containers.includes(container.name))
+        return dockers.filter((docker) => containers.some((container) => container.match(docker.name)))
       } else return []
     });
     userContainerInfo.forEach(container => dockerDescription.push(`Container ${container.name} ${container.state} Image ${container.image} cpu ${container.cpuPercent}% mem ${container.memUsage}`));

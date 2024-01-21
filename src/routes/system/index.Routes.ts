@@ -3,7 +3,7 @@ import systemResource from "./system.Routes"
 
 const router: Router = Router();
 
-router.use("/resource", systemResource)
+router.use("/info", systemResource)
 // router.use("/restart", )
 
 export default router;
