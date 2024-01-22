@@ -18,7 +18,8 @@ export class SignalProducer {
     this.producer.connect();
   }
   ////////////////////////////////////////////////////////////////////////////////
-  async sendRestartSignal() {
+  sendRestartSignal = async () => {
+    SignalConsumer.restarted = false;
     return this.producer.send({
       topic: process.env["SIGNAL_TOPIC"],
       messages: [
@@ -32,7 +33,7 @@ export class SignalProducer {
       .catch((err) => console.log(err))
   }
   ////////////////////////////////////////////////////////////////////////////////
-  async sendRestartSignalMiddleware(req: Request, res: Response, next: NextFunction) {
+  sendRestartSignalMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     let result = await this.sendRestartSignal();
     return res.json({
       success: !!result && !result.errorCode,
@@ -46,6 +47,7 @@ export class SignalConsumer {
     logLevel: logLevel.ERROR,
     brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
   }).consumer({ groupId: randomUuid(5) });
+  static restarted: boolean = false
 
   constructor() { }
   ////////////////////////////////////////////////////////////////////////////////
@@ -69,6 +71,11 @@ export class SignalConsumer {
               case "restart": {
                 console.log("Restart command running.");
                 process.exit(0);
+                return;
+              }
+              case "done_restart": {
+                console.log("Restart done successfully.");
+                SignalConsumer.restarted = true;
                 return;
               }
               default: {

@@ -1,9 +1,18 @@
 import { Router } from "express";
-import { SignalProducer } from "../../tools/systemSignal.tools";
+import { SignalConsumer, SignalProducer } from "../../tools/systemSignal.tools";
 
 const router: Router = Router();
 const sg = new SignalProducer();
 
 router.get("/restart", sg.sendRestartSignalMiddleware);
+
+router.get("/query/restart", (_req, res, _next) => {
+  return res.json({
+    success: true,
+    data: {
+      restarted: SignalConsumer.restarted
+    }
+  })
+});
 
 export default router;
