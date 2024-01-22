@@ -3,6 +3,7 @@ import connectToDBs from "../db/index.database";
 import { setUpPassport } from "../setups/passport.setup";
 import seedSetup from "./seed.setup";
 import { initBalancer } from "../tools/loadBalancer.tools";
+import { SignalConsumer } from "../tools/systemSignal.tools";
 
 
 export default async function setup() {
@@ -11,4 +12,5 @@ export default async function setup() {
   await seedSetup();
   setUpPassport();
   await initBalancer();
+  await SignalConsumer.setupDefault();
 };

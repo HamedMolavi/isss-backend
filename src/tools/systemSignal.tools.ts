@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { Kafka, Producer, logLevel } from "kafkajs";
+import { Consumer, EachMessageHandler, Kafka, Producer, logLevel } from "kafkajs";
+import { randomUuid } from "./utils.tools";
 
 export class SignalProducer {
   producer: Producer;
@@ -22,7 +23,7 @@ export class SignalProducer {
       topic: process.env["SIGNAL_TOPIC"],
       messages: [
         {
-          key: process.env["SIGNAL_KEY"],
+          key: "connect",
           value: JSON.stringify({ signal: "restart", origin: "back", sender: "back" }),
         },
       ],
@@ -38,4 +39,52 @@ export class SignalProducer {
       data: !!result ? { "topic": result.topicName, "offset": result.baseOffset, "partition": result.partition } : {},
     })
   }
-}
+};
+
+export class SignalConsumer {
+  static consumer: Consumer = new Kafka({
+    logLevel: logLevel.ERROR,
+    brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
+  }).consumer({ groupId: randomUuid(5) });
+
+  constructor() { }
+  ////////////////////////////////////////////////////////////////////////////////
+  static async setupDefault(topic: string = "signal") {
+    SignalConsumer.consumer
+      .subscribe({ topic, fromBeginning: false })
+      .then(() => {
+        SignalConsumer.consumer.run({
+          eachMessage: async ({ message }) => {
+            let keyString = message.key?.toString("utf-8") ?? "";
+            if (keyString !== "back") return;
+            let msgString = message.value?.toString("utf-8") ?? "{}";
+            console.log("Signal msg:", msgString);
+            let data;
+            try {
+              data = JSON.parse(msgString);
+            } catch (error) {
+              data = {}
+            };
+            switch (data.signal) {
+              case "restart": {
+                console.log("Restart command running.");
+                process.exit(0);
+                return;
+              }
+              default: {
+                console.log("No command defined!");
+              }
+            };
+          },
+        });
+      });
+  }
+  ////////////////////////////////////////////////////////////////////////////////
+  static async setupManual(eachMessage: EachMessageHandler, topic: string = "signal") {
+    SignalConsumer.consumer
+      .subscribe({ topic, fromBeginning: false })
+      .then(() => {
+        SignalConsumer.consumer.run({ eachMessage });
+      });
+  }
+};
