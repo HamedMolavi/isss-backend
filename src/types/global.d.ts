@@ -4,9 +4,11 @@ export { };
 declare global {
   namespace NodeJS {
     interface Process {
-      load: Object & { [key: string]:  Object &{ [key: string]: number } }
+      load: Object & { [key: string]: Object & { [key: string]: number } }
     }
     interface ProcessEnv {
+      SIGNAL_TOPIC: string
+      SIGNAL_KEY: string
       MAX_LOAD: string
       PORT_HTTP: string
       PORT_HTTPS: string

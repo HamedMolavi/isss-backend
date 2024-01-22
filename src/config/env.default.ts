@@ -14,6 +14,8 @@ export type DefaultEnv = {
   MODELS: string,
   KAFKA_BOOTSTRAP: string
   MAX_LOAD: string
+  SIGNAL_TOPIC: string
+  SIGNAL_KEY: string
 }
 
 const defaults: DefaultEnv = {
@@ -31,6 +33,8 @@ const defaults: DefaultEnv = {
   "SESSION_SECRET": "M<Y$N0A=MHEqIvS,D#E!V!M]OWL/AiV4i",
   "MODELS": "plate,human,face,sabotage,fire",
   "KAFKA_BOOTSTRAP": "localhost:9092",
-  "MAX_LOAD": "100"
+  "MAX_LOAD": "100",
+  "SIGNAL_TOPIC": "signal",
+  "SIGNAL_KEY": "connect"
 };
 export default defaults;
