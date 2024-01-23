@@ -3,18 +3,18 @@ export default function setExceptionHandler() {
   const errorTypes = ['unhandledRejection', 'uncaughtException']
   const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2']
   errorTypes.forEach(type => {
-    process.once(type, async (e: any) => {
+    process.on(type, async (e) => {
       try {
         console.error(`process.on ${type}`)
-        console.error(e)
-        process.kill(process.ppid);
+        console.error(`Error message: ${e.message}`);
+        console.error(`Stack trace: ${e.stack}`);
       } catch (_) {
-        process.kill(process.ppid);
+        console.error(e)
       };
     });
   });
   signalTraps.forEach(type => {
-    process.once(type, async () => {
+    process.on(type, async () => {
       try {
       } finally {
         process.kill(process.pid, type)
