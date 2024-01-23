@@ -1,9 +1,6 @@
-import { RedisClientType } from "redis";
-import connect from "../db/redis/connect.database";
 import path from "path";
 import fs from "fs";
 import {
-  Admin,
   Consumer,
   EachMessagePayload,
   Kafka,
@@ -16,6 +13,8 @@ import { hashString } from "./hash";
 import { read } from "../db/mongo/read.database";
 import Personnel from "../db/mongo/models/personnel";
 import { IPersonnel } from "../types/interfaces/personnel.interface";
+import { ensureDirSync } from "fs-extra";
+import { getPropertyFromBody } from "./utils.tools";
 // TODO: clean this shit up.
 
 export class SnapshotKafka {
@@ -68,7 +67,7 @@ export class SnapshotKafka {
     }).producer({
       retry: {
         restartOnFailure: async (err) =>
-        !Boolean(console.log("Kafka Connect Failure:", err)),
+          !Boolean(console.log("Kafka Connect Failure:", err)),
       },
       allowAutoTopicCreation: true, // TODO: should be false.
     });
@@ -185,13 +184,13 @@ export class ImageFileSystem {
   constructor() {
     this.updateRootDirectories(); // this also updates the baseDir :/ just for your confusion
     this.preCreateDirectories();
-    this.hash = (json: string) => hashString(json, this.secret);
+    this.hash = (imgBase64: string) => hashString(imgBase64, this.secret);
   }
 
   uploadAvatarMiddleware = (
     imagePropertyName: string | Array<string>,
     idPropertyName: string | Array<string>,
-    options?: { next?: boolean; name?: string },
+    options?: { next?: boolean; fileName?: string },
     resultPropertyName: string = ""
   ) => {
     /*
@@ -199,69 +198,43 @@ export class ImageFileSystem {
     */
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
-        //id data
-        let id: string | Array<any>;
-        if (typeof idPropertyName === "string")
-          id = req.body[idPropertyName as string] as string;
-        else {
-          id = req.body[
-            (idPropertyName as Array<string>)[0] as string
-          ] as Array<any>;
-          for (let indx = 1; indx < idPropertyName.length; indx++) {
-            //@ts-ignore
-            id = id[idPropertyName[indx] as string];
-          }
-          // for (const name of idPropertyName) id = id[name];
-        }
-        id = String(id);
         let imagePath: string = "";
+        let name = "";
+        //id data
+        let id = String(getPropertyFromBody(req, idPropertyName) ?? "");
         //avatarStr data
-        let imageStrs: Array<string> = [];
-        if (typeof imagePropertyName === "string")
-          imageStrs.push(req.body[imagePropertyName as string] as string);
-        else {
-          let data =
-            req.body[(imagePropertyName as Array<string>)[0] as string];
-          for (let indx = 1; indx < imagePropertyName.length; indx++) {
-            imageStrs.push(data[imagePropertyName[indx]]);
-          }
-        }
-
-        for (let index = 0; index < imageStrs.length; index++) {
-          let imageStr = imageStrs[index];
-          imageStr =
-            imageStr.split(",").length >= 2 ? imageStr.split(",")[1] : imageStr;
-          let name = "";
-          if (!!options?.name) {
-            name = options.name;
-          } else {
+        let imageStr = String(getPropertyFromBody(req, imagePropertyName) ?? "");
+        let check = !!imageStr && !!id;
+        if (check) {
+          imageStr = imageStr.split(",").length >= 2 ? imageStr.split(",")[1] : imageStr;
+          if (!!options?.fileName) name = options.fileName;
+          else {
             const hash = this.hash(imageStr);
             name = `${id}-${hash}`;
-            req.body["redisData"][imagePropertyName[index + 1]] = hash;
+            req.body["redisData"][typeof imagePropertyName === "string" ? imagePropertyName : imagePropertyName[imagePropertyName.length - 1]] = hash;
           }
-          //move file to buffer
+          //convert file to buffer
           let image = Buffer.from(imageStr as string, "base64");
           //get path for save file
           const imageDir = this.makeAndReturnNewDirectoryForUser(id as string);
           imagePath = path.join(imageDir, `${name}.jpeg`);
           //write image in path
           fs.writeFileSync(imagePath, image);
-        }
-        console.log(!!options?.next);
+        };
         if (!!options?.next) return next();
         if (!resultPropertyName) {
-          return res.status(201).json({
-            success: true,
-            data: {
-              name: "avatar.jpeg",
+          return res.status(check ? 201 : 404).json({
+            success: check,
+            data: check ? {
+              name: `${name}.jpeg`,
               location: imagePath,
-              message: "Uploaded the file successfully: ",
-            },
+              message: "Uploaded the file successfully!"
+            } : { message: "Uploaded the file failed!" },
           });
         } else {
           return res.status(201).json({
             success: true,
-            data: req.body[resultPropertyName],
+            data: req.body[resultPropertyName]
           });
         }
       } catch (e: any) {

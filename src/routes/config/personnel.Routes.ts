@@ -37,7 +37,7 @@ router.post("",
   dtoValidationMiddleware(CreatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(Personnel, { $or: [{ national_code: "national_code" }, { personnel_code: "personnel_code" }] }, "Personnel already exists!"),
   createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "section_id", "camera_whitelist", "is_active", "department_whitelist", "section_whitelist", "schedule_whitelist"], Personnel, { next: true, save: "doc" }),
-  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { name: "avatar" }, "doc"),
+  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { fileName: "avatar" }, "doc"),
 );
 
 //route for get personnels list
@@ -52,7 +52,7 @@ router.get("/:id",
 //add route for edit personnel
 router.patch("/:id",
   updateByIdMiddleware(Personnel, { next: true, save: "doc" }),
-  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { name: "avatar" }, "doc"),
+  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { fileName: "avatar" }, "doc"),
 );
 
 //add route for delete personnel
