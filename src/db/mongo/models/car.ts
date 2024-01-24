@@ -11,7 +11,7 @@ const CarSchema: Schema<ICar> = new Schema({
   number_plate: { type: String, required: true },
   brand: { type: Schema.Types.ObjectId, ref: "Car_Brand", required: true },
   color: { type: Schema.Types.ObjectId, ref: "Car_Color", required: true },
-  camera_whitelist: { type: [Schema.Types.ObjectId], ref: "Camera", default: [] },
+  camera_whitelist: { type: [mongoose.Types.ObjectId], ref: "Camera", default: [] },
   section_whitelist: { type: [Schema.Types.ObjectId], ref: "Section", default: [] },
   schedule_whitelist: { type: [Schema.Types.ObjectId], ref: "Schedule", default: [] },
   department_whitelist: { type: [Schema.Types.ObjectId], ref: "Department", default: [] },

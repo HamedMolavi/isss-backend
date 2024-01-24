@@ -8,7 +8,8 @@ import { SignalConsumer } from "../tools/systemSignal.tools";
 
 export default async function setup() {
   await setupInteractive();
-  await connectToDBs({ mongo: process.env["MONGODB_URL"].split(",").map((el) => el.trim()), redis: process.env["REDIS_URL"] });
+  const dbResults = await connectToDBs({ mongo: process.env["MONGODB_URL"].split(",").map((el) => el.trim()), redis: process.env["REDIS_URL"] ,elastic:process.env["ELASTIC_SEARCH"]});
+  process.esclient = dbResults["elastic"];
   await seedSetup();
   setUpPassport();
   await initBalancer();

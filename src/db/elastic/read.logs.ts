@@ -1,0 +1,260 @@
+import { NextFunction, RequestHandler, Request, Response } from 'express';
+import mongoose, {  ObjectId } from 'mongoose';
+import { ApiError } from '../../types/classes/error.class';
+import { ICamera } from '../../types/interfaces/camera.interface';
+import { SearchHit } from '@elastic/elasticsearch/lib/api/types';
+import { englishPlateDict, persianPlateDict } from '../../tools/plate.tools';
+import { ICar, ICarBrand, ICarColor } from '../../types/interfaces/car.interface';
+import { IPersonnel } from '../../types/interfaces/personnel.interface';
+import { getLogFromElastic } from './connect.database';
+import Time from '../../tools/time.tools';
+import { Clock } from '../../types/interfaces/time.interface';
+
+
+type PapulatedCar = ICar & { _id: ObjectId } & { owner: IPersonnel } & { color: ICarColor } & { brand: ICarBrand }
+type Report = {
+  [key: string]: any;
+  brand: string[] | null | undefined;
+  color: string[] | null | undefined;
+  owner: string[] | null | undefined;
+};
+
+export function readElasticMiddleware(
+  index_name: string,
+  options?: {
+    next?: boolean,
+    save?: string,
+    populate?: boolean,
+    forcePopulate?: string[],
+  }): RequestHandler {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    try {
+      //get page from url
+      let strPage = req.query.page as string;
+      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+      //get perPage from url
+      let strPerPage = req.query.perPage as string;
+      let perPage = strPerPage?.toLowerCase() === "all"
+        ? 10000
+        : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+
+      let _timezone = req.query.timez as string;
+
+      let start = req.body.date_start && String(Time.toTimestamp(req.body.date_start, req.body.time_start as Clock));
+      let end = req.body.date_end && String(Time.toTimestamp(req.body.date_end, req.body.time_end as Clock));
+      let times_epoch: any = req.body.date_start && Time.getEpochList(req.body.date_start, req.body.date_end, req.body.time_start as Clock, req.body.time_end as Clock, _timezone);
+
+      let plates = !!req.body.plates ? platesToStrings(req.body.plates) : []
+      const esRes = await getLogFromElastic(index_name, perPage, page,
+        !!times_epoch ? times_epoch : [], plates, req.body.cameras ?? []);
+      if (!esRes || !esRes.hits || !esRes.hits.hits.length && !options?.next) {
+        req.flash("error , not found plate data in DB");
+        return next(new ApiError(404, "error , not found plate data in DB"));
+      };
+
+      let cameras: [ICamera & { _id: ObjectId }] = req.body["camera"];
+      let objectedCameras =!!cameras && cameras.reduce((pre, cam) => {
+        return { ...pre, [cam._id.toString()]: cam };
+      }, {} as { [key: string]: ICamera & { _id: ObjectId } });
+
+      let cars: [PapulatedCar] = req.body["car"];
+      let objectedCars =!!cars && cars.reduce((pre, car) => {
+        return { ...pre, [car.number_plate.toString()]: car };
+      }, {} as { [key: string]: PapulatedCar });
+
+      let personnels: [PapulatedCar] = req.body["personnel"];
+      let objectedPersonnels =!!personnels && personnels.reduce((pre, personnel) => {
+        return { ...pre, [personnel._id.toString()]: personnel };
+      }, {} as { [key: string]: PapulatedCar });
+
+      const data = esRes.hits.hits.map((hit: SearchHit<any>) => {
+        let log = hit._source;
+        if (!log || !log) {
+          console.log(hit);
+          return {}
+        }
+        return {
+          camera: objectedCameras[log.camera_id],
+          personnel : objectedPersonnels[log.personnel_id],
+          timestamp:typeof log?.timestamp === "string" ? Number(log.timestamp) : log.timestamp,
+          plate_number: log.plate_number,
+          owner: objectedCars[log.plate_number]?.owner,
+          color: objectedCars[log.plate_number]?.color,
+          brand: objectedCars[log.plate_number]?.brand,
+          allowed: objectedCars[log.plate_number]?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.camera_id)),
+          crop: log?.crop ?? log.face_crop,
+        };
+      });
+      if (!!options?.next) {
+        if (!!options.save) req.body[options.save] = data;
+        else req.body["docs"] = data;
+        return next();
+      };
+
+      //return response to client
+      return res.status(200).json({
+        success: true,
+        data,
+        page: page,
+        perPage: perPage,
+        total: data.length,
+        pages: Math.ceil((data.length) / perPage),
+      });
+    } catch (err: any) {
+      if (err.meta?.body?.error?.type === "index_not_found_exception") return next(new ApiError(500, "internal server error , " + err.message));
+      return next(new ApiError(500, "internal server error , " + err.message));
+    }
+  }
+};
+
+
+
+export function filterLogsMiddleware(
+  options?: {
+    next?: boolean,
+    save?: string,
+  }): RequestHandler {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    let filter_json: Report = {
+      brand: undefined,
+      color: undefined,
+      owner: undefined,
+    };
+    try {
+      //get page from url
+      let strPage = req.query.page as string;
+      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+      //get perPage from url
+      let strPerPage = req.query.perPage as string;
+      let perPage = strPerPage?.toLowerCase() === "all"
+        ? 10000
+        : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+      const keys = Object.keys(filter_json).filter((k)=>(
+        !!req.body[k] && (
+          (Array.isArray(req.body[k]) && !!req.body[k].length) ||
+          (typeof req.body[k] === "string" && !!req.body[k]) ||
+          (typeof req.body[k] === "boolean")
+        )
+      ))
+      let data: any;
+      if (!!keys.length){
+        data = req.body.logs.filter((log: any) => {
+          for (let key of keys) {
+            // TODO req.body.plates
+            if (!!log[key]) { // permitted to filter
+              if (Array.isArray(req.body[key])) { // input (req.body[key]) type array
+                if (req.body[key]?.includes(log[key]?._id.toString())) return true;
+              }
+              else if (!Array.isArray(req.body[key])) { // input (req.body[key]) type array
+                if (log[key] === req.body[key]) return true;
+              }
+              //  key === "plate" ? req.body?.plate = plate_number_engglish(req.body?.plate) : 
+            }
+          }
+          return false;
+        });
+      }
+      else data = req.body.logs;
+      //  console.time("Execution Time");
+      
+      //   console.timeEnd("Execution Time filter");
+      if (!!options?.next) {
+        if (!!options.save) req.body[options.save] = data;
+        else req.body["docs"] = data;
+        return next();
+      };
+
+      return res.status(200).json({
+        success: true,
+        data,
+        page: page,
+        perPage: perPage,
+        total: data.length,
+        pages: Math.ceil((data.length) / perPage),
+      });
+    } catch (err: any) {
+      return next(new ApiError(500, "internal server error , " + err.message));
+    }
+  }
+};
+
+export function sendLogMiddleware(
+  options?: {
+    next?: boolean,
+    save?: string
+  }): RequestHandler {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    try {
+      //get page from url
+      let strPage = req.query.page as string;
+      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+      //get perPage from url
+      let strPerPage = req.query.perPage as string;
+      let perPage = strPerPage?.toLowerCase() === "all"
+        ? 10000
+        : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+      //  console.time("Execution Time");
+      const data = req.body.logs?.map((log: any) => {
+        return {
+          camera_type: log.camera?.camera_type ?? "",
+          camera_id: log.camera._id?.toString(),
+          camera: log.camera?.name ?? "",
+          time: log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
+          plate_number: log.plate_number ?   stringPlateToJson(log.plate_number) : "",
+          owner: log?.owner?.toName() ?? "",
+          color: log?.color?.name ?? "",
+          brand: log?.brand?.name ?? "",
+          department: log.perssonel?.section?.department?.name ?? "",
+          section: log.personnel?.section?.name ?? "",
+          allowed: log.allowed,
+          crop: log?.crop ,
+          video: log.camera?.url ?? "",
+        };
+      });
+      //   console.timeEnd("Execution Time filter");
+      if (!!options?.next) {
+        if (!!options.save) req.body[options.save] = data;
+        else req.body["docs"] = data;
+        return next();
+      };
+
+      return res.status(200).json({
+        success: true,
+        data,
+        page: page,
+        perPage: perPage,
+        total: data.length,
+        pages: Math.ceil((data.length) / perPage),
+      });
+    } catch (err: any) {
+      return next(new ApiError(500, "internal server error , " + err.message));
+    }
+  }
+};
+
+function stringPlateToJson(plate_number: string) {
+  let plateNumber1 = !!plate_number.substr(0, 2).match(new RegExp(/\*/)) ? plate_number.substr(0, 2) : Number(plate_number.substr(0, 2)).toLocaleString("fa-IR");
+  let plateNumber2 = !!plate_number.substr(2, 1).match(new RegExp(/\*/)) ? plate_number.substr(2, 1) : persianPlateDict[plate_number.substr(2, 1)];
+  let plateNumber3 = !!plate_number.substr(3, 3).match(new RegExp(/\*/)) ? plate_number.substr(3, 3) : Number(plate_number.substr(3, 3)).toLocaleString("fa-IR");
+  let plateNumber4 = !!plate_number.substr(6, 2).match(new RegExp(/\*/)) ? plate_number.substr(6, 2) : Number(plate_number.substr(6, 2)).toLocaleString("fa-IR");
+  //add plate number to json response for sort persian format in font end
+  return {
+    first: plateNumber1,
+    second: plateNumber2,
+    third: plateNumber3,
+    fourth: "ایران",
+    fifth: plateNumber4,
+  };
+}
+
+
+function platesToStrings(plates: Array<{ [key: string]: string }>) {
+  let results: string[]
+  if (!plates.every((plate) => Object.values(plate).reduce((pre, curr) => pre + (!!curr ? 1 : 0), 0))) return []
+  results = plates.map(plate => {
+    // all of fields are there
+    return `${plate.first}${englishPlateDict[plate.second]}${plate.third}${plate.fifth}`;
+  })
+
+  return results;
+}
