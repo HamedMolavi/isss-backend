@@ -6,6 +6,7 @@ import login from "./auth/login.Routes";
 
 import downloadVideo from "./report/videoDownload.Routes";
 import report from "./report/report.Routes";
+import newReport from "./report/new.report"
 import systemRoutes from "./system/index.Routes";
 import schedulesreport from "./report/schedulesReport.Routes";
 import reportDepartments from "./report/departmentReport.Routes";
@@ -31,6 +32,7 @@ router.use(recordLastOperation);
 router.use("/config/user", userConfig)
 router.use("/config/admin", adminConfig)
 
+router.use("/newreports",newReport)
 router.use("/reports", report);
 router.use("/reportDepartmets", reportDepartments);
 router.use("/schedulesreport", schedulesreport);

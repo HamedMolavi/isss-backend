@@ -18,4 +18,5 @@ export interface IPersonnel extends Document {
   is_active: boolean;
   tracked: boolean;
   create_date: Date;
+  toName: () => string;
 };

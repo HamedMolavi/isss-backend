@@ -29,7 +29,10 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
   }
 );
 
-
+//get personnel data jason for auth
+PersonnelSchema.methods.toName = function () {
+  return this.first_name + " " + this.last_name;
+}
 //get personnel data jason for auth
 PersonnelSchema.methods.toJSON = function () {
   //get url AI for send request
@@ -65,7 +68,7 @@ PersonnelSchema.methods.toJSON = function () {
 
 
 
-PersonnelSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc: (IPersonnel & Required<{ _id: Schema.Types.ObjectId; }>)) => {
+PersonnelSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc: (IPersonnel & Required<{ _id: Schema.Types.ObjectId; }>)) => {
   let images = await PersonImage.find({ person_id: doc._id }).exec();
   for (const image of images) {
     const vector = image.vector;

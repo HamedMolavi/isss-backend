@@ -1,9 +1,12 @@
+import { Client } from "@elastic/elasticsearch";
 import { IConsumer } from "./interfaces/kafka.interface";
 
 export { };
 declare global {
   namespace NodeJS {
     interface Process {
+      load: Object & { [key: string]:  Object &{ [key: string]: number } }
+      esclient : Client
       load: Object & { [key: string]: Object & { [key: string]: number } }
     }
     interface ProcessEnv {
