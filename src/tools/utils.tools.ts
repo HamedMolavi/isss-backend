@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import inspector from 'inspector';
+import { Request } from "express";
 
 export function randomUuid(len: number = 12) {
   if (len > 36) throw new Error("Can't make a random string more than 36 character.")
@@ -21,3 +22,16 @@ export function setNestedObjectValue(obj: any, path: string[], value: any): void
 export function isInDebugMode(): boolean {
   return inspector.url() !== undefined;
 };
+
+export function getPropertyFromBody(req: Request, propertyName: string | Array<string>) {
+  let property: any = "";
+  if (typeof propertyName === "string") property = req.body[propertyName];
+  else {
+    let tmp = req.body[propertyName[0]];
+    for (let indx = 1; indx < propertyName.length; indx++) {
+      tmp = tmp?.[propertyName[indx]];
+      if (indx === propertyName.length - 1) property = tmp;
+    };
+  }
+  return property;
+}

@@ -31,38 +31,36 @@ services:
     restart: always
     stdin_open: true
     tty: true
-    build:
-      context: .
-      dockerfile: Dockerfile
-    #image: isss-backend
-    env_file: .env
-    # environment:
-    #   - PORT_http: 3000
-    #   - PORT_https: 4000
-    #   - HOST: "localhost"
-    #   - BASE_URL: "127.0.0.1:9000/api/v1"
-    #   #MONGODB_URL:mongodb://services.ariapa.com:27021/backend_isss?directConnection:true
-    #   #MONGODB_URL:mongodb://192.168.1.145:27021/test?directConnection:true
-    #   - MONGODB_URL: "mongodb://127.0.0.1:27019/test?directConnection=true"
-    #   - REDIS_URL: "redis://127.0.0.1:6379"
-    #   - JWT_SECRET: eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTY1NzA4ODI5NiwiaWF0IjoxNjU3MDg4Mjk2fQ.0Qoo9fGvlQAQ428j7jJqSKOw9UJK-iXVEdQLwuyYJpg
-    #   - ELASTIC_SEARCH: "http://127.0.0.1:9200"
-    #   - LOKI: "http://192.168.10.20:3100"
-    #   - REQUEST_LOG_FORMAT: "combined"
-    #   - sample_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyZjI0N2JhOWQ5NmEzNjkxMDZkYzIxYiIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTY2MzkyNDExMCwiaWF0IjoxNjYxMzMyMTEwfQ.tNZmNHIeZTgUkq4moSPx3snL6PINc3e5uf4PWQ_YD0c
-    #   - env: development
-    #   - WEB_STREAM: "http://192.168.10.20:8083/testcamera/"
-    #   - REQUEST_LOG_FILE: ./logs/request.log
-    #   - API_AI_REDIS_NAME: "http://127.0.0.1:6379"
-    #   - KEY_HASH_OBJECT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyY2U3NzdkZTQxMjZlZWYzODlhZGM5ZCIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTY2MDY0ODEyOSwiaWF0IjoxNjU4MDU2MTI5fQ.g_y-WPtmALc8t-t6-6olgzzgDwH0LauX4j31YnMlFEk 
-    #   - RECORD_STREAM_TIME: 15000
-    #   - TREACKER_SEARCH_URL : "http://127.0.0.1:9200/face_log/_search"
-    #   - SAMPLE_STREAM_URI: "rtsp://172.10.10.220:554/unicast/c0/s0/live"
-    #   - WORD_BEFORE_REPLACE_STREAM: c0
-    #   - WORD_AFTER_REPLACE_STREAM: c
-    #   - KAFKA_BOOTSTRAP:localhost: 9091
-    # #   - PORT=${PORT_http}
-    #   - MONGO_URL=${MONGODB_URL}
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    image: registry.ariapa.com/isss-backend
+    # env_file: .env
+    environment:
+      - PORT_HTTP=3000
+      - PORT_HTTPS=4000
+      - HOST=0.0.0.0
+      - BASE_URL=192.168.10.20:9000/api/v1
+      - MONGODB_URL=mongodb://192.168.10.20:27021/test?directConnection=true
+      - REDIS_URL=redis://192.168.10.20:6379
+      - JWT_SECRET=eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTY1NzA4ODI5NiwiaWF0IjoxNjU3MDg4Mjk2fQ.0Qoo9fGvlQAQ428j7jJqSKOw9UJK-iXVEdQLwuyYJpg
+      - ELASTIC_SEARCH=http://192.168.10.20:9200
+      - REQUEST_LOG_FORMAT=combined
+      - NODE_ENV=development
+      - WEB_STREAM=http://192.168.10.20:8083/testcamera/
+      - REQUEST_LOG_FILE=./logs/request.log
+      - API_AI_REDIS_NAME=http://192.168.10.20:6379
+      - RECORD_STREAM_TIME=15000
+      - TREACKER_SEARCH_URL=http://192.168.10.20:9200/faceys1_log/_search
+      - SAMPLE_STREAM_URI=rtsp://192.168.10.108:554/unicast/c0/s0/live
+      - WORD_BEFORE_REPLACE_STREAM=c0
+      - WORD_AFTER_REPLACE_STREAM=c
+      - KAFKA_BOOTSTRAP=192.168.10.20:9092
+      - REQUEST_LOG_DIR=./
+      - SESSION_SECRET=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImFhYSI6dHJ1ZX0
+      - MODELS=face,plate
+      - MAX_LOAD=100
+      - TZ=Asia/Tehran
     ports:
       - 9000:3000
     volumes:

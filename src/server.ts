@@ -31,7 +31,7 @@ switch (true) {
     console.log("*".repeat(10));
     console.log("\tYou are running in debug mode! Commands will not work in this mode!");// default also will run...
     console.log("*".repeat(10));
-    default:
+  default:
     setup().then(_ => {
       const { OPTIONS, PORT_HTTPS, PORT_HTTP, HOST } = process.env;
       //                             SETUP YOUR SERVERS

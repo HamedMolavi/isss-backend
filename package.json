@@ -71,6 +71,7 @@
     "mongoose": "^6.11.6",
     "morgan": "^1.10.0",
     "multer": "^1.4.4",
+    "node-nvidia-smi": "^1.0.0",
     "node-onvif": "^0.1.7",
     "nodemailer": "^6.8.0",
     "passport": "^0.6.0",
@@ -83,6 +84,7 @@
     "rtsp-video-recorder": "^2.2.0",
     "socket.io": "^4.5.1",
     "supertest": "^6.2.3",
+    "systeminformation": "^5.21.23",
     "trez-sms-client": "^1.0.4",
     "ts-node": "^10.7.0",
     "winston-loki": "^6.0.5"
