@@ -94,11 +94,14 @@ export default class Time {
     let stop_date = new Date(stopDate + " " + stop_time + Time.getUtcOffset(timezone));
 
     let epoch_list: object[] = [];
-    let start_ens_epoch = {
-      gte: "", lte: "" // representing the start and end times of that day in epoch time
-    };
+    // let start_ens_epoch = {
+    //   gte: "", lte: "" // representing the start and end times of that day in epoch time
+    // };
     for (let d = start_date; d <= stop_date; d.setDate(d.getDate() + 1)) { // incrementing the date by one day at each iteration.
-      start_ens_epoch.gte = String(d.getTime())
+      let start_ens_epoch = {
+        gte: String(d.getTime()), lte: "" // representing the start and end times of that day in epoch time
+      };
+      //start_ens_epoch.gte = String(d.getTime())
       let f = new Date(d);
       f.setHours(stop_date.getHours());
       f.setMinutes(stop_date.getMinutes());

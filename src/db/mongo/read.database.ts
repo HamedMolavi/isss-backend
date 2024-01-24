@@ -44,10 +44,11 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         return next(new ApiError(404, model.collection.collectionName + " not found"));
       };
 
-      if (!!docs.length && !!options?.populate && !!req.query.populate) {
-        let populates = req.query.populate instanceof String
-          ? req.query.populate.split(",").map((el) => el.trim())
-          : (req.query.populate as string[]).map((el) => el.trim());
+      if (!!docs.length && !!options?.populate && (!!req.query.populate || !!options?.forcePopulate?.length)) {
+        let populates: string[] = [];
+
+        if (req.query.populate instanceof String) req.query.populate.split(",").map((el) => populates.push(el.trim()))
+        else (req.query.populate as string[])?.map((el) => populates.push(el.trim()));
         if (!!options?.forcePopulate) options.forcePopulate.forEach((p) => { if (!populates.includes(p)) populates.push(p) });
         let idx = populates.length - 1;
         while (!!populates.length && idx >= 0) {

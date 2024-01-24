@@ -2,10 +2,71 @@ import axios from "axios";
 import { NextFunction } from "express";
 import Model from "../mongo/models/model";
 import { ApiError } from "../../types/classes/error.class";
+import { Client } from '@elastic/elasticsearch';
+
 
 //get connection string from enviroment variable
 const dbUri = process.env["ELASTIC_SEARCH"] as string;
 const trackerURL = process.env["TREACKER_SEARCH_URL"] as string;
+
+
+export async function connectToElastic(connectionString: string) {
+  const esClient = new Client({ node: connectionString });
+  return esClient
+}
+
+export async function getLogFromElastic(_indx: string, _size: number, _from: number,
+  timeRanges: Array<{ gte: string, lte: string }> = [],
+  plates: Array<string>, cameras: Array<string>) {
+  let query_elastic = {
+    index: _indx,
+    size: _size,
+    from: _from,
+    query: {
+      bool: {
+        filter: [
+          ...!!plates && plates.map(plate => ({
+            term: {
+              "plate_number.keyword": plate
+            }
+          })),
+          ...!!cameras && cameras.map((camera)=>({
+            term: {
+              "camera_id.keyword": camera
+            }
+          }))
+        ],
+        should: !!timeRanges && timeRanges.map(range => ({
+          range: {
+            timestamp: {  
+              gte: range.gte,
+              lte: range.lte
+            }
+          }
+        })),
+        //"minimum_should_match": 1
+      }
+    },
+    sort: [
+      {
+        timestamp: {
+          order: "desc"
+        }
+      }
+    ]
+  }
+  const esRes = await process.esclient.search(query_elastic);
+  return esRes;
+}
+
+export async function getLogFromElastic1(_indx: string, _size: number, _from: number) {
+  const esRes = await process.esclient.search({
+    index: _indx,
+    size: _size,
+    from: _from
+  });
+  return esRes
+}
 
 //function for send request to elastic search and get data
 export async function dynamicRequestToElasticSearch(
@@ -27,8 +88,8 @@ export async function dynamicRequestToElasticSearch(
     //create json response for client
     let jsonResuest: any = {};
     jsonResuest["size"] = perPage;
-    jsonResuest["from"] = perPage * (page - 1) ;
-   // jsonResuest["from"] = perPage * (page - 1) - 1;
+    jsonResuest["from"] = perPage * (page - 1);
+    // jsonResuest["from"] = perPage * (page - 1) - 1;
     //jsonResuest["from"] = perPage > 0 ? perPage  :0;
     //create json query for elastic search
     jsonResuest.query = {

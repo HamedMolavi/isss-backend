@@ -37,6 +37,8 @@ export async function sabotageLogResponse(response: any, time_start: string, tim
   };
   return results;
 };
+
+
 //create json response plateLog report for send to client
 export async function plateLogResponse(
   response: any,
@@ -48,10 +50,11 @@ export async function plateLogResponse(
   timezone: string
 ): Promise<plateLogResult> {
   let cars: (ICar & { _id: Types.ObjectId; })[] =
-    (!!owner && !!carColor && !!carBrand)
-      ? await read(Car, { query: { $or: [{ owner: { $in: owner } }, { color_id: { $in: carColor } }, { brand_id: { $in: carBrand } }] } })
+   // (!!owner || !!carColor || !!carBrand)
+   (owner !== undefined && owner?.length !== 0)  ||(carColor !== undefined && carColor?.length !== 0)  ||(carBrand !== undefined && carBrand.length !== 0) 
+      ? await read(Car, { query: { $and: [{ owner: { $in: owner } }, { color_id: { $in: carColor } }, { brand_id: { $in: carBrand } }] } })
       : await read(Car);
-  let cameras: (ICamera & { _id: Types.ObjectId; })[] = await read(Camera);
+  let cameras: (ICamera & { _id: Types.ObjectId; })[] = await read(Camera,{});
   let personnels: (IPersonnel & { _id: Types.ObjectId; })[] = await read(Personnel);
   let colors: (ICarColor & { _id: Types.ObjectId; })[] = await read(CarColor);
   let brands: (ICarBrand & { _id: Types.ObjectId; })[] = await read(CarBrand);
@@ -94,7 +97,7 @@ export async function plateLogResponse(
     for (let car of cars) {
       if (log._source.plate_number === car.number_plate) {
         //get owner from DB and set to result
-        let personnel = personnels.find((person) => person._id == car.owner);
+        let personnel = personnels.find((person) => person._id.toString() == car.owner.toString());
         result.owner = personnel != null ? personnel?.first_name + " " + personnel?.last_name : "null";
         //get color from DB and set to result
         result.color = colors.find((col) => col._id.toString() === car.color.toString())?.name ?? "null";
@@ -104,6 +107,15 @@ export async function plateLogResponse(
       };
     };
     data.push(result);
+  };
+  if (search && (owner != null)) {
+    data = data.filter((item: any) => item.owner !== "");
+  };
+  if (search && (carColor != null)) {
+    data = data.filter((item: any) => item.color !== "");
+  };
+  if (search && (carBrand != null)) {
+    data = data.filter((item: any) => item.brand !== "");
   };
   if (search && (allowed != null)) {
     data = data.filter((item: any) => item.allowed === allowed);

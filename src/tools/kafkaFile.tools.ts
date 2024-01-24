@@ -1,11 +1,7 @@
-import { RedisClientType } from "redis";
-import connect from "../db/redis/connect.database";
 import path from "path";
 import fs from "fs";
 import {
-  Admin,
   Consumer,
-  EachMessagePayload,
   Kafka,
   Producer,
   logLevel,
@@ -16,7 +12,7 @@ import { hashString } from "./hash";
 import { read } from "../db/mongo/read.database";
 import Personnel from "../db/mongo/models/personnel";
 import { IPersonnel } from "../types/interfaces/personnel.interface";
-// TODO: clean this shit up.
+
 
 export class SnapshotKafka {
   buffer: { [key: string]: { [key: string]: any } };
@@ -68,7 +64,7 @@ export class SnapshotKafka {
     }).producer({
       retry: {
         restartOnFailure: async (err) =>
-        !Boolean(console.log("Kafka Connect Failure:", err)),
+          !Boolean(console.log("Kafka Connect Failure:", err)),
       },
       allowAutoTopicCreation: true, // TODO: should be false.
     });
@@ -109,21 +105,6 @@ export class SnapshotKafka {
             data: result,
           });
         };
-    // this.json = function recursive(o: { [key: string]: string } | undefined = undefined, kwargs: Array<[string, string]> | undefined = undefined) {
-    //   if (!o) {
-    //     let json: { [key: string]: string } = {};
-    //     if (!!kwargs)
-    //       for (const kwarg of kwargs) json[kwarg[0]] = kwarg[1];
-    //     else
-    //       json = { "key": "value" }
-    //     recursive(json, undefined);
-    //   } else {
-    //     const id = this.hash(o);
-    //     return { id, ...o };
-    //   };
-    // };
-    // connect(process.env["REDIS_URL"])
-    //  .then(client => this.redisClient = client);
   }
 
   kafkaProduce = async (personnel_id: string, full_frame: string) => {
@@ -138,16 +119,7 @@ export class SnapshotKafka {
       has_face: "0",
       timestamp: new Date(new Date().toLocaleString() + "+0").toISOString(),
     };
-    // this.json({
-    //   personnel_id,
-    //   full_frame,
-    //   face: "",
-    //   embedding: "",
-    //   has_face: "0",
-    //   timestamp: new Date(new Date().toLocaleString() + "+0").toISOString(),
-    // });
-    //insert to redis
-    // await this.redisClient?.set(fileInRedis?.id as string, JSON.stringify(fileInRedis));
+    fileInRedis.full_frame = fileInRedis.full_frame?.split(',')[1] ?? "";
     const msg = Buffer.from(JSON.stringify(fileInRedis), "utf8");
     this.producer.send({
       topic: "snapshot",
@@ -175,6 +147,7 @@ export class SnapshotKafka {
     return result;
   };
 }
+
 
 export class ImageFileSystem {
   baseDir = path.join(__dirname, "./../..");
