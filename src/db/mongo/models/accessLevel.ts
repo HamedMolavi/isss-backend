@@ -1,5 +1,6 @@
-import mongoose, { Schema } from "mongoose";
-import { IAccessLevel } from "../../../types/interfaces/accessLevel.interface";
+import mongoose, { ObjectId, Schema } from "mongoose";
+import { IAccessLevel, accessList } from "../../../types/interfaces/accessLevel.interface";
+import { authHexToObject } from "../../../tools/utils.tools";
 
 //create AccessLevel model with schema for save in DB
 const AccessLevelSchema: Schema<IAccessLevel> = new Schema(
@@ -25,6 +26,16 @@ const AccessLevelSchema: Schema<IAccessLevel> = new Schema(
 
 // AccessLevelSchema.post('save', async (doc)=>{});
 // AccessLevelSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc) => { });
+AccessLevelSchema.methods.toJSON = function () {
+  const doc = this;
+  let result: any = {};
+  for (const access of accessList) result[access] = authHexToObject(doc[access]);
+  return {
+    _id: doc.id,
+    name: doc.name,
+    ...result,
+  };
+};
 
 // Compile model from schema
 const AccessLevel = mongoose.model("AccessLevel", AccessLevelSchema);

@@ -1,12 +1,13 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 
-export function createMiddleware(keys: Array<string | { [key: string]: CallableFunction }>, model: any, options?: { next?: boolean, save?: string, send?: CallableFunction }): RequestHandler {
+export function createMiddleware(keys: Array<string | { [key: string]: (body: any) => any }>, model: any, options?: { next?: boolean, save?: string, send?: CallableFunction }): RequestHandler {
   return async function middleware(req: Request, res: Response, next: NextFunction) {
     try {
       //get json from body request
       let payload: { [key: string]: string } = {};
       for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(req.body, typeof key === "string" ? key : Object.keys(key)[0])) continue;
         if (typeof (key) === "string") payload[key] = req.body[key];
         else if (typeof (key) === "object") payload[Object.keys(key)[0]] = Object.values(key)[0](req.body);
       };

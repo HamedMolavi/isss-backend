@@ -1,44 +1,44 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber, IsObject } from "class-validator";
 import mongoose from "mongoose";
 
 
 export class CreateAccessLevelBody {
   @IsString()
-  public name?: string
-  @IsNumber()
+  public name?: string;
   @IsOptional()
-  public camera?: number
-  @IsNumber()
+  @IsObject()
+  public camera?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public car?: number
-  @IsNumber()
+  @IsObject()
+  public car?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public color?: number
-  @IsNumber()
+  @IsObject()
+  public color?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public brand?: number
-  @IsNumber()
+  @IsObject()
+  public brand?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public section?: number
-  @IsNumber()
+  @IsObject()
+  public section?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public department?: number
-  @IsNumber()
+  @IsObject()
+  public department?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public job?: number
-  @IsNumber()
+  @IsObject()
+  public job?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public personnel?: number
-  @IsNumber()
+  @IsObject()
+  public personnel?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public schedule?: number
-  @IsNumber()
+  @IsObject()
+  public schedule?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public user?: number
-  @IsNumber()
+  @IsObject()
+  public user?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public typeName?: number
-  @IsNumber()
+  @IsObject()
+  public typeName?: { create: boolean, read: boolean, update: boolean, delete: boolean };
   @IsOptional()
-  public systemLog?: number
+  @IsObject()
+  public systemLog?: { create: boolean, read: boolean, update: boolean, delete: boolean };
 };

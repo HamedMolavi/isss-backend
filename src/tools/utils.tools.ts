@@ -35,3 +35,27 @@ export function getPropertyFromBody(req: Request, propertyName: string | Array<s
   }
   return property;
 }
+
+export function objectToAuthHex(obj?: Object & { create?: boolean, read?: boolean, update?: boolean, delete?: boolean }): number {
+  const c = !!obj?.["create"] ? 1 : 0;
+  const r = !!obj?.["read"] ? 1 : 0;
+  const u = !!obj?.["update"] ? 1 : 0;
+  const d = !!obj?.["delete"] ? 1 : 0;
+  let crudBin = `${c}${r}${u}${d}`;
+  let dec = parseInt(crudBin, 2);
+  return dec;
+};
+
+export function authHexToObject(hexNumber: number): Object & { create?: boolean, read?: boolean, update?: boolean, delete?: boolean } {
+  const crudBin = "0000" + (hexNumber >>> 0).toString(2);
+  const c = crudBin.at(-4);
+  const r = crudBin.at(-3);
+  const u = crudBin.at(-2);
+  const d = crudBin.at(-1);
+  return {
+    create: c === "1",
+    read: r === "1",
+    update: u === "1",
+    delete: d === "1",
+  };
+};
