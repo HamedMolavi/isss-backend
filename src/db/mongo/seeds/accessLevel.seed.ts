@@ -4,9 +4,9 @@ import AccessLevel from "../models/accessLevel";
 import { read } from "../read.database";
 
 export async function makeSeedAccessLevel(): Promise<IAccessLevel> {
-  const levels = await read(AccessLevel, { query: { name: 'admin' } })
-  if (!levels.length) {
-    const accessLevels: IAccessLevel[] = await create(AccessLevel, {
+  let adminLevels: IAccessLevel[] = await read(AccessLevel, { query: { name: 'admin' } })
+  if (!adminLevels.length) {
+    adminLevels = await create(AccessLevel, {
       name: "admin",
       camera: 15,
       car: 15,
@@ -22,7 +22,25 @@ export async function makeSeedAccessLevel(): Promise<IAccessLevel> {
       systemLog: 15
     });
     console.log("\t++ Seed data access level: name=admin");
-    return accessLevels[0];
   };
-  return levels[0];
+  const defaultLevels = await read(AccessLevel, { query: { name: 'default' } })
+  if (!defaultLevels.length) {
+    const accessLevels: IAccessLevel[] = await create(AccessLevel, {
+      name: "default",
+      camera: 0,
+      car: 0,
+      color: 0,
+      brand: 0,
+      section: 0,
+      department: 0,
+      job: 0,
+      personnel: 0,
+      schedule: 0,
+      user: 0,
+      typeName: 0,
+      systemLog: 0
+    });
+    console.log("\t++ Seed data access level: name=admin");
+  };
+  return adminLevels[0];
 }

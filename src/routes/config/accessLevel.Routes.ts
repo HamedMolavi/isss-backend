@@ -39,6 +39,7 @@ router.get("/:id",
 //add route for edit personnel
 router.patch("/:id",
   DoNotAllowOnDefault(AccessLevel, { name: "admin" }),
+  DoNotAllowOnDefault(AccessLevel, { name: "default" }),
   updateByIdMiddleware(AccessLevel, {
     update: accessList.reduce((result, key) => {
       result = { ...result, [key]: { name: key, fn: (payload: any) => objectToAuthHex(payload[key]) } }
@@ -50,6 +51,7 @@ router.patch("/:id",
 //add route for delete personnel
 router.delete("/:id",
   DoNotAllowOnDefault(AccessLevel, { name: "admin" }),
+  DoNotAllowOnDefault(AccessLevel, { name: "default" }),
   deleteByIdMiddleware(AccessLevel),
 );
 
