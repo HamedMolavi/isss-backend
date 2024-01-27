@@ -40,7 +40,7 @@ export async function makeSeedAccessLevel(): Promise<IAccessLevel> {
       typeName: 0,
       systemLog: 0
     });
-    console.log("\t++ Seed data access level: name=admin");
+    console.log("\t++ Seed data access level: name=default");
   };
   return adminLevels[0];
 }
