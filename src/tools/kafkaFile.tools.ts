@@ -39,7 +39,9 @@ export class SnapshotKafka {
     this.consumer = new Kafka({
       logLevel: logLevel.ERROR,
       brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
-    }).consumer({ groupId: "sdgfsdfgas" });
+      //brokers: process.env["KAFKA_BOOTSTRAP"]
+   // }).consumer({ groupId: "sdgfsdfgas" });
+    }).consumer({ groupId: "aaaaaa" });
     this.consumer
       .subscribe({ topic: "snapshot", fromBeginning: false })
       .then(() => {
