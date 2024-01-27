@@ -69,11 +69,11 @@ router.delete(
         return next(new ApiError(404, "personimage Not Found"));
       };
       const person_id = personimage.person_id.toString();
-      const masked_face_id = personimage.masked_face_id.toString();
+     // const masked_face_id = personimage.masked_face_id.toString();
       //decleare file name for delete
       let fileNames = [];
       fileNames.push(`${person_id}-${hash_id}.jpeg`);
-      fileNames.push(`${person_id}-${masked_face_id}.jpeg`);
+    //  fileNames.push(`${person_id}-${masked_face_id}.jpeg`);
       //define path folder fo read files
       let pathDelete = path.join(
         __dirname,

@@ -5,9 +5,9 @@ import { IPersonImage } from "../../../types/interfaces/personImage.interface";
 const PersonImageSchema: Schema<IPersonImage> = new Schema({
     person_id: { type: Schema.Types.ObjectId, ref: "Personnel" },
     hash_id : {type:String, required:true},
-    masked_face_id :{type : String , required : false},
+  //  masked_face_id :{type : String , required : false},
     vector: [Number],
-    masked_embd:[Number]
+    //masked_embd:[Number]
 },{
     collection: "Person_Image"
 });
