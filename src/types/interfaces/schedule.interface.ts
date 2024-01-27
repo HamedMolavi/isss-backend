@@ -15,7 +15,7 @@ interface IConfig {
   threshold: number;
   min_people: number;
   max_people: number;
-  zones: [[number, number, number, number]];
+  zones: Array<[[number, number], [number, number], [number, number], [number, number]]>;
 }
 
 //define type of schedule for request body
@@ -26,7 +26,7 @@ export interface IGetParams {
   stop: string;
   dayOfWeek: number[];
   threshold: number;
-  zones: [[number, number, number, number]];
+  zones: Array<[[number, number], [number, number], [number, number], [number, number]]>;
   montionDetection: boolean;
   min_people: number;
   max_people: number;

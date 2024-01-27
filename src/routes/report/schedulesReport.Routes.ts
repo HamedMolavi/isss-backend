@@ -45,7 +45,7 @@ interface IChildrenSchedule {
   model_camera_id: Schema.Types.ObjectId;
   config: {
     threshold: number;
-    zones: [number[]];
+    zones: Array<[[number, number],[number, number],[number, number],[number, number]]>;
     min_people: number;
     max_people: number;
   };

@@ -42,7 +42,7 @@ export class UpdateScheduleBody {
   dayOfWeek?: string[];
   @IsOptional()
   @IsArray()
-  zones?: [[number, number, number, number]];
+  zones?: Array<[[number, number], [number, number], [number, number], [number, number]]>;
   @IsOptional()
   @IsNumber()
   min_people?: number;

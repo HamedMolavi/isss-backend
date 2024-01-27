@@ -102,7 +102,7 @@ function convertPlaiBodyToSchedule(body: any) {
     config: {
       timeDuplicationDiagnoses: timeDuplicationDiagnoses ?? 0,
       threshold: threshold != undefined ? threshold / 100 : 0,
-      zones: zones && zones.length != 0 ? zones : [[0, 0, 1, 1]],
+      zones: zones && zones.length != 0 ? zones : [[0, 0], [1, 0], [1, 1], [0, 1]],
       min_people: min_people ?? 0,
       max_people: max_people ?? 0,
     },
