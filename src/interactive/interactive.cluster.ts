@@ -1,5 +1,4 @@
 import { spawn } from "child_process";
-//TODO: add more commands
 const stdin = process.stdin;
 let watchInterval: NodeJS.Timeout | undefined = undefined;
 export async function setupInteractive(): Promise<void> {
