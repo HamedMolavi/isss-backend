@@ -43,6 +43,20 @@ router.post(
       // Assuming getStreamUri(CameraInfoKeys) is a function that needs to be called with req, res, next
       getStreamUri(CameraInfoKeys)(req, res, next);
     } else {
+      // Regular expression to match the username and password pattern
+      const credentialsRegex = /^(rtsp:\/\/)([^:]+):([^@]+)@/;
+      // Regular expression to match the IP address pattern
+      const ipRegex = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/;
+
+      // Extract the username and password from the URL
+      const credentialsMatch = req.body.url.match(credentialsRegex);
+      const username = credentialsMatch ? credentialsMatch[2] : '';
+      const password = credentialsMatch ? credentialsMatch[3] : '';
+
+      // Replace the matched username, password, and IP address with placeholders
+      req.body.url = req.body.url
+        .replace(credentialsRegex, '$1{username}:{password}@')
+        .replace(ipRegex, '{ip}');
       next();
     }
   },
