@@ -1,23 +1,24 @@
 import { NextFunction, RequestHandler, Request, Response } from 'express';
-import mongoose, {  ObjectId } from 'mongoose';
+import mongoose, { ObjectId } from 'mongoose';
 import { ApiError } from '../../types/classes/error.class';
-import { ICamera } from '../../types/interfaces/camera.interface';
 import { SearchHit } from '@elastic/elasticsearch/lib/api/types';
 import { englishPlateDict, persianPlateDict } from '../../tools/plate.tools';
 import { ICar, ICarBrand, ICarColor } from '../../types/interfaces/car.interface';
 import { IPersonnel } from '../../types/interfaces/personnel.interface';
 import { getLogFromElastic } from './connect.database';
 import Time from '../../tools/time.tools';
-import { Clock } from '../../types/interfaces/time.interface';
+
 
 
 type PapulatedCar = ICar & { _id: ObjectId } & { owner: IPersonnel } & { color: ICarColor } & { brand: ICarBrand }
 type Report = {
   [key: string]: any;
-  brand: string[] | null | undefined;
-  color: string[] | null | undefined;
+  // brand: string[] | null | undefined;
+  // color: string[] | null | undefined;
   owner: string[] | null | undefined;
 };
+
+
 
 export function readElasticMiddleware(
   index_name: string,
@@ -29,7 +30,8 @@ export function readElasticMiddleware(
   }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
-      //get page from url
+
+            //get page from url
       let strPage = req.query.page as string;
       let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
       //get perPage from url
@@ -39,64 +41,58 @@ export function readElasticMiddleware(
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
       let _timezone = req.query.timez as string;
+      const { body } = req;
 
-      let start = req.body.date_start && String(Time.toTimestamp(req.body.date_start, req.body.time_start as Clock));
-      let end = req.body.date_end && String(Time.toTimestamp(req.body.date_end, req.body.time_end as Clock));
-      let times_epoch: any = req.body.date_start && Time.getEpochList(req.body.date_start, req.body.date_end, req.body.time_start as Clock, req.body.time_end as Clock, _timezone);
+      const start = body.date_start && String(Time.toTimestamp(body.date_start, body.time_start));
+      const end = body.date_end && String(Time.toTimestamp(body.date_end, body.time_end));
+      const times_epoch = body.date_start && Time.getEpochList(body.date_start, body.date_end, body.time_start, body.time_end, _timezone);
 
       let plates = !!req.body.plates ? platesToStrings(req.body.plates) : []
       const esRes = await getLogFromElastic(index_name, perPage, page,
-        !!times_epoch ? times_epoch : [], plates, req.body.cameras ?? []);
-      if (!esRes || !esRes.hits || !esRes.hits.hits.length && !options?.next) {
+        times_epoch || [], plates || [], body.cameras || [],
+        body.car_brand || [], body.car_color || [], body.personnels || []
+      );
+
+      if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !options?.next) {
         req.flash("error , not found plate data in DB");
         return next(new ApiError(404, "error , not found plate data in DB"));
       };
 
-      let cameras: [ICamera & { _id: ObjectId }] = req.body["camera"];
-      let objectedCameras =!!cameras && cameras.reduce((pre, cam) => {
-        return { ...pre, [cam._id.toString()]: cam };
-      }, {} as { [key: string]: ICamera & { _id: ObjectId } });
-
-      let cars: [PapulatedCar] = req.body["car"];
-      let objectedCars =!!cars && cars.reduce((pre, car) => {
-        return { ...pre, [car.number_plate.toString()]: car };
-      }, {} as { [key: string]: PapulatedCar });
-
-      let personnels: [PapulatedCar] = req.body["personnel"];
-      let objectedPersonnels =!!personnels && personnels.reduce((pre, personnel) => {
-        return { ...pre, [personnel._id.toString()]: personnel };
-      }, {} as { [key: string]: PapulatedCar });
+      const entities = ['camera', 'car', 'personnel', 'color', 'brand'].reduce((acc, entity) => {
+        acc[entity] = body[entity]?.reduce((obj:any, item:any) => ({ ...obj, [item._id.toString()]: item }), {});
+        return acc;
+      }, {} as Record<string, any>);
 
       const data = esRes.hits.hits.map((hit: SearchHit<any>) => {
-        let log = hit._source;
-        if (!log || !log) {
-          console.log(hit);
-          return {}
-        }
+        const log = hit._source;
+        if (!log) return {};
+      
+        // Check if log.plate_number is null or undefined before accessing properties
+        const carDetails = log.plate_number ? entities['car'][log.plate_number] : null;
+      
         return {
-          camera: objectedCameras[log.camera_id],
-          personnel : objectedPersonnels[log.personnel_id],
-          timestamp:typeof log?.timestamp === "string" ? Number(log.timestamp) : log.timestamp,
-          plate_number: log.plate_number,
-          owner: objectedCars[log.plate_number]?.owner,
-          color: objectedCars[log.plate_number]?.color,
-          brand: objectedCars[log.plate_number]?.brand,
-          allowed: objectedCars[log.plate_number]?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.camera_id)),
-          crop: log?.crop ?? log.face_crop,
+          camera:log.cam_id ? entities['camera'][log.cam_id] : null,
+          personnel:log.personnel_id ? entities['personnel'][log.personnel_id]: null,
+          timestamp: typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp,
+          plate_number: log.plate_number ?? null,
+          owner: carDetails?.owner ?? null,
+          color: carDetails?.color ? entities['color'][log.color] : null,
+          brand: carDetails?.brand ? entities['brand'][log.brand] : null,
+          allowed: carDetails?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.cam_id)) ?? false,
+          crop: log.car_crop ?? log.face_crop ?? null,
         };
       });
-      if (!!options?.next) {
-        if (!!options.save) req.body[options.save] = data;
-        else req.body["docs"] = data;
+
+      if (options?.next) {
+        req.body[options.save || 'docs'] = data;
         return next();
       };
 
-      //return response to client
       return res.status(200).json({
         success: true,
         data,
-        page: page,
-        perPage: perPage,
+        page,
+        perPage,
         total: data.length,
         pages: Math.ceil((data.length) / perPage),
       });
@@ -107,6 +103,108 @@ export function readElasticMiddleware(
   }
 };
 
+// export function readElasticMiddleware(
+//   index_name: string,
+//   options?: {
+//     next?: boolean,
+//     save?: string,
+//     populate?: boolean,
+//     forcePopulate?: string[],
+//   }): RequestHandler {
+//   return async function (req: Request, res: Response, next: NextFunction) {
+//     try {
+//       //get page from url
+//       let strPage = req.query.page as string;
+//       let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+//       //get perPage from url
+//       let strPerPage = req.query.perPage as string;
+//       let perPage = strPerPage?.toLowerCase() === "all"
+//         ? 10000
+//         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+
+//       let _timezone = req.query.timez as string;
+
+//       let start = req.body.date_start && String(Time.toTimestamp(req.body.date_start, req.body.time_start as Clock));
+//       let end = req.body.date_end && String(Time.toTimestamp(req.body.date_end, req.body.time_end as Clock));
+//       let times_epoch: any = req.body.date_start && Time.getEpochList(req.body.date_start, req.body.date_end, req.body.time_start as Clock, req.body.time_end as Clock, _timezone);
+
+//       let plates = !!req.body.plates ? platesToStrings(req.body.plates) : []
+//       const esRes = await getLogFromElastic(index_name, perPage, page,
+//         !!times_epoch ? times_epoch : [], plates, req.body.cameras ?? [],
+//         req.body.car_brand ?? [] , req.body.car_color ?? [] ,req.body.personnels ?? []
+//         );
+//       if (!esRes || !esRes.hits || !esRes.hits.hits.length && !options?.next) {
+//         req.flash("error , not found plate data in DB");
+//         return next(new ApiError(404, "error , not found plate data in DB"));
+//       };
+
+//       let cameras: [ICamera & { _id: ObjectId }] = req.body["camera"];
+//       let objectedCameras =!!cameras && cameras.reduce((pre, cam) => {
+//         return { ...pre, [cam._id.toString()]: cam };
+//       }, {} as { [key: string]: ICamera & { _id: ObjectId } });
+
+//       let cars: [PapulatedCar] = req.body["car"];
+//       let objectedCars =!!cars && cars.reduce((pre, car) => {
+//         return { ...pre, [car.number_plate.toString()]: car };
+//       }, {} as { [key: string]: PapulatedCar });
+
+//       let personnels: [IPersonnel] =  req.body["personnel"];
+//       let objectedPersonnels =!!personnels && personnels.reduce((pre, personnel) => {
+//         return { ...pre, [personnel._id.toString()]: personnel };
+//       }, {} as { [key: string]: IPersonnel });
+
+//       let colors: [ICarColor] = req.body["color"];
+//       let objectedColors =!!colors && colors.reduce((pre, color) => {
+//         return { ...pre, [color._id.toString()]: color };
+//       }, {} as { [key: string]: ICarColor });
+
+//       let brands: [ICarBrand] = req.body["brand"];
+//       let objectedBrands =!!brands && brands.reduce((pre, brand) => {
+//         return { ...pre, [brand._id.toString()]: brand };
+//       }, {} as { [key: string]: ICarBrand });
+
+
+//       const data = esRes.hits.hits.map((hit: SearchHit<any>) => {
+//         let log = hit._source;
+
+//         if (!log || !log) {
+//           console.log(hit);
+//           return {}
+//         }
+//         return {
+//           camera: objectedCameras[log.cam_id],
+//           personnel : objectedPersonnels[log.personnel_id],
+//           timestamp:typeof log?.timestamp === "string" ? Number(log.timestamp) : log.timestamp,
+//           plate_number: log.plate_number,
+//           owner: objectedCars[log.plate_number]?.owner,
+//           color: objectedCars[log.plate_number]?.color ?? objectedColors[log.color],
+//           brand: log?.[log.plate_number]?.brand ?? objectedBrands[log.brand],
+//           allowed: objectedCars[log.plate_number]?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.cam_id)),
+//           crop: log?.car_crop ?? log.face_crop,
+//         };
+//       });
+//       if (!!options?.next) {
+//         if (!!options.save) req.body[options.save] = data;
+//         else req.body["docs"] = data;
+//         return next();
+//       };
+
+//       //return response to client
+//       return res.status(200).json({
+//         success: true,
+//         data,
+//         page: page,
+//         perPage: perPage,
+//         total: data.length,
+//         pages: Math.ceil((data.length) / perPage),
+//       });
+//     } catch (err: any) {
+//       if (err.meta?.body?.error?.type === "index_not_found_exception") return next(new ApiError(500, "internal server error , " + err.message));
+//       return next(new ApiError(500, "internal server error , " + err.message));
+//     }
+//   }
+// };
+
 
 
 export function filterLogsMiddleware(
@@ -116,8 +214,8 @@ export function filterLogsMiddleware(
   }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     let filter_json: Report = {
-      brand: undefined,
-      color: undefined,
+      // brand: undefined,
+      // color: undefined,
       owner: undefined,
     };
     try {
@@ -129,7 +227,7 @@ export function filterLogsMiddleware(
       let perPage = strPerPage?.toLowerCase() === "all"
         ? 10000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-      const keys = Object.keys(filter_json).filter((k)=>(
+      const keys = Object.keys(filter_json).filter((k) => (
         !!req.body[k] && (
           (Array.isArray(req.body[k]) && !!req.body[k].length) ||
           (typeof req.body[k] === "string" && !!req.body[k]) ||
@@ -137,7 +235,7 @@ export function filterLogsMiddleware(
         )
       ))
       let data: any;
-      if (!!keys.length){
+      if (!!keys.length) {
         data = req.body.logs.filter((log: any) => {
           for (let key of keys) {
             // TODO req.body.plates
@@ -156,7 +254,7 @@ export function filterLogsMiddleware(
       }
       else data = req.body.logs;
       //  console.time("Execution Time");
-      
+
       //   console.timeEnd("Execution Time filter");
       if (!!options?.next) {
         if (!!options.save) req.body[options.save] = data;
@@ -199,15 +297,16 @@ export function sendLogMiddleware(
           camera_type: log.camera?.camera_type ?? "",
           camera_id: log.camera._id?.toString(),
           camera: log.camera?.name ?? "",
+          fullName: log.personnel?.toName() ?? "",
           time: log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
-          plate_number: log.plate_number ?   stringPlateToJson(log.plate_number) : "",
+          plate_number: log.plate_number ? stringPlateToJson(log.plate_number) : "",
           owner: log?.owner?.toName() ?? "",
           color: log?.color?.name ?? "",
           brand: log?.brand?.name ?? "",
-          department: log.perssonel?.section?.department?.name ?? "",
-          section: log.personnel?.section?.name ?? "",
+          department: log.personnel?.section_id?.department_id?.name ?? "",
+          section: log.personnel?.section_id?.name ?? "",
           allowed: log.allowed,
-          crop: log?.crop ,
+          crop: log?.crop,
           video: log.camera?.url ?? "",
         };
       });

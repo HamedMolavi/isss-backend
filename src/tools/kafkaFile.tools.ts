@@ -12,8 +12,7 @@ import { hashString } from "./hash";
 import { read } from "../db/mongo/read.database";
 import Personnel from "../db/mongo/models/personnel";
 import { IPersonnel } from "../types/interfaces/personnel.interface";
-import { ensureDirSync } from "fs-extra";
-import { getPropertyFromBody } from "./utils.tools";
+import { getPropertyFromBody, randomUuid } from "./utils.tools";
 // TODO: clean this shit up.
 
 
@@ -40,7 +39,7 @@ export class SnapshotKafka {
       logLevel: logLevel.ERROR,
       brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
       //brokers: process.env["KAFKA_BOOTSTRAP"]
-   // }).consumer({ groupId: "sdgfsdfgas" });
+      // }).consumer({ groupId: "sdgfsdfgas" });
     }).consumer({ groupId: "aaaaaa" });
     this.consumer
       .subscribe({ topic: "snapshot", fromBeginning: false })
@@ -59,6 +58,11 @@ export class SnapshotKafka {
                 has_face: msg["has_face"] as boolean,
                 multi_face: msg["multi_face"] as boolean | null,
               };
+            if (message.key?.toString() === "kobra") {
+              this.buffer[msg["id"]] = msg["matches"]?.map((elem: any) => {
+                return elem.id;
+              });
+            }
           },
         });
       });
@@ -93,11 +97,12 @@ export class SnapshotKafka {
         If resultPropertyName is not undefiend, the result sent to the user will be req.body[resultPropertyName]
         */
           const inputs = options.isInReq
-            ? Object.entries(req.body)
-              .filter((el) => args.includes(el[0]))
-              .map((el) => el[1])
+            ? args.reduce((obj, key) => {
+              obj[key] = req.body[key];
+              return obj;
+            }, {})
             : args;
-          const result = await f(...inputs);
+          const result = await f(inputs);
           if (!!options.save) req.body[options.save] = result;
           if (!!options.resultPropertyName) {
             return res.status(201).json({
@@ -112,43 +117,93 @@ export class SnapshotKafka {
         };
   }
 
-  kafkaProduce = async (personnel_id: string, full_frame: string) => {
-    const personnel = await Personnel.findById(personnel_id).exec();
-    //define object for save in redis
-    let fileInRedis: { [key: string]: string } = {
-      personnel_id,
-      personnel_name: personnel?.first_name + " " + personnel?.last_name,
-      full_frame,
-      face: "",
-      embedding: "",
-      has_face: "0",
-      timestamp: new Date(new Date().toLocaleString() + "+0").toISOString(),
+  kafkaProduce = async (inputs: { [key: string]: string }) => {
+    const full_frame: string = inputs.image_str ?? "";
+    const kafka_key: string = Object.keys(inputs).at(-1) ?? "";
+
+    const handlers = {
+      soghra: async () => {
+        const personnel = await Personnel.findById(inputs.personnel_id).exec();
+        const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
+        const name = personnel ? `${personnel.first_name} ${personnel.last_name}` : '';
+        const frame = full_frame?.split(',')[1] ?? full_frame;
+
+        return {
+          personnel_id: personnel?.id ?? '',
+          personnel_name: name,
+          full_frame: frame ?? "",
+          face: "",
+          embedding: "",
+          has_face: "0",
+          confidence: inputs.confidence ?? "0",
+          timestamp: timestamp,
+        };
+      },
+      akbar: () => {
+        const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
+        const frame = full_frame?.split(',')[1] ?? full_frame;
+        return {
+          personnel_id: '',
+          personnel_name: '',
+          full_frame: frame ?? "",
+          face: "",
+          embedding: "",
+          has_face: "0",
+          confidence: inputs.confidence ?? "0",
+          timestamp: timestamp,
+          id: inputs.id
+        };
+      },
     };
-    fileInRedis.full_frame = fileInRedis.full_frame?.split(',')[1] ?? "";
-    const msg = Buffer.from(JSON.stringify(fileInRedis), "utf8");
+
+    const handler = handlers[kafka_key as keyof typeof handlers];
+    if (!handler) return;
+
+    const redisData = await handler();
+
+    const msg = Buffer.from(JSON.stringify(redisData), "utf8");
     this.producer.send({
       topic: "snapshot",
       messages: [
         {
-          key: "soghra",
+          key: kafka_key,
           value: msg,
         },
       ],
     });
-    //close redis connection
     return {
       message: "Uploaded the file successfully",
-      id: fileInRedis.personnel_id,
+      id: redisData.personnel_id,
     };
   };
 
-  kafkaGet = async (id: string) => {
-    const result = {
-      ...this.buffer[id],
-      timestamp: new Date(new Date().toLocaleString() + "+0").toISOString(),
-    };
-    this.buffer = {};
-    //return filh
+  kafkaGet = async (id: any) => {
+    let bufferEntry = this.buffer[id.id];
+    let count = 0;
+    while(!bufferEntry || count > 25){
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+      bufferEntry = this.buffer[id.id];
+      count ++;
+      delete this.buffer[id.id];
+    }
+    // Initialize the result object with a timestamp
+    let result: any = { timestamp: new Date().toISOString() };
+
+    if (Array.isArray(bufferEntry)) {
+      // If the buffer entry is an array, include it under a specific key
+      result.data = bufferEntry;
+    } else if (bufferEntry && typeof bufferEntry === 'object') {
+      // If the buffer entry is an object, spread its properties into the result
+      //@ts-ignore
+      result = { ...result, ...bufferEntry };
+    } else {
+      // If there's no data for the given ID, include an error message
+      result.error = "No data found for the given ID";
+    }
+    
+    // Consider whether you need to delete the buffer entry after retrieval
+    // delete this.buffer[id];
+
     return result;
   };
 }

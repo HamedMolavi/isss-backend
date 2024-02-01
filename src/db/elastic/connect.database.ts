@@ -3,6 +3,7 @@ import { NextFunction } from "express";
 import Model from "../mongo/models/model";
 import { ApiError } from "../../types/classes/error.class";
 import { Client } from '@elastic/elasticsearch';
+import { IPlate } from "./model/plate";
 
 
 //get connection string from enviroment variable
@@ -17,55 +18,173 @@ export async function connectToElastic(connectionString: string) {
 
 export async function getLogFromElastic(_indx: string, _size: number, _from: number,
   timeRanges: Array<{ gte: string, lte: string }> = [],
-  plates: Array<string>, cameras: Array<string>) {
+  plates: Array<string>, cameras: Array<string>,
+  brands: Array<string>, colors: Array<string>,
+  personnels: Array<string>) {
+ 
+  const fields = {
+     "plate_number": plates,
+     "cam_id": cameras,
+     "personnel_id": personnels,
+     "brand": brands,
+     "color": colors
+  };
+ 
   let query_elastic = {
-    index: _indx,
-    size: _size,
-    from: _from,
-    query: {
-      bool: {
-        filter: [
-          ...!!plates && plates.map(plate => ({
-            term: {
-              "plate_number.keyword": plate
-            }
-          })),
-          ...!!cameras && cameras.map((camera)=>({
-            term: {
-              "camera_id.keyword": camera
-            }
-          }))
-        ],
-        should: !!timeRanges && timeRanges.map(range => ({
-          range: {
-            timestamp: {  
-              gte: range.gte,
-              lte: range.lte
-            }
-          }
-        })),
-        //"minimum_should_match": 1
-      }
-    },
-    sort: [
-      {
-        timestamp: {
-          order: "desc"
-        }
-      }
-    ]
+     index: _indx,
+     size: _size || undefined,
+     from: _from || undefined,
+     query: {
+       bool: {
+         must: [
+           ...Object.entries(fields)
+             .filter(([, values]) => values && values.length > 0)
+             .map(([field, values]) => ({
+               bool: {
+                 should: values.map(value => ({
+                  term: {
+                    [`${field}.keyword`]: value
+                  }
+                 })),
+                 "minimum_should_match": 1
+               }
+             })),
+           ...(timeRanges && timeRanges.length > 0 ? [{
+             bool: {
+               should: timeRanges.map(time => ({
+                 range: {
+                  timestamp: {
+                     gte: time.gte,
+                     lte: time.lte
+                  }
+                 }
+               })),
+               "minimum_should_match": 1
+             }
+           }] : [])
+         ]
+       }
+     },
+     sort: [
+       {
+         timestamp: {
+           order: "desc"
+         }
+       }
+     ]
   }
+ 
   const esRes = await process.esclient.search(query_elastic);
   return esRes;
-}
+ }
 
-export async function getLogFromElastic1(_indx: string, _size: number, _from: number) {
-  const esRes = await process.esclient.search({
-    index: _indx,
-    size: _size,
-    from: _from
-  });
-  return esRes
+// export async function getLogFromElastic(_indx: string, _size: number, _from: number,
+//   timeRanges: Array<{ gte: string, lte: string }> = [],
+//   plates: Array<string>, cameras: Array<string>,
+//   brands: Array<string>, colors: Array<string>,
+//   personnels: Array<string>) {
+//   let query_elastic = {
+//     index: _indx,
+//     size: _size || undefined,
+//     from: _from || undefined,
+
+//     //track_total_hits: true,
+//     query: {
+//       bool: {
+//         must: [
+//           !!plates && {
+//             bool: {
+//               should: [
+//                 ...plates.map(plate => ({
+//                   term: {
+//                     "plate_number.keyword": plate
+//                   }
+//                 }))
+//               ], "minimum_should_match": 1
+//             }
+//           },
+//           !!cameras && {
+//             bool: {
+//               should: [
+//                 ...cameras.map(camera => ({
+//                   term: {
+//                     "cam_id.keyword": camera
+//                   }
+//                 }))
+//               ], "minimum_should_match": 1
+//             }
+//           },
+//           !!personnels && {
+//             bool: {
+//               should: [
+//                 ...personnels.map(personnel => ({
+//                   term: {
+//                     "personnel_id.keyword": personnel
+//                   }
+//                 }))
+//               ], "minimum_should_match": 1
+//             }
+//           },
+//           !!brands && {
+//             bool: {
+//               should: [
+//                 ...brands.map(brand => ({
+//                   term: {
+//                     "brand.keyword": brand
+//                   }
+//                 }))
+//               ], "minimum_should_match": 1
+//             }
+//           },
+//           !!colors && {
+//             bool: {
+//               should: [
+//                 ...colors.map(color => ({
+//                   term: {
+//                     "color.keyword": color
+//                   }
+//                 }))
+//               ], "minimum_should_match": 1
+//             }
+//           },
+//           !!timeRanges && {
+//             bool: {
+//               should: [
+//                 ...timeRanges.map(time => ({
+//                   range: {
+//                     timestamp: {
+//                       gte: time.gte,
+//                       lte: time.lte
+//                     }
+//                   }
+//                 }))
+//               ], "minimum_should_match": 1
+//             }
+//           }
+//         ]
+
+//       }
+//     },
+//     sort: [
+//       {
+//         timestamp: {
+//           order: "desc"
+//         }
+//       }
+//     ]
+//   }
+//   const esRes = await process.esclient.search(query_elastic);
+//   return esRes;
+// }
+
+export async function postElastic(_index: string, log: IPlate) {
+  const esRes = await process.esclient.index({
+    index: _index,
+    body: {
+      ...log
+    }
+  })
+  return esRes;
 }
 
 //function for send request to elastic search and get data
