@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 //define AccessLevel type
-export const accessList = ["camera", "car", "color", "brand", "section", "department", "job", "personnel", "schedule", "user", "typeName", "systemLog"];
+export const accessList = ["camera", "car", "color", "brand", "section", "department", "job", "personnel", "schedule", "user", "typeName", "systemLog", "system"];
 export interface IAccessLevel extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
@@ -17,5 +17,6 @@ export interface IAccessLevel extends Document {
   user: number;
   typeName: number;
   systemLog: number;
+  system: number;
 }
 

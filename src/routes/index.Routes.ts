@@ -13,6 +13,7 @@ import reportDepartments from "./report/departmentReport.Routes";
 
 import { passportGate } from "../authentication/authorize.auth";
 import { recordLastOperation } from "../middleware/userOperations.middleware";
+import { accessCheck } from "../authentication/accessCheck.auth";
 
 const router: Router = Router();
 
@@ -32,12 +33,12 @@ router.use(recordLastOperation);
 router.use("/config/user", userConfig)
 router.use("/config/admin", adminConfig)
 
-router.use("/newreports",newReport)
+router.use("/newreports", newReport)
 router.use("/reports", report);
 router.use("/reportDepartmets", reportDepartments);
 router.use("/schedulesreport", schedulesreport);
 router.use("/downloadVideo", downloadVideo);
-router.use("/system", systemRoutes);
+router.use("/system", accessCheck("system"), systemRoutes);
 
 /*
 */
