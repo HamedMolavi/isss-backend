@@ -12,6 +12,9 @@ export class CreateCameraBody {
   public ip?: string;
   @IsString()
   public name?: string;
+  @IsOptional()
+  @IsString()
+  public url?: string;
   @IsString()
   public username?: string;
   @IsString()
@@ -36,6 +39,9 @@ export class UpdateCameraBody {
   @IsOptional()
   @IsString()
   public ip?: string;
+  @IsOptional()
+  @IsString()
+  public url?: string;
   @IsOptional()
   @IsString()
   public name?: string;

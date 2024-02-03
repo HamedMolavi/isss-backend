@@ -16,6 +16,7 @@ import notification from "./notification.Routes";
 import testSMS from "./testSMS.Routes";
 import testEmail from "./testEmailSend.Routes";
 import snapshot from "./snapshot.Routes";
+import manualLog from "./manualLog.Routes";
 
 const router: Router = Router();
 import modelRoutes from "./model.Routes";
@@ -40,6 +41,7 @@ router.use("/notifications", notification);
 router.use("/testsms", testSMS);
 router.use("/testemail", testEmail);
 router.use("/snapshot", snapshot);
+router.use("/manuallog", manualLog);
 
 
 export default router;

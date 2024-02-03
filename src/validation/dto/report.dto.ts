@@ -58,13 +58,10 @@ export class ReportFaceBody{
     public date_end?: string;
     @IsOptional()
     @IsArray()
-    public departments?: string[] | null;
+    public personnels?: string[] | null;
     @IsOptional()
-    @IsArray()
-    public sections?: string[];
-    @IsOptional()
-    @IsBoolean()
-    public allowed?: boolean
+  //  @IsBoolean()
+    public allowed?: boolean | null
     @IsOptional()
     @IsArray()
     public cameras?: string[]

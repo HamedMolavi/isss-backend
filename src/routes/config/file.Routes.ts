@@ -2,10 +2,12 @@ import { SnapshotKafka, ImageFileSystem } from "../../tools/kafkaFile.tools";
 import { NextFunction, Router, Request, Response } from "express";
 import PersonImage from "../../db/mongo/models/personImage";
 import { createMiddleware } from "../../db/mongo/create.database";
+import { randomUuid } from "../../tools/utils.tools";
 
 //create customized redis client
 const cfs = new ImageFileSystem();
 //create customized redis client
+//TODO: parallel requests will overwrite responses
 const snapshotKafka = new SnapshotKafka();
 //create router for add to server
 const router: Router = Router();
@@ -25,7 +27,7 @@ router.get("/list",
 
 //api for upload image to redis
 router.post("/kafka",
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true }, "personnel_id", "image_str"));
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true }, "personnel_id", "image_str", "soghra"));
 
 //route for verified image in redis
 router.post("/verify",
@@ -33,18 +35,42 @@ router.post("/verify",
   //error check
   (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == true ? next() : res.status(406).send({ message: "No face found", }),
   //save base64 file in assets
-  cfs.uploadAvatarMiddleware(["redisData", "face" ], "id", { next: true }),
+  cfs.uploadAvatarMiddleware(["redisData", "face"], "id", { next: true }),
   //project redisData in req.body
   (req: Request, res: Response, next: NextFunction) => {
     req.body["person_id"] = req.body["redisData"]["personnel_id"];
     req.body["vector"] = req.body["redisData"]["embedding"];
-   // req.body["masked_embd"] = req.body["redisData"]["masked_embd"];
+    // req.body["masked_embd"] = req.body["redisData"]["masked_embd"];
     req.body["hash_id"] = req.body["redisData"]["face"];
-   // req.body["masked_face_id"] = req.body["redisData"]["masked_face"];
-    return next();  
+    // req.body["masked_face_id"] = req.body["redisData"]["masked_face"];
+    return next();
   },
   //create PersonImage document
   createMiddleware(["person_id", "vector", "hash_id"], PersonImage, { next: false })
-  );
+);
+
+router.post("/search",
+  (req: Request, res: Response, next: NextFunction) => {
+    req.body.id = randomUuid(24);
+    return next()
+  },
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true, next: true }, "image_str", "confidence", "id", "akbar"),
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "id"),
+  //error check
+  (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == true ? 
+  res.status(406).send({ message: "No face found", }) : 
+  res.status(200).send({
+    success: true,
+    data: req.body.redisData ?? "",
+  })
+);
 
 export default router;
+
+
+// {
+//   timestamp: "2024-01-28T16:10:15.988Z",
+//   data: [
+//     "65b4e28ba0fdd48af803a025",
+//   ],
+// }
