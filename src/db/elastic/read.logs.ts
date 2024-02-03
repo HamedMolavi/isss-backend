@@ -31,7 +31,7 @@ export function readElasticMiddleware(
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
 
-            //get page from url
+      //get page from url
       let strPage = req.query.page as string;
       let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
       //get perPage from url
@@ -58,26 +58,31 @@ export function readElasticMiddleware(
         return next(new ApiError(404, "error , not found plate data in DB"));
       };
 
-      const entities = ['camera', 'car', 'personnel', 'color', 'brand'].reduce((acc, entity) => {
-        acc[entity] = body[entity]?.reduce((obj:any, item:any) => ({ ...obj, [item._id.toString()]: item }), {});
+      const entities = ['camera', 'personnel', 'color', 'brand'].reduce((acc, entity) => {
+        acc[entity] = body[entity]?.reduce((obj: any, item: any) => ({ ...obj, [item._id.toString()]: item }), {});
         return acc;
       }, {} as Record<string, any>);
+
+      let cars: [PapulatedCar] = req.body["car"];
+      let objectedCars = !!cars && cars.reduce((pre, car) => {
+        return { ...pre, [car.number_plate.toString()]: car };
+      }, {} as { [key: string]: PapulatedCar });
 
       const data = esRes.hits.hits.map((hit: SearchHit<any>) => {
         const log = hit._source;
         if (!log) return {};
-      
+
         // Check if log.plate_number is null or undefined before accessing properties
-        const carDetails = log.plate_number ? entities['car'][log.plate_number] : null;
-      
+        const carDetails = log.plate_number ? objectedCars[log.plate_number] : null;
+
         return {
-          camera:log.cam_id ? entities['camera'][log.cam_id] : null,
-          personnel:log.personnel_id ? entities['personnel'][log.personnel_id]: null,
+          camera: log.cam_id ? entities['camera'][log.cam_id] : null,
+          personnel: log.personnel_id ? entities['personnel'][log.personnel_id] : null,
           timestamp: typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp,
           plate_number: log.plate_number ?? null,
           owner: carDetails?.owner ?? null,
-          color: carDetails?.color ? entities['color'][log.color] : null,
-          brand: carDetails?.brand ? entities['brand'][log.brand] : null,
+          color: log?.color ? entities['color'][log.color] : null,
+          brand: log?.brand ? entities['brand'][log.brand] : null,
           allowed: carDetails?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.cam_id)) ?? false,
           crop: log.car_crop ?? log.face_crop ?? null,
         };
@@ -295,7 +300,7 @@ export function sendLogMiddleware(
       const data = req.body.logs?.map((log: any) => {
         return {
           camera_type: log.camera?.camera_type ?? "",
-          camera_id: log.camera._id?.toString(),
+          camera_id: log.camera?._id?.toString(),
           camera: log.camera?.name ?? "",
           fullName: log.personnel?.toName() ?? "",
           time: log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
