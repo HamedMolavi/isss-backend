@@ -1,8 +1,11 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional } from "class-validator";
 
 export class CreateSectionBody {
   @IsString()
   public name?: string;
   @IsString()
   public department_id?: string;
+  @IsOptional()
+  @IsBoolean()
+  public is_enabled?: string;
 };

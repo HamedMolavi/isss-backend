@@ -10,6 +10,7 @@ export class CreatePersonnelBody {
   @IsString()
   public national_code?: string;
   @IsEmail()
+  @IsOptional()
   @IsString()
   public email?: string;
   @IsString()

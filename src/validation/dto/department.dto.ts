@@ -5,6 +5,7 @@ import mongoose, { Schema } from "mongoose";
 export class CreateDepartmentBody {
   @IsString()
   public name?: string;
+  @IsOptional()
   @IsBoolean()
   public is_enabled?: string;
   @IsOptional()
