@@ -44,7 +44,7 @@ router.use(
   bodyParser.urlencoded({
     limit: "50mb",
     extended: true,
-    parameterLimit: 50000,
+    //parameterLimit: 50000,
   }),
   bodyParser.text({ limit: "200mb" }),
   fileUpload(),

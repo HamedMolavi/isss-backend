@@ -33,7 +33,7 @@ export async function getLogFromElastic(_indx: string, _size: number, _from: num
   let query_elastic = {
      index: _indx,
      size: _size || undefined,
-     from: _from || undefined,
+     from: _from == 1 ? 0 : _from || undefined,
      query: {
        bool: {
          must: [
