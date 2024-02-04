@@ -5,6 +5,7 @@ import middlewares from "../middleware/index";
 
 //create express app
 const app: Application = express();
+app.set('json limit', '600mb');
 
 ///////////////////////////////////////////////////////////////////////////////// middlewares
 app.use(middlewares);
