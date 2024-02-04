@@ -184,7 +184,9 @@ export class SnapshotKafka {
       await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
       bufferEntry = this.buffer[id.id];
       count ++;
-      delete this.buffer[id.id];
+      if(count == 25){
+        return
+      }
     }
     // Initialize the result object with a timestamp
     let result: any = { timestamp: new Date().toISOString() };
@@ -200,7 +202,7 @@ export class SnapshotKafka {
       // If there's no data for the given ID, include an error message
       result.error = "No data found for the given ID";
     }
-    
+    delete this.buffer[id.id];
     // Consider whether you need to delete the buffer entry after retrieval
     // delete this.buffer[id];
 
