@@ -57,7 +57,7 @@ router.post("/search",
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true, next: true }, "image_str", "confidence", "id", "akbar"),
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "id"),
   //error check
-  (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == true ? 
+  (req: Request, res: Response, next: NextFunction) => req.body["redisData"]?.has_face == true ? 
   res.status(406).send({ message: "No face found", }) : 
   res.status(200).send({
     success: true,
