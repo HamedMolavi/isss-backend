@@ -32,21 +32,21 @@ export class SnapshotKafka {
     ...args: any[]
   ) => RequestHandler;
   // json: Function
+
   constructor() {
     this.buffer = {};
     this.consumer = new Kafka({
       logLevel: logLevel.ERROR,
-      brokers: process.env["KAFKA_BOOTSTRAP"]?.split(","),
+      brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
       //brokers: process.env["KAFKA_BOOTSTRAP"]
       // }).consumer({ groupId: "sdgfsdfgas" });
-    }).consumer({ groupId:"aaaaaaaaaaaaaaa"});
+    }).consumer({ groupId: "aaaaaa" });
     this.consumer
       .subscribe({ topic: "snapshot", fromBeginning: false })
       .then(() => {
         this.consumer.run({
           eachMessage: async ({ message }) => {
-            try {
-              const msg = JSON.parse(message.value?.toString("utf8") as string);
+            const msg = JSON.parse(message.value?.toString("utf8") as string);
             if (message.key?.toString() === "asghar")
               this.buffer[msg["personnel_id"]] = {
                 personnel_id: msg["personnel_id"],
@@ -58,15 +58,17 @@ export class SnapshotKafka {
                 has_face: msg["has_face"] as boolean,
                 multi_face: msg["multi_face"] as boolean | null,
               };
-            if (message.key?.toString() === "kobra") {
+            else if (message.key?.toString() === "kobra") {
               this.buffer[msg["id"]] = msg["matches"]?.map((elem: any) => {
                 return elem.id;
               });
             }
-            } catch (error) {
-              console.error('Error processing message:', error);
-              // Attempt to reconnect the consumer
-              this.reconnectConsumer();
+            else if (message.key?.toString() === "ghabil") {
+              this.buffer[msg["personnel_id"]] = {
+                status_code: msg["status_code"] as number | null,
+                success: msg["success"] as boolean | null,
+                message: msg["message"] as string | null,
+              };
             }
           },
         });
@@ -77,16 +79,9 @@ export class SnapshotKafka {
       brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
     }).producer({
       retry: {
-        initialRetryTime:  2000, //  10 seconds
-        retries:  10, // Number of retries before giving up
-        factor:  2, // Exponential factor for increasing the retry time
-        multiplier:  1, // Multiplier for the retry time
-        maxRetryTime:  60000, // Maximum retry time in milliseconds
+        restartOnFailure: async (err) =>
+          !Boolean(console.log("Kafka Connect Failure:", err)),
       },
-      // retry: {
-      //   restartOnFailure: async (err) =>
-      //     !Boolean(console.log("Kafka Connect Failure:", err)),
-      // },
       allowAutoTopicCreation: true, // TODO: should be false.
     });
     this.producer.connect();
@@ -128,35 +123,6 @@ export class SnapshotKafka {
           });
         };
   }
-  generateRandomString(length : number) {
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-    for (let i =  0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-    return result;
-  }
-  reconnectConsumer = async () => {
-    try {
-      await this.consumer.disconnect();
-      console.log('Disconnected from Kafka broker, attempting to reconnect...');
-      await this.consumer.connect();
-      console.log('Reconnected to Kafka broker');
-      // Re-subscribe and run the consumer after reconnection
-      await this.consumer.subscribe({ topic: "snapshot", fromBeginning: false });
-      this.consumer.run({
-        eachMessage: async ({ message }) => {
-          // ... existing message handling code ...
-        },
-      });
-    } catch (error) {
-      console.error('Error reconnecting to Kafka broker:', error);
-      // Handle the error appropriately, e.g., log, retry, or exit
-      // ... your error handling logic ...
-    }
-  };
-
 
   kafkaProduce = async (inputs: { [key: string]: string }) => {
     const full_frame: string = inputs.image_str ?? "";
@@ -195,6 +161,16 @@ export class SnapshotKafka {
           id: inputs.id
         };
       },
+      habil: () => {
+        const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
+        // const frame = full_frame?.split(',')[1] ?? full_frame;
+        return {
+          personnel_id: inputs.person_id ?? "",
+          vector: inputs.vector ?? [],
+          confidence: inputs.confidence ?? "0",
+          timestamp: timestamp,
+        };
+      },
     };
 
     const handler = handlers[kafka_key as keyof typeof handlers];
@@ -221,12 +197,12 @@ export class SnapshotKafka {
   kafkaGet = async (id: any) => {
     let bufferEntry = this.buffer[id.id];
     let count = 0;
-    while(!bufferEntry || count > 5){
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 1 second delay
+    while (!bufferEntry || count > 10) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
       bufferEntry = this.buffer[id.id];
-      count ++;
-      if(count == 5){
-        break
+      count++;
+      if (count == 10) {
+        return
       }
     }
     // Initialize the result object with a timestamp
@@ -245,6 +221,7 @@ export class SnapshotKafka {
       // If there's no data for the given ID, include an error message
       result.error = "No data found for the given ID";
     }
+
     // Consider whether you need to delete the buffer entry after retrieval
     // delete this.buffer[id];
 

@@ -3,6 +3,8 @@ import { NextFunction, Router, Request, Response } from "express";
 import PersonImage from "../../db/mongo/models/personImage";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { randomUuid } from "../../tools/utils.tools";
+import { dtoValidationMiddleware } from "../../validation/dto";
+import { AddNotifPersonnelBody } from "../../validation/dto/notifPersonnel.dto";
 
 //create customized redis client
 const cfs = new ImageFileSystem();
@@ -57,13 +59,48 @@ router.post("/search",
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true, next: true }, "image_str", "confidence", "id", "akbar"),
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "id"),
   //error check
-  (req: Request, res: Response, next: NextFunction) => req.body["redisData"]?.has_face == true ? 
-  res.status(406).send({ message: "No face found", }) : 
-  res.status(200).send({
-    success: true,
-    data: req.body.redisData ?? "",
-  })
+  (req: Request, res: Response, next: NextFunction) => req.body["redisData"]?.has_face == true ?
+    res.status(406).send({ message: "No face found", }) :
+    res.status(200).send({
+      success: true,
+      data: req.body.redisData ?? "",
+    })
 );
+
+
+router.post("/notifpersonnel",
+  dtoValidationMiddleware(AddNotifPersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  (req: Request, res: Response, next: NextFunction) => {
+    req.body["redisData"] = {}
+    req.body["redisData"]["image_str"] = req.body["image_str"];
+    req.body["redisData"]["vector"] = req.body["vector"];
+    req.body["redisData"]["image_str"] = req.body["image_str"];
+    req.body["redisData"]["confidence"] = req.body["confidence"];
+    req.body["image_str"] = req.body["image_str"];
+    return next();
+  },
+  //create PersonImage document
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true, next: true }, "person_id", "vector", "hash_id", "confidence", "habil"),
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "response_ai", isInReq: true, next: true }, "person_id"),
+  ((req: Request, res: Response, next: NextFunction) => req.body["response_ai"]?.success == false ?
+    res.status(400).send({ message: req.body["response_ai"]?.message, }) :
+    next()),
+  cfs.uploadAvatarMiddleware(["redisData", "image_str"], "person_id", { next: true }, "hash_id"),
+  (req: Request, res: Response, next: NextFunction) => {
+    req.body["hash_id"] = req.body["redisData"]["image_str"];
+    req.body["redisData"]["image_str"] = req.body["image_str"];
+    req.body["redisData"]["vector"] = req.body["vector"];
+    req.body["redisData"]["confidence"] = req.body["confidence"];
+    return next();
+  },
+  createMiddleware(["person_id", "vector", "hash_id", "confidence"], PersonImage, { next: true }),
+  (req: Request, res: Response, next: NextFunction) => {
+    res.status(201).send({
+      success: true,
+      data: req.body.redisData ?? "",
+    })
+  },
+)
 
 export default router;
 
