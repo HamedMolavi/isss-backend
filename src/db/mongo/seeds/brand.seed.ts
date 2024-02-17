@@ -8,7 +8,7 @@ export async function makeSeedCarBrand(): Promise<ICarBrand | undefined> {
     const brands: ICarBrand[] = await create(CarBrand, {
       name: 'unknown',
     });
-    console.log("\t++ Seed data Section: name=unknown");
+    console.log("\t++ Seed data CarBrand: name=unknown");
     return brands[0];
   };
   return undefined;

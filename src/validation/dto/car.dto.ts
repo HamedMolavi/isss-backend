@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsArray, IsOptional } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsArray, IsOptional, IsObject } from "class-validator";
 import mongoose, { Schema } from "mongoose";
 
 
@@ -31,6 +31,12 @@ export class CreateCarBody {
   @IsOptional()
   @IsBoolean()
   public tracked?: boolean;
+  @IsOptional()
+  @IsObject()
+  allowed_pass?: {
+    start?: number;
+    end?: number;
+  };
 };
 
 export class CameraInfoBody {
