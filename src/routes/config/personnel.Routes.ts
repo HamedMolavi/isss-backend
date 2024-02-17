@@ -16,6 +16,8 @@ import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 import mongoose, { Document } from "mongoose";
+import Time, { allowedPassConvert, allowedPassRevert } from "../../tools/time.tools";
+import { injectDataMiddleware } from "../../tools/request.tools";
 
 const fs = new ImageFileSystem();
 //create router for add to routes file
@@ -36,7 +38,8 @@ const rawSearch = (search: string) => {
 router.post("",
   dtoValidationMiddleware(CreatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(Personnel, { $or: [{ national_code: "national_code" }, { personnel_code: "personnel_code" }] }, "Personnel already exists!"),
-  createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "section_id", "camera_whitelist", "is_active", "department_whitelist", "section_whitelist", "schedule_whitelist"], Personnel, { next: true, save: "doc" }),
+  injectDataMiddleware(allowedPassConvert, { injData: "allowed_pass" }),
+  createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "section_id", "camera_whitelist", "is_active", "department_whitelist", "section_whitelist", "schedule_whitelist", "allowed_pass"], Personnel, { next: true, save: "doc" }),
   fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { fileName: "avatar" }, "doc"),
 );
 
@@ -51,7 +54,18 @@ router.get("/:id",
 
 //add route for edit personnel
 router.patch("/:id",
-  updateByIdMiddleware(Personnel, { next: true, save: "doc" }),
+  updateByIdMiddleware(Personnel, {
+    next: true, save: "doc", update: {
+      "time_start": {
+        name: "allowed_pass.start",
+        fn: (payload) => (new Date(payload.date_start + " " + payload.time_start + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime()
+      },
+      "time_end": {
+        name: "allowed_pass.end",
+        fn: (payload) => (new Date(payload.date_end + " " + payload.time_end + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime()
+      }
+    }
+  }),
   fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { fileName: "avatar" }, "doc"),
 );
 
@@ -75,6 +89,7 @@ async function personnelSendFunction(_personnel: any) {
     per.lastTimeSeen = new Date(logPersonnel.data?.hits?.hits[0]?._source?.timestamp);
   }
   (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
+  if (!!per.allowed_pass) per.allowed_pass = allowedPassRevert(per);
   return per;
 };
 

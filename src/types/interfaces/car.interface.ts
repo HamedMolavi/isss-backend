@@ -12,7 +12,7 @@ export interface ICar extends Document {
   department_whitelist: Schema.Types.ObjectId[];
   schedule_whitelist: Schema.Types.ObjectId[];
   tracked: boolean;
-  allowed_pass: number | undefined;
+  allowed_pass: {"start": number, "end": number} | undefined;
   create_date: Date;
 }
 //define car_brand type

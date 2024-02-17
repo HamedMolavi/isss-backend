@@ -8,7 +8,7 @@ export async function makeSeedCarColor(): Promise<ICarColor | undefined> {
     const colors: ICarColor[] = await create(CarColor, {
       name: 'unknown',
     });
-    console.log("\t++ Seed data Section: name=unknown");
+    console.log("\t++ Seed data CarColor: name=unknown");
     return colors[0];
   };
   return undefined;

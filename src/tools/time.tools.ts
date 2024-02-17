@@ -149,3 +149,32 @@ export default class Time {
     return offset;
   };
 };
+
+export function allowedPassConvert(body: any) {
+  let result: any = {};
+  if (!!body.date_start && !!body.time_start) result["start"] = (new Date(body.date_start + " " + body.time_start + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime();
+  if (!!body.date_end && !!body.time_end) result["end"] = (new Date(body.date_end + " " + body.time_end + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime();
+  return (!result["start"] && !result["end"]) ? undefined : result;
+};
+
+export function allowedPassRevert(doc: any) {
+  if (!doc.allowed_pass) return undefined;
+  let result: any = {};
+  if (!!doc.allowed_pass.start) {
+    let start = new Date(doc.allowed_pass.start).toLocaleString("en-US", { timeZone: process.env.TZ ?? "Asia/Tehran" });
+    let date_start = start.split(",")[0].trim();
+    date_start = [date_start.split("/")[2], date_start.split("/")[1], date_start.split("/")[0]].join("/");
+    let time_start = Time.makeTwoDigits(start.split(",")[1].trim());
+    result["time_start"] = time_start;
+    result["date_start"] = date_start;
+  }
+  if (!!doc.allowed_pass.end) {
+    let end = new Date(doc.allowed_pass.end).toLocaleString("en-US", { timeZone: process.env.TZ ?? "Asia/Tehran" });
+    let date_end = end.split(",")[0].trim();
+    date_end = [date_end.split("/")[2], date_end.split("/")[1], date_end.split("/")[0]].join("/");
+    let time_end = Time.makeTwoDigits(end.split(",")[1].trim());
+    result["time_end"] = time_end;
+    result["date_end"] = date_end;
+  }
+  return result;
+};

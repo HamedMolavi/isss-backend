@@ -1,6 +1,6 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray } from "class-validator";
+import { Type } from "class-transformer";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, ValidateNested, IsNumber, IsObject } from "class-validator";
 import mongoose from "mongoose";
-
 
 export class CreatePersonnelBody {
   @IsString()
@@ -38,4 +38,10 @@ export class CreatePersonnelBody {
   public schedule_whitelist?: string[];
   @IsBoolean()
   public is_active?: boolean;
+  @IsOptional()
+  @IsObject()
+  allowed_pass?: {
+    start?: number;
+    end?: number;
+  };
 };

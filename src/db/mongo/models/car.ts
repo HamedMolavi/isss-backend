@@ -15,32 +15,32 @@ const CarSchema: Schema<ICar> = new Schema({
   section_whitelist: { type: [Schema.Types.ObjectId], ref: "Section", default: [] },
   schedule_whitelist: { type: [Schema.Types.ObjectId], ref: "Schedule", default: [] },
   department_whitelist: { type: [Schema.Types.ObjectId], ref: "Department", default: [] },
-  allowed_pass: { type: Number },
+  allowed_pass: { type: Schema.Types.Mixed, default: undefined },
   tracked: { type: Boolean, default: false },
   create_date: { type: Date, default: Date.now }
 }, {
   collection: "Car"
 });
 
-CarSchema.pre('save', function (next) {
-  Personnel.findById(this.owner).exec()
-    .then((owner) => JobTitle.findById(owner?.job_id).exec())
-    .then((job) => job?.name)
-    .then((name) => {
-      if (!name) return next();
-      switch (true) {
-        case ["default", "guest", "مهمان", "میهمان"].includes(name):
-          if (!Number.isInteger(this.allowed_pass)) this.allowed_pass = 0;
-          break;
-        default:
-          this.allowed_pass = undefined;
-          delete this.allowed_pass
-          break;
-      };
-      return next();
-    })
-    .catch(next)
-});
+// CarSchema.pre('save', function (next) {
+//   Personnel.findById(this.owner).exec()
+//     .then((owner) => JobTitle.findById(owner?.job_id).exec())
+//     .then((job) => job?.name)
+//     .then((name) => {
+//       if (!name) return next();
+//       switch (true) {
+//         case ["default", "guest", "مهمان", "میهمان"].includes(name):
+//           if (!Number.isInteger(this.allowed_pass)) this.allowed_pass = 0;
+//           break;
+//         default:
+//           this.allowed_pass = undefined;
+//           delete this.allowed_pass
+//           break;
+//       };
+//       return next();
+//     })
+//     .catch(next)
+// });
 
 // Compile model from schema
 const Car = mongoose.model("Car", CarSchema);
