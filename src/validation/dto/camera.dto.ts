@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, NotContains } from "class-validator";
 import mongoose, { Schema } from "mongoose";
 
 
@@ -9,15 +9,23 @@ export class CreateCameraBody {
   @IsString()
   public nvr?: string;
   @IsString()
+  @NotContains(" ")
+  @NotContains("_")
   public ip?: string;
   @IsString()
   public name?: string;
   @IsOptional()
   @IsString()
+  @NotContains(" ")
+  @NotContains("_")
   public url?: string;
   @IsString()
+  @NotContains(" ")
+  @NotContains("_")
   public username?: string;
   @IsString()
+  @NotContains(" ")
+  @NotContains("_")
   public password?: string;
   @IsOptional()
   @IsBoolean()
