@@ -9,7 +9,7 @@ import { ImageFileSystem } from "../../tools/kafkaFile.tools";
 import Personnel from "../../db/mongo/models/personnel";
 import { IPersonnel } from "../../types/interfaces/personnel.interface";
 import { dtoValidationMiddleware } from "../../validation/dto";
-import { CreatePersonnelBody } from "../../validation/dto/personnel.dto";
+import { CreatePersonnelBody, UpdatePersonnelBody } from "../../validation/dto/personnel.dto";
 import { existCheck } from "../../validation/db";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
@@ -54,6 +54,7 @@ router.get("/:id",
 
 //add route for edit personnel
 router.patch("/:id",
+  dtoValidationMiddleware(UpdatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   updateByIdMiddleware(Personnel, {
     next: true, save: "doc", update: {
       "time_start": {
