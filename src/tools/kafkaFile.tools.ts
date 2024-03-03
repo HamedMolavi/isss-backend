@@ -12,13 +12,13 @@ import { hashString } from "./hash";
 import { read } from "../db/mongo/read.database";
 import Personnel from "../db/mongo/models/personnel";
 import { IPersonnel } from "../types/interfaces/personnel.interface";
-import { getPropertyFromBody, randomUuid } from "./utils.tools";
+import { getPropertyFromBody } from "./utils.tools";
 // TODO: clean this shit up.
 
 
 export class SnapshotKafka {
   buffer: { [key: string]: { [key: string]: any } };
-  consumer: Consumer;
+ // consumer: Consumer;
   producer: Producer;
   //redisClient: RedisClientType | undefined
   middlewareWraper: (
@@ -35,45 +35,96 @@ export class SnapshotKafka {
 
   constructor() {
     this.buffer = {};
-    this.consumer = new Kafka({
-      logLevel: logLevel.ERROR,
-      brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
-      //brokers: process.env["KAFKA_BOOTSTRAP"]
-      // }).consumer({ groupId: "sdgfsdfgas" });
-    }).consumer({ groupId: "aaaaaa" });
-    this.consumer
-      .subscribe({ topic: "snapshot", fromBeginning: false })
-      .then(() => {
-        this.consumer.run({
-          eachMessage: async ({ message }) => {
-            const msg = JSON.parse(message.value?.toString("utf8") as string);
-            if (message.key?.toString() === "asghar")
-              this.buffer[msg["personnel_id"]] = {
-                personnel_id: msg["personnel_id"],
-                personnel_name: msg["personnel_name"] as string | null,
-                face: msg["cropped_face"] as string | null,
-                masked_face: msg["masked_face"] as string | null,
-                masked_embd: msg["masked_embd"] as number[] | null,
-                embedding: msg["cropped_embd"] as number[] | null,
-                has_face: msg["has_face"] as boolean,
-                multi_face: msg["multi_face"] as boolean | null,
-              };
-            else if (message.key?.toString() === "kobra") {
-              this.buffer[msg["id"]] = msg["matches"]?.map((elem: any) => {
-                return elem.id;
-              });
-            }
-            else if (message.key?.toString() === "ghabil") {
-              this.buffer[msg["personnel_id"]] = {
-                status_code: msg["status_code"] as number | null,
-                success: msg["success"] as boolean | null,
-                message: msg["message"] as string | null,
-              };
-            }
-          },
-        });
+
+    // Create consumer 
+    const kafka = new Kafka({
+      clientId: 'my-app',
+      brokers: [process.env["KAFKA_BOOTSTRAP"]]
+    });
+
+    const consumer = kafka.consumer({
+      groupId: 'test-group'
+    });
+
+    // Connect to consumer
+    const run = async () => {
+      await consumer.connect();
+
+      // Subscribe to topics
+      await consumer.subscribe({
+        topic: 'snapshot',
+        fromBeginning: false
       });
 
+      await consumer.run({
+        //  .subscribe({ topic: "snapshot", fromBeginning: false })
+        //  .then(async () => {
+        //  await this.consumer.connect();
+        //this.consumer.run({
+        eachMessage: async ({ message }) => {
+          const msg = JSON.parse(message.value?.toString("utf8") as string);
+          console.log(message.key?.toString())
+          if (message.key?.toString() === "asghar") {
+            this.buffer[msg["personnel_id"]] = {
+              personnel_id: msg["personnel_id"],
+              personnel_name: msg["personnel_name"] as string | null,
+              face: msg["cropped_face"] as string | null,
+              masked_face: msg["masked_face"] as string | null,
+              masked_embd: msg["masked_embd"] as number[] | null,
+              embedding: msg["cropped_embd"] as number[] | null,
+              has_face: msg["has_face"] as boolean,
+              multi_face: msg["multi_face"] as boolean | null,
+            };
+          }
+          else if (message.key?.toString() === "kobra") {
+            this.buffer[msg["id"]] = msg["matches"]?.map((elem: any) => {
+              return elem.id;
+            });
+          }
+          else if (message.key?.toString() === "ghabil") {
+            this.buffer[msg["personnel_id"]] = {
+              status_code: msg["status_code"] as number | null,
+              success: msg["success"] as boolean | null,
+              message: msg["message"] as string | null,
+            };
+          }
+        },
+      });
+
+      // Run consumer
+      // await consumer.run({
+      //   eachMessage: async ({ topic, partition, message }) => {
+      //     // Handle message
+      //     console.log({
+      //       topic,
+      //       partition,
+      //       offset: message.offset,
+      //       value: message.value?.toString()
+      //     });
+      //   }
+      // })
+    }
+
+    run().catch(e => console.error(`[example/consumer] ${e.message}`, e));
+
+    // Gracefully stop the consumer
+    const gracefulShutdown = async () => {
+      await consumer.disconnect();
+    }
+
+    process.on('SIGINT', gracefulShutdown);
+    process.on('SIGTERM', gracefulShutdown);
+    // this.consumer = new Kafka({
+    //   logLevel: logLevel.ERROR,
+    //   brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
+    //   //brokers: process.env["KAFKA_BOOTSTRAP"]
+    //   // }).consumer({ groupId: "sdgfsdfgas" });
+    // }).consumer({
+    //   groupId: "aaaaaa",
+    //   sessionTimeout: 30000, // longer session timeout
+    // });
+    // this.consumer
+   
     this.producer = new Kafka({
       logLevel: logLevel.ERROR,
       brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
@@ -195,15 +246,17 @@ export class SnapshotKafka {
   };
 
   kafkaGet = async (id: any) => {
-    let bufferEntry = this.buffer[id.id];
+    let bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
     let count = 0;
-    while (!bufferEntry || count > 10) {
+    while (!bufferEntry && count < 15) {
+      console.log(id)
       await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
-      bufferEntry = this.buffer[id.id];
+      bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
+      console.log(bufferEntry);
       count++;
-      if (count == 10) {
-        return
-      }
+      // if (count == 8) {
+      //   break
+      // }
     }
     // Initialize the result object with a timestamp
     let result: any = { timestamp: new Date().toISOString() };

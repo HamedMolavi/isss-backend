@@ -1,7 +1,28 @@
 import { Type } from "class-transformer";
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, ValidateNested, IsNumber, IsObject, Validate } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, ValidateNested, IsNumber, IsObject, Validate, IsEmpty, isEmpty, ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments } from "class-validator";
 import mongoose from "mongoose";
 import { EndgtrStartValidator, TimeAndDateValidator } from "../time";
+
+
+
+@ValidatorConstraint({ name: 'customEmail', async: false })
+export class CustomEmailValidator implements ValidatorConstraintInterface {
+    validate(email: string, args: ValidationArguments) {
+        // Allow empty strings
+        if (email === '') {
+            return true;
+        }
+        // Use regex or a library to validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    defaultMessage(args: ValidationArguments) {
+        return 'email must be a valid email format or an empty string';
+    }
+}
+
+
 
 export class CreatePersonnelBody {
   @IsString()
@@ -10,35 +31,34 @@ export class CreatePersonnelBody {
   public last_name?: string;
   @IsString()
   public national_code?: string;
-  @IsEmail()
+  @Validate(CustomEmailValidator)
   @IsOptional()
+  public email?: string |  null
   @IsString()
-  public email?: string;
-  @IsString()
-  public phone_number?: string;
+  public phone_number?: string| null;
   @IsOptional()
   public job_id?: mongoose.Types.ObjectId;
   @IsOptional()
-  public section_id?: mongoose.Types.ObjectId;
+  public section_id?: mongoose.Types.ObjectId| null;
   @IsBoolean()
   @IsOptional()
-  public tracked?: boolean;
+  public tracked?: boolean| null;
   @IsString()
-  public personnel_code?: string;
+  public personnel_code?: string| null;
   @IsArray()
   @IsOptional()
-  public camera_whitelist?: string[];
+  public camera_whitelist?: string[]| null;
   @IsArray()
   @IsOptional()
-  public department_whitelist?: string[];
+  public department_whitelist?: string[]| null;
   @IsArray()
   @IsOptional()
-  public section_whitelist?: string[];
+  public section_whitelist?: string[]| null;
   @IsArray()
   @IsOptional()
-  public schedule_whitelist?: string[];
+  public schedule_whitelist?: string[]| null;
   @IsBoolean()
-  public is_active?: boolean;
+  public is_active?: boolean| null;
   @Validate(EndgtrStartValidator)
   @Validate(TimeAndDateValidator, ['date_start'])
   @IsString()
