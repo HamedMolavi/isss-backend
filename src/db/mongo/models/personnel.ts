@@ -12,7 +12,7 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
     last_name: { type: String, required: true },
     national_code: { type: String, required: true },
     email: { type: String, default: "test@gmail.com" },
-    phone_number: { type: String, required: true },
+    phone_number: { type: String, required: false },
     job_id: { type: Schema.Types.ObjectId, ref: "JobTitle", default: undefined },
     personnel_code: { type: String, required: false },
     section_id: { type: Schema.Types.ObjectId, ref: "Section", default: undefined },

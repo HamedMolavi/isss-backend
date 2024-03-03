@@ -29,11 +29,10 @@ router.get("/list",
 
 //api for upload image to redis
 router.post("/kafka",
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true }, "personnel_id", "image_str", "soghra"));
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, {save:"id" ,isInReq: true, next: true }, "personnel_id", "image_str", "soghra"),
 
-//route for verified image in redis
-router.post("/verify",
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "id"),
+
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "personnel_id"),
   //error check
   (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == true ? next() : res.status(406).send({ message: "No face found", }),
   //save base64 file in assets
@@ -50,6 +49,26 @@ router.post("/verify",
   //create PersonImage document
   createMiddleware(["person_id", "vector", "hash_id"], PersonImage, { next: false })
 );
+
+// //route for verified image in redis
+// router.post("/verify",
+//   snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "id"),
+//   //error check
+//   (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == true ? next() : res.status(406).send({ message: "No face found", }),
+//   //save base64 file in assets
+//   cfs.uploadAvatarMiddleware(["redisData", "face"], "id", { next: true }),
+//   //project redisData in req.body
+//   (req: Request, res: Response, next: NextFunction) => {
+//     req.body["person_id"] = req.body["redisData"]["personnel_id"];
+//     req.body["vector"] = req.body["redisData"]["embedding"];
+//     // req.body["masked_embd"] = req.body["redisData"]["masked_embd"];
+//     req.body["hash_id"] = req.body["redisData"]["face"];
+//     // req.body["masked_face_id"] = req.body["redisData"]["masked_face"];
+//     return next();
+//   },
+//   //create PersonImage document
+//   createMiddleware(["person_id", "vector", "hash_id"], PersonImage, { next: false })
+// );
 
 router.post("/search",
   (req: Request, res: Response, next: NextFunction) => {
