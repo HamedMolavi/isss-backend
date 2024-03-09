@@ -4,3 +4,4 @@ yarn-error.log
 .git
 .gitignore
 yarn.lock
+docker-compose.yml

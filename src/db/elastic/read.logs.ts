@@ -76,15 +76,16 @@ export function readElasticMiddleware(
         const carDetails = log.plate_number ? objectedCars[log.plate_number] : null;
 
         return {
-          camera: log.cam_id ? entities['camera'][log.cam_id] : null,
+          camera: log.camera_id ? entities['camera'][log.camera_id] : null,
           personnel: log.personnel_id ? entities['personnel'][log.personnel_id] : null,
           timestamp: typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp,
           plate_number: log.plate_number ?? null,
           owner: carDetails?.owner ?? null,
           color: log?.color ? entities['color'][log.color] : null,
           brand: log?.brand ? entities['brand'][log.brand] : null,
-          allowed: carDetails?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.cam_id)) ?? false,
-          crop: log.car_crop ?? log.face_crop ?? null,
+          allowed: carDetails?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.camera_id)) ?? false,
+          crop:index_name === "plate_log" ? log.crop : log.inner_crop,
+          inner_crop : index_name === "plate_log" ?  log.inner_crop : "",
         };
       });
 
@@ -177,14 +178,14 @@ export function readElasticMiddleware(
 //           return {}
 //         }
 //         return {
-//           camera: objectedCameras[log.cam_id],
+//           camera: objectedCameras[log.camera_id],
 //           personnel : objectedPersonnels[log.personnel_id],
 //           timestamp:typeof log?.timestamp === "string" ? Number(log.timestamp) : log.timestamp,
 //           plate_number: log.plate_number,
 //           owner: objectedCars[log.plate_number]?.owner,
 //           color: objectedCars[log.plate_number]?.color ?? objectedColors[log.color],
 //           brand: log?.[log.plate_number]?.brand ?? objectedBrands[log.brand],
-//           allowed: objectedCars[log.plate_number]?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.cam_id)),
+//           allowed: objectedCars[log.plate_number]?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.camera_id)),
 //           crop: log?.car_crop ?? log.face_crop,
 //         };
 //       });
@@ -313,6 +314,7 @@ export function sendLogMiddleware(
           allowed: log.allowed,
           crop: log?.crop,
           video: log.camera?.url ?? "",
+          inner_crop : log.inner_crop ?? "",
         };
       });
       //   console.timeEnd("Execution Time filter");

@@ -1,4 +1,4 @@
-FROM node:18.16.0-slim as builder
+FROM node as builder
 WORKDIR /isss-backend
 #COPY --from=mwader/static-ffmpeg:5.1.2 /ffmpeg /usr/local/bin/
 #COPY --from=mwader/static-ffmpeg:5.1.2 /ffprobe /usr/local/bin/

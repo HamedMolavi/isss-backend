@@ -24,7 +24,7 @@ export async function getLogFromElastic(_indx: string, _size: number, _from: num
  
   const fields = {
      "plate_number": plates,
-     "cam_id": cameras,
+     "camera_id": cameras,
      "personnel_id": personnels,
      "brand": brands,
      "color": colors
@@ -43,7 +43,7 @@ export async function getLogFromElastic(_indx: string, _size: number, _from: num
                bool: {
                  should: values.map(value => ({
                   term: {
-                    [`${field}.keyword`]: value
+                    [`${field}`]: value
                   }
                  })),
                  "minimum_should_match": 1
