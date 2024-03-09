@@ -10,6 +10,7 @@ import newReport from "./report/new.report"
 import systemRoutes from "./system/index.Routes";
 import schedulesreport from "./report/schedulesReport.Routes";
 import reportDepartments from "./report/departmentReport.Routes";
+import trackReport from "./report/trackReport.Routes";
 
 import { passportGate } from "../authentication/authorize.auth";
 import { recordLastOperation } from "../middleware/userOperations.middleware";
@@ -33,7 +34,8 @@ router.use(recordLastOperation);
 router.use("/config/user", userConfig)
 router.use("/config/admin", adminConfig)
 
-router.use("/newreports", newReport)
+router.use("/newreports", newReport);
+router.use("/trackreports", trackReport);
 router.use("/reports", report);
 router.use("/reportDepartmets", reportDepartments);
 router.use("/schedulesreport", schedulesreport);

@@ -47,6 +47,12 @@ export default class Time {
   };
   //for convert cron to date format
   static toDate(cron: Cron) { };
+  //
+  static hourToString(hour: number) {
+    let dhour = Math.floor(hour);
+    let dmin = Math.floor((hour - Math.floor(hour)) * 60);
+    return Time.makeTwoDigits(String(dhour) + ":" + String(dmin))
+  }
   //for add day of week to cron format
   static toCronDay(time_cron: Cron, dayOfWeek: DayOfWeek): CronDay { return `${time_cron}${dayOfWeek}` as CronDay; };
   //for compare time
@@ -89,11 +95,11 @@ export default class Time {
     return [d.getFullYear(), d.getMonth() - 1, d.getDay(), d.getHours(), d.getMinutes(), d.getSeconds()];
   };
 
-  static getEpochList(startDate: string, stopDate: string, start_time: Clock, stop_time: Clock, timezone: string): object[] {
+  static getEpochList(startDate: string, stopDate: string, start_time: Clock, stop_time: Clock, timezone: string): { gte: string, lte: string }[] {
     let start_date = new Date(startDate + " " + start_time + Time.getUtcOffset(timezone));
     let stop_date = new Date(stopDate + " " + stop_time + Time.getUtcOffset(timezone));
 
-    let epoch_list: object[] = [];
+    let epoch_list: { gte: string, lte: string }[] = [];
     // let start_ens_epoch = {
     //   gte: "", lte: "" // representing the start and end times of that day in epoch time
     // };
