@@ -24,6 +24,7 @@ interface IResponseJson {
   password: string;
   ip: string;
   is_enabled: boolean;
+  damaged:boolean;
   children: IChildrenModel[];
 }
 
@@ -154,6 +155,7 @@ router.get("", async function (req: Request, res: Response, next: NextFunction) 
         password: cameras[i].password,
         ip: cameras[i].ip,
         is_enabled: cameras[i].is_enabled,
+        damaged:cameras[i].damaged
       });
     }
     //sort departement by name
@@ -277,6 +279,7 @@ router.get("/:id", async function (req: Request, res: Response, next: NextFuncti
           password: cameras[i].password,
           ip: cameras[i].ip,
           is_enabled: cameras[i].is_enabled,
+          damaged:cameras[i].damaged
         });
         //sort departement by name
         response.sort((a, b) => {

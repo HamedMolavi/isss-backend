@@ -51,6 +51,7 @@ router.get(
                   password: cameras[k].password,
                   ip: cameras[k].ip,
                   is_enabled: cameras[k].is_enabled,
+                  damaged: cameras[k].damaged
                 });
               }
             }

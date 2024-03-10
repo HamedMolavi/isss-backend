@@ -18,6 +18,10 @@ export const persianPlateDict: any = {
     "E": "ث",
     "T": "ت",
     "D": "د",
+    "d":"دیپلمات",
+    "s":"سیاسی",
+    "g":"گذر موقت",
+    "t":"تشریفات",
     "K": "ک",
     "C": "ویلچر",
 };
@@ -43,7 +47,11 @@ export const englishPlateDict: any = {
     "ت": "T",
     "د": "D",
     "ک": "K",
-    "ویلچر": "C"
+    "ویلچر": "C",
+    "دیپلمات":"d",
+    "سیاسی":"s",
+    "گذر موقت":"g",
+    "تشریفات":"t"
 };
 
 export function english2Persian(plate_number: string): string {
