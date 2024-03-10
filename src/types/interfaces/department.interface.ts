@@ -18,6 +18,7 @@ export interface IChildrenCamera {
   password: string;
   ip: string;
   is_enabled: boolean;
+  damaged: boolean;
 };
 
 export interface IChildrenSection {

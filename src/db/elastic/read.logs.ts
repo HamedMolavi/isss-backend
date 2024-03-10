@@ -7,6 +7,7 @@ import { ICar, ICarBrand, ICarColor } from '../../types/interfaces/car.interface
 import { IPersonnel } from '../../types/interfaces/personnel.interface';
 import { getLogFromElastic } from './connect.database';
 import Time from '../../tools/time.tools';
+import { randomUuid } from '../../tools/utils.tools';
 
 
 
@@ -71,21 +72,25 @@ export function readElasticMiddleware(
       const data = esRes.hits.hits.map((hit: SearchHit<any>) => {
         const log = hit._source;
         if (!log) return {};
-
         // Check if log.plate_number is null or undefined before accessing properties
         const carDetails = log.plate_number ? objectedCars[log.plate_number] : null;
-
         return {
+          _id: hit?._id ?? randomUuid(36),
           camera: log.camera_id ? entities['camera'][log.camera_id] : null,
-          personnel: log.personnel_id ? entities['personnel'][log.personnel_id] : null,
+          section: entities['camera'][log.camera_id]?.section_id?.name ?? "",
+        //  section: entities['camera'][log.camera_id]["section_id"]["name"] ?? "",
+        //  department: entities['camera'][log.camera_id]["section_id"]["department_id"]["name"] ?? "",
+          department: entities['camera'][log.camera_id]?.section_id?.department_id?.name ?? "",
+          personnel: (log.personnel_id && log.personnel_id !== "unknown" )? entities['personnel'][log.personnel_id] : null,
           timestamp: typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp,
           plate_number: log.plate_number ?? null,
-          owner: carDetails?.owner ?? null,
+          owner:!!carDetails ? carDetails?.owner : null,
           color: log?.color ? entities['color'][log.color] : null,
           brand: log?.brand ? entities['brand'][log.brand] : null,
-          allowed: carDetails?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.camera_id)) ?? false,
-          crop:index_name === "plate_log" ? log.crop : log.inner_crop,
-          inner_crop : index_name === "plate_log" ?  log.inner_crop : "",
+          allowed: log.allowed,
+          //llowed: carDetails?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.camera_id)) ?? false,
+          crop: index_name === "plate_log" ? log?.crop : log?.inner_crop,
+          inner_crop: index_name === "plate_log" ? log?.inner_crop : "",
         };
       });
 
@@ -300,6 +305,7 @@ export function sendLogMiddleware(
       //  console.time("Execution Time");
       const data = req.body.logs?.map((log: any) => {
         return {
+          _id: log?._id,
           camera_type: log.camera?.camera_type ?? "",
           camera_id: log.camera?._id?.toString(),
           camera: log.camera?.name ?? "",
@@ -309,12 +315,12 @@ export function sendLogMiddleware(
           owner: log?.owner?.toName() ?? "",
           color: log?.color?.name ?? "",
           brand: log?.brand?.name ?? "",
-          department: log.personnel?.section_id?.department_id?.name ?? "",
-          section: log.personnel?.section_id?.name ?? "",
+          department: log.personnel?.section_id?.department_id?.name ?? log?.department,
+          section: log.personnel?.section_id?.name ?? log?.section,
           allowed: log.allowed,
           crop: log?.crop,
           video: log.camera?.url ?? "",
-          inner_crop : log.inner_crop ?? "",
+          inner_crop: log.inner_crop ?? "",
         };
       });
       //   console.timeEnd("Execution Time filter");

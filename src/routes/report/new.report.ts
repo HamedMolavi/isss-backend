@@ -17,7 +17,7 @@ const router: Router = Router();
 
 router.get(["/plate", "/search"],
     // append cameras
-    readMiddleware(Camera, () => { return {} }, { populate: true, next: true, save: "camera" }),
+    readMiddleware(Camera, () => { return {} }, { populate: true, forcePopulate: ["section_id", "department_id"],next: true, save: "camera" }),
     readMiddleware(Car, () => { return {} }, { populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
     readMiddleware(CarColor, () => { return {} }, { populate: true, forcePopulate: ["color"], next: true, save: "color" }),
     readMiddleware(CarBrand, () => { return {} }, { populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
@@ -32,7 +32,7 @@ router.get(["/plate", "/search"],
 router.post("/plate",
     dtoValidationMiddleware(ReportPlateBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
     Time.compareTimeMiddleware("start", "stop"),
-    readMiddleware(Camera, () => { return {} }, { populate: true, next: true, save: "camera" }),
+    readMiddleware(Camera, () => { return {} }, { populate: true, forcePopulate: ["section_id", "department_id"],next: true, save: "camera" }),
     readMiddleware(Car, () => { return {} }, { populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
     readMiddleware(CarColor, () => { return {} }, { populate: true, forcePopulate: ["color"], next: true, save: "color" }),
     readMiddleware(CarBrand, () => { return {} }, { populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
@@ -43,7 +43,7 @@ router.post("/plate",
 
 
 router.get("/face",
-    readMiddleware(Camera, () => { return {} }, { populate: true, next: true, save: "camera" }),
+    readMiddleware(Camera, () => { return {} }, { populate: true, forcePopulate: ["section_id", "department_id"],next: true, save: "camera" }),
     readMiddleware(Personnel, () => { return {} }, { populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
     readElasticMiddleware("facearc_log", { next: true, save: "logs" }),
     sendLogMiddleware()
@@ -53,9 +53,27 @@ router.get("/face",
 router.post("/face",
     dtoValidationMiddleware(ReportFaceBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
     Time.compareTimeMiddleware("start", "stop"),
-    readMiddleware(Camera, () => { return {} }, { populate: true, next: true, save: "camera" }),
+    readMiddleware(Camera, () => { return {} }, { populate: true, forcePopulate: ["section_id", "department_id"],next: true, save: "camera" }),
     readMiddleware(Personnel, () => { return {} }, { populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
     readElasticMiddleware("facearc_log", { next: true, save: "logs" }),
+    filterLogsMiddleware({ next: true, save: "logs" }),
+    sendLogMiddleware()
+);
+
+
+
+router.get("/sabotage",
+    readMiddleware(Camera, () => { return {} }, { populate: true, forcePopulate: ["section_id", "department_id"],next: true, save: "camera" }),
+    readElasticMiddleware("sabotage_log", { next: true, save: "logs" }),
+    sendLogMiddleware()
+);
+
+
+router.post("/sabotage",
+    dtoValidationMiddleware(ReportFaceBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+    Time.compareTimeMiddleware("start", "stop"),
+    readMiddleware(Camera, () => { return {} }, { populate: true, forcePopulate: ["section_id", "department_id"],next: true, save: "camera" }),
+    readElasticMiddleware("sabotage_log", { next: true, save: "logs" }),
     filterLogsMiddleware({ next: true, save: "logs" }),
     sendLogMiddleware()
 );
