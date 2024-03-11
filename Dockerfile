@@ -4,6 +4,10 @@ WORKDIR /isss-backend
 #COPY --from=mwader/static-ffmpeg:5.1.2 /ffprobe /usr/local/bin/
 #RUN -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:5.1.2 -i file.wav file.mp3
 #RUN -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:5.1.2 -i file.wavCOPY package.json .
+
+# Install curl using apt-get
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 COPY package.json .
 COPY package-lock.json* .
 RUN yarn install
