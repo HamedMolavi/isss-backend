@@ -13,17 +13,17 @@ import Camera from "../../db/mongo/models/camera";
 const router: Router = Router();
 // get track data
 router.post(
-  "",
-  dtoValidationMiddleware(ReadTrackBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  readMiddleware(Camera, undefined, { next: true, save: "cameras" }),
-  readMiddleware(Track, searchFunction, { populate: true, send: daySendFunction, searchFromBody })
-);
-router.post(
   "/cumulative",
   dtoValidationMiddleware(ReadTrackBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   readMiddleware(Camera, undefined, { next: true, save: "cameras" }),
   readMiddleware(Track, searchFunction, { populate: true, next: true, save: "trackData", searchFromBody }),
   cumulativeSendFunction
+);
+router.post(
+  "",
+  dtoValidationMiddleware(ReadTrackBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  readMiddleware(Camera, undefined, { next: true, save: "cameras" }),
+  readMiddleware(Track, searchFunction, { populate: true, send: daySendFunction, searchFromBody })
 );
 
 
