@@ -68,7 +68,12 @@ services:
       - ./assets:/isss-backend/assets
       - ./security:/isss-backend/security
       - ./metadata:/isss-backend/metadata
-
+    healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:3000/healthcheck"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+          start_period: 30s
     # external_links:
     #   - mongo1
     #   - mongo2
