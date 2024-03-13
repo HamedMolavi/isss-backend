@@ -1,19 +1,14 @@
-import { Router, Request, Response, NextFunction } from "express";
-import { IGetParams } from "../../types/interfaces/schedule.interface";
+import { Router } from "express";
 import Schedule from "../../db/mongo/models/schedule";
 import Time from "../../tools/time.tools";
 import ModelToCamera from "../../db/mongo/models/modelToCamera";
-import { ApiError } from "../../types/classes/error.class";
-import { ISchedule } from "../../types/interfaces/schedule.interface";
-import { Clock, CronDay, DayOfWeek } from "../../types/interfaces/time.interface";
+import { Clock, DayOfWeek } from "../../types/interfaces/time.interface";
 import { dtoValidationMiddleware } from "../../validation/dto";
-import { CreateScheduleBody, UpdateScheduleBody } from "../../validation/dto/schedule.dto";
-import { existCheck } from "../../validation/db";
+import { CreateScheduleBody, UpdateActiveScheduleBody, UpdateScheduleBody } from "../../validation/dto/schedule.dto";
 import { createMiddleware } from "../../db/mongo/create.database";
-import { read, readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
-import { Schema } from "mongoose";
+import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { injectDataMiddleware } from "../../tools/request.tools";
-import { updateByIdMiddleware } from "../../db/mongo/update.database";
+import { updateByIdMiddleware, updateByListMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 
 //create router for add to server file
@@ -29,7 +24,7 @@ router.post("",
   readMiddleware(Schedule, (search: string) => { return { "model_camera_id": search } }, { next: true, save: "schedules", searchFromBody: (body) => body.model_camera_id._id }), //save schedule documents in req.body.schedules and hit next
   Time.validateTimeMiddleware("start", "stop", "dayOfWeek", "schedules"),
   injectDataMiddleware(convertPlaiBodyToSchedule, { spread: true }),
-  createMiddleware(["start_cron", "stop_cron", "montionDetection", "config", "model_camera_id"], Schedule),
+  createMiddleware(["start_cron", "stop_cron", "montionDetection", "config", "model_camera_id", "description", "users_alert", "sms", "alert"], Schedule),
 );
 
 router.get(
@@ -42,6 +37,10 @@ router.get(
   "/:id",
   readByIdMiddleware(Schedule, { populate: true }),
 );
+
+router.patch("/activeschedule",
+  dtoValidationMiddleware(UpdateActiveScheduleBody, { detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  updateByListMiddleware(Schedule, { next: false, update: { sms: { name: "sms.active" }, alert: { name: "alert.active" } } }));
 
 //add route for edit schedule
 router.patch(

@@ -1,7 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { ISchedule } from "../../../types/interfaces/schedule.interface";
-import Time from "../../../tools/time.tools";
-import { Clock, DayOfWeek } from "../../../types/interfaces/time.interface";
 
 //create Schedule with schema for save in DB
 const ScheduleSchema: Schema<ISchedule> = new Schema(
@@ -14,6 +12,14 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
       required: true,
     },
     config: { type: Object },
+    description: { type: String, required: true },
+    users_alert: [{
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },],
+    sms: { type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
+    alert:{ type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
     is_running: { type: Boolean, default: false },
   },
   {
@@ -48,6 +54,10 @@ ScheduleSchema.methods.toJSON = function () {
       min_people: this.config.min_people ?? 0,
       max_people: this.config.max_people ?? 0,
     },
+    description: this.description,
+    users_alert: this.users_alert,
+    sms: this.sms,
+    alert:this.alert,
     is_running: this.is_running
   };
 };

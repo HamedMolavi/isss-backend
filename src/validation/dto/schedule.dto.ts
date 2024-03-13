@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber, IsObject } from "class-validator";
 import mongoose, { Schema } from "mongoose";
 
 
@@ -13,6 +13,14 @@ export class CreateScheduleBody {
   public camera_id?: Schema.Types.ObjectId;
   @IsString()
   public model_id?: Schema.Types.ObjectId;
+  @IsString()
+  public description?: string;
+  @IsArray()
+  public users_alert?: Array<Schema.Types.ObjectId>;
+  @IsObject()
+  public sms?: object;
+  @IsObject()
+  public alert?:object;
 };
 
 export class UpdateScheduleBody {
@@ -49,4 +57,24 @@ export class UpdateScheduleBody {
   @IsOptional()
   @IsNumber()
   max_people?: number;
+  @IsOptional()
+  @IsString()
+  public description?: string;
+  @IsOptional()
+  @IsArray()
+  public users_alert?: Array<Schema.Types.ObjectId>;
+  @IsOptional()
+  public sms?: object;
+  @IsOptional()
+  public alert?:object;
+};
+
+
+export class UpdateActiveScheduleBody {
+  @IsOptional()
+  public sms?: object;
+  @IsOptional()
+  public alert?:object;
+  @IsArray()
+  public schedules?:Array<Schema.Types.ObjectId>;
 };

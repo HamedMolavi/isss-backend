@@ -7,6 +7,10 @@ export interface ISchedule extends Document {
   start_cron: string;
   stop_cron: string;
   config: IConfig;
+  description: string;
+  users_alert: [Schema.Types.ObjectId];
+  sms: { send: boolean; active: boolean };
+  alert: { send: boolean; active: boolean };
   is_running: boolean;
 }
 //define config type
@@ -31,4 +35,8 @@ export interface IGetParams {
   min_people: number;
   max_people: number;
   timeDuplicationDiagnoses: number;
+  description: string;
+  users_alert: Schema.Types.ObjectId[];
+  sms: { send: boolean; active: boolean };
+  alert: { send: boolean; active: boolean };
 }
