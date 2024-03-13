@@ -8,6 +8,7 @@ import Time from "../../tools/time.tools";
 import { ITrackLog } from "../../types/interfaces/track.interface";
 import { ApiError } from "../../types/classes/error.class";
 import Camera from "../../db/mongo/models/camera";
+import { range } from "../../tools/utils.tools";
 
 //create router for add to server
 const router: Router = Router();
@@ -28,12 +29,14 @@ router.post(
 
 
 
-function searchFromBody(body: { "personnel_id"?: string, "number_plate"?: string, "date_start"?: string, "date_end"?: string, }) {
+function searchFromBody(body: { "personnel_id"?: string, "number_plate"?: string, "date_start"?: string, "date_end"?: string, } & { "day_start"?: number; "day_end"?: number }) {
   const uid = body.personnel_id ?? body.number_plate;
   let start = !!body.date_start ? Math.floor((new Date(body.date_start + " 00:01" + Time.getUtcOffset("Asia/Tehran"))).getTime() / 86400000)
-    : 0;
+    : 19794;
   let end = !!body.date_end ? Math.floor((new Date(body.date_end + " 00:01" + Time.getUtcOffset("Asia/Tehran"))).getTime() / 86400000)
-    : 99736854;
+    : 20000;
+  body["day_start"] = start;
+  body["day_end"] = end;
   return JSON.stringify({ uid, start, end });
 }
 function searchFunction(search: string): FilterQuery<any> {
@@ -64,36 +67,16 @@ function cumulativeSendFunction(req: Request, res: Response, next: NextFunction)
     type T1 = { "camera_id": string; "camera_name": string; "start": number; "end": number; "duration": number };
     type T2 = { "_id": string; "uid": string; "day": number; "data": T1[] }
 
-    let data = req.body["trackData"]
-      .map((track: (Document<unknown, any, ITrackLog> & Omit<ITrackLog & Required<{ _id: Types.ObjectId; }>, never>)) => ({
-        ...track.toJSON(),
-        "data": track["data"].reduce((result, trackCam) => {
-          let index = 0;
-          if (result.every((el, i) => {
-            if (el["camera_id"] !== trackCam["camera_id"]) return true; index = i; return false;
-          })) result.push({ ...trackCam, "camera_name": req.body["cameras"]?.find((cam: any) => cam?.id === trackCam["camera_id"])?.name, "duration": trackCam["end"] - trackCam["start"] });
-          // update lash value
-          else result[index] = {
-            ...result[index],
-            "start": Math.min(result[index]["start"], trackCam["start"]),
-            "end": Math.max(result[index]["end"], trackCam["end"]),
-            "duration": result[index]["duration"] + trackCam["end"] - trackCam["start"]
-          }
-          return result;
-        }, [] as T1[])
-      }))
-      .map((track: T2) => ({
-        ...track,
-        "day": (new Date(track.day * 86400000).toLocaleString("en-US", { timeZone: "Asia/Tehran" })).split(",")[0],
-        "data": track.data.map((data) => ({
-          "camera_id": data.camera_id,
-          "camera_name": req.body["cameras"]?.find((cam: any) => cam?.id === data.camera_id)?.name,
-          "start": new Date(data.start).toLocaleString("en-US", { timeZone: "Asia/Tehran" }),
-          "end": new Date(data.end).toLocaleString("en-US", { timeZone: "Asia/Tehran" }),
-          "duration": Time.hourToString((data.end - data.start) / 3600000)
-        }))
-      }))
+    let data: { "camera_name": string; "data": number[] }[] = [];
+    let cameras: Set<string> = new Set(req.body?.trackData.flatMap((el: T2) => el.data).map((el: T1) => el.camera_id));
+    let flatData: Array<T1 & { "day": number }> = req.body.trackData.flatMap((el: T2) => el.data.map(data => ({ ...data, "day": el.day })));
 
+    for (const camera of cameras) {
+      data.push({
+        "camera_name": req.body["cameras"].find((el: any) => camera === el.id).name,
+        "data": range(req.body["day_start"], req.body["day_end"]).map(day => flatData.filter((data) => data.camera_id === camera && data.day === day).reduce((res, data) => data.end - data.start + res, 0))
+      })
+    }
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
     let strPerPage = req.query.perPage as string;
