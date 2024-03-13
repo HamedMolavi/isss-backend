@@ -7,6 +7,10 @@ import middlewares from "../middleware/index";
 const app: Application = express();
 app.set('json limit', '600mb');
 
+// Health check route
+app.get('/api/v1/healthcheck', (req, res) => {
+  res.status(200).send('OK');
+});
 ///////////////////////////////////////////////////////////////////////////////// middlewares
 app.use(middlewares);
 

@@ -5,7 +5,12 @@ import Camera from "./models/camera";
 async function connect(dbUri: string): Promise<mongoose.Connection> {
     //connect to the database
     try {
-        await mongoose.connect(dbUri);
+      //  await mongoose.connect(dbUri);
+        await mongoose.connect(dbUri, {
+            autoIndex:true,
+            autoCreate:false,
+            bufferCommands: false, // Disable buffering
+        });
         await Camera.find();
         console.log("Mongoose connection established: " + dbUri);
     } catch (error) {

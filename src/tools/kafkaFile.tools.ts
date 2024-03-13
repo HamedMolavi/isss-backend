@@ -43,7 +43,14 @@ export class SnapshotKafka {
     });
 
     const consumer = kafka.consumer({
-      groupId: 'test-group'
+      groupId: 'test-group',
+      retry: {
+        // Try to reconnect after 10seg
+        initialRetryTime: 10 * 1000,
+        retries: 10,
+      },
+      heartbeatInterval: 25000,
+      
     });
 
     // Connect to consumer
