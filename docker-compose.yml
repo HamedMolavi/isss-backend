@@ -62,14 +62,14 @@ services:
       - MAX_LOAD=100
       - TZ=Asia/Tehran
     ports:
-      - 9000:3000
+      - 9000:9000
     volumes:
       - ./logs:/isss-backend/logs
       - ./assets:/isss-backend/assets
       - ./security:/isss-backend/security
       - ./metadata:/isss-backend/metadata
     healthcheck:
-          test: ["CMD", "curl", "-f", "http://localhost:3000/healthcheck"]
+          test: ["CMD", "curl", "-f", "http://localhost:9000/healthcheck"]
           interval: 30s
           timeout: 10s
           retries: 3

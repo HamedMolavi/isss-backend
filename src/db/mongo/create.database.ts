@@ -5,7 +5,7 @@ export function createMiddleware(keys: Array<string | { [key: string]: (body: an
   return async function middleware(req: Request, res: Response, next: NextFunction) {
     try {
       //get json from body request
-      let payload: { [key: string]: string } = {};
+      let payload: { [key: string]: string | Array<string>} ={};
       for (const key of keys) {
         if (!Object.prototype.hasOwnProperty.call(req.body, typeof key === "string" ? key : Object.keys(key)[0])) continue;
         if (typeof (key) === "string") payload[key] = req.body[key];

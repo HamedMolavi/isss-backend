@@ -52,10 +52,12 @@ function daySendFunction(track: (Document<unknown, any, ITrackLog> & Omit<ITrack
     "day": (new Date(track.day * 86400000).toLocaleString("en-US", { timeZone: "Asia/Tehran" })).split(",")[0],
     "data": track.data.map((data) => ({
       "camera_id": data.camera_id,
-      "camera_name": req.body["cameras"]?.find((cam: any) => cam?.id === data.camera_id)?.name,
+      "camera_name": req.body["cameras"]?.find((cam: any) => cam?._id.toString() === data.camera_id.toString())?.name,
+      "camera_type": req.body["cameras"]?.find((cam: any) => cam?._id.toString() === data.camera_id.toString())?.camera_type,
       "start": new Date(data.start).toLocaleString("en-US", { timeZone: "Asia/Tehran" }),
       "end": new Date(data.end).toLocaleString("en-US", { timeZone: "Asia/Tehran" }),
-      "duration": Time.hourToString((data.end - data.start) / 3600000)
+      "duration": Time.hourToString((data.end - data.start) / 3600000),
+      "milisecond_duration": (data.end - data.start)
     }))
   };
 };
