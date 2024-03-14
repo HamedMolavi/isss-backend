@@ -75,7 +75,7 @@ function cumulativeSendFunction(req: Request, res: Response, next: NextFunction)
 
     for (const camera of cameras) {
       data.push({
-        "camera_name": req.body["cameras"].find((el: any) => camera === el.id).name,
+        "camera_name": req.body["cameras"].find((el: any) => camera === el.id)?.name,
         "data": range(req.body["day_start"], req.body["day_end"]).map(day => flatData.filter((data) => data.camera_id === camera && data.day === day).reduce((res, data) => data.end - data.start + res, 0))
       })
     }
