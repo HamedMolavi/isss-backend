@@ -69,15 +69,18 @@ function cumulativeSendFunction(req: Request, res: Response, next: NextFunction)
     type T1 = { "camera_id": string; "camera_name": string; "start": number; "end": number; "duration": number };
     type T2 = { "_id": string; "uid": string; "day": number; "data": T1[] }
 
-    let data: { "camera_name": string; "data": number[] }[] = [];
+    let data: { "camera_id": string; "duration": number; "camera_name": string; "data": number[] }[] = [];
     let cameras: Set<string> = new Set(req.body?.trackData.flatMap((el: T2) => el.data).map((el: T1) => el.camera_id));
     let flatData: Array<T1 & { "day": number }> = req.body.trackData.flatMap((el: T2) => el.data.map(data => ({ ...data, "day": el.day })));
 
     for (const camera of cameras) {
-      data.push({
+      data[data.push({
+        "camera_id": camera,
         "camera_name": req.body["cameras"].find((el: any) => camera === el.id)?.name,
-        "data": range(req.body["day_start"], req.body["day_end"]).map(day => flatData.filter((data) => data.camera_id === camera && data.day === day).reduce((res, data) => data.end - data.start + res, 0))
-      })
+        "data": range(req.body["day_start"], req.body["day_end"]).map(day => flatData.filter((data) => data.camera_id === camera && data.day === day).reduce((res, data) => data.end - data.start + res, 0)),
+        "duration": 0
+      })]["duration"] = data.at(-1)?.data?.reduce((res, el) => res + el, 0) ?? 0;
+
     }
     let strPage = req.query.page as string;
     let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
