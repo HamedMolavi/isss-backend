@@ -73,14 +73,6 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
 };
 
 
-
-
-function setNestedObjectValue1(obj: any, pathArray: string[], value: any) {
-  const lastKey = pathArray.pop() || '';
-  const lastObj = pathArray.reduce((obj, key) => obj[key] = obj[key] || {}, obj);
-  lastObj[lastKey] = value;
-}
-
 export function updateByListMiddleware(
   model: Model<any, any, any, any>,
   options?: { next?: boolean; save?: string; update?: UpdateType; send?: CallableFunction; ignore?: string[] }
@@ -98,18 +90,16 @@ export function updateByListMiddleware(
 
       for (const id of listField) {
         let doc: Document = await model.findById(id).exec();
-        let payload = { id };
+        let payload: { id: any; [key: string]: any } = { id };
 
         for (const key of keys) {
           if (key === 'schedules') continue;
-          //@ts-ignore
           payload[key] = req.body[key];
           if (key === 'sms' || key === 'alert') {
-            //@ts-ignore
-            updateObject[key] = { ...doc[key], active: payload[key].active };
-           
-          }
-          else if (!!options?.update && Object.keys(options?.update).includes(key)) {
+            updateObject[key]= {...(doc as any)[key]}
+            updateObject[key]._doc.active = req.body[key]
+          //  updateObject[key] = { ...(doc as any)[key], ...payload[key] };
+          }else if (!!options?.update && Object.keys(options?.update).includes(key)) {
             switch (typeof options.update[key]) {
               case 'function':
                 updateObject[key] = await (options.update[key] as FirstUpdateType)(payload);
@@ -117,15 +107,13 @@ export function updateByListMiddleware(
               case 'object':
                 let path = options.update[key].name.split('.');
                 if (!!(options.update[key] as SecondUpdateType).fn) {
-                  setNestedObjectValue(updateObject, path, await (options.update[key] as SecondUpdateType).fn?.(payload));
+                  setNestedObjectValue  (updateObject, path, await (options.update[key] as SecondUpdateType).fn?.(payload));
                 } else {
-                  //@ts-ignore
                   setNestedObjectValue(updateObject, path, payload[key]);
                 }
                 break;
             }
-             //@ts-ignore
-          } else updateObject[key] = payload[key];
+          }  else updateObject[key] = payload[key];
         }
 
         updateObject = Object.keys(model.schema.paths).reduce((result, preKey) => {
