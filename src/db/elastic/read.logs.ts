@@ -20,6 +20,85 @@ type Report = {
 };
 
 
+export function readByIdElasticMiddleware(
+  index_name: string,
+  options?: {
+    next?: boolean,
+    save?: string,
+  }, _id?: string): RequestHandler {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    try {
+      const { body } = req;
+      let _timezone = req.query.timez as string;
+      let id: string = _id || req.params.id;
+      let query_elastic = {
+        "index": index_name,
+        "query": {
+          "term": {
+            "_id": id
+          }
+        }
+      };
+
+      const esRes = await process.esclient.search(query_elastic);
+      if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !options?.next) {
+        req.flash("error , not found plate data in DB");
+        return next(new ApiError(404, "error , not found plate data in DB"));
+      };
+
+      const entities = ['camera', 'personnel', 'color', 'brand'].reduce((acc, entity) => {
+        acc[entity] = body[entity]?.reduce((obj: any, item: any) => ({ ...obj, [item._id.toString()]: item }), {});
+        return acc;
+      }, {} as Record<string, any>);
+
+      let cars: [PapulatedCar] = req.body["car"];
+      let objectedCars = !!cars && cars.reduce((pre, car) => {
+        return { ...pre, [car.number_plate.toString()]: car };
+      }, {} as { [key: string]: PapulatedCar });
+      {
+      };
+      const data = esRes.hits.hits.map((hit: SearchHit<any>) => {
+        const log = hit._source;
+        if (!log) return {};
+        // Check if log.plate_number is null or undefined before accessing properties
+        const carDetails = log.plate_number ? objectedCars[log.plate_number] : undefined;
+        return {
+          ...hit?._source,
+          _id: hit?._id,
+          camera_id: !!log.camera_id ? entities['camera'][log.camera_id]?._id?.toString() : "",
+          camera: !!log.camera_id ? entities['camera'][log.camera_id]?.name : "",
+          camera_type: !!log.camera_id ? entities['camera'][log.camera_id]?.type : "",
+          fullName: (!!log.personnel_id && log.personnel_id !== "unknown") ? entities['personnel'][log.personnel_id]?.toName() : "",
+          time: !!log?.timestamp ? new Date(typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
+          plate_number: !!log.plate_number ? stringPlateToJson(log.plate_number) : "",
+          owner: !!carDetails ? carDetails?.owner?.toName() : "",
+          color: log?.color ? entities['color'][log.color]?.name : "",
+          brand: log?.brand ? entities['brand'][log.brand]?.name : "",
+          department: entities['camera'][log.camera_id]?.section_id?.department_id?.name ?? "",
+          section: entities['camera'][log.camera_id]?.section_id?.name ?? "",
+          allowed: log.allowed,
+          crop: index_name === "plate_log" ? log?.crop : log?.inner_crop,
+          inner_crop: index_name === "plate_log" ? log?.inner_crop : "",
+          video: !!log.camera_id ? entities['camera'][log.camera_id]?.url : "",
+        };
+      })[0];
+
+      if (options?.next) {
+        req.body[options?.save ?? 'docs'] = data;
+        return next();
+      };
+
+      return res.status(200).json({
+        success: true,
+        data,
+      });
+    } catch (err: any) {
+      if (err.meta?.body?.error?.type === "index_not_found_exception") return next(new ApiError(500, "internal server error , " + err.message));
+      return next(new ApiError(500, "internal server error , " + err.message));
+    }
+  }
+};
+
 
 export function readElasticMiddleware(
   index_name: string,
@@ -78,13 +157,13 @@ export function readElasticMiddleware(
           _id: hit?._id ?? randomUuid(36),
           camera: log.camera_id ? entities['camera'][log.camera_id] : null,
           section: entities['camera'][log.camera_id]?.section_id?.name ?? "",
-        //  section: entities['camera'][log.camera_id]["section_id"]["name"] ?? "",
-        //  department: entities['camera'][log.camera_id]["section_id"]["department_id"]["name"] ?? "",
+          //  section: entities['camera'][log.camera_id]["section_id"]["name"] ?? "",
+          //  department: entities['camera'][log.camera_id]["section_id"]["department_id"]["name"] ?? "",
           department: entities['camera'][log.camera_id]?.section_id?.department_id?.name ?? "",
-          personnel: (log.personnel_id && log.personnel_id !== "unknown" )? entities['personnel'][log.personnel_id] : null,
+          personnel: (log.personnel_id && log.personnel_id !== "unknown") ? entities['personnel'][log.personnel_id] : null,
           timestamp: typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp,
           plate_number: log.plate_number ?? null,
-          owner:!!carDetails ? carDetails?.owner : null,
+          owner: !!carDetails ? carDetails?.owner : null,
           color: log?.color ? entities['color'][log.color] : null,
           brand: log?.brand ? entities['brand'][log.brand] : null,
           allowed: log.allowed,
@@ -113,108 +192,6 @@ export function readElasticMiddleware(
     }
   }
 };
-
-// export function readElasticMiddleware(
-//   index_name: string,
-//   options?: {
-//     next?: boolean,
-//     save?: string,
-//     populate?: boolean,
-//     forcePopulate?: string[],
-//   }): RequestHandler {
-//   return async function (req: Request, res: Response, next: NextFunction) {
-//     try {
-//       //get page from url
-//       let strPage = req.query.page as string;
-//       let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-//       //get perPage from url
-//       let strPerPage = req.query.perPage as string;
-//       let perPage = strPerPage?.toLowerCase() === "all"
-//         ? 10000
-//         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-
-//       let _timezone = req.query.timez as string;
-
-//       let start = req.body.date_start && String(Time.toTimestamp(req.body.date_start, req.body.time_start as Clock));
-//       let end = req.body.date_end && String(Time.toTimestamp(req.body.date_end, req.body.time_end as Clock));
-//       let times_epoch: any = req.body.date_start && Time.getEpochList(req.body.date_start, req.body.date_end, req.body.time_start as Clock, req.body.time_end as Clock, _timezone);
-
-//       let plates = !!req.body.plates ? platesToStrings(req.body.plates) : []
-//       const esRes = await getLogFromElastic(index_name, perPage, page,
-//         !!times_epoch ? times_epoch : [], plates, req.body.cameras ?? [],
-//         req.body.car_brand ?? [] , req.body.car_color ?? [] ,req.body.personnels ?? []
-//         );
-//       if (!esRes || !esRes.hits || !esRes.hits.hits.length && !options?.next) {
-//         req.flash("error , not found plate data in DB");
-//         return next(new ApiError(404, "error , not found plate data in DB"));
-//       };
-
-//       let cameras: [ICamera & { _id: ObjectId }] = req.body["camera"];
-//       let objectedCameras =!!cameras && cameras.reduce((pre, cam) => {
-//         return { ...pre, [cam._id.toString()]: cam };
-//       }, {} as { [key: string]: ICamera & { _id: ObjectId } });
-
-//       let cars: [PapulatedCar] = req.body["car"];
-//       let objectedCars =!!cars && cars.reduce((pre, car) => {
-//         return { ...pre, [car.number_plate.toString()]: car };
-//       }, {} as { [key: string]: PapulatedCar });
-
-//       let personnels: [IPersonnel] =  req.body["personnel"];
-//       let objectedPersonnels =!!personnels && personnels.reduce((pre, personnel) => {
-//         return { ...pre, [personnel._id.toString()]: personnel };
-//       }, {} as { [key: string]: IPersonnel });
-
-//       let colors: [ICarColor] = req.body["color"];
-//       let objectedColors =!!colors && colors.reduce((pre, color) => {
-//         return { ...pre, [color._id.toString()]: color };
-//       }, {} as { [key: string]: ICarColor });
-
-//       let brands: [ICarBrand] = req.body["brand"];
-//       let objectedBrands =!!brands && brands.reduce((pre, brand) => {
-//         return { ...pre, [brand._id.toString()]: brand };
-//       }, {} as { [key: string]: ICarBrand });
-
-
-//       const data = esRes.hits.hits.map((hit: SearchHit<any>) => {
-//         let log = hit._source;
-
-//         if (!log || !log) {
-//           console.log(hit);
-//           return {}
-//         }
-//         return {
-//           camera: objectedCameras[log.camera_id],
-//           personnel : objectedPersonnels[log.personnel_id],
-//           timestamp:typeof log?.timestamp === "string" ? Number(log.timestamp) : log.timestamp,
-//           plate_number: log.plate_number,
-//           owner: objectedCars[log.plate_number]?.owner,
-//           color: objectedCars[log.plate_number]?.color ?? objectedColors[log.color],
-//           brand: log?.[log.plate_number]?.brand ?? objectedBrands[log.brand],
-//           allowed: objectedCars[log.plate_number]?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.camera_id)),
-//           crop: log?.car_crop ?? log.face_crop,
-//         };
-//       });
-//       if (!!options?.next) {
-//         if (!!options.save) req.body[options.save] = data;
-//         else req.body["docs"] = data;
-//         return next();
-//       };
-
-//       //return response to client
-//       return res.status(200).json({
-//         success: true,
-//         data,
-//         page: page,
-//         perPage: perPage,
-//         total: data.length,
-//         pages: Math.ceil((data.length) / perPage),
-//       });
-//     } catch (err: any) {
-//       if (err.meta?.body?.error?.type === "index_not_found_exception") return next(new ApiError(500, "internal server error , " + err.message));
-//       return next(new ApiError(500, "internal server error , " + err.message));
-//     }
-//   }
-// };
 
 
 
