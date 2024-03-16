@@ -77,8 +77,8 @@ export function readByIdElasticMiddleware(
           department: entities['camera'][log.camera_id]?.section_id?.department_id?.name ?? "",
           section: entities['camera'][log.camera_id]?.section_id?.name ?? "",
           allowed: log.allowed,
-          crop: index_name === "plate_log" ? log?.crop : log?.inner_crop,
-          inner_crop: index_name === "plate_log" ? log?.inner_crop : "",
+          crop: log?.crop ?? "",
+          inner_crop: log?.inner_crop ?? "",
           video: !!log.camera_id ? entities['camera'][log.camera_id]?.url : "",
         };
       })[0];
