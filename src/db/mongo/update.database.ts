@@ -90,16 +90,19 @@ export function updateByListMiddleware(
 
       for (const id of listField) {
         let doc: Document = await model.findById(id).exec();
-        let payload: { id: any; [key: string]: any } = { id };
+        let payload: { id: any;[key: string]: any } = { id };
 
         for (const key of keys) {
           if (key === 'schedules') continue;
           payload[key] = req.body[key];
           if (key === 'sms' || key === 'alert') {
-            updateObject[key]= {...(doc as any)[key]}
-            updateObject[key]._doc.active = req.body[key]
-          //  updateObject[key] = { ...(doc as any)[key], ...payload[key] };
-          }else if (!!options?.update && Object.keys(options?.update).includes(key)) {
+            //if (req.body[key]!== "" || req.body[key]!== null ) continue
+            if (req.body[key] !== undefined && req.body[key] !== null && typeof req.body[key] === 'boolean') {
+              updateObject[key] = { ...(doc as any)[key] }
+              updateObject[key]._doc.active = req.body[key]
+              //  updateObject[key] = { ...(doc as any)[key], ...payload[key] };
+            }
+          } else if (!!options?.update && Object.keys(options?.update).includes(key)) {
             switch (typeof options.update[key]) {
               case 'function':
                 updateObject[key] = await (options.update[key] as FirstUpdateType)(payload);
@@ -107,13 +110,13 @@ export function updateByListMiddleware(
               case 'object':
                 let path = options.update[key].name.split('.');
                 if (!!(options.update[key] as SecondUpdateType).fn) {
-                  setNestedObjectValue  (updateObject, path, await (options.update[key] as SecondUpdateType).fn?.(payload));
+                  setNestedObjectValue(updateObject, path, await (options.update[key] as SecondUpdateType).fn?.(payload));
                 } else {
                   setNestedObjectValue(updateObject, path, payload[key]);
                 }
                 break;
             }
-          }  else updateObject[key] = payload[key];
+          } else updateObject[key] = payload[key];
         }
 
         updateObject = Object.keys(model.schema.paths).reduce((result, preKey) => {
