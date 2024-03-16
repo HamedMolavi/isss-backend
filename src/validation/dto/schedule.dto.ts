@@ -20,7 +20,10 @@ export class CreateScheduleBody {
   @IsObject()
   public sms?: object;
   @IsObject()
-  public alert?:object;
+  public alert?: object;
+  @IsBoolean()
+  @IsOptional()
+  public justHuman?: boolean;
 };
 
 export class UpdateScheduleBody {
@@ -66,7 +69,10 @@ export class UpdateScheduleBody {
   @IsOptional()
   public sms?: object;
   @IsOptional()
-  public alert?:object;
+  public alert?: object;
+  @IsBoolean()
+  @IsOptional()
+  public justHuman?: boolean;
 };
 
 
@@ -74,7 +80,7 @@ export class UpdateActiveScheduleBody {
   @IsOptional()
   public sms?: object;
   @IsOptional()
-  public alert?:object;
+  public alert?: object;
   @IsArray()
-  public schedules?:Array<Schema.Types.ObjectId>;
+  public schedules?: Array<Schema.Types.ObjectId>;
 };

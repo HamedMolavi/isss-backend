@@ -19,7 +19,7 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
       required: false,
     },],
     sms: { type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
-    alert:{ type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
+    alert: { type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
     is_running: { type: Boolean, default: false },
   },
   {
@@ -54,10 +54,11 @@ ScheduleSchema.methods.toJSON = function () {
       min_people: this.config.min_people ?? 0,
       max_people: this.config.max_people ?? 0,
     },
+    justHuman: this.justHuman,
     description: this.description,
     users_alert: this.users_alert,
     sms: this.sms,
-    alert:this.alert,
+    alert: this.alert,
     is_running: this.is_running
   };
 };
