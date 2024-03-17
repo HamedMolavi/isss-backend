@@ -60,5 +60,5 @@ export function authHexToObject(hexNumber: number): Object & { create?: boolean,
   };
 };
 
-export const range = (start: number, stop: number, step = 1) =>
-  Array(Math.ceil((stop - start + 1) / step)).fill(start).map((x, y) => x + y * step)
+export const range = (start: number, stop: number, options?: { step?: number, inclusive?: boolean }) =>
+  Array(Math.ceil((stop - start + Number(!!options?.inclusive)) / (options?.step ?? 1))).fill(start).map((x, y) => x + y * (options?.step ?? 1))
