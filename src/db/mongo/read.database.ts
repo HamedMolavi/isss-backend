@@ -11,6 +11,7 @@ export async function read(model: any, options?: { query?: FilterQuery<any>, pop
 
 export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any>,
   options?: {
+    forceAll?: boolean,
     next?: boolean,
     save?: string,
     send?: (doc: any, req: Request) => any | void | Promise<any | void>,
@@ -25,14 +26,14 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
     try {
       //get page from url
       let strPage = req.query.page as string;
-      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+      let page = !options?.forceAll && parseInt(strPage) > 0 ? parseInt(strPage) : 1;
       let search = (req.query.search as string)
         || options?.searchFromBody?.(req.body)
         || options?.searchFromParams?.(req.params)
         || options?.searchFromQuery?.(req.query) || "";
       //get perPage from url
       let strPerPage = req.query.perPage as string;
-      let perPage = strPerPage?.toLowerCase() === "all"
+      let perPage = !!options?.forceAll || strPerPage?.toLowerCase() === "all"
         ? 10000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let docs: Document[] = (!!query && !!search)

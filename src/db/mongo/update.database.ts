@@ -1,7 +1,7 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import { Document, Model } from "mongoose";
-import { setNestedObjectValue } from "../../tools/utils.tools";
+import { getNestedObjectValue, setNestedObjectValue } from "../../tools/utils.tools";
 
 
 type FirstUpdateType = (payload: { [key: string]: any }) => any
@@ -48,7 +48,8 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
         } else updateObject[key] = payload[key];
       };
       updateObject = Object.keys(model.schema.paths).reduce((result, preKey) => {
-        if (Object.keys(model.schema.paths).includes(preKey)) result[preKey] = updateObject[preKey];
+        let value = getNestedObjectValue(updateObject, preKey.split("."));
+        if (!!value) result[preKey] = value;
         return result;
       }, {} as typeof updateObject)
       doc = await model.findByIdAndUpdate(id, { $set: updateObject }, {

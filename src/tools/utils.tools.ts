@@ -19,6 +19,16 @@ export function setNestedObjectValue(obj: any, path: string[], value: any): void
   };
 };
 
+export function getNestedObjectValue(obj: any, path: string[]): any {
+  const key = path.shift() as string;
+  // If we're at the final key, return the value
+  if (path.length === 0) return obj?.[key];
+  else {
+    // Recurse with the rest of the path
+    return getNestedObjectValue(obj[key], path);
+  };
+};
+
 export function isInDebugMode(): boolean {
   return inspector.url() !== undefined;
 };
