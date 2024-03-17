@@ -11,15 +11,28 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
       ref: "ModelToCamera",
       required: true,
     },
-    config: { type: Object },
+    config: {
+      timeDuplicationDiagnoses: { type: Number, default: 0 },
+      threshold: { type: Number, default: 0 },
+      min_people: { type: Number, default: 0 },
+      max_people: { type: Number, default: 0 },
+      zones: { type: Array<[[number, number], [number, number], [number, number], [number, number]]>, default: [[[0, 0], [1, 0], [1, 1], [0, 1]]] },
+      justHuman: { type: Boolean, default: false }
+    },
     description: { type: String, required: true },
-    users_alert: [{
+    users_alert: Array<{
       type: Schema.Types.ObjectId,
       ref: "User",
       required: false,
-    },],
-    sms: { type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
-    alert: { type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
+    }>,
+    sms: {
+      send: { type: Boolean, default: false },
+      active: { type: Boolean, default: false }
+    },
+    alert: {
+      send: { type: Boolean, default: false },
+      active: { type: Boolean, default: false }
+    },
     is_running: { type: Boolean, default: false },
   },
   {

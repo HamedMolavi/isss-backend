@@ -20,7 +20,7 @@ interface IConfig {
   min_people: number;
   max_people: number;
   zones: Array<[[number, number], [number, number], [number, number], [number, number]]>;
-  justHuman:boolean;
+  justHuman: boolean;
 }
 
 //define type of schedule for request body
@@ -37,7 +37,7 @@ export interface IGetParams {
   max_people: number;
   timeDuplicationDiagnoses: number;
   description: string;
-  justHuman:boolean;
+  justHuman: boolean;
   users_alert: Schema.Types.ObjectId[];
   sms: { send: boolean; active: boolean };
   alert: { send: boolean; active: boolean };
