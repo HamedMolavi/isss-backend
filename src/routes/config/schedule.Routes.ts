@@ -24,7 +24,7 @@ router.post("",
   readMiddleware(Schedule, (search: string) => { return { "model_camera_id": search } }, { next: true, save: "schedules", searchFromBody: (body) => body.model_camera_id._id }), //save schedule documents in req.body.schedules and hit next
   Time.validateTimeMiddleware("start", "stop", "dayOfWeek", "schedules"),
   injectDataMiddleware(convertPlaiBodyToSchedule, { spread: true }),
-  createMiddleware(["start_cron", "stop_cron", "montionDetection", "config", "model_camera_id", "description", "users_alert", "sms", "alert","justHuman"], Schedule),
+  createMiddleware(["start_cron", "stop_cron", "montionDetection", "config", "model_camera_id", "description", "users_alert", "sms", "alert"], Schedule),
 );
 
 router.get(
@@ -90,6 +90,7 @@ function convertPlaiBodyToSchedule(body: any) {
     min_people,
     max_people,
     timeDuplicationDiagnoses,
+    justHuman
   } = body;
   //convert input time to cron format
   let start_cron = Time.toCronDay(Time.toCron(start), dayOfWeek.toString());
@@ -102,9 +103,10 @@ function convertPlaiBodyToSchedule(body: any) {
     config: {
       timeDuplicationDiagnoses: timeDuplicationDiagnoses ?? 0,
       threshold: threshold != undefined ? threshold / 100 : 0,
-      zones: zones && zones.length != 0 ? zones : [[0, 0], [1, 0], [1, 1], [0, 1]],
+      zones: zones && zones.length != 0 ? zones : [[[0, 0], [1, 0], [1, 1], [0, 1]]],
       min_people: min_people ?? 0,
       max_people: max_people ?? 0,
+      justHuman: justHuman ?? false
     },
   };
 }
