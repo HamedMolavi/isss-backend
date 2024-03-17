@@ -49,7 +49,10 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
       };
       updateObject = Object.keys(model.schema.paths).reduce((result, preKey) => {
         let value = getNestedObjectValue(updateObject, preKey.split("."));
-        if (!!value) result[preKey] = value;
+        if (value !== undefined)
+       {
+        result[preKey] = value;
+       } 
         return result;
       }, {} as typeof updateObject)
       doc = await model.findByIdAndUpdate(id, { $set: updateObject }, {
