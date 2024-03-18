@@ -6,7 +6,7 @@ import Personnel from "../../db/mongo/models/personnel";
 import Car from "../../db/mongo/models/car";
 import Time from "../../tools/time.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
-import { ReportFaceBody, ReportPlateBody } from "../../validation/dto/report.dto";
+import { ReportFaceBody, ReportHumanBody, ReportPlateBody } from "../../validation/dto/report.dto";
 import CarBrand from "../../db/mongo/models/carBrand";
 import CarColor from "../../db/mongo/models/carColor";
 
@@ -97,10 +97,26 @@ router.post("/sabotage",
 );
 
 
+router.get("/human",
+    readMiddleware(Camera, () => { return {} }, { forceAll:true, populate: true, forcePopulate: ["section_id", "department_id"],next: true, save: "camera" }),
+    readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { next: true, save: "logs" }),
+    sendLogMiddleware()
+);
 
 
 router.get("/human/:id",
     readMiddleware(Camera, () => { return {} }, { forceAll:true, populate: true, forcePopulate: ["section_id", "department_id"],next: true, save: "camera" }),
     readByIdElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log")
 );
+
+router.post("/human",
+    dtoValidationMiddleware(ReportHumanBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+    Time.compareTimeMiddleware("start", "stop"),
+    readMiddleware(Camera, () => { return {} }, { forceAll:true, populate: true, forcePopulate: ["section_id", "department_id"],next: true, save: "camera" }),
+    readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { next: true, save: "logs" }),
+    filterLogsMiddleware({ next: true, save: "logs" }),
+    sendLogMiddleware()
+);
+
+
 export default router;

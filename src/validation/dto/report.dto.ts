@@ -66,3 +66,26 @@ export class ReportFaceBody{
     @IsArray()
     public cameras?: string[]
 }
+
+
+export class ReportHumanBody{
+    @IsString()
+    public time_start?: string;
+    @IsString()
+    public time_end?: string;
+    @IsOptional()
+    @IsString()
+    public date_start?: string;
+    @IsOptional()
+    @IsString()
+    public date_end?: string;
+    @IsOptional()
+    @IsArray()
+    public human_count?: string[] | null;
+    @IsOptional()
+  //  @IsBoolean()
+    public allowed?: boolean | null
+    @IsOptional()
+    @IsArray()
+    public cameras?: string[]
+}
