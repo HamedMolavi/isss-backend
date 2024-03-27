@@ -34,7 +34,7 @@ export function readElasticMiddlewareHamed(
 
       //get page from url
       let strPage = req.query.page as string;
-      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+      let page = parseInt(strPage) >= 0 ? parseInt(strPage) : 0;
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = strPerPage?.toLowerCase() === "all"
@@ -110,7 +110,7 @@ export function readByIdElasticMiddleware(
         : { "_id": doc._id, ...(doc._source ?? {}) }
 
       if (options?.next) {
-        req.body[options?.save ?? 'docs'] = data;
+        req.body[options?.save ?? 'esRes'] = data;
         return next();
       };
 
@@ -139,7 +139,7 @@ export function readElasticMiddleware(
 
       //get page from url
       let strPage = req.query.page as string;
-      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+      let page = parseInt(strPage) >= 0 ? parseInt(strPage) : 0;
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = strPerPage?.toLowerCase() === "all"
@@ -240,7 +240,7 @@ export function filterLogsMiddleware(
     try {
       //get page from url
       let strPage = req.query.page as string;
-      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+      let page = parseInt(strPage) >= 0 ? parseInt(strPage) : 0;
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = strPerPage?.toLowerCase() === "all"
@@ -304,7 +304,7 @@ export function sendLogMiddleware(
     try {
       //get page from url
       let strPage = req.query.page as string;
-      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+      let page = parseInt(strPage) >= 0 ? parseInt(strPage) : 0;
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = strPerPage?.toLowerCase() === "all"
