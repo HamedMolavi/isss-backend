@@ -108,7 +108,7 @@ export function readByIdElasticMiddleware(
       let doc = esRes.hits.hits[0];
       let data = !!options?.send ? options.send({ "_id": doc._id, ...(doc._source ?? {}) }, req)
         : { "_id": doc._id, ...(doc._source ?? {}) }
-      
+
       if (options?.next) {
         req.body[options?.save ?? 'docs'] = data;
         return next();
@@ -330,7 +330,7 @@ export function sendLogMiddleware(
           video: log.camera?.url ?? "",
           inner_crop: log.inner_crop ?? "",
           alert: log.alert ?? null,
-          sms : log.alert ?? null,
+          sms: log.alert ?? null,
           description: log.description ?? "",
           human_count: log.human_count ?? 0,
         };
