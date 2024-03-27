@@ -156,7 +156,8 @@ export function readElasticMiddleware(
       let plates = !!req.body.plates ? platesToStrings(req.body.plates) : []
       const esRes = await getLogFromElastic(index_name, perPage, page,
         times_epoch || [], plates || [], body.cameras || [],
-        body.car_brand || [], body.car_color || [], body.personnels || []
+        body.car_brand || [], body.car_color || [], body.personnels || [],
+        body.human_count || [], body.allowed || []
       );
 
       if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !options?.next) {
@@ -193,6 +194,10 @@ export function readElasticMiddleware(
           color: log?.color ? entities['color'][log.color] : null,
           brand: log?.brand ? entities['brand'][log.brand] : null,
           allowed: log.allowed,
+          alert: log.alert ?? null,
+          sms: log.sms ?? null,
+          description: log.description ?? "",
+          human_count: log.human_count ?? 0,
           //llowed: carDetails?.camera_whitelist?.includes(new mongoose.Types.ObjectId(log.camera_id)) ?? false,
           crop: index_name === "plate_log" ? log?.crop : log?.inner_crop,
           inner_crop: index_name === "plate_log" ? log?.inner_crop : "",
@@ -324,6 +329,10 @@ export function sendLogMiddleware(
           crop: log?.crop,
           video: log.camera?.url ?? "",
           inner_crop: log.inner_crop ?? "",
+          alert: log.alert ?? null,
+          sms : log.alert ?? null,
+          description: log.description ?? "",
+          human_count: log.human_count ?? 0,
         };
       });
       //   console.timeEnd("Execution Time filter");

@@ -25,14 +25,8 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
       ref: "User",
       required: false,
     }>,
-    sms: {
-      send: { type: Boolean, default: false },
-      active: { type: Boolean, default: false }
-    },
-    alert: {
-      send: { type: Boolean, default: false },
-      active: { type: Boolean, default: false }
-    },
+    sms: { type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
+    alert:{ type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
     is_running: { type: Boolean, default: false },
   },
   {
