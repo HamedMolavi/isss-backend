@@ -28,3 +28,36 @@ export class EndgtrStartValidator implements ValidatorConstraintInterface {
     return 'Custom function validation failed.';
   }
 }
+
+@ValidatorConstraint({ name: 'arrayValidation', async: false })
+export class ArrayValidation implements ValidatorConstraintInterface {
+  validate(value: any, args: ValidationArguments & { object: any }) {
+    if (!Array.isArray(args.object[args.property])) return false;
+    return !args.object[args.property].some((el: any) => !(typeof el === args.constraints[0]));
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return `${args.property} Must be Array of ${args.constraints[0]}!`;
+  }
+}
+
+@ValidatorConstraint({ name: 'comparison', async: false })
+export class Comparison implements ValidatorConstraintInterface {
+  validate(value: any, args: ValidationArguments & { object: any, constraints: ["gt" | "gte" | "ls" | "lse", number] }) {
+    if (typeof (args.object[args.property]) !== "number") return false;
+    switch (args.constraints[0]) {
+      case "gt":
+        return args.object[args.property] > args.constraints[1];
+      case "gte":
+        return args.object[args.property] >= args.constraints[1];
+      case "ls":
+        return args.object[args.property] < args.constraints[1];
+      case "lse":
+        return args.object[args.property] <= args.constraints[1];
+    }
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return `${args.property} Must be ${args.constraints[0]} than ${args.constraints[1]}!`;
+  }
+}

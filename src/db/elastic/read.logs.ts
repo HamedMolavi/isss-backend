@@ -1,7 +1,7 @@
 import { NextFunction, RequestHandler, Request, Response } from 'express';
 import mongoose, { ObjectId } from 'mongoose';
 import { ApiError } from '../../types/classes/error.class';
-import { SearchHit } from '@elastic/elasticsearch/lib/api/types';
+import { SearchHit, SearchRequest } from '@elastic/elasticsearch/lib/api/types';
 import { englishPlateDict, persianPlateDict } from '../../tools/plate.tools';
 import { ICar, ICarBrand, ICarColor } from '../../types/interfaces/car.interface';
 import { IPersonnel } from '../../types/interfaces/personnel.interface';
@@ -19,18 +19,77 @@ type Report = {
   owner: string[] | null | undefined;
 };
 
+export function readElasticMiddlewareHamed(
+  index_name: string | ((req: Request) => string),
+  options?: {
+    next?: boolean,
+    save?: string,
+    send?: (doc: unknown, req: Request) => any | void | Promise<any | void>,
+    searchFromBody?: (body: { [key: string]: any }) => SearchRequest,
+    searchFromParams?: (params: { [key: string]: any }) => SearchRequest
+    searchFromQuery?: (query: { [key: string]: any }) => SearchRequest
+  }): RequestHandler {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    try {
+
+      //get page from url
+      let strPage = req.query.page as string;
+      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
+      //get perPage from url
+      let strPerPage = req.query.perPage as string;
+      let perPage = strPerPage?.toLowerCase() === "all"
+        ? 10000
+        : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+
+      let baseSearch: SearchRequest = {
+        index: typeof (index_name) === "function" ? index_name(req) : index_name, size: perPage, from: page,
+        sort: [{ timestamp: { order: "desc" } }]
+      };
+      let search: SearchRequest = { ...baseSearch, ...options?.searchFromBody?.(req.body) }
+        ?? { ...baseSearch, ...options?.searchFromParams?.(req.params) }
+        ?? { ...baseSearch, ...options?.searchFromQuery?.(req.query) } ?? { ...baseSearch };
+
+      const esRes = await process.esclient.search(search);
+
+      if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !options?.next) {
+        req.flash(`error ,${index_name} data not found in DB`);
+        return next(new ApiError(404, `error ,${index_name} data not found in DB`));
+      };
+      let data = (await Promise.all(esRes.hits.hits.map((doc) => !!options?.send ? options.send({ "_id": doc._id, ...(doc._source ?? {}) }, req) : { "_id": doc._id, ...(doc._source ?? {}) }))).filter((doc) => doc !== undefined);
+
+      if (options?.next) {
+        req.body[options.save || 'esRes'] = data;
+        return next();
+      };
+
+      return res.status(200).json({
+        success: true,
+        data,
+        page,
+        perPage,
+        total: data.length,
+        pages: Math.ceil((data.length) / perPage),
+      });
+    } catch (err: any) {
+      if (err.meta?.body?.error?.type === "index_not_found_exception") return next(new ApiError(500, "internal server error , " + err.message));
+      return next(new ApiError(500, "internal server error , " + err.message));
+    }
+  }
+};
+
+
 
 export function readByIdElasticMiddleware(
   index_name: string,
   options?: {
     next?: boolean,
+    send?: (doc: unknown, req: Request) => any | void | Promise<any | void>,
     save?: string,
   }, _id?: string): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
-      const { body } = req;
       let _timezone = req.query.timez as string;
-      let id: string = _id || req.params.id;
+      let id: string = _id ?? req.params.id;
       let query_elastic = {
         "index": index_name,
         "query": {
@@ -42,47 +101,14 @@ export function readByIdElasticMiddleware(
 
       const esRes = await process.esclient.search(query_elastic);
       if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !options?.next) {
-        req.flash("error , not found plate data in DB");
-        return next(new ApiError(404, "error , not found plate data in DB"));
+        req.flash(`error ,${index_name} data not found in DB`);
+        return next(new ApiError(404, `error ,${index_name} data not found in DB`));
       };
 
-      const entities = ['camera', 'personnel', 'color', 'brand'].reduce((acc, entity) => {
-        acc[entity] = body[entity]?.reduce((obj: any, item: any) => ({ ...obj, [item._id.toString()]: item }), {});
-        return acc;
-      }, {} as Record<string, any>);
-
-      let cars: [PapulatedCar] = req.body["car"];
-      let objectedCars = !!cars && cars.reduce((pre, car) => {
-        return { ...pre, [car.number_plate.toString()]: car };
-      }, {} as { [key: string]: PapulatedCar });
-      {
-      };
-      const data = esRes.hits.hits.map((hit: SearchHit<any>) => {
-        const log = hit._source;
-        if (!log) return {};
-        // Check if log.plate_number is null or undefined before accessing properties
-        const carDetails = log.plate_number ? objectedCars[log.plate_number] : undefined;
-        return {
-          ...hit?._source,
-          _id: hit?._id,
-          camera_id: !!log.camera_id ? entities['camera'][log.camera_id]?._id?.toString() : "",
-          camera: !!log.camera_id ? entities['camera'][log.camera_id]?.name : "",
-          camera_type: !!log.camera_id ? entities['camera'][log.camera_id]?.type : "",
-          fullName: (!!log.personnel_id && log.personnel_id !== "unknown") ? entities['personnel'][log.personnel_id]?.toName() : "",
-          time: !!log?.timestamp ? new Date(typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
-          plate_number: !!log.plate_number ? stringPlateToJson(log.plate_number) : "",
-          owner: !!carDetails ? carDetails?.owner?.toName() : "",
-          color: log?.color ? entities['color'][log.color]?.name : "",
-          brand: log?.brand ? entities['brand'][log.brand]?.name : "",
-          department: entities['camera'][log.camera_id]?.section_id?.department_id?.name ?? "",
-          section: entities['camera'][log.camera_id]?.section_id?.name ?? "",
-          allowed: log.allowed,
-          crop: log?.crop ?? "",
-          inner_crop: log?.inner_crop ?? "",
-          video: !!log.camera_id ? entities['camera'][log.camera_id]?.url : "",
-        };
-      })[0];
-
+      let doc = esRes.hits.hits[0];
+      let data = !!options?.send ? options.send({ "_id": doc._id, ...(doc._source ?? {}) }, req)
+        : { "_id": doc._id, ...(doc._source ?? {}) }
+      
       if (options?.next) {
         req.body[options?.save ?? 'docs'] = data;
         return next();
