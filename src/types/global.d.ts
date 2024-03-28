@@ -5,9 +5,8 @@ export { };
 declare global {
   namespace NodeJS {
     interface Process {
-      load: Object & { [key: string]:  Object &{ [key: string]: number } }
-      esclient : Client
-      load: Object & { [key: string]: Object & { [key: string]: number } }
+      load: Object & { [key: string]: (Object & { [key: string]: number }) }
+      esclient: Client
     }
     interface ProcessEnv {
       SIGNAL_TOPIC: string

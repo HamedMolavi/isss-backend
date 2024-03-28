@@ -50,7 +50,7 @@ type Plate = {
 }
 
 //route for get sabotage list
-router.post("/:model", async function (req: Request, res: Response, next: NextFunction) {
+router.post('/:model(face|fire|human|plate|sabotage|event)', async function (req: Request, res: Response, next: NextFunction) {
   try {
     //get model from url request
     let model = req.params.model;

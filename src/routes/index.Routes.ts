@@ -39,7 +39,7 @@ router.use("/config/admin", adminConfig)
 router.use("/newreports", newReport);
 router.use("/trackreports", trackReport);
 router.use("/reports", report);
-router.use("/report/similar", similarity);
+router.use("/reports/similar", similarity);
 router.use("/reportDepartmets", reportDepartments);
 router.use("/schedulesreport", schedulesreport);
 router.use("/downloadVideo", downloadVideo);

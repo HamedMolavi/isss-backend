@@ -7,7 +7,7 @@ export interface TrackLogData {
 }
 
 //define track type
-export interface ITrackLog extends Document {
+export interface ITrackLog {
   _id: mongoose.Types.ObjectId;
   uid: string; // personnel_id OR number_plate
   day: number; // unix day since UTC

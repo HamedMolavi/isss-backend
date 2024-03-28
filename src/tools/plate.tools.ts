@@ -65,3 +65,18 @@ export function english2Persian(plate_number: string): string {
     let result = `(${tmp.first}${tmp.second}${tmp.third}${tmp.fourth}${tmp.fifth})`
     return result;
 };
+
+export function stringPlateToJson(plate_number: string) {
+  let plateNumber1 = !!plate_number.substr(0, 2).match(new RegExp(/\*/)) ? plate_number.substr(0, 2) : Number(plate_number.substr(0, 2)).toLocaleString("fa-IR");
+  let plateNumber2 = !!plate_number.substr(2, 1).match(new RegExp(/\*/)) ? plate_number.substr(2, 1) : persianPlateDict[plate_number.substr(2, 1)];
+  let plateNumber3 = !!plate_number.substr(3, 3).match(new RegExp(/\*/)) ? plate_number.substr(3, 3) : Number(plate_number.substr(3, 3)).toLocaleString("fa-IR");
+  let plateNumber4 = !!plate_number.substr(6, 2).match(new RegExp(/\*/)) ? plate_number.substr(6, 2) : Number(plate_number.substr(6, 2)).toLocaleString("fa-IR");
+  //add plate number to json response for sort persian format in font end
+  return {
+    first: plateNumber1,
+    second: plateNumber2,
+    third: plateNumber3,
+    fourth: "ایران",
+    fifth: plateNumber4,
+  };
+};

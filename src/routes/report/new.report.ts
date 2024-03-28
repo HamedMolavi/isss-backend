@@ -12,10 +12,10 @@ import CarColor from "../../db/mongo/models/carColor";
 import { injectDataMiddleware } from "../../tools/request.tools";
 import { SearchHit } from "@elastic/elasticsearch/lib/api/types";
 import { persianPlateDict } from "../../tools/plate.tools";
+import { injectAllKindOfStuff, unifiedSendFunction } from "../../tools/middleware.tools";
 
 //create router for add to routes file
 const router: Router = Router();
-
 
 
 router.get(["/plate", "/search"],
@@ -128,53 +128,8 @@ router.post("/human",
 );
 
 
-function injectAllKindOfStuff(stuff: string[]) {
-  return (body: any) => stuff.reduce((acc, entity) => {
-    acc[entity] = body[entity]?.reduce((obj: any, item: any) => ({ ...obj, [item._id.toString()]: item }), {});
-    return acc;
-  }, {} as Record<string, any>)
-}
 function injectObjectedCars(body: any) {
   return !!Array.isArray(body["car"]) ? body["car"].reduce((pre, car) => ({ ...pre, [car.number_plate.toString()]: car }), {} as { [key: string]: any }) : body["car"]
 }
-function unifiedSendFunction(log: any & { _id: string }, req: Request) {
-  const { body } = req;
-  // Check if log.plate_number is null or undefined before accessing properties
-  const carDetails = !!log?.plate_number ? body?.["car"]?.[log.plate_number] : undefined;
-  return {
-    _id: log?._id,
-    ...log,
-    camera_id: !!log.camera_id ? body['camera']?.[log.camera_id]?._id?.toString() : "",
-    camera: !!log.camera_id ? body['camera']?.[log.camera_id]?.name : "",
-    camera_type: !!log.camera_id ? body['camera']?.[log.camera_id]?.type : "",
-    fullName: (!!log.personnel_id && log.personnel_id !== "unknown") ? body['personnel']?.[log.personnel_id]?.toName() : "",
-    time: !!log?.timestamp ? new Date(typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
-    plate_number: !!log.plate_number ? stringPlateToJson(log.plate_number) : "",
-    owner: !!carDetails ? carDetails?.owner?.toName() : "",
-    color: !!log?.color ? body['color']?.[log.color]?.name : "",
-    brand: !!log?.brand ? body['brand']?.[log.brand]?.name : "",
-    department: body['camera']?.[log.camera_id]?.section_id?.department_id?.name ?? "",
-    section: body['camera']?.[log.camera_id]?.section_id?.name ?? "",
-    allowed: log.allowed,
-    crop: log?.crop ?? "",
-    inner_crop: log?.inner_crop ?? "",
-    video: !!log.camera_id ? body['camera'][log.camera_id]?.url : "",
-  };
-}
-
-function stringPlateToJson(plate_number: string) {
-  let plateNumber1 = !!plate_number.substr(0, 2).match(new RegExp(/\*/)) ? plate_number.substr(0, 2) : Number(plate_number.substr(0, 2)).toLocaleString("fa-IR");
-  let plateNumber2 = !!plate_number.substr(2, 1).match(new RegExp(/\*/)) ? plate_number.substr(2, 1) : persianPlateDict[plate_number.substr(2, 1)];
-  let plateNumber3 = !!plate_number.substr(3, 3).match(new RegExp(/\*/)) ? plate_number.substr(3, 3) : Number(plate_number.substr(3, 3)).toLocaleString("fa-IR");
-  let plateNumber4 = !!plate_number.substr(6, 2).match(new RegExp(/\*/)) ? plate_number.substr(6, 2) : Number(plate_number.substr(6, 2)).toLocaleString("fa-IR");
-  //add plate number to json response for sort persian format in font end
-  return {
-    first: plateNumber1,
-    second: plateNumber2,
-    third: plateNumber3,
-    fourth: "ایران",
-    fifth: plateNumber4,
-  };
-};
 
 export default router;
