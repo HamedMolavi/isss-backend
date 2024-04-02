@@ -1,3 +1,5 @@
+import { ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments, ValidationOptions, registerDecorator, ValidateIf } from 'class-validator';
+import Time from "../../tools/time.tools";
 import { RequestHandler, Request, Response, NextFunction } from "express";
 import { plainToInstance } from "class-transformer";
 import { validate, ValidationError } from "class-validator";
@@ -28,3 +30,82 @@ export function dtoValidationMiddleware(type: any, options?: { skipMissingProper
       .catch(err => next(new ApiError(400, err)))
   };
 };
+
+/*
+{
+    * Validating value.
+  value: any;
+    * Constraints set by this validation type.
+  constraints: any[];
+    * Name of the target that is being validated.
+  targetName: string;
+    * Object that is being validated.
+  object: object;
+    * Name of the object's property being validated.
+  property: string;
+}
+*/
+
+@ValidatorConstraint({ name: 'timeAndDate', async: false })
+export class TimeAndDateValidator implements ValidatorConstraintInterface {
+  validate(time: string, args: ValidationArguments & { object: any }) {
+    const date = args.object[args.constraints[0]];
+    return time && date;
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return 'Both time and date must be present.';
+  }
+}
+
+@ValidatorConstraint({ name: 'endgtrStart', async: false })
+export class EndgtrStartValidator implements ValidatorConstraintInterface {
+  validate(value: any, args: ValidationArguments & { object: any }) {
+    if (!!args.object.date_start && !!args.object.date_end) {
+      const start = (new Date(args.object.date_start + " " + args.object.time_start + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime();
+      const end = (new Date(args.object.date_end + " " + args.object.time_end + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime();
+      return end >= start;
+    }
+    return true;
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return 'Custom function validation failed.';
+  }
+}
+
+@ValidatorConstraint({ name: 'comparison', async: false })
+export class Comparison implements ValidatorConstraintInterface {
+  validate(value: any, args: ValidationArguments & { object: any, constraints: ["gt" | "gte" | "ls" | "lse", number] }) {
+    if (typeof (args.object[args.property]) !== "number") return false;
+    switch (args.constraints[0]) {
+      case "gt":
+        return args.object[args.property] > args.constraints[1];
+      case "gte":
+        return args.object[args.property] >= args.constraints[1];
+      case "ls":
+        return args.object[args.property] < args.constraints[1];
+      case "lse":
+        return args.object[args.property] <= args.constraints[1];
+    }
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return `${args.property} Must be ${args.constraints[0]} than ${args.constraints[1]}!`;
+  }
+}
+
+export function Or(thisName: string, propertyNames: string[], validationOptions?: ValidationOptions) {
+  return ValidateIf((object: any, value: any) => {
+    // Check if the value is undefined or null
+    if (value !== undefined && value !== null) {
+      return true; // If the value is not undefined or null, proceed with validation
+    }
+    // If the value is undefined or null, check if any of the other properties are defined
+    if(propertyNames.some((name)=>!!object[name])){
+      return false; // pass this one
+    }
+    // If the value is undefined or null and none of the other properties are defined, the validation fails
+    throw new Error(`One of these must be defiend: ${[thisName].concat(propertyNames).join(" - ")}!`)
+  }, validationOptions);
+ }
