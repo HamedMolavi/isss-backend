@@ -1,7 +1,7 @@
 import { NextFunction, RequestHandler, Request, Response } from 'express';
 import mongoose, { ObjectId } from 'mongoose';
 import { ApiError } from '../../types/classes/error.class';
-import { SearchHit, SearchRequest } from '@elastic/elasticsearch/lib/api/types';
+import { AggregationsAggregate, SearchHit, SearchRequest, SearchResponse } from '@elastic/elasticsearch/lib/api/types';
 import { englishPlateDict, persianPlateDict } from '../../tools/plate.tools';
 import { ICar, ICarBrand, ICarColor } from '../../types/interfaces/car.interface';
 import { IPersonnel } from '../../types/interfaces/personnel.interface';
@@ -19,6 +19,31 @@ type Report = {
   owner: string[] | null | undefined;
 };
 
+/**
+ * Middleware function to read data from an Elasticsearch index.
+ * 
+ * This function is designed to be used as middleware in an Express.js application,
+ * allowing for the retrieval of documents from an Elasticsearch index based on the provided search criteria.
+ * It supports dynamic index name resolution, customizable search requests, and optional processing of the retrieved documents.
+ * 
+ * @param {string | ((req: Request) => string)} index_name - The name of the Elasticsearch index to search within. Can be a string or a function that returns the index name based on the request.
+ * @param {Object} [options] - Optional configuration object.
+ * @param {boolean} [options.next=false] - If true, the middleware will pass control to the next middleware function in the stack without sending a response.
+ * @param {string} [options.save] - The key under which to save the retrieved documents in the request body, if `options.next` is true.
+ * @param {(doc: unknown, req: Request) => any | void | Promise<any | void>} [options.send] - A callback function to process the retrieved documents before sending the response or saving to a field.
+ * @param {(body: { [key: string]: any }) => SearchRequest} [options.searchFromBody] - A function to construct the search request from the request body.
+ * @param {(params: { [key: string]: any }) => SearchRequest} [options.searchFromParams] - A function to construct the search request from the request parameters.
+ * @param {(query: { [key: string]: any }) => SearchRequest} [options.searchFromQuery] - A function to construct the search request from the request query.
+ * 
+ * @returns {RequestHandler} - An Express.js middleware function.
+ * 
+ * @example
+ * // Usage in an Express.js route
+ * app.get('/search', readElasticMiddlewareHamed('myIndex', {
+ *   searchFromQuery: (query) => ({ query: { match_all: {} } }),
+ *   send: (doc) => ({ id: doc._id, data: doc._source })
+ * }));
+ */
 export function readElasticMiddlewareHamed(
   index_name: string | ((req: Request) => string),
   options?: {
@@ -42,20 +67,34 @@ export function readElasticMiddlewareHamed(
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 
       let baseSearch: SearchRequest = {
-        index: typeof (index_name) === "function" ? index_name(req) : index_name, size: perPage, from: page,
+        index: typeof (index_name) === "function" ? index_name(req) : index_name,
+        size: perPage, from: page,
         sort: [{ timestamp: { order: "desc" } }]
       };
       let search: SearchRequest = { ...baseSearch, ...options?.searchFromBody?.(req.body) }
         ?? { ...baseSearch, ...options?.searchFromParams?.(req.params) }
         ?? { ...baseSearch, ...options?.searchFromQuery?.(req.query) } ?? { ...baseSearch };
+      let sizeStepSearch = ((search.size as number) + (search.from as number) > 10000);
+      let queryStepSearch = !!search.query;
 
-      const esRes = await process.esclient.search(search);
+      // let esRes: SearchResponse<unknown, Record<string, AggregationsAggregate>>;
+      let esRes = !!(sizeStepSearch || queryStepSearch) ? await process.esclient.search({ ...search, size: 10000, from: 0 }) : await process.esclient.search(search);
+
+      if ((sizeStepSearch || queryStepSearch) && !!esRes.hits.hits.length) {
+        while (true) {
+          search.size = !!sizeStepSearch ? (search.size as number) + (search.from as number) - 10000 : 10000;
+          let temp = await process.esclient.search({ ...search, size: search.size > 10000 ? 10000 : search.size, from: 0, search_after: esRes.hits.hits.at(-1)?.sort });
+          esRes.hits.hits.push(...temp.hits.hits);
+          if (!temp.hits.hits.length || (sizeStepSearch && esRes.hits.hits.length >= (search.size as number) + (search.from as number))) break;
+        }
+      }
 
       if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !options?.next) {
         req.flash(`error ,${index_name} data not found in DB`);
         return next(new ApiError(404, `error ,${index_name} data not found in DB`));
       };
       let data = (await Promise.all(esRes.hits.hits.map((doc) => !!options?.send ? options.send({ "_id": doc._id, ...(doc._source ?? {}) }, req) : { "_id": doc._id, ...(doc._source ?? {}) }))).filter((doc) => doc !== undefined);
+      if (!!sizeStepSearch) data.splice(0, search.from ?? 0);
 
       if (options?.next) {
         req.body[options.save || 'esRes'] = data;
@@ -78,18 +117,39 @@ export function readElasticMiddlewareHamed(
 };
 
 
-
+/**
+ * Middleware function to read a document by its ID from an Elasticsearch index.
+ * 
+ * This function is designed to be used as middleware in an Express.js application,
+ * allowing for the retrieval of a specific document from an Elasticsearch index based on its ID.
+ * The ID can be extracted from the request parameters, or provided directly as an argument, or from req.params.id.
+ * 
+ * @param {string} index_name - The name of the Elasticsearch index to search within.
+ * @param {Object} [options] - Optional configuration object.
+ * @param {boolean} [options.next=false] - If true, the middleware will pass control to the next middleware function in the stack without sending a response.
+ * @param {(doc: unknown, req: Request) => any | void | Promise<any | void>} [options.send] - A callback function to process the document before sending the response or saving to a field.
+ * @param {string} [options.save] - The key under which to save the document in the request body, if `options.next` is true.
+ * @param {(req: Request) => string | undefined} [options.idFromReq] - A function to extract the document ID from the request, if not provided directly.
+ * @param {string} [_id] - An optional direct ID to use for the document retrieval, overriding `options.idFromReq`.
+ * 
+ * @returns {RequestHandler} - An Express.js middleware function.
+ * 
+ * @example
+ * // Usage in an Express.js route
+ * app.get('/document/:id', readByIdElasticMiddleware('myIndex', { send: (doc) => doc }));
+ */
 export function readByIdElasticMiddleware(
   index_name: string,
   options?: {
     next?: boolean,
     send?: (doc: unknown, req: Request) => any | void | Promise<any | void>,
     save?: string,
+    idFromReq?: (req: Request) => string | undefined,
   }, _id?: string): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
       let _timezone = req.query.timez as string;
-      let id: string = _id ?? req.params.id;
+      let id: string = options?.idFromReq?.(req) ?? _id ?? req.params.id ?? "dummy-id";
       let query_elastic = {
         "index": index_name,
         "query": {
@@ -106,8 +166,8 @@ export function readByIdElasticMiddleware(
       };
 
       let doc = esRes.hits.hits[0];
-      let data = !!options?.send ? options.send({ "_id": doc._id, ...(doc._source ?? {}) }, req)
-        : { "_id": doc._id, ...(doc._source ?? {}) }
+      let data = !!options?.send ? options.send({ "_id": doc?._id, ...(doc?._source ?? {}) }, req)
+        : { "_id": doc?._id, ...(doc?._source ?? {}) }
 
       if (options?.next) {
         req.body[options?.save ?? 'esRes'] = data;

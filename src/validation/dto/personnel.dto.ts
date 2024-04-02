@@ -1,7 +1,7 @@
 import { Type } from "class-transformer";
 import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, ValidateNested, IsNumber, IsObject, Validate, IsEmpty, isEmpty, ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments } from "class-validator";
 import mongoose from "mongoose";
-import { EndgtrStartValidator, TimeAndDateValidator } from "../time";
+import { EndgtrStartValidator, TimeAndDateValidator } from ".";
 
 
 

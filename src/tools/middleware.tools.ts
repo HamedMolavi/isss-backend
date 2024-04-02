@@ -30,14 +30,14 @@ export function unifiedSendFunction(log: any & { _id: string }, req: Request) {
     department: body['camera']?.[log.camera_id]?.section_id?.department_id?.name ?? "",
     section: body['camera']?.[log.camera_id]?.section_id?.name ?? "",
     allowed: log.allowed,
-    crop: log?.crop ?? "",
-    inner_crop: log?.inner_crop ?? "",
+    crop: log.plate_number !== undefined ? log?.crop : log?.inner_crop,
+    inner_crop: log.plate_number !== undefined ? log?.inner_crop : "",
     video: !!log.camera_id ? body['camera'][log.camera_id]?.url : "",
   };
 }
 
 interface ExtendedTrackLogData extends TrackLogData {
-  inner_crop?: (string | undefined)[];
+  crop?: (string | undefined)[];
 }
 interface localTrackLog extends ITrackLog {
   data: Array<ExtendedTrackLogData>
@@ -53,13 +53,9 @@ export function dataCollector(logs: (undefined | { camera_id?: string; timestamp
         "_id": new Types.ObjectId(), "day": nowDay, "uid": log?.["personnel_id"] ?? "", "data": [
           {
             "camera_id": log["camera_id"],
-            "inner_crop": [log["inner_crop"]],
-            // "camera_name": "ai",
-            // "camera_type": "null",
-            "start": log["timestamp"],// "2/19/2024, 1:28:18 PM",
-            "end": log["timestamp"],// "2/19/2024, 2:28:19 PM",
-            // "duration": "01:00",
-            // "milisecond_duration": 0
+            "crop": [log["inner_crop"]],
+            "start": log["timestamp"],
+            "end": log["timestamp"],
           },
         ]
       })
@@ -68,13 +64,13 @@ export function dataCollector(logs: (undefined | { camera_id?: string; timestamp
       if (result.at(-1)?.['data'].at(-1)?.["camera_id"] === log['camera_id']) {
         let lastDataRecord = result.at(-1)?.['data']?.pop() ?? { "camera_id": log["camera_id"], "start": log["timestamp"] ?? 0, "end": 0 };
         lastDataRecord['end'] = log["timestamp"];
-        lastDataRecord['inner_crop']?.push(log["inner_crop"]);
+        lastDataRecord['crop']?.push(log["inner_crop"]);
         result.at(-1)?.['data']?.push(lastDataRecord);
       } else {
         result.at(-1)?.['data'].push({
           'camera_id': log['camera_id'],
           'start': log["timestamp"],
-          "inner_crop": [log["inner_crop"]],
+          "crop": [log["inner_crop"]],
           'end': log["timestamp"]
         })
       }

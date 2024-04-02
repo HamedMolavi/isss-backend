@@ -9,39 +9,92 @@ import { readMiddleware } from "../../db/mongo/read.database";
 import Camera from "../../db/mongo/models/camera";
 import Personnel from "../../db/mongo/models/personnel";
 import { dataCollector, injectAllKindOfStuff, sendDataMiddleware, unifiedSendFunction } from "../../tools/middleware.tools";
-import { daySendFunction } from "../../tools/track.tools";
+import { cumulativeSendFunction, daySendFunction } from "../../tools/track.tools";
+import Time from "../../tools/time.tools";
 
 
 //create router for add to routes file
 const router: Router = Router();
 
-router.post('/:type(tree|table)',
+// DTO check in post requests
+router.post('/:type(tree|table|cumulative)',
   dtoValidationMiddleware(ReadSimilarVectorsBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
 )
+// Inject Camera and Personnel data from mongo to populate the elastic log with their info
 router.use('/table/:id?',
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
   injectDataMiddleware(injectAllKindOfStuff(['camera', 'personnel']), { spread: true }),
 )
-router.get('/:type(tree|table)/:id',
+// Read the log or get vector from body
+router.use('/:type(tree|table|cumulative)/:id?',
   readByIdElasticMiddleware(`${process.env["FACE_INDEX"] ?? "face_log"}`, {
-    next: true, save: "targetVector", send: (log: any, req) => {
-      let targetVector = log?.["vector"];
+    next: true, save: "targetVector",
+    idFromReq: (req) => req.body?.["log_id"], // if log_id is provided in body, otherwise return undefined to read from req.params.id
+    send: (log: any, req) => {
+      let targetVector = !!log?._id ? log?.["vector"] : req.body?.["vector"];
       if (!Array.isArray(targetVector) || targetVector.length !== 512 || !targetVector.every((num) => typeof (num) === "number")) throw Error("Target face log has disordered vector!");
-      return log?.["vector"];
+      return targetVector;
     }
   }),
 )
-router.use('/:type(tree|table)/:id?',
-  readElasticMiddlewareHamed(`${process.env["FACE_INDEX"] ?? "face_log"}`, { next: true, save: "similars", send: filterAndReformatSendFunction }),
+// Read Elastic logs in specified range
+router.use('/:type(tree|table|cumulative)/:id?',
+  readElasticMiddlewareHamed(`${process.env["FACE_INDEX"] ?? "face_log"}`, {
+    next: true, save: "similars",
+    searchFromBody: (body) => {
+      if (!!body?.["date_start"] || !!body?.["date_end"]) {
+        let start = (new Date(body.date_start + " 00:01" + Time.getUtcOffset(body.timezone ?? "Asia/Tehran"))).getTime();
+        let end = (new Date(body.date_end + " 00:01" + Time.getUtcOffset(body.timezone ?? "Asia/Tehran"))).getTime();
+        return {
+          query: {
+            bool: {
+              must: [{
+                range: {
+                  timestamp: {
+                    gte: start,
+                    lte: end
+                  }
+                }
+              }], should: []
+            }
+          },
+          sort: [{ timestamp: { order: "desc" } }]
+        };
+      };
+      return {};
+    },
+    send: filterAndReformatSendFunction
+  })
+)
+router.use('/:type(tree|cumulative)/:id?',
+  injectDataMiddleware((body: any) => dataCollector(body["similars"] ?? []), { injData: "trackData" }),
+  readMiddleware(Camera, undefined, { next: true, forceAll: true, save: "cameras" }),
 )
 router.use('/tree/:id?',
-  injectDataMiddleware((body: any) => dataCollector(body["similars"] ?? []), { injData: "collectedData" }),
-  readMiddleware(Camera, undefined, { next: true, forceAll: true, save: "cameras" }),
-  sendDataMiddleware((body: any) => body["collectedData"]?.map((track: any) => daySendFunction(track, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)))
+  sendDataMiddleware((body: any) => body["trackData"]?.map((track: any) => daySendFunction(track, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)))
 )
 router.use('/table/:id?',
-  sendDataMiddleware((body: any) => body["similars"]?.map((log: any) => unifiedSendFunction(log, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown  as Request)))
+  sendDataMiddleware((body: any) => body["similars"]?.map((log: any) => unifiedSendFunction(log, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)))
+)
+router.use('/cumulative/:id?',
+  injectDataMiddleware((body: any) => {
+    if (!!body?.["date_start"] && !!body?.["date_start"]) {
+      let start = Math.floor((new Date(body.date_start + Time.getUtcOffset("Asia/Tehran").toString().replace("+", " "))).getTime() / 86400000)
+      let end = Math.floor((new Date(body.date_end + Time.getUtcOffset("Asia/Tehran").toString().replace("+", " "))).getTime() / 86400000)
+      return {
+        "day_start": start,
+        "day_end": end
+      }
+    } else {
+      let sortedData: any = body?.trackData?.sort((a: any, b: any) => (a.day ?? 0) - (b.day ?? 0))
+      return {
+        "day_start": (sortedData?.at(0)?.day ?? 0),
+        "day_end": (sortedData?.at(-1)?.day ?? 0) + 1
+      }
+    }
+  }, { spread: true }),
+  sendDataMiddleware(cumulativeSendFunction)
 )
 
 
