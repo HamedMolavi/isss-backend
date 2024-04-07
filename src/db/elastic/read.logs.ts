@@ -267,9 +267,11 @@ export function readElasticMiddleware(
       let total = undefined;
       if (!!options?.send?.call) {
         data = (await Promise.all(data.map((doc) => options.send?.(doc, req)))).filter((doc) => doc !== undefined);
-        if (!!options.forceAll) total = data.length;
+        if (!!options.forceAll) {
+          data = data.slice(((page > 1 ? page : 1) - 1) * perPage, perPage);
+          total = data.length;
+        }
         else total = typeof (esRes.hits.total) === 'number' ? esRes.hits.total : esRes.hits.total?.value;
-        data = data.slice(((page > 1 ? page : 1) - 1) * perPage, perPage);
       } else {
         total = typeof (esRes.hits.total) === 'number' ? esRes.hits.total
           : esRes.hits.total?.value;
