@@ -13,11 +13,13 @@ import { read } from "../db/mongo/read.database";
 import Personnel from "../db/mongo/models/personnel";
 import { IPersonnel } from "../types/interfaces/personnel.interface";
 import { getPropertyFromBody } from "./utils.tools";
+import { generateRandomString } from "./util.tools";
 // TODO: clean this shit up.
 
 
 export class SnapshotKafka {
-  buffer: { [key: string]: { [key: string]: any } };
+  buffer: { [key: string]: any  };
+  consumer: any;
  // consumer: Consumer;
   producer: Producer;
   //redisClient: RedisClientType | undefined
@@ -39,15 +41,15 @@ export class SnapshotKafka {
     // Create consumer 
     const kafka = new Kafka({
       clientId: 'my-app',
-      brokers: [process.env["KAFKA_BOOTSTRAP"]]
+      brokers: [process.env?.KAFKA_BOOTSTRAP]
     });
-
-    const consumer = kafka.consumer({
-      groupId: 'test-group',
+    let group_id = generateRandomString(10)
+    this.consumer = kafka.consumer({
+      groupId: group_id,
       retry: {
         // Try to reconnect after 10seg
         initialRetryTime: 10 * 1000,
-        retries: 10,
+        retries: 10 ,
       },
       heartbeatInterval: 25000,
       
@@ -55,22 +57,21 @@ export class SnapshotKafka {
 
     // Connect to consumer
     const run = async () => {
-      await consumer.connect();
+      await this.consumer.connect();
 
       // Subscribe to topics
-      await consumer.subscribe({
+      await this.consumer.subscribe({
         topic: 'snapshot',
         fromBeginning: false
       });
 
-      await consumer.run({
+      await this.consumer.run({
         //  .subscribe({ topic: "snapshot", fromBeginning: false })
         //  .then(async () => {
         //  await this.consumer.connect();
         //this.consumer.run({
-        eachMessage: async ({ message }) => {
+        eachMessage: async ({ message }:any) => {
           const msg = JSON.parse(message.value?.toString("utf8") as string);
-          console.log(message.key?.toString())
           if (message.key?.toString() === "asghar") {
             this.buffer[msg["personnel_id"]] = {
               personnel_id: msg["personnel_id"],
@@ -116,7 +117,7 @@ export class SnapshotKafka {
 
     // Gracefully stop the consumer
     const gracefulShutdown = async () => {
-      await consumer.disconnect();
+      await this.consumer.disconnect();
     }
 
     process.on('SIGINT', gracefulShutdown);
@@ -255,9 +256,9 @@ export class SnapshotKafka {
   kafkaGet = async (id: any) => {
     let bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
     let count = 0;
-    while (!bufferEntry && count < 15) {
+    while (!bufferEntry && count < 8) {
       console.log(id)
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 1 second delay
       bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
       console.log(bufferEntry);
       count++;
