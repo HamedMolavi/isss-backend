@@ -59,16 +59,17 @@ export function readElasticMiddlewareHamed(
 
       //get page from url
       let strPage = req.query.page as string;
-      let page = parseInt(strPage) >= 0 ? parseInt(strPage) : 0;
+      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
       //get perPage from url
       let strPerPage = req.query.perPage as string;
-      let perPage = strPerPage?.toLowerCase() === "all"
-        ? 10000
-        : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+      let perPage = strPerPage?.toLowerCase() === "all" ? 10000
+        : parseInt(strPerPage) > 0 ? parseInt(strPerPage)
+          : 1;
 
       let baseSearch: SearchRequest = {
         index: typeof (index_name) === "function" ? index_name(req) : index_name,
-        size: perPage, from: page,
+        size: perPage, from: (page - 1) * perPage,
+        track_total_hits: true,
         sort: [{ timestamp: { order: "desc" } }]
       };
       let search: SearchRequest = { ...baseSearch, ...options?.searchFromBody?.(req.body) }
@@ -106,7 +107,7 @@ export function readElasticMiddlewareHamed(
         data,
         page,
         perPage,
-        total: data.length,
+        total: esRes.hits.total ?? data.length,
         pages: Math.ceil((data.length) / perPage),
       });
     } catch (err: any) {
@@ -190,16 +191,16 @@ export function readElasticMiddleware(
   index_name: string,
   options?: {
     next?: boolean,
+    send?: (doc: unknown, req: Request) => any | void | Promise<any | void>,
     save?: string,
-    populate?: boolean,
-    forcePopulate?: string[],
+    forceAll?: boolean,
   }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
 
       //get page from url
       let strPage = req.query.page as string;
-      let page = parseInt(strPage) >= 0 ? parseInt(strPage) : 0;
+      let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = strPerPage?.toLowerCase() === "all"
@@ -212,9 +213,9 @@ export function readElasticMiddleware(
       const start = body.date_start && String(Time.toTimestamp(body.date_start, body.time_start));
       const end = body.date_end && String(Time.toTimestamp(body.date_end, body.time_end));
       const times_epoch = body.date_start && Time.getEpochList(body.date_start, body.date_end, body.time_start, body.time_end, _timezone);
+      let plates = !!req.body.plates ? platesToStrings(req.body.plates) : [];
 
-      let plates = !!req.body.plates ? platesToStrings(req.body.plates) : []
-      const esRes = await getLogFromElastic(index_name, perPage, page,
+      const esRes = await getLogFromElastic(index_name, !!options?.forceAll ? 10000 : perPage, !!options?.forceAll ? 0 : page,
         times_epoch || [], plates || [], body.cameras || [],
         body.car_brand || [], body.car_color || [], body.personnels || [],
         body.human_count || [], body.allowed || []
@@ -235,7 +236,7 @@ export function readElasticMiddleware(
         return { ...pre, [car.number_plate.toString()]: car };
       }, {} as { [key: string]: PapulatedCar });
 
-      const data = esRes.hits.hits.map((hit: SearchHit<any>) => {
+      let data = esRes.hits.hits.map((hit: SearchHit<any>) => {
         const log = hit._source;
         if (!log) return {};
         // Check if log.plate_number is null or undefined before accessing properties
@@ -263,6 +264,16 @@ export function readElasticMiddleware(
           inner_crop: index_name === "plate_log" ? log?.inner_crop : "",
         };
       });
+      let total = undefined;
+      if (!!options?.send?.call) {
+        data = (await Promise.all(data.map((doc) => options.send?.(doc, req)))).filter((doc) => doc !== undefined);
+        if (!!options.forceAll) total = data.length;
+        else total = typeof (esRes.hits.total) === 'number' ? esRes.hits.total : esRes.hits.total?.value;
+        data = data.slice(((page > 1 ? page : 1) - 1) * perPage, perPage);
+      } else {
+        total = typeof (esRes.hits.total) === 'number' ? esRes.hits.total
+          : esRes.hits.total?.value;
+      }
 
       if (options?.next) {
         req.body[options.save || 'docs'] = data;
@@ -274,8 +285,8 @@ export function readElasticMiddleware(
         data,
         page,
         perPage,
-        total: data.length,
-        pages: Math.ceil((data.length) / perPage),
+        total: total ?? data.length,
+        pages: Math.ceil((total ?? data.length) / perPage),
       });
     } catch (err: any) {
       if (err.meta?.body?.error?.type === "index_not_found_exception") return next(new ApiError(500, "internal server error , " + err.message));
@@ -355,64 +366,62 @@ export function filterLogsMiddleware(
   }
 };
 
-export function sendLogMiddleware(
-  options?: {
-    next?: boolean,
-    save?: string
-  }): RequestHandler {
-  return async function (req: Request, res: Response, next: NextFunction) {
-    try {
-      //get page from url
-      let strPage = req.query.page as string;
-      let page = parseInt(strPage) >= 0 ? parseInt(strPage) : 0;
-      //get perPage from url
-      let strPerPage = req.query.perPage as string;
-      let perPage = strPerPage?.toLowerCase() === "all"
-        ? 10000
-        : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-      //  console.time("Execution Time");
-      const data = req.body.logs?.map((log: any) => {
-        return {
-          _id: log?._id,
-          camera_type: log.camera?.camera_type ?? "",
-          camera_id: log.camera?._id?.toString(),
-          camera: log.camera?.name ?? "",
-          fullName: log.personnel?.toName() ?? "",
-          time: log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
-          plate_number: log.plate_number ? stringPlateToJson(log.plate_number) : "",
-          owner: log?.owner?.toName() ?? "",
-          color: log?.color?.name ?? "",
-          brand: log?.brand?.name ?? "",
-          department: log.personnel?.section_id?.department_id?.name ?? log?.department,
-          section: log.personnel?.section_id?.name ?? log?.section,
-          allowed: log.allowed,
-          crop: log?.crop,
-          video: log.camera?.url ?? "",
-          inner_crop: log.inner_crop ?? "",
-          alert: log.alert ?? null,
-          sms: log.alert ?? null,
-          description: log.description ?? "",
-          human_count: log.human_count ?? 0,
-        };
-      });
-      //   console.timeEnd("Execution Time filter");
-      if (!!options?.next) {
-        if (!!options.save) req.body[options.save] = data;
-        else req.body["docs"] = data;
-        return next();
-      };
+export function sendLogMiddleware(log: any, req: Request): any {
+  try {
+    let filter_json: Report = {
+      // brand: undefined,
+      // color: undefined,
+      owner: undefined,
+    };
 
-      return res.status(200).json({
-        success: true,
-        data,
-        page: page,
-        perPage: perPage,
-        total: data.length,
-        pages: Math.ceil((data.length) / perPage),
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "internal server error , " + err.message));
+    const keys = Object.keys(filter_json).filter((k) => (
+      !!req.body[k] && (
+        (Array.isArray(req.body[k]) && !!req.body[k].length) ||
+        (typeof req.body[k] === "string" && !!req.body[k]) ||
+        (typeof req.body[k] === "boolean")
+      )
+    ))
+    let pass = false;
+    if (!!keys.length) {
+      for (let key of keys) {
+        // TODO req.body.plates
+        if (!!log[key]) { // permitted to filter
+          if (Array.isArray(req.body[key])) { // input (req.body[key]) type array
+            if (req.body[key]?.includes(log[key]?._id.toString())) pass = true;
+          }
+          else if (!Array.isArray(req.body[key])) { // input (req.body[key]) type array
+            if (log[key] === req.body[key]) pass = true;
+          }
+          //  key === "plate" ? req.body?.plate = plate_number_engglish(req.body?.plate) : 
+        }
+      }
+      if (!pass) return undefined;
     }
+    return {
+      _id: log?._id,
+      camera_type: log.camera?.camera_type ?? "",
+      camera_id: log.camera?._id?.toString(),
+      camera: log.camera?.name ?? "",
+      fullName: log.personnel?.toName() ?? "",
+      time: log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
+      plate_number: log.plate_number ? stringPlateToJson(log.plate_number) : "",
+      owner: log?.owner?.toName() ?? "",
+      color: log?.color?.name ?? "",
+      brand: log?.brand?.name ?? "",
+      department: log.personnel?.section_id?.department_id?.name ?? log?.department,
+      section: log.personnel?.section_id?.name ?? log?.section,
+      allowed: log.allowed,
+      crop: log?.crop,
+      video: log.camera?.url ?? "",
+      inner_crop: log.inner_crop ?? "",
+      alert: log.alert ?? null,
+      sms: log.alert ?? null,
+      description: log.description ?? "",
+      human_count: log.human_count ?? 0,
+    };
+  } catch (err: any) {
+    console.error(err)
+    return undefined;
   }
 };
 

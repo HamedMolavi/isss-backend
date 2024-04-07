@@ -34,8 +34,9 @@ export async function getLogFromElastic(_indx: string, _size: number, _from: num
  
   let query_elastic = {
      index: _indx,
-     size: _size || undefined,
-     from: _from == 1 ? 0 : _from || undefined,
+     size: _size ?? undefined,
+     from: ((_from > 1 ? _from : 1) - 1) * _size,
+     track_total_hits: true,
      query: {
        bool: {
          must: [
@@ -80,104 +81,7 @@ export async function getLogFromElastic(_indx: string, _size: number, _from: num
   return esRes;
  }
 
-// export async function getLogFromElastic(_indx: string, _size: number, _from: number,
-//   timeRanges: Array<{ gte: string, lte: string }> = [],
-//   plates: Array<string>, cameras: Array<string>,
-//   brands: Array<string>, colors: Array<string>,
-//   personnels: Array<string>) {
-//   let query_elastic = {
-//     index: _indx,
-//     size: _size || undefined,
-//     from: _from || undefined,
 
-//     //track_total_hits: true,
-//     query: {
-//       bool: {
-//         must: [
-//           !!plates && {
-//             bool: {
-//               should: [
-//                 ...plates.map(plate => ({
-//                   term: {
-//                     "plate_number.keyword": plate
-//                   }
-//                 }))
-//               ], "minimum_should_match": 1
-//             }
-//           },
-//           !!cameras && {
-//             bool: {
-//               should: [
-//                 ...cameras.map(camera => ({
-//                   term: {
-//                     "cam_id.keyword": camera
-//                   }
-//                 }))
-//               ], "minimum_should_match": 1
-//             }
-//           },
-//           !!personnels && {
-//             bool: {
-//               should: [
-//                 ...personnels.map(personnel => ({
-//                   term: {
-//                     "personnel_id.keyword": personnel
-//                   }
-//                 }))
-//               ], "minimum_should_match": 1
-//             }
-//           },
-//           !!brands && {
-//             bool: {
-//               should: [
-//                 ...brands.map(brand => ({
-//                   term: {
-//                     "brand.keyword": brand
-//                   }
-//                 }))
-//               ], "minimum_should_match": 1
-//             }
-//           },
-//           !!colors && {
-//             bool: {
-//               should: [
-//                 ...colors.map(color => ({
-//                   term: {
-//                     "color.keyword": color
-//                   }
-//                 }))
-//               ], "minimum_should_match": 1
-//             }
-//           },
-//           !!timeRanges && {
-//             bool: {
-//               should: [
-//                 ...timeRanges.map(time => ({
-//                   range: {
-//                     timestamp: {
-//                       gte: time.gte,
-//                       lte: time.lte
-//                     }
-//                   }
-//                 }))
-//               ], "minimum_should_match": 1
-//             }
-//           }
-//         ]
-
-//       }
-//     },
-//     sort: [
-//       {
-//         timestamp: {
-//           order: "desc"
-//         }
-//       }
-//     ]
-//   }
-//   const esRes = await process.esclient.search(query_elastic);
-//   return esRes;
-// }
 
 export async function postElastic(_index: string, log: IPlate) {
   const esRes = await process.esclient.index({

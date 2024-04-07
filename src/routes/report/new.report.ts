@@ -24,8 +24,7 @@ router.get(["/plate", "/search"],
   readMiddleware(Car, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
   readMiddleware(CarColor, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["color"], next: true, save: "color" }),
   readMiddleware(CarBrand, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
-  readElasticMiddleware(process.env["PLATE_INDEX"] ?? "plate_log", { next: true, save: "logs" }),
-  sendLogMiddleware()
+  readElasticMiddleware(process.env["PLATE_INDEX"] ?? "plate_log", { send: sendLogMiddleware }),
 );
 
 router.get("/plate/:id",
@@ -49,17 +48,14 @@ router.post("/plate",
   readMiddleware(Car, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
   readMiddleware(CarColor, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["color"], next: true, save: "color" }),
   readMiddleware(CarBrand, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
-  readElasticMiddleware(process.env["PLATE_INDEX"] ?? "plate_log", { next: true, save: "logs" }),
-  filterLogsMiddleware({ next: true, save: "logs" }),
-  sendLogMiddleware()
+  readElasticMiddleware(process.env["PLATE_INDEX"] ?? "plate_log", { send: sendLogMiddleware, forceAll: true }),
 );
 
 
 router.get("/face",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
-  readElasticMiddleware(process.env["FACE_INDEX"] ?? "facearc_log", { next: true, save: "logs" }),
-  sendLogMiddleware()
+  readElasticMiddleware(process.env["FACE_INDEX"] ?? "facearc_log", { send: sendLogMiddleware }),
 );
 router.get("/face/:id",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
@@ -74,17 +70,14 @@ router.post("/face",
   Time.compareTimeMiddleware("start", "stop"),
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
-  readElasticMiddleware(process.env["FACE_INDEX"] ?? "facearc_log", { next: true, save: "logs" }),
-  filterLogsMiddleware({ next: true, save: "logs" }),
-  sendLogMiddleware()
+  readElasticMiddleware(process.env["FACE_INDEX"] ?? "facearc_log", { send: sendLogMiddleware, forceAll: true }),
 );
 
 
 
 router.get("/sabotage",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { next: true, save: "logs" }),
-  sendLogMiddleware()
+  readElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { send: sendLogMiddleware }),
 );
 
 router.get("/sabotage/:id",
@@ -98,16 +91,13 @@ router.post("/sabotage",
   dtoValidationMiddleware(ReportFaceBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   Time.compareTimeMiddleware("start", "stop"),
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { next: true, save: "logs" }),
-  filterLogsMiddleware({ next: true, save: "logs" }),
-  sendLogMiddleware()
+  readElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { send: sendLogMiddleware, forceAll: true }),
 );
 
 
 router.get("/human",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { next: true, save: "logs" }),
-  sendLogMiddleware()
+  readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { send: sendLogMiddleware }),
 );
 
 
@@ -122,9 +112,7 @@ router.post("/human",
   dtoValidationMiddleware(ReportHumanBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   Time.compareTimeMiddleware("start", "stop"),
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { next: true, save: "logs" }),
-  filterLogsMiddleware({ next: true, save: "logs" }),
-  sendLogMiddleware()
+  readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { send: sendLogMiddleware, forceAll: true }),
 );
 
 
