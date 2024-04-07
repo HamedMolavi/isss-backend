@@ -89,8 +89,7 @@ export class UpdatePersonnelBody {
   @IsString()
   @IsOptional()
   public national_code?: string;
-  @IsEmail()
-  @IsString()
+  @Validate(CustomEmailValidator)
   @IsOptional()
   public email?: string;
   @IsString()
