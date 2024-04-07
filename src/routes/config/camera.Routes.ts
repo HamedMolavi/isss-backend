@@ -36,7 +36,7 @@ let searchRaw = (search: string) => {
 router.post(
   "",
   dtoValidationMiddleware(CreateCameraBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  existCheck(Camera, { $and: [{ ip: "ip" }, { nvr: "nvr" }], }, "Camera already exists!"),
+  //existCheck(Camera, { $and: [{ ip: "ip" }, { nvr: "nvr" }], }, "Camera already exists!"),
   (req: Request, res: Response, next: NextFunction) => {
     // Check if req.body.url is not empty, null, or undefined
     if (!req.body.url && req.body.url === "") {

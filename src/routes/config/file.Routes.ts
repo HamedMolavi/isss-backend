@@ -36,7 +36,7 @@ router.post("/kafka",
   //error check
   (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == true ? next() : res.status(406).send({ message: "No face found", }),
   //save base64 file in assets
-  cfs.uploadAvatarMiddleware(["redisData", "face"], "id", { next: true }),
+  cfs.uploadAvatarMiddleware(["redisData", "face"], "personnel_id", { next: true }),
   //project redisData in req.body
   (req: Request, res: Response, next: NextFunction) => {
     req.body["person_id"] = req.body["redisData"]["personnel_id"];
