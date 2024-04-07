@@ -9,8 +9,9 @@ export function existCheck(model: Model<any>, query: any, info?: string) {
     //    Array => state 0
     //    function => state 1
     //    object { [{},{},...] } => state 2
-    
+
     let newQuery: { [key: string]: any } = {};
+    let id: string = req.params.id ?? req.body.id;
     //  query
     let state = Array.isArray(query) ? 0
       : typeof (query) === "function" ? 1
@@ -22,7 +23,7 @@ export function existCheck(model: Model<any>, query: any, info?: string) {
           newQuery[key] = [];
           for (const [index, element] of query[key].entries()) {
             newQuery[key][index] = {};
-              for (const item in element) {
+            for (const item in element) {
               newQuery[key][index][item] = req.body[item];
             };
           };
@@ -40,8 +41,9 @@ export function existCheck(model: Model<any>, query: any, info?: string) {
         };
         break;
     };
-    let doc = await model.findOne(newQuery).exec();
-    if (!!doc) {
+    let docs = (await model.find(newQuery).exec())?.filter((doc) => (!id || id !== doc._id.toString()));
+    // let doc = await model.findOne(newQuery).exec();
+    if (!!docs?.length) {
       req.flash("error", info ?? "Already exists!");
       return next(new ApiError(400, info ?? "Already exists!"));
     };

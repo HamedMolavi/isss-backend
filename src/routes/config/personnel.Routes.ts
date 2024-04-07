@@ -55,6 +55,7 @@ router.get("/:id",
 //add route for edit personnel
 router.patch("/:id",
   dtoValidationMiddleware(UpdatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  existCheck(Personnel, { $or: [{ national_code: "national_code" }, { personnel_code: "personnel_code" }] }, "Personnel already exists!"),
   updateByIdMiddleware(Personnel, {
     next: true, save: "doc", update: {
       "time_start": {

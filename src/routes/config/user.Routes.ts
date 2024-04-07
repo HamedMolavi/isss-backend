@@ -36,6 +36,7 @@ router.get("/:id",
 //add route for edit user
 router.patch("/:id",
   dtoValidationMiddleware(UpdateUserBody, { skipMissingProperties: true, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  existCheck(User, { $or: [{ username: "username" }, { phone_number: "phone_number" }] }, "User or Phone number already exists!"),
   passwordValidator(UserPasswordRequirements),
   updateByIdMiddleware(User, {
     update: {
