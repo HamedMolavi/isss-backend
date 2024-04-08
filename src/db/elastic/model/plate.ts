@@ -16,6 +16,8 @@ export interface IPlate {
     plate_number: string;
     schedule_id: string;
     confidence: number;
+    owner: string;
+    allowed: boolean;
 }
 
 export interface PlateNumber {
@@ -37,7 +39,9 @@ export class Plate {
         speed: "",
         color: "",
         brand: "",
+        owner: "",
         is_final: false,
+        allowed: true,
         saspicious: false,
         timestamp: 0,
         camera_id: "",
@@ -45,12 +49,14 @@ export class Plate {
         schedule_id: "",
         confidence: 0
     }
-    constructor(_color: string, _brand: string, _camera_id: string, plate_number: PlateNumber) {
-        this.plate.color = _color;
-        this.plate.brand = _brand;
+    constructor(plateObj: {color: string, brand: string, camera_id: string, plate_number: PlateNumber, owner: string}) {
+        this.plate.color = plateObj.color;
+        this.plate.brand = plateObj.brand;
+        this.plate.allowed = true;
+        this.plate.owner = plateObj.owner;
         this.plate.timestamp = (new Date()).getTime();
-        this.plate.camera_id = _camera_id;
-        this.plate.plate_number = this.generatePlateNumber(plate_number);
+        this.plate.camera_id = plateObj.camera_id;
+        this.plate.plate_number = this.generatePlateNumber(plateObj.plate_number);
     }
     toObject(): IPlate {
         return this.plate;

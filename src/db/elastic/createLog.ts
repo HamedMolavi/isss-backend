@@ -18,12 +18,12 @@ export function createLogMiddleware(
       try {
 
         let data = {};
-        let inputObj =[];
+        let inputObj: {[key: string]:any} = {};
         for (const input of inputs) {
             // inputObj[input] = req.body[input]
-            inputObj.push(req.body[input])
+            inputObj[input] = req.body[input];
         }
-        let plate = new Obj(...inputObj);
+        let plate = new Obj(inputObj);
 
         postElastic(index_name,plate.toObject())
 

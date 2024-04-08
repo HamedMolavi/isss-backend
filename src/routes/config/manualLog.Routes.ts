@@ -11,7 +11,7 @@ const router: Router = Router();
 
 router.post("/plate",
     dtoValidationMiddleware(CreatePlateLogBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-    createLogMiddleware("plate_log", Plate,["color","brand","camera_id","plate_number"])
+    createLogMiddleware("plate_log", Plate,["color","brand","camera_id","plate_number","owner"])
 );
 
 
