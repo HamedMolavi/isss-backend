@@ -216,9 +216,9 @@ export function readElasticMiddleware(
       let plates = !!req.body.plates ? platesToStrings(req.body.plates) : [];
 
       const esRes = await getLogFromElastic(index_name, !!options?.forceAll ? 10000 : perPage, !!options?.forceAll ? 0 : page,
-        times_epoch || [], plates || [], body.cameras || [],
-        body.car_brand || [], body.car_color || [], body.personnels || [],
-        body.human_count || [], body.allowed || []
+        times_epoch ?? [], plates ?? [], body.cameras ?? [],
+        body.car_brand ?? [], body.car_color ?? [], body.personnels ?? [],
+        body.human_count ?? [], body.allowed ?? []
       );
 
       if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !options?.next) {
