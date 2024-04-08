@@ -20,7 +20,7 @@ export async function getLogFromElastic(_indx: string, _size: number, _from: num
   timeRanges: Array<{ gte: string, lte: string }> = [],
   plates: Array<string>, cameras: Array<string>,
   brands: Array<string>, colors: Array<string>,
-  personnels: Array<string>,human_count: Array<number>,allowed: boolean | undefined) {
+  personnels: Array<string>,human_count: Array<number>,allowed: boolean | undefined | Array<any>) {
   
   const fields = {
      "plate_number": plates,
@@ -29,7 +29,7 @@ export async function getLogFromElastic(_indx: string, _size: number, _from: num
      "brand": brands,
      "color": colors,
      "human_count":human_count,
-     "allowed": allowed === undefined ? [] : [allowed]
+     "allowed": allowed === undefined ? [] : Array.isArray(allowed) ? allowed : [allowed]
   };
  
   let query_elastic = {
