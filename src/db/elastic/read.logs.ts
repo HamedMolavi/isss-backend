@@ -269,7 +269,8 @@ export function readElasticMiddleware(
         data = (await Promise.all(data.map((doc) => options.send?.(doc, req)))).filter((doc) => doc !== undefined);
         if (!!options.forceAll) {
           total = data.length;
-          data = data.slice(((page > 1 ? page : 1) - 1) * perPage, perPage);
+          let start = ((page > 1 ? page : 1) - 1) * perPage;
+          data = data.slice(start, start+perPage);
         }
         else total = typeof (esRes.hits.total) === 'number' ? esRes.hits.total : esRes.hits.total?.value;
       } else {
