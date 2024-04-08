@@ -4,13 +4,14 @@ import { Plate } from "./report.dto";
 
 export class CreatePlateLogBody {
   @IsString()
-  public color?: string;
+  color?: string;
   @IsString()
-  public brand?: string;
+  brand?: string;
   @IsString()
-  public camera_id?: string;
-
-  public plate_number?: Plate;
+  camera_id?: string;
+  @IsString()
+  owner?: string;
+  plate_number?: Plate;
 };
 
 

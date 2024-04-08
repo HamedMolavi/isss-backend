@@ -8,7 +8,7 @@ export interface IPlate {
     crop: string;
     speed: string;
     color: string;
-    model: string;
+    brand: string;
     is_final: boolean;
     saspicious: boolean;
     timestamp: number;
@@ -36,7 +36,7 @@ export class Plate {
         crop: "",
         speed: "",
         color: "",
-        model: "",
+        brand: "",
         is_final: false,
         saspicious: false,
         timestamp: 0,
@@ -45,9 +45,9 @@ export class Plate {
         schedule_id: "",
         confidence: 0
     }
-    constructor(_color: string, _model: string, _camera_id: string, plate_number: PlateNumber) {
+    constructor(_color: string, _brand: string, _camera_id: string, plate_number: PlateNumber) {
         this.plate.color = _color;
-        this.plate.model = _model;
+        this.plate.brand = _brand;
         this.plate.timestamp = (new Date()).getTime();
         this.plate.camera_id = _camera_id;
         this.plate.plate_number = this.generatePlateNumber(plate_number);
