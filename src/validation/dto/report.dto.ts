@@ -3,89 +3,89 @@ import { IsArray, IsBoolean, IsOptional, IsString } from "class-validator";
 
 export class ReportPlateBody {
     @IsString()
-    public time_start?: string;
+    time_start?: string;
     @IsString()
-    public time_end?: string;
-    @IsOptional()
-    @IsString()
-    public date_start?: string;
+    time_end?: string;
     @IsOptional()
     @IsString()
-    public date_end?: string;
+    date_start?: string;
+    @IsOptional()
+    @IsString()
+    date_end?: string;
     @IsOptional()
     @IsArray()
-    public brand?: string[] | null;
+    brand?: string[] | null;
     @IsOptional()
     @IsArray()
-    public color?: string[] | null;
+    color?: string[] | null;
     @IsOptional()
     @IsArray()
-    public owner?: string[];
+    owner?: string[];
     @IsOptional()
     @IsBoolean()
-    public allowed?: boolean
+    allowed?: boolean
     @IsOptional()
     @IsArray()
-    public cameras?: string[]
-    public plate?: Plate
+    cameras?: string[]
+    plate?: Plate
 };
 
 
 export class Plate {
     @IsString()
-    public first?: string
+    first?: string
     @IsString()
-    public second?: string
+    second?: string
     @IsString()
-    public third?: string
+    third?: string
     @IsString()
-    public fourth?: string
+    fourth?: string
     @IsString()
-    public fifth?: string
+    fifth?: string
 }
 
 
 export class ReportFaceBody{
     @IsString()
-    public time_start?: string;
+    time_start?: string;
     @IsString()
-    public time_end?: string;
+    time_end?: string;
     @IsOptional()
     @IsString()
-    public date_start?: string;
+    date_start?: string;
     @IsOptional()
     @IsString()
-    public date_end?: string;
+    date_end?: string;
     @IsOptional()
     @IsArray()
-    public personnels?: string[] | null;
+    personnels?: string[] | null;
     @IsOptional()
-  //  @IsBoolean()
-    public allowed?: boolean | null
+    @IsBoolean({ each:true })
+    allowed?: boolean | null
     @IsOptional()
     @IsArray()
-    public cameras?: string[]
+    cameras?: string[]
 }
 
 
 export class ReportHumanBody{
     @IsString()
-    public time_start?: string;
+    time_start?: string;
     @IsString()
-    public time_end?: string;
+    time_end?: string;
     @IsOptional()
     @IsString()
-    public date_start?: string;
+    date_start?: string;
     @IsOptional()
     @IsString()
-    public date_end?: string;
+    date_end?: string;
     @IsOptional()
     @IsArray()
-    public human_count?: string[] | null;
+    human_count?: string[] | null;
     @IsOptional()
   //  @IsBoolean()
-    public allowed?: boolean | null
+    allowed?: boolean | null
     @IsOptional()
     @IsArray()
-    public cameras?: string[]
+    cameras?: string[]
 }
