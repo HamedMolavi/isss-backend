@@ -1,9 +1,29 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, RequestHandler, Response } from "express";
 import { Model } from "mongoose";
 import { ApiError } from "../../types/classes/error.class";
 
-
-export function existCheck(model: Model<any>, query: any, info?: string) {
+/**
+ * Middleware function to check if a document exists in the database based on a given query.
+ * This function is designed to be used as middleware in an Express.js application,
+ * allowing for the validation of whether a document exists in the database before proceeding with further operations.
+ * It supports dynamic query construction based on the request body, customizable error messages, and optional surpass logic.
+ *
+ * @param {Model<any>} model - The Mongoose model to query against.
+ * @param {any} query - The query to check for document existence. Can be an array, a function, or an object.
+ * @param {string} [info] - Optional custom error message to display if the document exists.
+ * @param {Object} [options] - Optional configuration object.
+ * @param {(docs: any[], req: Request) => boolean} [options.surpass] - A callback function to determine if the existence check should be bypassed.
+ *
+ * @returns {RequestHandler} - An Express.js middleware function.
+ *
+ * @example
+ * // Usage in an Express.js route
+ * app.post('/create', existCheck(UserModel, ['email', 'username'], 'User already exists!'));
+ */
+export function existCheck(model: Model<any>, query: any, info?: string, options?: {
+  surpass?: (docs: any[], req: Request) => boolean,
+  notExist?: boolean
+}): RequestHandler {
   return async function middleware(req: Request, _res: Response, next: NextFunction) {
     // query can be:
     //    Array => state 0
@@ -42,8 +62,8 @@ export function existCheck(model: Model<any>, query: any, info?: string) {
         break;
     };
     let docs = (await model.find(newQuery).exec())?.filter((doc) => (!id || id !== doc._id.toString()));
-    // let doc = await model.findOne(newQuery).exec();
-    if (!!docs?.length) {
+    let flag = (!!docs?.length !== !!options?.notExist) && (!options?.surpass || !options.surpass(docs, req));
+    if (flag) {
       req.flash("error", info ?? "Already exists!");
       return next(new ApiError(400, info ?? "Already exists!"));
     };
