@@ -60,8 +60,8 @@ export class ReportFaceBody{
     @IsArray()
     personnels?: string[] | null;
     @IsOptional()
-    @IsBoolean({ each:true })
-    allowed?: boolean | null
+    @IsBoolean()
+    allowed?: boolean
     @IsOptional()
     @IsArray()
     cameras?: string[]
