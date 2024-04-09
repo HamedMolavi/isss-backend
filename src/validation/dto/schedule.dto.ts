@@ -1,8 +1,13 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber, IsObject } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber, IsObject, Validate } from "class-validator";
 import mongoose, { Schema } from "mongoose";
+import { Comparison } from ".";
 
 
 export class CreateScheduleBody {
+  @Validate(Comparison, ["gte", 0])
+  @Validate(Comparison, ["lse", 100])
+  @IsNumber()
+  threshold?: number
   @IsString()
   public start?: string;
   @IsString()
@@ -46,8 +51,10 @@ export class UpdateScheduleBody {
   @IsNumber()
   timeDuplicationDiagnoses?: number;
   @IsOptional()
+  @Validate(Comparison, ["gte", 0])
+  @Validate(Comparison, ["lse", 100])
   @IsNumber()
-  threshold?: number;
+  threshold?: number
   @IsOptional()
   @IsArray()
   dayOfWeek?: string[];

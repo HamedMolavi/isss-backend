@@ -59,7 +59,10 @@ router.patch(
       },
       "zones": { name: "config.zones" },
       "timeDuplicationDiagnoses": { name: "config.timeDuplicationDiagnoses" },
-      "threshold": { name: "config.threshold" },
+      "threshold": {
+        name: "config.threshold",
+        fn: (payload) => payload.threshold != undefined ? payload.threshold / 100 : 0
+      },
       "min_people": { name: "config.min_people" },
       "max_people": { name: "config.max_people" },
       "montionDetection": { name: "config.montionDetection" },
