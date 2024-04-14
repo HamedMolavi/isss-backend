@@ -49,7 +49,7 @@ router.get(["", "/search"],
 
 //route for get personnel by id from DB
 router.get("/:id",
-  readByIdMiddleware(Personnel)
+  readByIdMiddleware(Personnel, { populate: true })
 );
 
 //add route for edit personnel
