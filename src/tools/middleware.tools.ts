@@ -79,7 +79,7 @@ export function dataCollector(logs: (undefined | { camera_id?: string; timestamp
   }, [] as localTrackLog[])
 }
 
-export function sendDataMiddleware(fn: CallableFunction, options?: { params?: boolean }) {
+export function sendDataMiddleware(fn: CallableFunction, options?: { params?: boolean, forceAll?: boolean }) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       let data: any = await fn(!!options?.params ? req.params : req.body)
@@ -97,7 +97,7 @@ export function sendDataMiddleware(fn: CallableFunction, options?: { params?: bo
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let start = ((page > 1 ? page : 1) - 1) * perPage;
       let total = Object.prototype.hasOwnProperty.call(data, "length") ? data.length : undefined;
-      if ((data.length ?? 0) > perPage) data = data.slice(start, start + perPage);
+      if ((data.length ?? 0) > perPage && !options?.forceAll) data = data.slice(start, start + perPage);
       return res.status(200).json({
         success: true,
         data,

@@ -72,10 +72,10 @@ router.use('/:type(tree|cumulative)/:id?',
   readMiddleware(Camera, undefined, { next: true, forceAll: true, save: "cameras" }),
 )
 router.use('/tree/:id?',
-  sendDataMiddleware((body: any) => body["trackData"]?.map((track: any) => daySendFunction(track, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)))
+  sendDataMiddleware((body: any) => body["trackData"]?.map((track: any) => daySendFunction(track, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)), { forceAll:true })
 )
 router.use('/table/:id?',
-  sendDataMiddleware((body: any) => body["similars"]?.map((log: any) => unifiedSendFunction(log, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)))
+  sendDataMiddleware((body: any) => body["similars"]?.map((log: any) => unifiedSendFunction(log, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)), { forceAll:true })
 )
 router.use('/cumulative/:id?',
   injectDataMiddleware((body: any) => {
@@ -94,7 +94,7 @@ router.use('/cumulative/:id?',
       }
     }
   }, { spread: true }),
-  sendDataMiddleware(cumulativeSendFunction)
+  sendDataMiddleware(cumulativeSendFunction, { forceAll:true })
 )
 
 
