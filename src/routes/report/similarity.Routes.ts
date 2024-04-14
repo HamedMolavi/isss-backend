@@ -62,7 +62,7 @@ router.use('/:type(tree|table|cumulative)/:id?',
           sort: [{ timestamp: { order: "desc" } }]
         };
       };
-      return {};
+      return {"query": { "match_all": {} } };
     },
     send: filterAndReformatSendFunction
   })

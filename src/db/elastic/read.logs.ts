@@ -72,16 +72,14 @@ export function readElasticMiddlewareHamed(
         track_total_hits: true,
         sort: [{ timestamp: { order: "desc" } }]
       };
-      let search: SearchRequest = { ...baseSearch, ...options?.searchFromBody?.(req.body) }
-        ?? { ...baseSearch, ...options?.searchFromParams?.(req.params) }
-        ?? { ...baseSearch, ...options?.searchFromQuery?.(req.query) } ?? { ...baseSearch };
+      let search: SearchRequest = { ...baseSearch, ...(options?.searchFromBody ?? options?.searchFromParams ?? options?.searchFromQuery)?.(req.body) }
       let sizeStepSearch = ((search.size as number) + (search.from as number) > 10000);
       let queryStepSearch = !!search.query;
 
       // let esRes: SearchResponse<unknown, Record<string, AggregationsAggregate>>;
       let esRes = !!(sizeStepSearch || queryStepSearch) ? await process.esclient.search({ ...search, size: 10000, from: 0 }) : await process.esclient.search(search);
 
-      if ((sizeStepSearch || queryStepSearch) && !!esRes.hits.hits.length) {
+      if (!!(sizeStepSearch || queryStepSearch) && !!esRes.hits.hits.length) {
         while (true) {
           search.size = !!sizeStepSearch ? (search.size as number) + (search.from as number) - 10000 : 10000;
           let temp = await process.esclient.search({ ...search, size: search.size > 10000 ? 10000 : search.size, from: 0, search_after: esRes.hits.hits.at(-1)?.sort });
@@ -94,8 +92,20 @@ export function readElasticMiddlewareHamed(
         req.flash(`error ,${index_name} data not found in DB`);
         return next(new ApiError(404, `error ,${index_name} data not found in DB`));
       };
-      let data = (await Promise.all(esRes.hits.hits.map((doc) => !!options?.send ? options.send({ "_id": doc._id, ...(doc._source ?? {}) }, req) : { "_id": doc._id, ...(doc._source ?? {}) }))).filter((doc) => doc !== undefined);
-      if (!!sizeStepSearch) data.splice(0, search.from ?? 0);
+      // let data = (await Promise.all(esRes.hits.hits.map((doc) => !!options?.send ? options.send({ "_id": doc._id, ...(doc._source ?? {}) }, req) : { "_id": doc._id, ...(doc._source ?? {}) }))).filter((doc) => doc !== undefined);
+      let total = undefined;
+      let data = esRes.hits.hits?.map((doc) => ({ "_id": doc._id, ...(doc._source ?? {}) }));
+
+      if (!!options?.send?.call) {
+        data = (await Promise.all(data.map((doc) => options.send?.(doc, req)))).filter((doc) => doc !== undefined);
+        total = data.length;
+        let start = ((page > 1 ? page : 1) - 1) * perPage;
+        if (!options?.next) data = data.slice(start, start + perPage);
+      } else {
+        total = typeof (esRes.hits.total) === 'number' ? esRes.hits.total
+          : esRes.hits.total?.value;
+          if (!!sizeStepSearch && !options?.next) data.splice(0, search.from ?? 0);
+      }
 
       if (options?.next) {
         req.body[options.save || 'esRes'] = data;
@@ -107,8 +117,8 @@ export function readElasticMiddlewareHamed(
         data,
         page,
         perPage,
-        total: esRes.hits.total ?? data.length,
-        pages: Math.ceil((data.length) / perPage),
+        total,
+        pages: Math.ceil((total ?? 0) / perPage),
       });
     } catch (err: any) {
       if (err.meta?.body?.error?.type === "index_not_found_exception") return next(new ApiError(500, "internal server error , " + err.message));
@@ -270,7 +280,7 @@ export function readElasticMiddleware(
         if (!!options.forceAll) {
           total = data.length;
           let start = ((page > 1 ? page : 1) - 1) * perPage;
-          data = data.slice(start, start+perPage);
+          data = data.slice(start, start + perPage);
         }
         else total = typeof (esRes.hits.total) === 'number' ? esRes.hits.total : esRes.hits.total?.value;
       } else {

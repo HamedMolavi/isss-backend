@@ -95,13 +95,16 @@ export function sendDataMiddleware(fn: CallableFunction, options?: { params?: bo
       let perPage = strPerPage?.toLowerCase() === "all"
         ? 10000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+      let start = ((page > 1 ? page : 1) - 1) * perPage;
+      let total = Object.prototype.hasOwnProperty.call(data, "length") ? data.length : undefined;
+      if ((data.length ?? 0) > perPage) data = data.slice(start, start + perPage);
       return res.status(200).json({
         success: true,
         data,
         page: page,
         perPage: perPage,
-        total: Object.prototype.hasOwnProperty.call(data, "length") ? data.length : undefined,
-        pages: Math.ceil((data.length ?? 0) / perPage),
+        total,
+        pages: Math.ceil((total ?? 0) / perPage),
       });
     } catch (error: any) {
       req.flash("error", "Internal Error!" + error.message);
