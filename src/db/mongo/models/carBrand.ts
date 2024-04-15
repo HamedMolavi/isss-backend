@@ -11,7 +11,7 @@ const CarBrandSchema: Schema<ICarBrand> = new Schema({
 });
 
 CarBrandSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
-    const defaultCarBrandId = (await CarBrand.findOne({ name: "default" }))?._id;
+    const defaultCarBrandId = (await CarBrand.findOne({ name: "unknown" }))?._id;
     let updated_cars = await Car.updateMany({
         brand: doc._id,
     }, { $set: { brand: defaultCarBrandId } }, { returnDocument: "after" }).exec();

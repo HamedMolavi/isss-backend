@@ -89,13 +89,18 @@ export async function testCameraMiddleware(req: Request, res: Response, next: Ne
   try {
     //get jason from body request
     let cam_test = req.body; //cameraInfo
+    let stream_uri :string ="";
+    if (!cam_test.url) {
+      //get live stream uri(rtsp link from camera)
+      let stream_uri = await oldGetStreamUri(cam_test);
+      if (stream_uri == undefined) {
+        req.flash("error", "rtsp link not found");
+        return next(new ApiError(400, "rtsp link not found"));
+      };
+    }else{
+      stream_uri = cam_test.url
+    }
 
-    //get live stream uri(rtsp link from camera)
-    let stream_uri = await oldGetStreamUri(cam_test);
-    if (stream_uri == undefined) {
-      req.flash("error", "rtsp link not found");
-      return next(new ApiError(400, "rtsp link not found"));
-    };
     const result = await testCamera(cam_test, stream_uri)
     return res.status(!!result.success ? 200 : 404).json(result)
   } catch (err: any) {
