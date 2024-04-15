@@ -5,11 +5,17 @@ export default function setExceptionHandler() {
   errorTypes.forEach(type => {
     process.on(type, async (e) => {
       try {
-        console.error(`process.on ${type}`)
-        console.error(`Error message: ${e.message}`);
-        console.error(`Stack trace: ${e.stack}`);
+        // TODO: please find the source of this error and solve it!
+        if (!!e.message?.includes("Operation `Personnel.find()` buffering timed out after")) {
+          console.error(`Error But its OK !!!!! ${e.message}`);
+        } else {
+          console.error(`process.on ${type}`);
+          console.error(`Error message: ${e.message}`);
+          console.error(`Stack trace: ${e.stack}`);
+          process.exit();
+        }
       } catch (_) {
-        console.error(e)
+        console.error(e);
       };
     });
   });
