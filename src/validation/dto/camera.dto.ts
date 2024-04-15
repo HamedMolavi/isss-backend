@@ -77,4 +77,6 @@ export class CameraInfoBody {
   public username?: string;
   @IsString()
   public password?: string;
+  @IsString()
+  public url?: string;
 };

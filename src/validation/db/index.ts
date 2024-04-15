@@ -44,9 +44,11 @@ export function existCheck(model: Model<any>, query: any, info?: string, options
           for (const [index, element] of query[key].entries()) {
             newQuery[key][index] = {};
             for (const item in element) {
+              if(!req.body[item])continue; 
               newQuery[key][index][item] = req.body[item];
             };
           };
+          newQuery[key] = newQuery[key].filter((elem:any)=> !!Object.keys(elem).length );
         };
         break;
       case 1:

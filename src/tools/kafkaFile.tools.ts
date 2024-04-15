@@ -260,7 +260,6 @@ export class SnapshotKafka {
       console.log(id)
       await new Promise(resolve => setTimeout(resolve, 2000)); // 1 second delay
       bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
-      console.log(bufferEntry);
       count++;
       // if (count == 8) {
       //   break
@@ -273,18 +272,20 @@ export class SnapshotKafka {
       // If the buffer entry is an array, include it under a specific key
       result.data = bufferEntry;
       delete this.buffer[id.id];
+      delete this.buffer[id.personnel_id];
     } else if (bufferEntry && typeof bufferEntry === 'object') {
       // If the buffer entry is an object, spread its properties into the result
       //@ts-ignore
       result = { ...result, ...bufferEntry };
       delete this.buffer[id.id];
+      delete this.buffer[id.personnel_id];
     } else {
       // If there's no data for the given ID, include an error message
       result.error = "No data found for the given ID";
     }
 
     // Consider whether you need to delete the buffer entry after retrieval
-    // delete this.buffer[id];
+    //delete this.buffer[id];
 
     return result;
   };

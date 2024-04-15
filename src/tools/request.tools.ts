@@ -71,7 +71,7 @@ export function DoNotAllowOnDefault(model: any, query: FilterQuery<any>) {
     (req: Request, res: Response, next: NextFunction) => {
       if (!!req.body["docs"].length) {
         req.flash("error", "Can't change default " + model.collection.collectionName + "!");
-        return next(new ApiError(401, "Can't change default " + model.collection.collectionName + "!"));
+        return next(new ApiError(403, "Can't change default " + model.collection.collectionName + "!"));
       };
       return next();
     }
