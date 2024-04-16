@@ -44,11 +44,11 @@ export function existCheck(model: Model<any>, query: any, info?: string, options
           for (const [index, element] of query[key].entries()) {
             newQuery[key][index] = {};
             for (const item in element) {
-              if(!req.body[item])continue; 
+              if (!req.body[item]) continue;
               newQuery[key][index][item] = req.body[item];
             };
           };
-          newQuery[key] = newQuery[key].filter((elem:any)=> !!Object.keys(elem).length );
+          newQuery[key] = newQuery[key].filter((elem: any) => !!Object.keys(elem).length);
         };
         break;
       case 1:
@@ -63,6 +63,9 @@ export function existCheck(model: Model<any>, query: any, info?: string, options
         };
         break;
     };
+    if (!newQuery.length) {
+      return next();
+    }
     let docs = (await model.find(newQuery).exec())?.filter((doc) => (!id || id !== doc._id.toString()));
     let flag = (!!docs?.length !== !!options?.notExist) && (!options?.surpass || !options.surpass(docs, req));
     if (flag) {
