@@ -15,7 +15,7 @@ const DepartmentSchema: Schema<IDepartment> = new Schema({
 });
 
 DepartmentSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
-    const defaultDepartmentId = (await Department.findOne({ name: "default" }))?._id
+    const defaultDepartmentId = (await Department.findOne({ name: "Department" }))?._id
     let updated_sections = await Section.updateMany({
         department_id: doc._id,
     }, { $set: { department_id: defaultDepartmentId } }, { returnDocument: "after" }).exec();

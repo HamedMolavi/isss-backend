@@ -1,4 +1,4 @@
-import { Router} from "express";
+import { Router } from "express";
 import Departement from "../../db/mongo/models/department";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import { CreateDepartmentBody, UpdateDepartmentBody } from "../../validation/dto/department.dto";
@@ -13,7 +13,7 @@ import mongoose from "mongoose";
 import Camera from "../../db/mongo/models/camera";
 import Personnel from "../../db/mongo/models/personnel";
 import Car from "../../db/mongo/models/car";
-import { docSendMiddleware, makeSearchFnWithOr, makesearchFromBody } from "../../tools/request.tools";
+import { docSendMiddleware, DoNotAllowOnDefault, makeSearchFnWithOr, makesearchFromBody } from "../../tools/request.tools";
 
 //create router for add to server file
 const router: Router = Router();
@@ -61,6 +61,7 @@ router.patch("/:id",
 
 //add route for delete departement
 router.delete("/:id",
+  DoNotAllowOnDefault(Departement, { name: "Department" }),
   deleteByIdMiddleware(Departement)
 );
 

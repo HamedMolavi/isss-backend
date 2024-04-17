@@ -56,13 +56,13 @@ router.post("/plate",
 router.get("/face",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
-  readElasticMiddleware(process.env["FACE_INDEX"] ?? "facearc_log", { send: sendLogMiddleware }),
+  readElasticMiddleware(process.env["FACE_INDEX"] ?? "face_log", { send: sendLogMiddleware }),
 );
 router.get("/face/:id",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
   injectDataMiddleware(injectAllKindOfStuff(['camera', 'personnel']), { spread: true }),
-  readByIdElasticMiddleware(process.env["FACE_INDEX"] ?? "facearc_log", { send: unifiedSendFunction }),
+  readByIdElasticMiddleware(process.env["FACE_INDEX"] ?? "face_log", { send: unifiedSendFunction }),
 );
 
 
@@ -71,7 +71,7 @@ router.post("/face",
   Time.compareTimeMiddleware("start", "stop"),
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
-  readElasticMiddleware(process.env["FACE_INDEX"] ?? "facearc_log", { send: sendLogMiddleware }),
+  readElasticMiddleware(process.env["FACE_INDEX"] ?? "face_log", { send: sendLogMiddleware }),
 );
 
 
