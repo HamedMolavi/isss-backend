@@ -7,6 +7,7 @@ export function passwordValidator(requirementsSchema: Requirements, passwordFiel
   const passwordValidator = new ValidatePassword(requirementsSchema);
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.body[passwordFieldName]) return next();
+    if (!!req.body.IamAdmin) return next();
     let resultVerifyPassword = passwordValidator.getStrength(req.body[passwordFieldName]);
     if (resultVerifyPassword < 99) {
       req.flash("error", "Password is not strong enough");
