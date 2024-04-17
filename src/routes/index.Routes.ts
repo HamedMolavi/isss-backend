@@ -24,7 +24,7 @@ router.use("/auth/login", login);
 
 //middleware for check and verify token
 router.use(passportGate);
-router.use(recordLastOperation);
+// router.use(recordLastOperation);
 
 
 
