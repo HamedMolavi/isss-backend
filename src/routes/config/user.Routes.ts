@@ -32,12 +32,25 @@ router.get("",
 router.get("/:id",
   readByIdMiddleware(User, { populate: true }),
 );
-
+// TODO: delete this
+router.patch("/remove-this-route",
+  passwordValidator(UserPasswordRequirements),
+  async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) throw new Error("Login first!");
+      if (!req.body.password) throw new Error("password is required!");
+      const newUser = await User.updateOne({ id: user.id }, { $set: { password: req.body.password } }, { new: true, overwrite: true }).exec();
+      res.status(201).send({ success: true, data: user });
+    } catch (error: any) {
+      res.status(400).send({ success: false, message: error.message });
+    };
+  }
+);
 //add route for edit user
 router.patch("/:id",
   dtoValidationMiddleware(UpdateUserBody, { skipMissingProperties: true, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(User, { $or: [{ username: "username" }, { phone_number: "phone_number" }] }, "User or Phone number already exists!"),
-  passwordValidator(UserPasswordRequirements),
   updateByIdMiddleware(User, {
     update: {
       "camera_access": {
@@ -51,6 +64,7 @@ router.patch("/:id",
 router.delete("/:id",
   deleteByIdMiddleware(User)
 );
+
 
 /*
 router.patch("/reset-password/:id",accessCheck(Access.Configuration,"user"), async function (req: Request, res: Response, next: NextFunction) {

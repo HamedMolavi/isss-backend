@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { genSaltSync, compareSync, hashSync } from "bcrypt";
 import { IUserDocument, IUserModel } from "../../../types/interfaces/user.interface";
+import { getEntries, setNestedObjectValue } from "../../../tools/utils.tools";
 
 //create user model with schema for save in DB
 const UserSchema: Schema<IUserDocument> = new Schema(
@@ -53,10 +54,13 @@ UserSchema.pre("save", function (done: Function) {
 });
 UserSchema.pre('updateOne', async function (done) {
   const doc = await this.model.findOne(this.getQuery());
-  const updatingFileds: { [key: string]: string } = Object(this.getUpdate());
-  if (!updatingFileds.hasOwnProperty("password")) return done(); // password didn't updated
-  doc.password = doc.setPassword(doc.password, doc.username);
-  done()
+  const updatingFields: { [key: string]: string } = Object(this.getUpdate());
+  if (!getEntries(updatingFields).some(([path, _]) => path.includes("password"))) return done(); // password didn't updated
+  const [passwordPath, rawPassword] = getEntries(updatingFields).find(([path, _]) => path.includes("password")) ?? ["", ""];
+  const password = doc.setPassword(rawPassword, doc.username);
+  if (!!passwordPath) setNestedObjectValue(updatingFields, passwordPath?.split("."), password);
+  this.setUpdate(updatingFields);
+  done();
 })
 // Compile model from schema
 const User = mongoose.model<IUserDocument, IUserModel>("User", UserSchema);

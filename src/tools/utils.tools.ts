@@ -29,6 +29,10 @@ export function getNestedObjectValue(obj: any, path: string[]): any {
   };
 };
 
+export function getEntries(o: any, prefix = ''): Array<[string, unknown]> {
+  return Object.entries(o).flatMap(([k, v]) => Object(v) === v  ? getEntries(v, `${prefix}${k}.`) : [ [`${prefix}${k}`, v] ]);
+}
+
 export function isInDebugMode(): boolean {
   return inspector.url() !== undefined;
 };
