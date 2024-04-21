@@ -32,7 +32,7 @@ export function cumulativeSendFunction(body: any) {
   for (const camera of cameras) {
     data[data.push({
       "camera_id": camera,
-      "camera_name": body?.["cameras"]?.find((el: any) => camera === el.id)?.name,
+      "camera_name": body?.["cameras"]?.find((el: any) => camera === el._id.toString())?.name ?? "",
       "data": range(body?.["day_start"], body["day_end"]).map(day => flatData.filter((data) => data.camera_id === camera && data.day === day).reduce((res, data) => data.end - data.start + res, 0)),
       "duration": 0
     }) - 1]["duration"] = data.at(-1)?.data?.reduce((res, el) => res + el, 0) ?? 0;
