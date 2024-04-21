@@ -256,7 +256,7 @@ export class SnapshotKafka {
   kafkaGet = async (id: any) => {
     let bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
     let count = 0;
-    while (!bufferEntry && count < 8) {
+    while (!bufferEntry && count < 14) {
       console.log(id)
       await new Promise(resolve => setTimeout(resolve, 2000)); // 1 second delay
       bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
