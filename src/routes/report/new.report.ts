@@ -10,114 +10,73 @@ import { ReportFaceBody, ReportHumanBody, ReportPlateBody } from "../../validati
 import CarBrand from "../../db/mongo/models/carBrand";
 import CarColor from "../../db/mongo/models/carColor";
 import { injectDataMiddleware } from "../../tools/request.tools";
-import { SearchHit } from "@elastic/elasticsearch/lib/api/types";
-import { persianPlateDict, stringPlateToJson } from "../../tools/plate.tools";
-import { injectAllKindOfStuff, unifiedSendFunction } from "../../tools/middleware.tools";
+import { stringPlateToJson } from "../../tools/plate.tools";
+import { injectAllKindOfStuff } from "../../tools/middleware.tools";
 import { platesToStrings } from "../../tools/car.tools";
 import { SearchRequest } from "@elastic/elasticsearch/lib/api/typesWithBodyKey";
+import { ApiError } from "../../types/classes/error.class";
 
 //create router for add to routes file
 const router: Router = Router();
-
-
-router.get(["/plate", "/search"],
-  // append cameras
+// Validation //
+router.post("/:index(plate|search|face|sabotage|human)",
+  (req, res, next) => {
+    if (!["plate", "search", "face", "sabotage", "human"].includes(req.params.index)) return next(new ApiError(404, `Index ${req.params.index} not found!`))
+    const dtoClass: { [key: string]: any } = {
+      "plate": ReportPlateBody, "search": ReportPlateBody, "face": ReportFaceBody, "sabotage": ReportFaceBody, "human": ReportHumanBody
+    };
+    dtoValidationMiddleware(dtoClass[req.params.index], { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" })(req, res, next)
+    next();
+  },
+  Time.compareTimeMiddleware("start", "stop"),
+);
+// Inject Data //
+router.use('',
   readMiddleware(Camera, undefined, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
+  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
+);
+router.use('/:index(plate|search)/:id?',
   readMiddleware(Car, undefined, { forceAll: true, populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
   readMiddleware(CarColor, undefined, { forceAll: true, populate: true, forcePopulate: ["color"], next: true, save: "color" }),
   readMiddleware(CarBrand, undefined, { forceAll: true, populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera', 'color', 'brand']), { spread: true }),
+  injectDataMiddleware(injectAllKindOfStuff(['color', 'brand']), { spread: true }),
   injectDataMiddleware(injectAllKindOfStuff(['car'], "number_plate"), { spread: true }),
-  readElasticMiddleware(process.env["PLATE_INDEX"] ?? "plate_log", { send: sendFunction }),
 );
-router.get("/plate/:id",
-  // append cameras
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readMiddleware(Car, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
-  readMiddleware(CarColor, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["color"], next: true, save: "color" }),
-  readMiddleware(CarBrand, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera', 'color', 'brand']), { spread: true }),
-  injectDataMiddleware(injectAllKindOfStuff(['car'], "number_plate"), { spread: true }),
-  readByIdElasticMiddleware(process.env["PLATE_INDEX"] ?? "plate_log", { send: unifiedSendFunction }),
+router.use('/:index(face)/:id?',
+  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
+  injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
 );
-router.post("/plate",
-  dtoValidationMiddleware(ReportPlateBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  Time.compareTimeMiddleware("start", "stop"),
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readMiddleware(Car, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
-  readMiddleware(CarColor, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["color"], next: true, save: "color" }),
-  readMiddleware(CarBrand, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera', 'color', 'brand']), { spread: true }),
-  injectDataMiddleware(injectAllKindOfStuff(['car'], "number_plate"), { spread: true }),
-  readElasticMiddleware(process.env["PLATE_INDEX"] ?? "plate_log", {
+// Search //
+router.get('/:index(plate|search|face|sabotage|human)',
+  readElasticMiddleware((req) => ({
+    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
+    "search": process.env["PLATE_INDEX"] ?? "plate_log",
+    "face": process.env["FACE_INDEX"] ?? "face_log",
+    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
+    "human": process.env["HUMAN_INDEX"] ?? "human_log"
+  }[req.params.index]) as string, { send: sendFunction }),
+);
+router.get("/:index(plate|search|face|sabotage|human)/:id",
+  readByIdElasticMiddleware((req) => ({
+    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
+    "search": process.env["PLATE_INDEX"] ?? "plate_log",
+    "face": process.env["FACE_INDEX"] ?? "face_log",
+    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
+    "human": process.env["HUMAN_INDEX"] ?? "human_log"
+  }[req.params.index] as string), { send: sendFunction }),
+);
+router.post("/:index(plate|search|face|sabotage|human)",
+  readElasticMiddleware((req) => ({
+    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
+    "search": process.env["PLATE_INDEX"] ?? "plate_log",
+    "face": process.env["FACE_INDEX"] ?? "face_log",
+    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
+    "human": process.env["HUMAN_INDEX"] ?? "human_log"
+  }[req.params.index]) as string, {
     searchFromBody: searchFunction,
     send: sendFunction
   }),
 );
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-router.get("/face",
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera', 'personnel']), { spread: true }),
-  readElasticMiddleware(process.env["FACE_INDEX"] ?? "face_log", { send: sendFunction }),
-);
-router.get("/face/:id",
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera', 'personnel']), { spread: true }),
-  readByIdElasticMiddleware(process.env["FACE_INDEX"] ?? "face_log", { send: unifiedSendFunction }),
-);
-router.post("/face",
-  dtoValidationMiddleware(ReportFaceBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  Time.compareTimeMiddleware("start", "stop"),
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera', 'personnel']), { spread: true }),
-  readElasticMiddleware(process.env["FACE_INDEX"] ?? "face_log", {
-    searchFromBody: searchFunction,
-    send: sendFunction
-  }),
-);
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-router.get("/sabotage",
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
-  readElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { send: sendFunction }),
-);
-router.get("/sabotage/:id",
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
-  readByIdElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { send: unifiedSendFunction }),
-);
-router.post("/sabotage",
-  dtoValidationMiddleware(ReportFaceBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  Time.compareTimeMiddleware("start", "stop"),
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera', 'color', 'brand']), { spread: true }),
-  readElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { send: sendFunction, searchFromBody: searchFunction }),
-);
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-router.get("/human",
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
-  readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { send: sendFunction }),
-);
-router.get("/human/:id",
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
-  readByIdElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { send: unifiedSendFunction })
-);
-router.post("/human",
-  dtoValidationMiddleware(ReportHumanBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  Time.compareTimeMiddleware("start", "stop"),
-  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
-  readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { send: sendFunction, searchFromBody: searchFunction }),
-);
-
 
 function searchFunction(body: any) {
   let timezone = body.timez ?? body.timezone;

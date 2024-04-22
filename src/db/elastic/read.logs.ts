@@ -68,25 +68,29 @@ export function readElasticMiddleware(
       let perPage = strPerPage?.toLowerCase() === "all" ? 10000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage)
           : 1;
-
+      let index = typeof (index_name) === "function" ? index_name(req) : index_name;
       let baseSearch: SearchRequest = {
-        index: typeof (index_name) === "function" ? index_name(req) : index_name,
+        index,
         size: perPage, from: (page - 1) * perPage,
         track_total_hits: true,
         sort: [{ timestamp: { order: "desc" } }]
       };
-      let search: SearchRequest = { ...baseSearch, ...(options?.searchFromBody ?? options?.searchFromParams ?? options?.searchFromQuery)?.(req.body) }
-      let sizeStepSearch = ((search.size as number) + (search.from as number) > 10000);
-
+      let search: SearchRequest = { ...baseSearch, ...(options?.searchFromBody ?? options?.searchFromParams ?? options?.searchFromQuery)?.(req.body) };
+      const settings = await process.esclient.indices.getSettings({ index }).then(response => response[index]?.settings?.index);
+      let maxResultWindow = parseInt(settings?.max_result_window?.toString() ?? '10000');
+      let currentWindow = (search.size as number) + (search.from as number);
+      // increase max result window for this index first
+      if (currentWindow > maxResultWindow) {
+        await process.esclient.indices.putSettings({ index, body: { "index": { "max_result_window": currentWindow } } });
+      };
       // let esRes: SearchResponse<unknown, Record<string, AggregationsAggregate>>;
-      let esRes = !!(sizeStepSearch || options?.forceAll) ? await process.esclient.search({ ...search, size: 10000, from: 0 }) : await process.esclient.search(search);
+      let esRes = !!options?.forceAll ? await process.esclient.search({ ...search, size: 10000, from: 0 }) : await process.esclient.search(search);
 
-      if (!!(sizeStepSearch || options?.forceAll) && !!esRes.hits.hits.length) {
+      if (!!options?.forceAll && !!esRes.hits.hits.length) {
         while (true) {
-          search.size = !!sizeStepSearch ? (search.size as number) + (search.from as number) - 10000 : 10000;
-          let temp = await process.esclient.search({ ...search, size: search.size > 10000 ? 10000 : search.size, from: 0, search_after: esRes.hits.hits.at(-1)?.sort });
+          let temp = await process.esclient.search({ ...search, size: maxResultWindow, from: 0, search_after: esRes.hits.hits.at(-1)?.sort });
           esRes.hits.hits.push(...temp.hits.hits);
-          if (!temp.hits.hits.length || (sizeStepSearch && esRes.hits.hits.length >= (search.size as number) + (search.from as number))) break;
+          if (!temp.hits.hits.length) break;
         }
       }
 
@@ -107,7 +111,7 @@ export function readElasticMiddleware(
       } else {
         total = typeof (esRes.hits.total) === 'number' ? esRes.hits.total
           : esRes.hits.total?.value;
-        if (!!sizeStepSearch && !options?.next) data.splice(0, search.from ?? 0);
+        // if (!options?.next) data.splice(0, search.from ?? 0);
       }
       if (!!Array.isArray(req.body["elasticsearchIndices"])) req.body["elasticsearchIndices"].push(index_name);
       else req.body["elasticsearchIndices"] = [index_name];
@@ -155,7 +159,7 @@ export function readElasticMiddleware(
  * app.get('/document/:id', readByIdElasticMiddleware('myIndex', { send: (doc) => doc }));
  */
 export function readByIdElasticMiddleware(
-  index_name: string,
+  index_name: string | ((req: Request) => string),
   options?: {
     next?: boolean,
     send?: (doc: unknown, req: Request) => any | void | Promise<any | void>,
@@ -167,7 +171,7 @@ export function readByIdElasticMiddleware(
       let _timezone = req.query.timez as string;
       let id: string = options?.idFromReq?.(req) ?? _id ?? req.params.id ?? "dummy-id";
       let query_elastic = {
-        "index": index_name,
+        "index": typeof (index_name) === "function" ? index_name(req) : index_name,
         "query": {
           "term": {
             "_id": id
