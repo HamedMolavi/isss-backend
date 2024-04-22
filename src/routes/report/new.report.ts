@@ -66,7 +66,7 @@ router.get("/face/:id",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
   injectDataMiddleware(injectAllKindOfStuff(['camera', 'personnel']), { spread: true }),
-  readByIdElasticMiddleware(process.env["FACE_INDEX"] ?? "face_log", { send: sendFunction }),
+  readByIdElasticMiddleware(process.env["FACE_INDEX"] ?? "face_log", { send: unifiedSendFunction }),
 );
 router.post("/face",
   dtoValidationMiddleware(ReportFaceBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
@@ -81,46 +81,41 @@ router.post("/face",
 );
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
 router.get("/sabotage",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { send: sendLogMiddleware }),
+  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
+  readElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { send: sendFunction }),
 );
-
 router.get("/sabotage/:id",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
   injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
   readByIdElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { send: unifiedSendFunction }),
 );
-
-
 router.post("/sabotage",
   dtoValidationMiddleware(ReportFaceBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   Time.compareTimeMiddleware("start", "stop"),
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { send: sendLogMiddleware }),
+  injectDataMiddleware(injectAllKindOfStuff(['camera', 'color', 'brand']), { spread: true }),
+  readElasticMiddleware(process.env["SABOTAGE_INDEX"] ?? "sabotage_log", { send: sendFunction, searchFromBody: searchFunction }),
 );
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 router.get("/human",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { send: sendLogMiddleware }),
+  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
+  readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { send: sendFunction }),
 );
-
-
 router.get("/human/:id",
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
   injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
   readByIdElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { send: unifiedSendFunction })
 );
-
-
 router.post("/human",
   dtoValidationMiddleware(ReportHumanBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   Time.compareTimeMiddleware("start", "stop"),
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { send: sendLogMiddleware }),
+  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
+  readElasticMiddleware(process.env["HUMAN_INDEX"] ?? "human_log", { send: sendFunction, searchFromBody: searchFunction }),
 );
 
 
