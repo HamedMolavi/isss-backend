@@ -2,7 +2,7 @@ import { Request, Router } from "express";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import { ReadSimilarVectorsBody } from "../../validation/dto/similarity.dto";
 import { cosineSimilarity } from "../../tools/utils.tools";
-import { readByIdElasticMiddleware, readElasticMiddlewareHamed } from "../../db/elastic/read.logs";
+import { readByIdElasticMiddleware, readElasticMiddleware } from "../../db/elastic/read.logs";
 import { ApiError } from "../../types/classes/error.class";
 import { injectDataMiddleware } from "../../tools/request.tools";
 import { readMiddleware } from "../../db/mongo/read.database";
@@ -40,8 +40,8 @@ router.use('/:type(tree|table|cumulative)/:id?',
 )
 // Read Elastic logs in specified range
 router.use('/:type(tree|table|cumulative)/:id?',
-  readElasticMiddlewareHamed(`${process.env["FACE_INDEX"] ?? "face_log"}`, {
-    next: true, save: "similars",
+  readElasticMiddleware(`${process.env["FACE_INDEX"] ?? "face_log"}`, {
+    next: true, save: "similars", forceAll: true,
     searchFromBody: (body) => {
       if (!!body?.["date_start"] || !!body?.["date_end"]) {
         let start = (new Date(body.date_start + " 00:01" + Time.getUtcOffset(body.timezone ?? "Asia/Tehran"))).getTime();
@@ -64,7 +64,8 @@ router.use('/:type(tree|table|cumulative)/:id?',
       };
       return {"query": { "match_all": {} } };
     },
-    send: filterAndReformatSendFunction
+    send: sendFunction,
+    filter: filterFunction,
   })
 )
 router.use('/:type(tree|cumulative)/:id?',
@@ -99,7 +100,7 @@ router.use('/cumulative/:id?',
 
 
 
-function filterAndReformatSendFunction(log: any, req: Request) {
+function sendFunction(log: any, req: Request) {
   const threshold = Number(req.query["threshold"] ?? req.body["threshold"] ?? 50) / 100;
   let targetVector = req.body["targetVector"] ?? req.body["vector"];
   if (!!log && Array.isArray(log["vector"]) && log["vector"].length === 512 && log["vector"].every((num) => typeof (num) === "number")) {
@@ -107,5 +108,8 @@ function filterAndReformatSendFunction(log: any, req: Request) {
     if (similarity >= threshold) return { similarity, ...log };
   }
   return undefined;
+}
+function filterFunction(log: any, req: Request) {
+  return !!log;
 }
 export default router;
