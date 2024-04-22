@@ -11,6 +11,7 @@ import Personnel from "../../db/mongo/models/personnel";
 import { dataCollector, injectAllKindOfStuff, sendDataMiddleware, unifiedSendFunction } from "../../tools/middleware.tools";
 import { cumulativeSendFunction, daySendFunction } from "../../tools/track.tools";
 import Time from "../../tools/time.tools";
+import { QueryDslQueryContainer } from "@elastic/elasticsearch/lib/api/types";
 
 
 //create router for add to routes file
@@ -38,45 +39,24 @@ router.use('/:type(tree|table|cumulative)/:id?',
     }
   }),
 )
-// Read Elastic logs in specified range
-router.use('/:type(tree|table|cumulative)/:id?',
+// Read Elastic logs in specified range and send it
+router.use('/table/:id?',
   readElasticMiddleware(`${process.env["FACE_INDEX"] ?? "face_log"}`, {
-    next: true, save: "similars", forceAll: true,
-    searchFromBody: (body) => {
-      if (!!body?.["date_start"] || !!body?.["date_end"]) {
-        let start = (new Date(body.date_start + " 00:01" + Time.getUtcOffset(body.timezone ?? "Asia/Tehran"))).getTime();
-        let end = (new Date(body.date_end + " 00:01" + Time.getUtcOffset(body.timezone ?? "Asia/Tehran"))).getTime();
-        return {
-          query: {
-            bool: {
-              must: [{
-                range: {
-                  timestamp: {
-                    gte: start,
-                    lte: end
-                  }
-                }
-              }], should: []
-            }
-          },
-          sort: [{ timestamp: { order: "desc" } }]
-        };
-      };
-      return {"query": { "match_all": {} } };
-    },
-    send: sendFunction,
-    filter: filterFunction,
+    forceAll:true,
+    searchFromBody: searchFunction,
+    send: unifiedSendFunction
   })
 )
 router.use('/:type(tree|cumulative)/:id?',
+  readElasticMiddleware(`${process.env["FACE_INDEX"] ?? "face_log"}`, {
+    searchFromBody: searchFunction,
+    forceAll: true, save: "similars", next: true,
+  }),
   injectDataMiddleware((body: any) => dataCollector(body["similars"] ?? []), { injData: "trackData" }),
   readMiddleware(Camera, undefined, { next: true, forceAll: true, save: "cameras" }),
 )
 router.use('/tree/:id?',
-  sendDataMiddleware((body: any) => body["trackData"]?.map((track: any) => daySendFunction(track, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)), { forceAll:true })
-)
-router.use('/table/:id?',
-  sendDataMiddleware((body: any) => body["similars"]?.map((log: any) => unifiedSendFunction(log, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)), { forceAll:true })
+  sendDataMiddleware((body: any) => body["trackData"]?.map((track: any) => daySendFunction(track, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)), { forceAll: true })
 )
 router.use('/cumulative/:id?',
   injectDataMiddleware((body: any) => {
@@ -95,21 +75,44 @@ router.use('/cumulative/:id?',
       }
     }
   }, { spread: true }),
-  sendDataMiddleware(cumulativeSendFunction, { forceAll:true })
+  sendDataMiddleware(cumulativeSendFunction, { forceAll: true })
 )
 
 
-
-function sendFunction(log: any, req: Request) {
-  const threshold = Number(req.query["threshold"] ?? req.body["threshold"] ?? 50) / 100;
-  let targetVector = req.body["targetVector"] ?? req.body["vector"];
-  if (!!log && Array.isArray(log["vector"]) && log["vector"].length === 512 && log["vector"].every((num) => typeof (num) === "number")) {
-    const similarity = cosineSimilarity(targetVector, log["vector"]);
-    if (similarity >= threshold) return { similarity, ...log };
+function searchFunction(body: any) {
+  const threshold = Number(body["threshold"] ?? 50) / 100;
+  let query: QueryDslQueryContainer = { "match_all": {} };
+  if (!!body?.["date_start"] || !!body?.["date_end"]) {
+    let start = (new Date(body.date_start + " 00:01" + Time.getUtcOffset(body.timezone ?? "Asia/Tehran"))).getTime();
+    let end = (new Date(body.date_end + " 00:01" + Time.getUtcOffset(body.timezone ?? "Asia/Tehran"))).getTime();
+    query = {
+      "bool": {
+        "must": [
+          {
+            "range": {
+              "timestamp": {
+                "gte": start,
+                "lte": end
+              }
+            }
+          }
+        ], "should": []
+      }
+    };
+  };
+  return {
+    "min_score": threshold + 1,
+    "query": {
+      "script_score": {
+        query,
+        "script": {
+          "source": "cosineSimilarity(params.query_vector, 'vector') + 1.0",
+          "params": {
+            "query_vector": body["targetVector"] ?? []
+          }
+        }
+      }
+    },
   }
-  return undefined;
-}
-function filterFunction(log: any, req: Request) {
-  return !!log;
 }
 export default router;

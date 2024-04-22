@@ -59,7 +59,6 @@ export function readElasticMiddleware(
   }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
-
       //get page from url
       let strPage = req.query.page as string;
       let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -84,7 +83,7 @@ export function readElasticMiddleware(
         await process.esclient.indices.putSettings({ index, body: { "index": { "max_result_window": currentWindow } } });
       };
       // let esRes: SearchResponse<unknown, Record<string, AggregationsAggregate>>;
-      let esRes = !!options?.forceAll ? await process.esclient.search({ ...search, size: 10000, from: 0 }) : await process.esclient.search(search);
+      let esRes = !!options?.forceAll ? await process.esclient.search({ ...search, size: maxResultWindow, from: 0 }) : await process.esclient.search(search);
 
       if (!!options?.forceAll && !!esRes.hits.hits.length) {
         while (true) {
@@ -118,6 +117,7 @@ export function readElasticMiddleware(
 
       if (options?.next) {
         req.body[options.save || 'esRes'] = data;
+        req.body["esResTotal"] = total;
         return next();
       };
 
