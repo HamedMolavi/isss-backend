@@ -17,7 +17,8 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
       min_people: { type: Number, default: 0 },
       max_people: { type: Number, default: 0 },
       zones: { type: Array<[[number, number], [number, number], [number, number], [number, number]]>, default: [[[0, 0], [1, 0], [1, 1], [0, 1]]] },
-      justHuman: { type: Boolean, default: false }
+      justHuman: { type: Boolean, default: false },
+      state: { type: String, default: "both" }
     },
     description: { type: String, required: true },
     users_alert: Array<{
@@ -61,6 +62,7 @@ ScheduleSchema.methods.toJSON = function () {
       min_people: this.config.min_people ?? 0,
       max_people: this.config.max_people ?? 0,
       justHuman: this.config.justHuman,
+      state: this.config.state
     },
     description: this.description,
     users_alert: this.users_alert,

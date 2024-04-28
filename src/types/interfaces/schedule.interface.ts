@@ -11,6 +11,7 @@ export interface ISchedule extends Document {
   users_alert: [Schema.Types.ObjectId];
   sms: { send: boolean; active: boolean };
   alert: { send: boolean; active: boolean };
+  state: { send: string; active: boolean };
   is_running: boolean;
 }
 //define config type
@@ -21,6 +22,7 @@ interface IConfig {
   max_people: number;
   zones: Array<[[number, number], [number, number], [number, number], [number, number]]>;
   justHuman: boolean;
+  state: string;
 }
 
 //define type of schedule for request body
@@ -38,6 +40,7 @@ export interface IGetParams {
   timeDuplicationDiagnoses: number;
   description: string;
   justHuman: boolean;
+  state: string;
   users_alert: Schema.Types.ObjectId[];
   sms: { send: boolean; active: boolean };
   alert: { send: boolean; active: boolean };

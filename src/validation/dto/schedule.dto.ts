@@ -29,6 +29,8 @@ export class CreateScheduleBody {
   @IsBoolean()
   @IsOptional()
   public justHuman?: boolean;
+  @IsString()
+  public state?: string;
 };
 
 export class UpdateScheduleBody {
@@ -80,6 +82,8 @@ export class UpdateScheduleBody {
   @IsBoolean()
   @IsOptional()
   public justHuman?: boolean;
+  @IsString()
+  public state?: string;
 };
 
 
@@ -90,4 +94,6 @@ export class UpdateActiveScheduleBody {
   public alert?: object;
   @IsArray()
   public schedules?: Array<Schema.Types.ObjectId>;
+  @IsString()
+  public state?: string;
 };

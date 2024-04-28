@@ -67,6 +67,7 @@ router.patch(
       "max_people": { name: "config.max_people" },
       "montionDetection": { name: "config.montionDetection" },
       "justHuman": { name: "config.justHuman" },
+      "state": { name: "config.state" },
       "model_id": {
         name: "model_camera_id",
         fn: async (payload) => (await ModelToCamera.findOne({ "model_id": payload.model_id, "camera_id": payload.camera_id }).exec())?._id
