@@ -23,6 +23,7 @@ export function unifiedSendFunction(log: any & { _id: string }, req: Request) {
     camera_type: !!log.camera_id ? body['camera']?.[log.camera_id]?.type : "",
     fullName: (!!log.personnel_id && log.personnel_id !== "unknown") ? body['personnel']?.[log.personnel_id]?.toName() : "",
     time: !!log?.timestamp ? new Date(typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
+    timestamp: !!log?.timestamp ?? "",
     plate_number: !!log.plate_number ? stringPlateToJson(log.plate_number) : "",
     owner: !!carDetails ? carDetails?.owner?.toName() : "",
     color: !!log?.color ? body['color']?.[log.color]?.name : "",
