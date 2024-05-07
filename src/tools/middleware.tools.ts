@@ -4,9 +4,9 @@ import { ITrackLog, TrackLogData } from "../types/interfaces/track.interface";
 import { Types } from "mongoose";
 import { ApiError } from "../types/classes/error.class";
 
-export function injectAllKindOfStuff(stuff: string[]) {
+export function injectAllKindOfStuff(stuff: string[], field: string = "_id") {
   return (body: any) => stuff.reduce((acc, entity) => {
-    acc[entity] = body[entity]?.reduce((obj: any, item: any) => ({ ...obj, [item._id.toString()]: item }), {});
+    acc[entity] = body[entity]?.reduce((obj: any, item: any) => ({ ...obj, [item[field].toString()]: item }), {});
     return acc;
   }, {} as Record<string, any>)
 }
