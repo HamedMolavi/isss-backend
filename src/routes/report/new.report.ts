@@ -118,6 +118,7 @@ function searchFunction(body: any) {
   return query_elastic;
 };
 function sendFunction(log: any, req: Request): any {
+
   try {
     const crop = req.body['elasticsearchIndices']?.at(-1) === "plate_log" ? log?.crop : log?.inner_crop ?? '';
     const inner_crop = req.body['elasticsearchIndices']?.at(-1) === "plate_log" ? log?.inner_crop : "";
@@ -132,6 +133,7 @@ function sendFunction(log: any, req: Request): any {
       camera_type: camera?.camera_type ?? "",
       camera_id: camera?._id?.toString() ?? "",
       camera: camera?.name ?? "",
+      camera_name: camera?.name ?? "",
       fullName: personnel?.toName() ?? "",
       department: personnel?.section_id?.department_id?.name ?? department,
       section: personnel?.section_id?.name ?? section,
@@ -148,6 +150,7 @@ function sendFunction(log: any, req: Request): any {
       sms: log?.sms,
       description: log.description ?? "",
       human_count: log.human_count ?? 0,
+      timestamp: log?.timestamp ?? ""
     };
   } catch (err: any) {
     console.error(err)
