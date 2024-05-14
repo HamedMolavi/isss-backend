@@ -35,12 +35,16 @@ router.get("/:id",
 // TODO: delete this
 router.patch("/remove-this-route",
   passwordValidator(UserPasswordRequirements),
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const user = req.user;
       if (!user) throw new Error("Login first!");
-      if (!req.body.password) throw new Error("password is required!");
-      const newUser = await User.updateOne({ id: user.id }, { $set: { password: req.body.password } }, { new: true, overwrite: true }).exec();
+      if (!req?.body?.current_password) throw Error("current password is required")
+      if (!req?.body?.new_password) throw new Error("new password is required!");
+      const userInfo = await User.findById(user?._id).exec()
+      const isMatch = userInfo?.checkPassword(req?.body?.current_password)
+      if (!isMatch) throw new Error("password is not correct")
+      const newUser = await User.updateOne({ id: user._id }, { $set: { password: req.body.new_password } }, { new: true, overwrite: true }).exec();
       res.status(201).send({ success: true, data: user });
     } catch (error: any) {
       res.status(400).send({ success: false, message: error.message });
