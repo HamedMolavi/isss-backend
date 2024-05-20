@@ -15,9 +15,11 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
   passport.authenticate('login')(req, res, () => {
 
     req.session.save((err: Error) => {
-      const maxAge = req.body.is_remember ? 8 * 60 * 60 * 1000 : 15 * 60 * 1000;
-      //             if remeber     8 hours       else    15 minutes
-      req.session.cookie.maxAge = maxAge;
+      if (req.user.role !== "admin") {
+        const maxAge = req.body.is_remember ? 8 * 60 * 60 * 1000 : 15 * 60 * 1000;
+        //             if remeber     8 hours       else    15 minutes
+        req.session.cookie.maxAge = maxAge;
+      }
       req.session.ip = req.ip ?? req.socket.remoteAddress;
       next(err ? err : null);
     });
