@@ -94,9 +94,13 @@ export function readElasticMiddleware(
       }
 
       if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !options?.next) {
-        req.flash(`error ,${index_name} data not found in DB`);
-        return next(new ApiError(404, `error ,${index_name} data not found in DB`));
+        req.flash(`error ,${index} data not found in DB`);
+        return next(new ApiError(404, `error ,${index} data not found in DB`));
       };
+
+      if (!!Array.isArray(req.body["elasticsearchIndices"])) req.body["elasticsearchIndices"].push(index);
+      else req.body["elasticsearchIndices"] = [index];
+
       let total = undefined;
       let data = esRes.hits.hits?.map((doc) => ({ "_id": doc._id, ...(doc._source ?? {}) }));
 
@@ -112,8 +116,7 @@ export function readElasticMiddleware(
           : esRes.hits.total?.value;
         // if (!options?.next) data.splice(0, search.from ?? 0);
       }
-      if (!!Array.isArray(req.body["elasticsearchIndices"])) req.body["elasticsearchIndices"].push(index_name);
-      else req.body["elasticsearchIndices"] = [index_name];
+
 
       if (options?.next) {
         req.body[options.save || 'esRes'] = data;
@@ -184,7 +187,8 @@ export function readByIdElasticMiddleware(
         req.flash(`error ,${index_name} data not found in DB`);
         return next(new ApiError(404, `error ,${index_name} data not found in DB`));
       };
-
+      if (!!Array.isArray(req.body["elasticsearchIndices"])) req.body["elasticsearchIndices"].push(query_elastic.index);
+      else req.body["elasticsearchIndices"] = [query_elastic.index];
       let doc = esRes.hits.hits[0];
       let data = !!options?.send ? options.send({ "_id": doc?._id, ...(doc?._source ?? {}) }, req)
         : { "_id": doc?._id, ...(doc?._source ?? {}) }
