@@ -48,7 +48,7 @@ router.post("/kafka",
     return next();
   },
   //create PersonImage document
-  createMiddleware(["person_id", "vector", "hash_id", { "_id": (body: any) => new mongoose.Types.ObjectId().toHexString() }], PersonImage, { next: false })
+  createMiddleware(["person_id", "vector", "hash_id", { "_id": (body: any) => body["redisData"]["_id"] }], PersonImage, { next: false })
 );
 
 // //route for verified image in redis
@@ -93,6 +93,7 @@ router.post("/notifpersonnel",
   (req: Request, res: Response, next: NextFunction) => {
     req.body["redisData"] = {}
     req.body["redisData"]["image_str"] = req.body["image_str"];
+    req.body["redisData"]["_id"] = req.body["_id"];
     req.body["redisData"]["vector"] = req.body["vector"];
     req.body["redisData"]["image_str"] = req.body["image_str"];
     req.body["redisData"]["confidence"] = req.body["confidence"];

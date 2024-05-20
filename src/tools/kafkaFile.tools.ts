@@ -14,6 +14,7 @@ import Personnel from "../db/mongo/models/personnel";
 import { IPersonnel } from "../types/interfaces/personnel.interface";
 import { getPropertyFromBody } from "./utils.tools";
 import { generateRandomString } from "./util.tools";
+import mongoose from "mongoose";
 // TODO: clean this shit up.
 
 
@@ -74,6 +75,7 @@ export class SnapshotKafka {
           const msg = JSON.parse(message.value?.toString("utf8") as string);
           if (message.key?.toString() === "asghar") {
             this.buffer[msg["personnel_id"]] = {
+              _id: msg["_id"],
               personnel_id: msg["personnel_id"],
               personnel_name: msg["personnel_name"] as string | null,
               face: msg["cropped_face"] as string | null,
@@ -195,6 +197,7 @@ export class SnapshotKafka {
         const frame = full_frame?.split(',')[1] ?? full_frame;
 
         return {
+          _id: new mongoose.Types.ObjectId().toHexString(),
           personnel_id: personnel?.id ?? '',
           personnel_name: name,
           full_frame: frame ?? "",
