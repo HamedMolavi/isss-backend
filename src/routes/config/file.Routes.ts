@@ -5,6 +5,7 @@ import { createMiddleware } from "../../db/mongo/create.database";
 import { randomUuid } from "../../tools/utils.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import { AddNotifPersonnelBody } from "../../validation/dto/notifPersonnel.dto";
+import mongoose from "mongoose";
 
 //create customized redis client
 const cfs = new ImageFileSystem();
@@ -29,7 +30,7 @@ router.get("/list",
 
 //api for upload image to redis
 router.post("/kafka",
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, {save:"id" ,isInReq: true, next: true }, "personnel_id", "image_str", "soghra"),
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { save: "id", isInReq: true, next: true }, "personnel_id", "image_str", "soghra"),
 
 
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "personnel_id"),
@@ -47,7 +48,7 @@ router.post("/kafka",
     return next();
   },
   //create PersonImage document
-  createMiddleware(["person_id", "vector", "hash_id"], PersonImage, { next: false })
+  createMiddleware(["person_id", "vector", "hash_id", { "_id": (body: any) => new mongoose.Types.ObjectId().toHexString() }], PersonImage, { next: false })
 );
 
 // //route for verified image in redis
@@ -67,7 +68,7 @@ router.post("/kafka",
 //     return next();
 //   },
 //   //create PersonImage document
-//   createMiddleware(["person_id", "vector", "hash_id"], PersonImage, { next: false })
+//   createMiddleware(["person_id", "vector", "hash_id", { "_id": (body: any) => new mongoose.Types.ObjectId().toHexString() }], PersonImage, { next: false })
 // );
 
 router.post("/search",
@@ -112,7 +113,7 @@ router.post("/notifpersonnel",
     req.body["redisData"]["confidence"] = req.body["confidence"];
     return next();
   },
-  createMiddleware(["person_id", "vector", "hash_id", "confidence"], PersonImage, { next: true }),
+  createMiddleware(["person_id", "vector", "hash_id", "confidence", { "_id": (body: any) => new mongoose.Types.ObjectId().toHexString() }], PersonImage, { next: true }),
   (req: Request, res: Response, next: NextFunction) => {
     res.status(201).send({
       success: true,
