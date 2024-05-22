@@ -26,7 +26,6 @@ router.post("/:index(plate|search|face|sabotage|human)",
       "plate": ReportPlateBody, "search": ReportPlateBody, "face": ReportFaceBody, "sabotage": ReportFaceBody, "human": ReportHumanBody
     };
     dtoValidationMiddleware(dtoClass[req.params.index], { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" })(req, res, next)
-    next();
   },
   Time.compareTimeMiddleware("start", "stop"),
 );
@@ -95,7 +94,7 @@ function searchFunction(body: any) {
   const fieldQueries = Object.entries(fields).filter(([, values]) => !!values && values.length > 0).map(([field, values]) => ({
     bool: {
       should: values.map(value => ({
-        term: {
+        match: {
           [`${field}`]: value
         }
       })),
