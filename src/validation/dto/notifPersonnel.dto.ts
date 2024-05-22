@@ -2,8 +2,6 @@ import {  IsString, IsArray } from "class-validator";
 
 export class AddNotifPersonnelBody {
   @IsString()
-  public _id?: string
-  @IsString()
   public person_id?: string;
   @IsString()
   public image_str?: string;

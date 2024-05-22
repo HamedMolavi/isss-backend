@@ -94,7 +94,8 @@ router.post("/notifpersonnel",
   (req: Request, res: Response, next: NextFunction) => {
     req.body["redisData"] = {}
     req.body["redisData"]["image_str"] = req.body["image_str"];
-    req.body["redisData"]["_id"] = req.body["_id"];
+    req.body["redisData"]["_id"] = new mongoose.Types.ObjectId().toHexString();
+    req.body["_id"] = req.body["redisData"]["_id"];
     req.body["redisData"]["vector"] = req.body["vector"];
     req.body["redisData"]["image_str"] = req.body["image_str"];
     req.body["redisData"]["confidence"] = req.body["confidence"];
@@ -102,7 +103,7 @@ router.post("/notifpersonnel",
     return next();
   },
   //create PersonImage document
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true, next: true }, "person_id", "vector", "hash_id", "confidence", "habil"),
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true, next: true }, "person_id", "vector", "hash_id", "confidence", "_id", "habil"),
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "response_ai", isInReq: true, next: true }, "person_id"),
   ((req: Request, res: Response, next: NextFunction) => req.body["response_ai"]?.success == false ?
     res.status(400).send({ message: req.body["response_ai"]?.message, }) :
@@ -115,7 +116,7 @@ router.post("/notifpersonnel",
     req.body["redisData"]["confidence"] = req.body["confidence"];
     return next();
   },
-  createMiddleware(["person_id", "vector", "hash_id", "confidence", { "_id": (body: any) => new mongoose.Types.ObjectId().toHexString() }], PersonImage, { next: true }),
+  createMiddleware(["person_id", "vector", "hash_id", "confidence", "_id"], PersonImage, { next: true }),
   (req: Request, res: Response, next: NextFunction) => {
     res.status(201).send({
       success: true,

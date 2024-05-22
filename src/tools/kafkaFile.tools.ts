@@ -93,6 +93,7 @@ export class SnapshotKafka {
           }
           else if (message.key?.toString() === "ghabil") {
             this.buffer[msg["personnel_id"]] = {
+              _id: msg["_id"] as string | null,
               status_code: msg["status_code"] as number | null,
               success: msg["success"] as boolean | null,
               message: msg["message"] as string | null,
@@ -227,6 +228,7 @@ export class SnapshotKafka {
         const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
         // const frame = full_frame?.split(',')[1] ?? full_frame;
         return {
+          _id: inputs._id ?? "",
           personnel_id: inputs.person_id ?? "",
           vector: inputs.vector ?? [],
           confidence: inputs.confidence ?? "0",
