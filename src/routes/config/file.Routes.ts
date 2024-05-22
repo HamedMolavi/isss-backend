@@ -40,6 +40,7 @@ router.post("/kafka",
   cfs.uploadAvatarMiddleware(["redisData", "face"], "personnel_id", { next: true }),
   //project redisData in req.body
   (req: Request, res: Response, next: NextFunction) => {
+    req.body["_id"] = req.body["redisData"]["_id"];
     req.body["person_id"] = req.body["redisData"]["personnel_id"];
     req.body["vector"] = req.body["redisData"]["embedding"];
     // req.body["masked_embd"] = req.body["redisData"]["masked_embd"];
@@ -48,7 +49,7 @@ router.post("/kafka",
     return next();
   },
   //create PersonImage document
-  createMiddleware(["person_id", "vector", "hash_id", { "_id": (body: any) => body["redisData"]["_id"] }], PersonImage, { next: false })
+  createMiddleware(["person_id", "vector", "hash_id", "_id"], PersonImage, { next: false })
 );
 
 // //route for verified image in redis

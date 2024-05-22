@@ -7,7 +7,7 @@ export function createMiddleware(keys: Array<string | { [key: string]: (body: an
       //get json from body request
       let payload: { [key: string]: string | Array<string>} ={};
       for (const key of keys) {
-        if (!Object.prototype.hasOwnProperty.call(req.body, typeof key === "string" ? key : Object.keys(key)[0])) continue;
+        // if (!Object.prototype.hasOwnProperty.call(req.body, typeof key === "string" ? key : Object.keys(key)[0])) continue;
         if (typeof (key) === "string") payload[key] = req.body[key];
         else if (typeof (key) === "object") payload[Object.keys(key)[0]] = Object.values(key)[0](req.body);
       };
