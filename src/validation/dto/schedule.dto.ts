@@ -94,6 +94,6 @@ export class UpdateActiveScheduleBody {
   public alert?: object;
   @IsArray()
   public schedules?: Array<Schema.Types.ObjectId>;
-  @IsString()
-  public state?: string;
+  // @IsString()
+  // public state?: string;
 };
