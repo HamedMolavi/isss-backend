@@ -44,8 +44,9 @@ router.post("",
 );
 
 //route for get personnels list
-router.get(["", "/search"],
-  readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction, populate: true }));
+router.get(["", "/search", "/hostile"],
+  readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction, populate: true })
+);
 
 //route for get personnel by id from DB
 router.get("/:id",
@@ -77,7 +78,7 @@ router.delete("/:id",
   fs.deleteDirectoryMiddleware(["doc", "_id"], { force: true, send: "doc" })
 );
 
-async function personnelSendFunction(_personnel: any) {
+async function personnelSendFunction(_personnel: any, req: Request) {
   let per = _personnel.toJSON();
   // TODO: fetch last location from normalizer server.
   let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
@@ -92,7 +93,7 @@ async function personnelSendFunction(_personnel: any) {
   }
   (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
   if (!!per.allowed_pass) per.allowed_pass = allowedPassRevert(per);
-  return per;
+  return (per?.first_name === "Hostile") === req.originalUrl.toLowerCase().includes("hostile") ? per : undefined; // don't panic, it's just XNOR
 };
 
 export default router;
