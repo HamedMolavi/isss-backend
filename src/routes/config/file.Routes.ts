@@ -32,41 +32,36 @@ router.get("/list",
 router.post("/hostile",
   async (req, res, next) => {
     if (!req.body["image_str"] || !Array.isArray(req.body["image_str"]) || !req.body["image_str"].every(el => typeof el === "string")) return res.status(400).end();
-    let buffer: { [key: string]: any } = {};
+    let data: any[] = [];
+    let result: any[] = [];
+    const person = await Personnel.create({
+      first_name: 'Hostile',
+      last_name: randomUuid(1, "word"),
+      personnel_code: randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join(""),
+    });
     for (const image_str of req.body["image_str"]) {
-      const person = await Personnel.create({
-        first_name: 'Hostile',
-        last_name: randomUuid(1, "word"),
-        personnel_code: randomUuid(10, "number").toString(),
-      });
       await snapshotKafka.kafkaProduce({ image_str, "personnel_id": person.id, "soghra": "", });
-      buffer[person.id] = await snapshotKafka.kafkaGet(person);
+      data.push(await snapshotKafka.kafkaGet(person));
     }
-    for (const pid in buffer) {
-      if (Object.prototype.hasOwnProperty.call(buffer, pid)) {
-        const aiResult = buffer[pid];
-        if (!!aiResult?.has_face) {
-          try {
-            const { hash } = cfs.uploadAvatar(pid, buffer[pid]["face"]);
-            buffer[pid] = await PersonImage.create({
-              "_id": buffer[pid]["_id"],
-              "hash_id": hash,
-              "person_id": new mongoose.Types.ObjectId(pid),
-              "vector": buffer[pid]["embedding"]
-            });
-            continue;
-          } catch (error) {
-            console.log(error);
-          }
+    for (const aiResult of data) {
+      if (!!aiResult?.has_face) {
+        try {
+          const { hash } = cfs.uploadAvatar(person.id, aiResult["face"]);
+          result.push(await PersonImage.create({
+            "_id": aiResult["_id"],
+            "hash_id": hash,
+            "person_id": person._id,
+            "vector": aiResult["embedding"]
+          }));
+        } catch (error) {
+          console.log(error);
         }
-        await Personnel.deleteOne({ "_id": new mongoose.Types.ObjectId(pid) }).exec();
-        buffer[pid] = undefined;
-        delete buffer[pid];
       }
     }
+    if (!result.length) await person.delete();
     return res.status(201).json({
       success: true,
-      data: Object.values(buffer)
+      data: result
     })
   }
 );

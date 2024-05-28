@@ -74,14 +74,16 @@ PersonnelSchema.methods.toJSON = function () {
 PersonnelSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc: (IPersonnel & Required<{ _id: Schema.Types.ObjectId; }>)) => {
   let images = await PersonImage.find({ person_id: doc._id }).exec();
   for (const image of images) {
-    const vector = image.vector;
-    const vectorFilePath = `../../assets/image/${doc.first_name}_${doc.last_name}_${image.hash_id}.txt`;
-    fs.writeFile(vectorFilePath, JSON.stringify(vector));
-    // if (!!image.masked_embd) {
-    //   const masked_embd = image.masked_embd;
-    //   const maskedFilePath = `../../../assets/image/${doc.first_name}_${doc.last_name}_${image.masked_face_id}.txt`;
-    //   fs.writeFile(maskedFilePath, JSON.stringify(masked_embd));
-    // };
+    // try {
+    //   const vector = image.vector;
+    //   const vectorFilePath = `../../assets/image/${doc.id}/${doc.id}-${image.hash_id}.jpeg`;
+    //   fs.writeFile(vectorFilePath, JSON.stringify(vector));
+      // if (!!image.masked_embd) {
+      //   const masked_embd = image.masked_embd;
+      //   const maskedFilePath = `../../../assets/image/${doc.first_name}_${doc.last_name}_${image.masked_face_id}.txt`;
+      //   fs.writeFile(maskedFilePath, JSON.stringify(masked_embd));
+      // };
+    // } catch (_) { }
     await image.delete();
   };
   await PersonImage.deleteMany({ person_id: doc._id }).exec(); // to ensure
