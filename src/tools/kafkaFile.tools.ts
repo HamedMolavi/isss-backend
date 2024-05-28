@@ -19,9 +19,9 @@ import mongoose from "mongoose";
 
 
 export class SnapshotKafka {
-  buffer: { [key: string]: any  };
+  buffer: { [key: string]: any };
   consumer: any;
- // consumer: Consumer;
+  // consumer: Consumer;
   producer: Producer;
   //redisClient: RedisClientType | undefined
   middlewareWraper: (
@@ -50,10 +50,10 @@ export class SnapshotKafka {
       retry: {
         // Try to reconnect after 10seg
         initialRetryTime: 10 * 1000,
-        retries: 10 ,
+        retries: 10,
       },
       heartbeatInterval: 25000,
-      
+
     });
 
     // Connect to consumer
@@ -71,7 +71,7 @@ export class SnapshotKafka {
         //  .then(async () => {
         //  await this.consumer.connect();
         //this.consumer.run({
-        eachMessage: async ({ message }:any) => {
+        eachMessage: async ({ message }: any) => {
           const msg = JSON.parse(message.value?.toString("utf8") as string);
           if (message.key?.toString() === "asghar") {
             this.buffer[msg["personnel_id"]] = {
@@ -135,7 +135,7 @@ export class SnapshotKafka {
     //   sessionTimeout: 30000, // longer session timeout
     // });
     // this.consumer
-   
+
     this.producer = new Kafka({
       logLevel: logLevel.ERROR,
       brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
@@ -262,7 +262,7 @@ export class SnapshotKafka {
     let bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
     let count = 0;
     while (!bufferEntry && count < 14) {
-      console.log(id)
+      // console.log(id)
       await new Promise(resolve => setTimeout(resolve, 2000)); // 1 second delay
       bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
       count++;
@@ -308,6 +308,27 @@ export class ImageFileSystem {
     this.preCreateDirectories();
     this.hash = (imgBase64: string) => hashString(imgBase64, this.secret);
   }
+  uploadAvatar = (id: string, imageStr: string, options?: { fileName?: string }) => {
+    let imagePath: string = "";
+    let name = "";
+    let hash = "";
+    imageStr = imageStr.split(",").length >= 2 ? imageStr.split(",")[1] : imageStr;
+    if (!!options?.fileName) name = options.fileName;
+    else {
+      hash = this.hash(imageStr);
+      name = `${id}-${hash}`;
+    }
+    //convert file to buffer
+    let image = Buffer.from(imageStr as string, "base64");
+    //get path for save file
+    const imageDir = this.makeAndReturnNewDirectoryForUser(id as string);
+    imagePath = path.join(imageDir, `${name}.jpeg`);
+    //write image in path
+    fs.writeFileSync(imagePath, image);
+    return {
+      imageStr, name, imagePath, hash
+    }
+  };
 
   uploadAvatarMiddleware = (
     imagePropertyName: string | Array<string>,
@@ -320,45 +341,29 @@ export class ImageFileSystem {
     */
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
-        let imagePath: string = "";
-        let name = "";
-        //id data
         let id = String(getPropertyFromBody(req, idPropertyName) ?? "");
-        //avatarStr data
         let imageStr = String(getPropertyFromBody(req, imagePropertyName) ?? "");
         let check = !!imageStr && !!id;
         if (check) {
-          imageStr = imageStr.split(",").length >= 2 ? imageStr.split(",")[1] : imageStr;
-          if (!!options?.fileName) name = options.fileName;
-          else {
-            const hash = this.hash(imageStr);
-            name = `${id}-${hash}`;
-            req.body["redisData"][typeof imagePropertyName === "string" ? imagePropertyName : imagePropertyName[imagePropertyName.length - 1]] = hash;
+          const { name, imagePath, hash } = this.uploadAvatar(id, imageStr, options);
+          req.body["redisData"][typeof imagePropertyName === "string" ? imagePropertyName : imagePropertyName[imagePropertyName.length - 1]] = hash;
+          if (!!options?.next) return next();
+          if (!resultPropertyName) {
+            return res.status(check ? 201 : 404).json({
+              success: check,
+              data: check ? {
+                name: `${name}.jpeg`,
+                location: imagePath,
+                message: "Uploaded the file successfully!"
+              } : { message: "Uploaded the file failed!" },
+            });
+          } else {
+            return res.status(201).json({
+              success: true,
+              data: req.body[resultPropertyName]
+            });
           }
-          //convert file to buffer
-          let image = Buffer.from(imageStr as string, "base64");
-          //get path for save file
-          const imageDir = this.makeAndReturnNewDirectoryForUser(id as string);
-          imagePath = path.join(imageDir, `${name}.jpeg`);
-          //write image in path
-          fs.writeFileSync(imagePath, image);
-        };
-        if (!!options?.next) return next();
-        if (!resultPropertyName) {
-          return res.status(check ? 201 : 404).json({
-            success: check,
-            data: check ? {
-              name: `${name}.jpeg`,
-              location: imagePath,
-              message: "Uploaded the file successfully!"
-            } : { message: "Uploaded the file failed!" },
-          });
-        } else {
-          return res.status(201).json({
-            success: true,
-            data: req.body[resultPropertyName]
-          });
-        }
+        } else return next(new ApiError(500, "Internal Error!"));
       } catch (e: any) {
         return next(new ApiError(500, "Internal Error!"));
       }

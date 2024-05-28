@@ -4,17 +4,18 @@ import { IPersonnel } from "../../../types/interfaces/personnel.interface";
 import PersonImage from "./personImage";
 import Car from "./car";
 import fs from 'fs-extra';
+import { randomUuid } from "../../../tools/utils.tools";
 
 //create personnel model with schema for save in DB
 const PersonnelSchema: Schema<IPersonnel> = new Schema(
   {
     first_name: { type: String, required: true },
     last_name: { type: String, required: true },
-    national_code: { type: String, required: true },
+    national_code: { type: String, default: "" }, // () => randomUuid(10, "number").toString()
     email: { type: String, default: "test@gmail.com" },
-    phone_number: { type: String, required: false },
+    phone_number: { type: String, default: "" },
     job_id: { type: Schema.Types.ObjectId, ref: "JobTitle", default: undefined },
-    personnel_code: { type: String, required: false },
+    personnel_code: { type: String, default: "" }, // () => randomUuid(10, "number").toString()
     section_id: { type: Schema.Types.ObjectId, ref: "Section", default: undefined },
     camera_whitelist: { type: [Schema.Types.ObjectId], ref: "Camera", default: [] },
     section_whitelist: { type: [Schema.Types.ObjectId], ref: "Section", default: [] },
@@ -74,11 +75,11 @@ PersonnelSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "
   let images = await PersonImage.find({ person_id: doc._id }).exec();
   for (const image of images) {
     const vector = image.vector;
-    const vectorFilePath = `../../../assets/backupImages/${doc.first_name}_${doc.last_name}_${image.hash_id}.txt`;
+    const vectorFilePath = `../../assets/image/${doc.first_name}_${doc.last_name}_${image.hash_id}.txt`;
     fs.writeFile(vectorFilePath, JSON.stringify(vector));
     // if (!!image.masked_embd) {
     //   const masked_embd = image.masked_embd;
-    //   const maskedFilePath = `../../../assets/backupImages/${doc.first_name}_${doc.last_name}_${image.masked_face_id}.txt`;
+    //   const maskedFilePath = `../../../assets/image/${doc.first_name}_${doc.last_name}_${image.masked_face_id}.txt`;
     //   fs.writeFile(maskedFilePath, JSON.stringify(masked_embd));
     // };
     await image.delete();

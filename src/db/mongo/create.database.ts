@@ -11,6 +11,13 @@ export function createMiddleware(keys: Array<string | { [key: string]: (body: an
         if (typeof (key) === "string") payload[key] = req.body[key];
         else if (typeof (key) === "object") payload[Object.keys(key)[0]] = Object.values(key)[0](req.body);
       };
+      // trim string based values
+      for (const key in payload) {
+        if (Object.prototype.hasOwnProperty.call(payload, key)) {
+          const element = payload[key];
+          if (typeof element === "string") payload[key] = element.trim();
+        }
+      }
       //create
       let doc = new model(payload);
       await doc.save();

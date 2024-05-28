@@ -6,6 +6,7 @@ import { randomUuid } from "../../tools/utils.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import { AddNotifPersonnelBody } from "../../validation/dto/notifPersonnel.dto";
 import mongoose from "mongoose";
+import Personnel from "../../db/mongo/models/personnel";
 
 //create customized redis client
 const cfs = new ImageFileSystem();
@@ -27,6 +28,48 @@ router.get("/download/:fileName",
 //create api for get list file upload
 router.get("/list",
   cfs.listMiddleware());
+
+router.post("/hostile",
+  async (req, res, next) => {
+    if (!req.body["image_str"] || !Array.isArray(req.body["image_str"]) || !req.body["image_str"].every(el => typeof el === "string")) return res.status(400).end();
+    let buffer: { [key: string]: any } = {};
+    for (const image_str of req.body["image_str"]) {
+      const person = await Personnel.create({
+        first_name: 'Hostile',
+        last_name: randomUuid(1, "word"),
+        personnel_code: randomUuid(10, "number").toString(),
+      });
+      await snapshotKafka.kafkaProduce({ image_str, "personnel_id": person.id, "soghra": "", });
+      buffer[person.id] = await snapshotKafka.kafkaGet(person);
+    }
+    for (const pid in buffer) {
+      if (Object.prototype.hasOwnProperty.call(buffer, pid)) {
+        const aiResult = buffer[pid];
+        if (!!aiResult?.has_face) {
+          try {
+            const { hash } = cfs.uploadAvatar(pid, buffer[pid]["face"]);
+            buffer[pid] = await PersonImage.create({
+              "_id": buffer[pid]["_id"],
+              "hash_id": hash,
+              "person_id": new mongoose.Types.ObjectId(pid),
+              "vector": buffer[pid]["embedding"]
+            });
+            continue;
+          } catch (error) {
+            console.log(error);
+          }
+        }
+        await Personnel.deleteOne({ "_id": new mongoose.Types.ObjectId(pid) }).exec();
+        buffer[pid] = undefined;
+        delete buffer[pid];
+      }
+    }
+    return res.status(201).json({
+      success: true,
+      data: Object.values(buffer)
+    })
+  }
+);
 
 //api for upload image to redis
 router.post("/kafka",

@@ -26,15 +26,19 @@ export class CustomEmailValidator implements ValidatorConstraintInterface {
 
 export class CreatePersonnelBody {
   @IsString()
+  @IsOptional()
   public first_name?: string;
   @IsString()
+  @IsOptional()
   public last_name?: string;
   @IsString()
+  @IsOptional()
   public national_code?: string;
   @Validate(CustomEmailValidator)
   @IsOptional()
   public email?: string |  null
   @IsString()
+  @IsOptional()
   public phone_number?: string| null;
   @IsOptional()
   public job_id?: mongoose.Types.ObjectId;
@@ -44,6 +48,7 @@ export class CreatePersonnelBody {
   @IsOptional()
   public tracked?: boolean| null;
   @IsString()
+  @IsOptional()
   public personnel_code?: string| null;
   @IsArray()
   @IsOptional()
@@ -58,6 +63,7 @@ export class CreatePersonnelBody {
   @IsOptional()
   public schedule_whitelist?: string[]| null;
   @IsBoolean()
+  @IsOptional()
   public is_active?: boolean| null;
   @Validate(EndgtrStartValidator)
   @Validate(TimeAndDateValidator, ['date_start'])

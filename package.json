@@ -78,6 +78,7 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "persian-date": "^1.1.0",
+    "random-words-es": "^1.1.1",
     "redis": "^4.1.0",
     "reflect-metadata": "^0.2.1",
     "rotating-file-stream": "^3.0.3",
