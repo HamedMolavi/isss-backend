@@ -430,10 +430,10 @@ export class ImageFileSystem {
     };
   }
 
-  readFiles(dirname: string, files: Array<string>): object[] | null {
+  readFiles(dirname: string, files: Array<string>): { "hash_id": string, "faces_base64": string, [key: string]: any }[] | null {
     //check for existance
     files = files.filter((file) => fs.existsSync(path.join(dirname, file)));
-    let response: object[] = [];
+    let response: any = [];
     //read file and convert to base 64 and return list base64
     for (const file of files) {
       //read file and convert to base64
