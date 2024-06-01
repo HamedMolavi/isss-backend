@@ -28,6 +28,7 @@ router.get(["", "/hostile"],
         const files = images.map(image => person.id + "-" + image.hash_id + ".jpeg");
         const imageFilesRead = fs.readFiles(pathRead, files);
         return {
+          "_id": person.id,
           "person_id": images?.[0]?.person_id,
           "images": imageFilesRead ?? []
         }
