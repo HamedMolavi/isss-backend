@@ -341,29 +341,45 @@ export class ImageFileSystem {
     */
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
+        let imagePath: string = "";
+        let name = "";
+        //id data
         let id = String(getPropertyFromBody(req, idPropertyName) ?? "");
+        //avatarStr data
         let imageStr = String(getPropertyFromBody(req, imagePropertyName) ?? "");
         let check = !!imageStr && !!id;
         if (check) {
-          const { name, imagePath, hash } = this.uploadAvatar(id, imageStr, options);
-          req.body["redisData"][typeof imagePropertyName === "string" ? imagePropertyName : imagePropertyName[imagePropertyName.length - 1]] = hash;
-          if (!!options?.next) return next();
-          if (!resultPropertyName) {
-            return res.status(check ? 201 : 404).json({
-              success: check,
-              data: check ? {
-                name: `${name}.jpeg`,
-                location: imagePath,
-                message: "Uploaded the file successfully!"
-              } : { message: "Uploaded the file failed!" },
-            });
-          } else {
-            return res.status(201).json({
-              success: true,
-              data: req.body[resultPropertyName]
-            });
+          imageStr = imageStr.split(",").length >= 2 ? imageStr.split(",")[1] : imageStr;
+          if (!!options?.fileName) name = options.fileName;
+          else {
+            const hash = this.hash(imageStr);
+            name = `${id}-${hash}`;
+            req.body["redisData"][typeof imagePropertyName === "string" ? imagePropertyName : imagePropertyName[imagePropertyName.length - 1]] = hash;
           }
-        } else return next(new ApiError(500, "Internal Error!"));
+          //convert file to buffer
+          let image = Buffer.from(imageStr as string, "base64");
+          //get path for save file
+          const imageDir = this.makeAndReturnNewDirectoryForUser(id as string);
+          imagePath = path.join(imageDir, `${name}.jpeg`);
+          //write image in path
+          fs.writeFileSync(imagePath, image);
+        };
+        if (!!options?.next) return next();
+        if (!resultPropertyName) {
+          return res.status(check ? 201 : 404).json({
+            success: check,
+            data: check ? {
+              name: `${name}.jpeg`,
+              location: imagePath,
+              message: "Uploaded the file successfully!"
+            } : { message: "Uploaded the file failed!" },
+          });
+        } else {
+          return res.status(201).json({
+            success: true,
+            data: req.body[resultPropertyName]
+          });
+        }
       } catch (e: any) {
         return next(new ApiError(500, "Internal Error!"));
       }
