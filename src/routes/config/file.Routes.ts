@@ -34,12 +34,13 @@ router.post("/hostile",
     if (!req.body["image_str"] || !Array.isArray(req.body["image_str"]) || !req.body["image_str"].every(el => typeof el === "string")) return res.status(400).end();
     let data: any[] = [];
     let result: any[] = [];
+    const code = randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join("")
     const person = await Personnel.create({
       tracked: !!req.body["tracked"],
       alert: !!req.body["alert"],
       first_name: 'Hostile',
-      last_name: randomUuid(1, "word"),
-      personnel_code: randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join(""),
+      last_name: code,
+      personnel_code: code,
     });
     for (const image_str of req.body["image_str"]) {
       await snapshotKafka.kafkaProduce({ image_str, "personnel_id": person.id, "soghra": "", });
