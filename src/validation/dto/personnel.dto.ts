@@ -64,7 +64,7 @@ export class CreatePersonnelBody {
   public schedule_whitelist?: string[]| null;
   @IsBoolean()
   @IsOptional()
-  public is_active?: boolean| null;
+  public alert?: boolean;
   @Validate(EndgtrStartValidator)
   @Validate(TimeAndDateValidator, ['date_start'])
   @IsString()
@@ -123,9 +123,6 @@ export class UpdatePersonnelBody {
   @IsArray()
   @IsOptional()
   public schedule_whitelist?: string[];
-  @IsBoolean()
-  @IsOptional()
-  public is_active?: boolean;
   @Validate(EndgtrStartValidator)
   @Validate(TimeAndDateValidator, ['date_start'])
   @IsString()

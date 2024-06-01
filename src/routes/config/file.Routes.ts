@@ -35,6 +35,8 @@ router.post("/hostile",
     let data: any[] = [];
     let result: any[] = [];
     const person = await Personnel.create({
+      tracked: !!req.body["tracked"],
+      alert: !!req.body["alert"],
       first_name: 'Hostile',
       last_name: randomUuid(1, "word"),
       personnel_code: randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join(""),

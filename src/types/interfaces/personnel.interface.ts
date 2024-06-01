@@ -16,8 +16,8 @@ export interface IPersonnel extends Document {
   section_whitelist: Schema.Types.ObjectId[];
   schedule_whitelist: Schema.Types.ObjectId[];
   allowed_pass: {"start": number, "end": number} | undefined;
-  is_active: boolean;
   tracked: boolean;
   create_date: Date;
+  alert: boolean;
   toName: () => string;
 };

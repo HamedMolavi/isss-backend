@@ -22,7 +22,7 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
     schedule_whitelist: { type: [Schema.Types.ObjectId], ref: "Schedule", default: [] },
     department_whitelist: { type: [Schema.Types.ObjectId], ref: "Department", default: [] },
     allowed_pass: { type: Schema.Types.Mixed, default: undefined },
-    is_active: { type: Boolean, default: false },
+    alert: { type: Boolean, default: false },
     tracked: { type: Boolean, default: false },
     create_date: { type: Date, default: Date.now },
   },
@@ -59,12 +59,10 @@ PersonnelSchema.methods.toJSON = function () {
     section_id: this.section_id,
     camera_whitelist: this.camera_whitelist,
     image_id: this.image_id,
-    is_active: this.is_active,
-    is_employee: this.is_employee,
-    is_dismissed: this.is_dismissed,
     create_date: this.create_date,
     tracked: this.tracked,
     allowed_pass: this.allowed_pass,
+    alert: this.alert,
     image_url: have_avatar === true ? BASE_URL + "/config/user/files/download/" + this._id : BASE_URL + "/config/user/files/download/default"
   };
 };
