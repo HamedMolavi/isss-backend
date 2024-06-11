@@ -37,15 +37,16 @@ const rawSearch = (search: string) => {
 //add route for register new personnel
 router.post("",
   dtoValidationMiddleware(CreatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  existCheck(Personnel, { $or: [{ national_code: "national_code" }, { personnel_code: "personnel_code" }] }, "Personnel already exists!"),
+  existCheck(Personnel, { $and: [{ first_name: "first_name" }, { last_name: "last_name" }] }, "Personnel already exists!"),
   injectDataMiddleware(allowedPassConvert, { injData: "allowed_pass" }),
-  createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "section_id", "camera_whitelist", "is_active", "department_whitelist", "section_whitelist", "schedule_whitelist", "allowed_pass"], Personnel, { next: true, save: "doc" }),
+  createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "section_id", "camera_whitelist", "department_whitelist", "section_whitelist", "schedule_whitelist", "allowed_pass", "alert"], Personnel, { next: true, save: "doc" }),
   fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { fileName: "avatar" }, "doc"),
 );
 
 //route for get personnels list
-router.get(["", "/search"],
-  readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction, populate: true }));
+router.get(["", "/search", "/hostile"],
+  readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction, populate: true })
+);
 
 //route for get personnel by id from DB
 router.get("/:id",
@@ -77,7 +78,7 @@ router.delete("/:id",
   fs.deleteDirectoryMiddleware(["doc", "_id"], { force: true, send: "doc" })
 );
 
-async function personnelSendFunction(_personnel: any) {
+async function personnelSendFunction(_personnel: any, req: Request) {
   let per = _personnel.toJSON();
   // TODO: fetch last location from normalizer server.
   let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
@@ -92,7 +93,7 @@ async function personnelSendFunction(_personnel: any) {
   }
   (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
   if (!!per.allowed_pass) per.allowed_pass = allowedPassRevert(per);
-  return per;
+  return (per?.first_name === "Hostile") === req.originalUrl.toLowerCase().includes("hostile") ? per : undefined; // don't panic, it's just XNOR
 };
 
 export default router;

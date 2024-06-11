@@ -1,4 +1,6 @@
-# Structure
+# Server
+
+## Structure
 
 ```js
 server.ts
@@ -147,10 +149,13 @@ server.ts
     └ notFound
 ```
 
-# Database
+## Database
 
-# Migrate
-```
+placeholder
+
+## Migrate
+
+```text
 /api/v1/users/login => /api/v1/auth/login
 
 /api/v1/cameras ===========> /api/v1/config/user/cameras
@@ -181,3 +186,44 @@ server.ts
 
 /api/v1/alerts => Deprecated
 ```
+
+## Flows
+
+### Personnel and Person Image
+
+#### Create a Person
+
+```ts
+ /*   POST /api/v1/config/user/personnels   */
+interface CreatePersonnelBody {
+  first_name: string;
+  last_name: string;
+  national_code: string;
+  email?: string |  null
+  phone_number: string| null;
+  job_id?: mongoose.Types.ObjectId;
+  section_id?: mongoose.Types.ObjectId| null;
+  tracked?: boolean| null;
+  personnel_code: string| null;
+  camera_whitelist?: string[]| null;
+  department_whitelist?: string[]| null;
+  section_whitelist?: string[]| null;
+  schedule_whitelist?: string[]| null;
+  is_active: boolean| null;
+  time_start?: string;
+  date_start?: string;
+  time_end?: string;
+  date_end?: string;
+};
+```
+
+Exist Check is done with:  
+OR:
+
+* national_code
+* personnel_code
+
+Save the person. Then save its avatar:
+
+* image: Buffer from (base64 recv from UI, sliced from ",")
+* path: /isss-backend/assets/personnel_id/avatar.jpeg

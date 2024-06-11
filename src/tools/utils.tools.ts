@@ -1,8 +1,13 @@
 import { randomUUID } from "crypto";
 import inspector from 'inspector';
 import { Request } from "express";
+var randomWords = require('random-words-es');
 
-export function randomUuid(len: number = 12) {
+// bcrypt.hash("2", "$2b$10$/3XrA1.HamedMolaviC22O").then(hash => hash.slice(-31,-1))
+
+export function randomUuid(len: number = 12, type: "random" | "word" | "number" = "random") {
+  if (type === "word") return randomWords() as string;
+  else if (type === "number") return (Math.floor(Math.random() * (9 * 10 ** (len - 1))) + (10 ** (len - 1))).toString()
   if (len > 36) throw new Error("Can't make a random string more than 36 character.")
   return randomUUID({ disableEntropyCache: true }).substr(-1 * len).replace("-", "_");
 };
@@ -30,7 +35,7 @@ export function getNestedObjectValue(obj: any, path: string[]): any {
 };
 
 export function getEntries(o: any, prefix = ''): Array<[string, unknown]> {
-  return Object.entries(o).flatMap(([k, v]) => Object(v) === v  ? getEntries(v, `${prefix}${k}.`) : [ [`${prefix}${k}`, v] ]);
+  return Object.entries(o).flatMap(([k, v]) => Object(v) === v ? getEntries(v, `${prefix}${k}.`) : [[`${prefix}${k}`, v]]);
 }
 
 export function isInDebugMode(): boolean {

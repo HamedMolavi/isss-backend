@@ -4,24 +4,25 @@ import { IPersonnel } from "../../../types/interfaces/personnel.interface";
 import PersonImage from "./personImage";
 import Car from "./car";
 import fs from 'fs-extra';
+import { randomUuid } from "../../../tools/utils.tools";
 
 //create personnel model with schema for save in DB
 const PersonnelSchema: Schema<IPersonnel> = new Schema(
   {
     first_name: { type: String, required: true },
     last_name: { type: String, required: true },
-    national_code: { type: String, required: true },
+    national_code: { type: String, default: "" }, // () => randomUuid(10, "number").toString()
     email: { type: String, default: "test@gmail.com" },
-    phone_number: { type: String, required: false },
+    phone_number: { type: String, default: "" },
     job_id: { type: Schema.Types.ObjectId, ref: "JobTitle", default: undefined },
-    personnel_code: { type: String, required: false },
+    personnel_code: { type: String, default: "" }, // () => randomUuid(10, "number").toString()
     section_id: { type: Schema.Types.ObjectId, ref: "Section", default: undefined },
     camera_whitelist: { type: [Schema.Types.ObjectId], ref: "Camera", default: [] },
     section_whitelist: { type: [Schema.Types.ObjectId], ref: "Section", default: [] },
     schedule_whitelist: { type: [Schema.Types.ObjectId], ref: "Schedule", default: [] },
     department_whitelist: { type: [Schema.Types.ObjectId], ref: "Department", default: [] },
     allowed_pass: { type: Schema.Types.Mixed, default: undefined },
-    is_active: { type: Boolean, default: false },
+    alert: { type: Boolean, default: false },
     tracked: { type: Boolean, default: false },
     create_date: { type: Date, default: Date.now },
   },
@@ -58,12 +59,10 @@ PersonnelSchema.methods.toJSON = function () {
     section_id: this.section_id,
     camera_whitelist: this.camera_whitelist,
     image_id: this.image_id,
-    is_active: this.is_active,
-    is_employee: this.is_employee,
-    is_dismissed: this.is_dismissed,
     create_date: this.create_date,
     tracked: this.tracked,
     allowed_pass: this.allowed_pass,
+    alert: this.alert,
     image_url: have_avatar === true ? BASE_URL + "/config/user/files/download/" + this._id : BASE_URL + "/config/user/files/download/default"
   };
 };
@@ -73,14 +72,16 @@ PersonnelSchema.methods.toJSON = function () {
 PersonnelSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc: (IPersonnel & Required<{ _id: Schema.Types.ObjectId; }>)) => {
   let images = await PersonImage.find({ person_id: doc._id }).exec();
   for (const image of images) {
-    const vector = image.vector;
-    const vectorFilePath = `../../../assets/backupImages/${doc.first_name}_${doc.last_name}_${image.hash_id}.txt`;
-    fs.writeFile(vectorFilePath, JSON.stringify(vector));
-    // if (!!image.masked_embd) {
-    //   const masked_embd = image.masked_embd;
-    //   const maskedFilePath = `../../../assets/backupImages/${doc.first_name}_${doc.last_name}_${image.masked_face_id}.txt`;
-    //   fs.writeFile(maskedFilePath, JSON.stringify(masked_embd));
-    // };
+    // try {
+    //   const vector = image.vector;
+    //   const vectorFilePath = `../../assets/image/${doc.id}/${doc.id}-${image.hash_id}.jpeg`;
+    //   fs.writeFile(vectorFilePath, JSON.stringify(vector));
+      // if (!!image.masked_embd) {
+      //   const masked_embd = image.masked_embd;
+      //   const maskedFilePath = `../../../assets/image/${doc.first_name}_${doc.last_name}_${image.masked_face_id}.txt`;
+      //   fs.writeFile(maskedFilePath, JSON.stringify(masked_embd));
+      // };
+    // } catch (_) { }
     await image.delete();
   };
   await PersonImage.deleteMany({ person_id: doc._id }).exec(); // to ensure

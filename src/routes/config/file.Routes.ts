@@ -6,6 +6,7 @@ import { randomUuid } from "../../tools/utils.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import { AddNotifPersonnelBody } from "../../validation/dto/notifPersonnel.dto";
 import mongoose from "mongoose";
+import Personnel from "../../db/mongo/models/personnel";
 
 //create customized redis client
 const cfs = new ImageFileSystem();
@@ -27,6 +28,46 @@ router.get("/download/:fileName",
 //create api for get list file upload
 router.get("/list",
   cfs.listMiddleware());
+
+router.post("/hostile",
+  async (req, res, next) => {
+    if (!req.body["image_str"] || !Array.isArray(req.body["image_str"]) || !req.body["image_str"].every(el => typeof el === "string")) return res.status(400).end();
+    let data: any[] = [];
+    let result: any[] = [];
+    const code = randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join("")
+    const person = await Personnel.create({
+      tracked: !!req.body["tracked"],
+      alert: !!req.body["alert"],
+      first_name: 'Hostile',
+      last_name: code,
+      personnel_code: code,
+    });
+    for (const image_str of req.body["image_str"]) {
+      await snapshotKafka.kafkaProduce({ image_str, "personnel_id": person.id, "soghra": "", });
+      data.push(await snapshotKafka.kafkaGet(person));
+    }
+    for (const aiResult of data) {
+      if (!!aiResult?.has_face) {
+        try {
+          const { hash } = cfs.uploadAvatar(person.id, aiResult["face"]);
+          result.push(await PersonImage.create({
+            "_id": aiResult["_id"],
+            "hash_id": hash,
+            "person_id": person._id,
+            "vector": aiResult["embedding"]
+          }));
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    }
+    if (!result.length) await person.delete();
+    return res.status(201).json({
+      success: true,
+      data: result
+    })
+  }
+);
 
 //api for upload image to redis
 router.post("/kafka",
