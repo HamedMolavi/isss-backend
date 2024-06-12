@@ -42,7 +42,7 @@ router.use('/:type(tree|table|cumulative)/:id?',
 // Read Elastic logs in specified range and send it
 router.use('/table/:id?',
   readElasticMiddleware(`${process.env["FACE_INDEX"] ?? "face_log"}`, {
-    forceAll:true,
+    forceAll: true,
     searchFromBody: searchFunction,
     send: unifiedSendFunction
   })
@@ -106,7 +106,15 @@ function searchFunction(body: any) {
       "script_score": {
         query,
         "script": {
-          "source": "cosineSimilarity(params.query_vector, 'vector') + 1.0",
+          "source": `
+          double result = 0;
+          if (doc['vector'] != null && doc['vector'].length > 0) {
+            result = cosineSimilarity(params.query_vector, 'vector') + 1.0;
+          } else {
+            result = 0; // Example of setting a default score
+          }
+          return result;
+        `,
           "params": {
             "query_vector": body["targetVector"] ?? []
           }
