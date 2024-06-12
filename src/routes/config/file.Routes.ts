@@ -7,6 +7,8 @@ import { dtoValidationMiddleware } from "../../validation/dto";
 import { AddNotifPersonnelBody } from "../../validation/dto/notifPersonnel.dto";
 import mongoose from "mongoose";
 import Personnel from "../../db/mongo/models/personnel";
+import { allowedPassConvert } from "../../tools/time.tools";
+import JobTitle from "../../db/mongo/models/jobTitle";
 
 //create customized redis client
 const cfs = new ImageFileSystem();
@@ -130,8 +132,24 @@ router.post("/search",
 );
 
 
-router.post("/notifpersonnel",
+router.post("/notifpersonnel/:type?",
   dtoValidationMiddleware(AddNotifPersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (!!req.params["type"] && req.params["type"] === "guest") {
+      const code = randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join("")
+      let allowed_pass = allowedPassConvert(req.body) ?? { "start": 0, "end": 2147483648000 };
+      const person = await Personnel.create({
+        guest: true,
+        allowed_pass,
+        job_id: await JobTitle.findOne({ name: 'guest' }).exec().then(job => job?.id),
+        first_name: 'Guest',
+        last_name: code,
+        personnel_code: code,
+      });
+      req.body["person_id"] = person.id;
+    }
+    next();
+  },
   (req: Request, res: Response, next: NextFunction) => {
     req.body["redisData"] = {}
     req.body["redisData"]["image_str"] = req.body["image_str"];

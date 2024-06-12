@@ -13,12 +13,14 @@ const fs = new ImageFileSystem();
 //create router for add to routes file
 const router: Router = Router();
 
-router.get(["", "/hostile"],
+const specialTypes = ["Hostile", "Guest"]
+router.get(["", "/hostile", "/guest"],
   readMiddleware(PersonImage, undefined, { populate: true, next: true, save: "personnelImages", forceAll: true }),
   async (req, res, next) => {
     try {
+      const type = specialTypes.find(t => req.originalUrl.toLowerCase().includes(t.toLowerCase()));
       //query for get personnel by id from DB
-      let personnel = (await Personnel.find().exec()).filter(per => (per?.first_name === "Hostile") === req.originalUrl.toLowerCase().includes("hostile"));
+      let personnel = (await Personnel.find().exec()).filter(per => !!type ? per?.first_name === type : !specialTypes.includes(per?.first_name));
       let personnelImages: (IPersonImage & Required<{
         _id: Schema.Types.ObjectId;
       }>)[] = req.body["personnelImages"];
