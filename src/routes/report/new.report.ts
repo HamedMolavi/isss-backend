@@ -101,6 +101,16 @@ function searchFunction(body: any) {
       "minimum_should_match": 1
     }
   }));
+  if (!!body.person_type && typeof body.person_type === 'string') {
+    fieldQueries.push({
+      //@ts-ignore
+      "match": { "person_type": body.person_type }
+    })
+    fieldQueries.push({
+      //@ts-ignore
+      "exists": { "field": "person_type" },
+    })
+  }
   const timeQueries = !!times_epoch && !!times_epoch.length ? [{
     bool: { should: times_epoch.map(time => ({ range: { timestamp: { gte: time.gte, lte: time.lte } } })), "minimum_should_match": 1 }
   }] : [];
