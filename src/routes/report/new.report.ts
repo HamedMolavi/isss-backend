@@ -149,7 +149,9 @@ function sendFunction(log: any, req: Request): any {
       sms: log?.sms,
       description: log.description ?? "",
       human_count: log.human_count ?? 0,
-      timestamp: log?.timestamp ?? ""
+      timestamp: log?.timestamp ?? "",
+      confidence: log?.confidence ?? "",
+      vector: log?.vector ?? ""
     };
   } catch (err: any) {
     console.error(err)
