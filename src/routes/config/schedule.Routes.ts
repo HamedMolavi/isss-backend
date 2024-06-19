@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request } from "express";
 import Schedule from "../../db/mongo/models/schedule";
 import Time from "../../tools/time.tools";
 import ModelToCamera from "../../db/mongo/models/modelToCamera";
@@ -29,13 +29,13 @@ router.post("",
 
 router.get(
   "",
-  readMiddleware(Schedule, undefined, { populate: true })
+  readMiddleware(Schedule, undefined, { populate: true, send: scheduleSendFn })
 );
 
 //route for get schedule by id from DB
 router.get(
   "/:id",
-  readByIdMiddleware(Schedule, { populate: true }),
+  readByIdMiddleware(Schedule, { populate: true, send: scheduleSendFn }),
 );
 
 router.patch("/activeschedule",
@@ -115,4 +115,13 @@ function convertPlaiBodyToSchedule(body: any) {
   };
 }
 
+function scheduleSendFn(doc: any, req: Request) {
+  return doc?.populate("model_camera_id")
+    ?.then((pdoc: any) => {
+      if (req.user?.role === 'admin') return doc;
+      const camId = pdoc?.model_camera_id?.camera_id?.toString();
+      if (!!camId && !!req.user.camera_access?.map(cam => cam.toString()).includes(camId)) return doc;
+      return undefined;
+    })
+}
 export default router;
