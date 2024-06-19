@@ -32,7 +32,7 @@ type Report = {
  * @param {boolean} [options.next=false] - If true, the middleware will pass control to the next middleware function in the stack without sending a response.
  * @param {string} [options.save] - The key under which to save the retrieved documents in the request body, if `options.next` is true.
  * @param {(doc: unknown, req: Request) => any | void | Promise<any | void>} [options.send] - A callback function to process the retrieved documents before sending the response or saving to a field.
- * @param {(body: { [key: string]: any }) => SearchRequest} [options.searchFromBody] - A function to construct the search request from the request body.
+ * @param {(body: { [key: string]: any }) => SearchRequest} [options.searchFromReq] - A function to construct the search request from the request body.
  * @param {(params: { [key: string]: any }) => SearchRequest} [options.searchFromParams] - A function to construct the search request from the request parameters.
  * @param {(query: { [key: string]: any }) => SearchRequest} [options.searchFromQuery] - A function to construct the search request from the request query.
  * 
@@ -53,7 +53,7 @@ export function readElasticMiddleware(
     forceAll?: boolean,
     send?: (doc: unknown, req: Request) => any | void | Promise<any | void>,
     filter?: (doc: unknown, req: Request) => boolean | Promise<boolean>,
-    searchFromBody?: (body: { [key: string]: any }) => SearchRequest,
+    searchFromReq?: (req: Request) => SearchRequest,
     searchFromParams?: (params: { [key: string]: any }) => SearchRequest
     searchFromQuery?: (query: { [key: string]: any }) => SearchRequest
   }): RequestHandler {
@@ -74,7 +74,7 @@ export function readElasticMiddleware(
         track_total_hits: true,
         sort: [{ timestamp: { order: "desc" } }]
       };
-      let search: SearchRequest = { ...baseSearch, ...(options?.searchFromBody ?? options?.searchFromParams ?? options?.searchFromQuery)?.(req.body) };
+      let search: SearchRequest = { ...baseSearch, ...(options?.searchFromReq ?? options?.searchFromParams ?? options?.searchFromQuery)?.(req) }; // TODO: why req gets in no matter what we use?
       const settings = await process.esclient.indices.getSettings({ index }).then(response => response[index]?.settings?.index);
       let maxResultWindow = parseInt(settings?.max_result_window?.toString() ?? '10000');
       let currentWindow = (search.size as number) + (search.from as number);

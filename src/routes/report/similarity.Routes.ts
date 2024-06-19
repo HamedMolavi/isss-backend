@@ -43,13 +43,13 @@ router.use('/:type(tree|table|cumulative)/:id?',
 router.use('/table/:id?',
   readElasticMiddleware(`${process.env["FACE_INDEX"] ?? "face_log"}`, {
     forceAll: true,
-    searchFromBody: searchFunction,
+    searchFromReq: searchFunction,
     send: unifiedSendFunction
   })
 )
 router.use('/:type(tree|cumulative)/:id?',
   readElasticMiddleware(`${process.env["FACE_INDEX"] ?? "face_log"}`, {
-    searchFromBody: searchFunction,
+    searchFromReq: searchFunction,
     forceAll: true, save: "similars", next: true,
   }),
   injectDataMiddleware((body: any) => dataCollector(body["similars"] ?? []), { injData: "trackData" }),
@@ -79,7 +79,8 @@ router.use('/cumulative/:id?',
 )
 
 
-function searchFunction(body: any) {
+function searchFunction(req: Request) {
+  const body = req.body;
   const threshold = Number(body["threshold"] ?? 50) / 100;
   let query: QueryDslQueryContainer = { "match_all": {} };
   if (!!body?.["date_start"] || !!body?.["date_end"]) {

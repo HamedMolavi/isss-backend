@@ -15,6 +15,7 @@ import { injectAllKindOfStuff } from "../../tools/middleware.tools";
 import { platesToStrings } from "../../tools/car.tools";
 import { SearchRequest } from "@elastic/elasticsearch/lib/api/typesWithBodyKey";
 import { ApiError } from "../../types/classes/error.class";
+import User from "../../db/mongo/models/user";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -53,7 +54,7 @@ router.get('/:index(plate|search|face|sabotage|human)',
     "face": process.env["FACE_INDEX"] ?? "face_log",
     "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
     "human": process.env["HUMAN_INDEX"] ?? "human_log"
-  }[req.params.index]) as string, { send: sendFunction }),
+  }[req.params.index]) as string, { send: sendFunction, searchFromReq: getSearchFunction, }),
 );
 router.get("/:index(plate|search|face|sabotage|human)/:id",
   readByIdElasticMiddleware((req) => ({
@@ -72,18 +73,43 @@ router.post("/:index(plate|search|face|sabotage|human)",
     "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
     "human": process.env["HUMAN_INDEX"] ?? "human_log"
   }[req.params.index]) as string, {
-    searchFromBody: searchFunction,
+    searchFromReq: postSearchFunction,
     send: sendFunction
   }),
 );
 
-function searchFunction(body: any) {
+function getSearchFunction(req: Request) {
+  const accessList = req.user.role === 'admin' ? [] : !!req.user.camera_access?.length ? req.user.camera_access : ["who's daddy"]
+  return {
+    track_total_hits: true,
+    query: {
+      bool: {
+        should: accessList?.map(value => ({
+          match: {
+            "camera_id": value.toString()
+          }
+        })),
+        "minimum_should_match": 1
+      }
+    },
+    sort: [{ timestamp: { order: "desc" } }]
+  } as SearchRequest;
+}
+
+function postSearchFunction(req: Request) {
+  const body = req.body;
   let timezone = body.timez ?? body.timezone;
   const times_epoch: Array<{ gte: number, lte: number }> = body.date_start && Time.getEpochList(body.date_start, body.date_end, body.time_start, body.time_end, timezone);
   let plates = !!body.plates ? platesToStrings(body.plates) : [];
+  const userCameras = !!req.user.camera_access?.length ? req.user.camera_access?.map(el => el.toString()) : ["who's daddy"];
+  const allowedSearchedCameras = body.cameras.filter((cam: any) => userCameras.includes(cam)).concat(["who's daddy"]);
+  const cameras =
+    req.user.role === 'admin' ? body.cameras :
+      !!body.cameras.length ? allowedSearchedCameras :
+        userCameras;
   const fields: { [key: string]: Array<any> } = {
     "plate_number": plates,
-    "camera_id": body.cameras,
+    "camera_id": cameras,
     "personnel_id": body.personnels,
     "brand": body.brands,
     "owner": body.owner,
