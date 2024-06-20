@@ -10,6 +10,7 @@ import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database
 import { injectDataMiddleware } from "../../tools/request.tools";
 import { updateByIdMiddleware, updateByListMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
+import { isObjectIdOrHexString } from "mongoose";
 
 //create router for add to server file
 const router: Router = Router();
@@ -116,6 +117,14 @@ function convertPlaiBodyToSchedule(body: any) {
 }
 
 function scheduleSendFn(doc: any, req: Request) {
+  if (!!doc?.model_camera_id?.camera_id) { // already got populate
+    let camId: string;
+    if (isObjectIdOrHexString(doc?.model_camera_id?.camera_id) || typeof doc?.model_camera_id?.camera_id === "string") { // only model_camera got populated
+      camId = doc.model_camera_id.camera_id.toString();
+    } else camId = doc.model_camera_id.camera_id.id; // also camera_id got populated
+    if (!!camId && !!req.user.camera_access?.map(cam => cam.toString()).includes(camId)) return doc;
+    else return undefined;
+  } // not populated at all
   return doc?.populate("model_camera_id")
     ?.then((pdoc: any) => {
       if (req.user?.role === 'admin') return doc;
