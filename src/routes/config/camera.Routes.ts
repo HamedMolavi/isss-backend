@@ -127,7 +127,7 @@ router.get("/:id/schedules",
 );
 //route for get camera by id from DB
 router.get("/:id",
-  readByIdMiddleware(Camera, { populate: true })
+  readByIdMiddleware(Camera, { populate: true, send: sendFunction })
 );
 
 //add route for edit camera
@@ -144,7 +144,21 @@ router.delete("/:id",
 function sendFunction(
   camera: (Document<unknown, any, ICamera> & Omit<ICamera & Required<{ _id: Types.ObjectId; }>, never>),
   req: Request) {
-  if (req.user.role === "admin") return camera
+  if (req.user.role === "admin") return {
+    _id: camera._id,
+    section_id: camera.section_id,
+    network: camera.network,
+    url: camera.url,
+    nvr: camera.nvr,
+    ip: camera.ip,
+    damaged: camera.damaged,
+    name: camera.name,
+    username: camera.username,
+    password: camera.password,
+    is_enabled: camera.is_enabled,
+    create_date: camera.create_date,
+    camera_type: camera.camera_type,
+  };
   else if (req.user.role === "user") if (req.user.camera_access?.some(((id) => id == camera.id))) return camera;
   // return undefined to skip if user has no access
   return;

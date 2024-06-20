@@ -26,6 +26,17 @@ const CameraSchema: Schema<ICamera> = new Schema(
   },
   {
     collection: "Camera",
+    toJSON: {
+      transform(_doc, ret) {
+        delete ret["url"]
+        delete ret["nvr"]
+        delete ret["ip"]
+        delete ret["network"]
+        delete ret["username"]
+        delete ret["password"];
+        return ret;
+      },
+    }
   }
 );
 
