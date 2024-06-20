@@ -24,6 +24,8 @@ app.use(function notFound(req: Request, _res: Response, next: NextFunction) {
   next(err);
 });
 
+
+
 //app stack error handler
 app.use(function errorHandler(
   err: ApiError,
