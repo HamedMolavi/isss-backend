@@ -39,7 +39,7 @@ router.post("",
   dtoValidationMiddleware(CreatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(Personnel, { $and: [{ first_name: "first_name" }, { last_name: "last_name" }] }, "Personnel already exists!"),
   injectDataMiddleware(allowedPassConvert, { injData: "allowed_pass" }),
-  createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "section_id", "camera_whitelist", "department_whitelist", "section_whitelist", "schedule_whitelist", "allowed_pass", "alert"], Personnel, { next: true, save: "doc" }),
+  createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "camera_whitelist", "department_whitelist", "section_whitelist", "schedule_whitelist", "allowed_pass", "alert"], Personnel, { next: true, save: "doc" }),
   fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { fileName: "avatar" }, "doc"),
 );
 

@@ -16,7 +16,6 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
     phone_number: { type: String, default: "" },
     job_id: { type: Schema.Types.ObjectId, ref: "JobTitle", default: undefined },
     personnel_code: { type: String, default: "" }, // () => randomUuid(10, "number").toString()
-    section_id: { type: Schema.Types.ObjectId, ref: "Section", default: undefined },
     camera_whitelist: { type: [Schema.Types.ObjectId], ref: "Camera", default: [] },
     section_whitelist: { type: [Schema.Types.ObjectId], ref: "Section", default: [] },
     schedule_whitelist: { type: [Schema.Types.ObjectId], ref: "Schedule", default: [] },
@@ -56,7 +55,6 @@ PersonnelSchema.methods.toJSON = function () {
     phone_number: this.phone_number,
     job_id: this.job_id,
     personnel_code: this.personnel_code,
-    section_id: this.section_id,
     camera_whitelist: this.camera_whitelist,
     image_id: this.image_id,
     create_date: this.create_date,

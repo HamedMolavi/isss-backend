@@ -42,8 +42,6 @@ export class CreatePersonnelBody {
   public phone_number?: string| null;
   @IsOptional()
   public job_id?: mongoose.Types.ObjectId;
-  @IsOptional()
-  public section_id?: mongoose.Types.ObjectId| null;
   @IsBoolean()
   @IsOptional()
   public tracked?: boolean| null;
@@ -103,8 +101,6 @@ export class UpdatePersonnelBody {
   public phone_number?: string;
   @IsOptional()
   public job_id?: mongoose.Types.ObjectId;
-  @IsOptional()
-  public section_id?: mongoose.Types.ObjectId;
   @IsBoolean()
   @IsOptional()
   public tracked?: boolean;
