@@ -43,7 +43,7 @@ router.use('/:index(plate|search)/:id?',
   injectDataMiddleware(injectAllKindOfStuff(['car'], "number_plate"), { spread: true }),
 );
 router.use('/:index(face)/:id?',
-  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
+  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["department_id"], next: true, save: "personnel" }),
   injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
 );
 // Search //

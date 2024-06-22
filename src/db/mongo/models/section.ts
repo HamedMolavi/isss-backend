@@ -16,9 +16,6 @@ const SectionSchema: Schema<ISection> = new Schema({
 
 SectionSchema.post(["remove", "deleteOne", "deleteMany","findOneAndDelete","findOneAndRemove"], async (doc) => {
     const defaultSectionId = (await Section.findOne({ name: "Section" }))?._id;
-    let updated_personnel = await Personnel.updateMany({
-        section_id: doc._id,
-    }, { $set: { section_id: defaultSectionId } }, { returnDocument: "after" }).exec();
     let updated_camera = await Camera.updateMany({
         section_id: doc._id,
     }, { $set: { section_id: defaultSectionId } }, { returnDocument: "after" }).exec();
