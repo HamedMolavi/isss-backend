@@ -24,7 +24,7 @@ router.post('/:type(tree|table|cumulative)',
 // Inject Camera and Personnel data from mongo to populate the elastic log with their info
 router.use('/table/:id?',
   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "personnel" }),
+  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["department_id"], next: true, save: "personnel" }),
   injectDataMiddleware(injectAllKindOfStuff(['camera', 'personnel']), { spread: true }),
 )
 // Read the log or get vector from body

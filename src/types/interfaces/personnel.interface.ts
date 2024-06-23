@@ -10,7 +10,6 @@ export interface IPersonnel extends Document {
   phone_number: string;
   job_id: Schema.Types.ObjectId;
   personnel_code: string;
-  section_id: Schema.Types.ObjectId;
   camera_whitelist: Schema.Types.ObjectId[];
   department_whitelist: Schema.Types.ObjectId[];
   section_whitelist: Schema.Types.ObjectId[];
