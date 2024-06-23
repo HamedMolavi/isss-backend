@@ -89,3 +89,21 @@ export class ReportHumanBody{
     @IsArray()
     cameras?: string[]
 }
+
+export class ReportObjectBody{
+    @IsString()
+    time_start?: string;
+    @IsString()
+    time_end?: string;
+    @IsOptional()
+    @IsString()
+    date_start?: string;
+    @IsOptional()
+    @IsString()
+    date_end?: string;
+    @IsOptional()
+    allowed?: boolean | null
+    @IsOptional()
+    @IsArray()
+    cameras?: string[]
+}
