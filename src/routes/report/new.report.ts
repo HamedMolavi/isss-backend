@@ -6,7 +6,7 @@ import Personnel from "../../db/mongo/models/personnel";
 import Car from "../../db/mongo/models/car";
 import Time from "../../tools/time.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
-import { ReportFaceBody, ReportHumanBody, ReportPlateBody } from "../../validation/dto/report.dto";
+import { ReportFaceBody, ReportHumanBody, ReportObjectBody, ReportPlateBody } from "../../validation/dto/report.dto";
 import CarBrand from "../../db/mongo/models/carBrand";
 import CarColor from "../../db/mongo/models/carColor";
 import { injectDataMiddleware } from "../../tools/request.tools";
@@ -20,11 +20,11 @@ import User from "../../db/mongo/models/user";
 //create router for add to routes file
 const router: Router = Router();
 // Validation //
-router.post("/:index(plate|search|face|sabotage|human)",
+router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
   (req, res, next) => {
-    if (!["plate", "search", "face", "sabotage", "human"].includes(req.params.index)) return next(new ApiError(404, `Index ${req.params.index} not found!`))
+    if (!["plate", "search", "face", "sabotage", "human", "objectdetection"].includes(req.params.index)) return next(new ApiError(404, `Index ${req.params.index} not found!`))
     const dtoClass: { [key: string]: any } = {
-      "plate": ReportPlateBody, "search": ReportPlateBody, "face": ReportFaceBody, "sabotage": ReportFaceBody, "human": ReportHumanBody
+      "plate": ReportPlateBody, "search": ReportPlateBody, "face": ReportFaceBody, "sabotage": ReportFaceBody, "human": ReportHumanBody, "objectdetection": ReportObjectBody
     };
     dtoValidationMiddleware(dtoClass[req.params.index], { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" })(req, res, next)
   },
@@ -47,30 +47,33 @@ router.use('/:index(face)/:id?',
   injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
 );
 // Search //
-router.get('/:index(plate|search|face|sabotage|human)',
+router.get('/:index(plate|search|face|sabotage|human|objectdetection)',
   readElasticMiddleware((req) => ({
     "plate": process.env["PLATE_INDEX"] ?? "plate_log",
     "search": process.env["PLATE_INDEX"] ?? "plate_log",
     "face": process.env["FACE_INDEX"] ?? "face_log",
     "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
+    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
     "human": process.env["HUMAN_INDEX"] ?? "human_log"
   }[req.params.index]) as string, { send: sendFunction, searchFromReq: getSearchFunction, }),
 );
-router.get("/:index(plate|search|face|sabotage|human)/:id",
+router.get("/:index(plate|search|face|sabotage|human|objectdetection)/:id",
   readByIdElasticMiddleware((req) => ({
     "plate": process.env["PLATE_INDEX"] ?? "plate_log",
     "search": process.env["PLATE_INDEX"] ?? "plate_log",
     "face": process.env["FACE_INDEX"] ?? "face_log",
     "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
+    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
     "human": process.env["HUMAN_INDEX"] ?? "human_log"
   }[req.params.index] as string), { send: sendFunction }),
 );
-router.post("/:index(plate|search|face|sabotage|human)",
+router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
   readElasticMiddleware((req) => ({
     "plate": process.env["PLATE_INDEX"] ?? "plate_log",
     "search": process.env["PLATE_INDEX"] ?? "plate_log",
     "face": process.env["FACE_INDEX"] ?? "face_log",
     "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
+    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
     "human": process.env["HUMAN_INDEX"] ?? "human_log"
   }[req.params.index]) as string, {
     searchFromReq: postSearchFunction,
@@ -155,8 +158,9 @@ function postSearchFunction(req: Request) {
 function sendFunction(log: any, req: Request): any {
 
   try {
-    const crop = req.body['elasticsearchIndices']?.at(-1) === "plate_log" ? log?.crop : log?.inner_crop ?? '';
-    const inner_crop = req.body['elasticsearchIndices']?.at(-1) === "plate_log" ? log?.inner_crop : "";
+    const tmpFlag = ["plate_log", "objectdetection_log"].includes(req.body['elasticsearchIndices']?.at(-1));
+    const crop = tmpFlag ? log?.crop : log?.inner_crop ?? '';
+    const inner_crop = tmpFlag ? log?.inner_crop : "";
     const camera = log.camera_id ? req.body['camera'][log.camera_id] : undefined;
     const personnel = (log.personnel_id && log.personnel_id !== "unknown") ? req.body['personnel'][log.personnel_id] : undefined;
     const department = req.body['camera'][log.camera_id]?.section_id?.department_id?.name ?? "";
