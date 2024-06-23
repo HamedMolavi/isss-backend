@@ -25,8 +25,8 @@ import { accessCheck } from "../../authentication/accessCheck.auth";
 //add rotes
 router.use("/cameras", accessCheck("camera"), cameraRoutes);
 router.use("/cars", accessCheck("car"), carRoutes);
-router.use("/carcolors", accessCheck("color"), carColorRoutes);
-router.use("/carbrands", accessCheck("brand"), carBrandRoutes);
+router.use("/carcolors", accessCheck("color", { extraFunction: (req, _res) => req.method.toUpperCase() === "GET" }), carColorRoutes);
+router.use("/carbrands", accessCheck("brand", { extraFunction: (req, _res) => req.method.toUpperCase() === "GET" }), carBrandRoutes);
 router.use("/departments", accessCheck("department"), departementRoutes);
 router.use("/sections", accessCheck("section"), sectionRoutes);
 router.use("/jobtitles", accessCheck("job"), jobTitleRoutes);
