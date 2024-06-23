@@ -36,7 +36,7 @@ router.use("/files", fileRoutes);
 router.use("/models", modelRoutes);
 router.use("/modelToCameras", modelToCamera);
 router.use("/departementfiles", reportDepartementfiles);
-router.use("/personImage", PersonImage);
+router.use("/personImage", accessCheck("personnel"), PersonImage);
 router.use("/notifications", notification);
 router.use("/testsms", testSMS);
 router.use("/testemail", testEmail);
