@@ -1,5 +1,7 @@
+import { addNewModelToCamera } from "../../../tools/loadBalancer.tools";
 import { IModel } from "../../../types/interfaces/model.interface";
 import { create } from "../create.database";
+import Camera from "../models/camera";
 import Model from "../models/model";
 import { read } from "../read.database";
 
@@ -14,6 +16,7 @@ export async function makeSeedModel(): Promise<IModel[]> {
         uri: `models/${modelCategory}.onnx`
       }));
       console.log(`\t++ Seed data Model: name=${modelCategory}0`);
+      for (const camera of await read(Camera)) await addNewModelToCamera(models.at(-1).name, camera._id);
     };
   }
   return models;
