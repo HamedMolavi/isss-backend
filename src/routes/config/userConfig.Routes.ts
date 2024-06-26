@@ -21,11 +21,11 @@ import userAccessLevel from "./userAccessLevel.Routes";
 
 const router: Router = Router();
 import modelRoutes from "./model.Routes";
-import { accessCheck } from "../../authentication/accessCheck.auth";
+import { accessCheck, paramIdExistsInCameraWhiteList } from "../../authentication/accessCheck.auth";
 
 //add rotes
 router.use("/accessLevels", userAccessLevel);
-router.use("/cameras", accessCheck("camera"), cameraRoutes);
+router.use("/cameras", accessCheck("camera"), paramIdExistsInCameraWhiteList(), cameraRoutes);
 router.use("/cars", accessCheck("car"), carRoutes);
 router.use("/carcolors", accessCheck("color", { extraFunction: (req) => req.method.toUpperCase() === "GET" }), carColorRoutes);
 router.use("/carbrands", accessCheck("brand", { extraFunction: (req) => req.method.toUpperCase() === "GET" }), carBrandRoutes);
