@@ -20,17 +20,6 @@ import { deleteByIdElasticMiddleware } from "../../db/elastic/delete.logs";
 
 //create router for add to routes file
 const router: Router = Router();
-// Delete //
-router.delete('/:index(plate|search|face|sabotage|human|objectdetection)/:id',
-  deleteByIdElasticMiddleware((req) => ({
-    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
-    "search": process.env["PLATE_INDEX"] ?? "plate_log",
-    "face": process.env["FACE_INDEX"] ?? "face_log",
-    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
-    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
-    "human": process.env["HUMAN_INDEX"] ?? "human_log"
-  }[req.params.index]) as string, { send: sendFunction, }),
-);
 // Validation //
 router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
   (req, res, next) => {
@@ -57,6 +46,17 @@ router.use('/:index(plate|search)/:id?',
 router.use('/:index(face)/:id?',
   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["department_id"], next: true, save: "personnel" }),
   injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
+);
+// Delete //
+router.delete('/:index(plate|search|face|sabotage|human|objectdetection)/:id',
+  deleteByIdElasticMiddleware((req) => ({
+    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
+    "search": process.env["PLATE_INDEX"] ?? "plate_log",
+    "face": process.env["FACE_INDEX"] ?? "face_log",
+    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
+    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
+    "human": process.env["HUMAN_INDEX"] ?? "human_log"
+  }[req.params.index]) as string, { send: sendFunction, }),
 );
 // Search //
 router.get('/:index(plate|search|face|sabotage|human|objectdetection)',
@@ -173,10 +173,10 @@ function sendFunction(log: any, req: Request): any {
     const tmpFlag = ["plate_log", "objectdetection_log"].includes(req.body['elasticsearchIndices']?.at(-1));
     const crop = tmpFlag ? log?.crop : log?.inner_crop ?? '';
     const inner_crop = tmpFlag ? log?.inner_crop : "";
-    const camera = log.camera_id ? req.body['camera'][log.camera_id] : undefined;
+    const camera = log.camera_id ? req.body?.['camera']?.[log.camera_id] : undefined;
     const personnel = (log.personnel_id && log.personnel_id !== "unknown") ? req.body['personnel'][log.personnel_id] : undefined;
-    const department = req.body['camera'][log.camera_id]?.section_id?.department_id?.name ?? "";
-    const section = req.body['camera'][log.camera_id]?.section_id?.name ?? "";
+    const department = req.body?.['camera']?.[log.camera_id]?.section_id?.department_id?.name ?? "";
+    const section = req.body?.['camera']?.[log.camera_id]?.section_id?.name ?? "";
     const color = log?.color ? req.body['color'][log.color] : undefined;
     const brand = log?.brand ? req.body['brand'][log.brand] : undefined;
     return {
