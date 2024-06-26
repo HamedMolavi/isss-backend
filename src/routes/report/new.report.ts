@@ -16,9 +16,21 @@ import { platesToStrings } from "../../tools/car.tools";
 import { SearchRequest } from "@elastic/elasticsearch/lib/api/typesWithBodyKey";
 import { ApiError } from "../../types/classes/error.class";
 import User from "../../db/mongo/models/user";
+import { deleteByIdElasticMiddleware } from "../../db/elastic/delete.logs";
 
 //create router for add to routes file
 const router: Router = Router();
+// Delete //
+router.delete('/:index(plate|search|face|sabotage|human|objectdetection)/:id',
+  deleteByIdElasticMiddleware((req) => ({
+    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
+    "search": process.env["PLATE_INDEX"] ?? "plate_log",
+    "face": process.env["FACE_INDEX"] ?? "face_log",
+    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
+    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
+    "human": process.env["HUMAN_INDEX"] ?? "human_log"
+  }[req.params.index]) as string, { send: sendFunction, }),
+);
 // Validation //
 router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
   (req, res, next) => {
