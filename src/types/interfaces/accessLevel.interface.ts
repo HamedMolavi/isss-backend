@@ -18,5 +18,6 @@ export interface IAccessLevel extends Document {
   typeName: number;
   systemLog: number;
   system: number;
+  report: number;
 }
 
