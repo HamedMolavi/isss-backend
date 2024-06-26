@@ -17,12 +17,14 @@ import testSMS from "./testSMS.Routes";
 import testEmail from "./testEmailSend.Routes";
 import snapshot from "./snapshot.Routes";
 import manualLog from "./manualLog.Routes";
+import userAccessLevel from "./userAccessLevel.Routes";
 
 const router: Router = Router();
 import modelRoutes from "./model.Routes";
 import { accessCheck } from "../../authentication/accessCheck.auth";
 
 //add rotes
+router.use("/accessLevels", userAccessLevel);
 router.use("/cameras", accessCheck("camera"), cameraRoutes);
 router.use("/cars", accessCheck("car"), carRoutes);
 router.use("/carcolors", accessCheck("color", { extraFunction: (req, _res) => req.method.toUpperCase() === "GET" }), carColorRoutes);
