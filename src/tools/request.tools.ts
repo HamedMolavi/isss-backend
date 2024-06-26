@@ -77,3 +77,10 @@ export function DoNotAllowOnDefault(model: any, query: FilterQuery<any>) {
     }
   ];
 };
+
+export function exposeUserToBody(options?: { propertyName?: string }) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    req.body[options?.propertyName ?? "user"] = req.user;
+    return next();
+  }
+}

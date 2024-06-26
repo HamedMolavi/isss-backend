@@ -64,7 +64,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         };
       };
       let data = (await Promise.all(docs.map((doc) => !!options?.send ? options.send(doc, req) : doc))).filter((doc) => doc !== undefined);
-      
+
       if (!!options?.next) {
         if (!!options.save) req.body[options.save] = data;
         else req.body["docs"] = data;
@@ -85,11 +85,11 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
   }
 };
 
-export function readByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: boolean }, _id?: string): RequestHandler {
+export function readByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: boolean, idFromReq?: (req: Request) => string | undefined }, _id?: string): RequestHandler {
   return async function middleware(req: Request, res: Response, next: NextFunction) {
     try {
       //get id from params in url
-      let id: string = _id || req.params.id;
+      let id: string = options?.idFromReq?.(req) ?? _id ?? req.params.id ?? "dummy-id";
       //query for get docs by id from DB
       let doc = await model.findById(id).exec();
 
