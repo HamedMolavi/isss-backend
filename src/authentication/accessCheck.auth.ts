@@ -29,10 +29,10 @@ export function userCanGetHisInfo(req: Request) {
     !!req.originalUrl.match("/api/v1/config/admin/users/") &&
     !!probableParamId &&
     probableParamId === req.user._id.toString()) {
-      //user can not change his "role" or "access_level"
-      req.body.role = undefined;
-      req.body.access_level = undefined;
-      return true;
+    //user can not change his "role" or "access_level"
+    req.body.role = undefined;
+    req.body.access_level = undefined;
+    return true;
   };
   return false; // no access
 };
@@ -73,6 +73,16 @@ export function roleCheck(role: string, options?: { extraFunction?: (req: Reques
   };
 };
 
+export function paramIdExistsInCameraWhiteList(options?: { _id?: string, idFromReq?: (req: Request) => string | undefined, }) {
+  return async function middleware(req: Request, res: Response, next: NextFunction) {
+    let id = options?._id ?? options?.idFromReq?.(req) ?? req.params.id;
+    if (!id) return next();
+    const user = req.user;
+    if (user.role === 'admin' || !!user.camera_access?.map(el => el.toString())?.includes(id)) return next();
+    req.flash("error", `No access to this camera ${id}!`);
+    return next(new ApiError(403, `No access to this camera ${id}!`));
+  };
+}
 // export function cameraAccessCheck(camerasFieldName: string, options?: {
 //   next?: boolean,
 //   save?: string,
