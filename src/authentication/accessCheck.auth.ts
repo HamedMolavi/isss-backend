@@ -23,7 +23,7 @@ const accessCharPositions = {
   "DELETE": -1
 };
 
-export function userCanGetHisInfo(req: Request, res?: Response) {
+export function userCanGetHisInfo(req: Request) {
   let probableParamId = req.path.split('/').find((el) => isObjectIdOrHexString(el));
   if (['GET', 'PATCH'].includes(req.method) &&
     !!req.originalUrl.match("/api/v1/config/admin/users/") &&
@@ -39,7 +39,7 @@ export function userCanGetHisInfo(req: Request, res?: Response) {
 
 
 
-export function accessCheck(access: keyof IAccessLevel, options?: { bitMapNumberFromRight?: number, extraFunction?: (req: Request, res: Response) => boolean }) {
+export function accessCheck(access: keyof IAccessLevel, options?: { bitMapNumberFromRight?: number, extraFunction?: (req: Request, userAccess: number | undefined) => boolean | Promise<boolean> }) {
   /**
    * @access
    * @bitMapNumberFromRight
@@ -50,7 +50,7 @@ export function accessCheck(access: keyof IAccessLevel, options?: { bitMapNumber
     const userAccess = userAccessLevel?.[access] as number | undefined;
     const method = req.method as "GET" | "POST" | "DELETE" | "PATCH";
     if (userAccessLevel && userAccess && hasAccess(userAccess, options?.bitMapNumberFromRight ?? method)) return next(); // first: check the role
-    if (!!options?.extraFunction && options.extraFunction(req, res)) return next(); // second: check manual pass function
+    if (!!options?.extraFunction && await options.extraFunction(req, userAccess)) return next(); // second: check manual pass function
     req.flash("error", `No [${access} ${accessTranslation[method]}] access!`);
     return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
   };
