@@ -31,7 +31,15 @@ export function deleteByIdElasticMiddleware(
       let _timezone = req.query.timez as string;
       let id: string = options?.idFromReq?.(req) ?? _id ?? req.params.id ?? "dummy-id";
       const index = typeof (index_name) === "function" ? index_name(req) : index_name;
-      let doc = await process.esclient.get({ index, id });
+      let doc = await process.esclient.get<any>({ index, id });
+      if (req.user.role !== "admin"
+        && !!doc?._source?.camera_id
+        && !req.user.camera_access?.some(cam => cam.toString() === doc._source.camera_id)) {
+        req.flash("error", `No access!`)
+        return next(new ApiError(403, "No access! , "))
+      }
+
+
       await process.esclient.delete({ index, id });
       if (!!Array.isArray(req.body["elasticsearchIndices"])) req.body["elasticsearchIndices"].push(index);
       else req.body["elasticsearchIndices"] = [index];
