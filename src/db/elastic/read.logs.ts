@@ -104,8 +104,8 @@ export function readElasticMiddleware(
       let total = undefined;
       let data = esRes.hits.hits?.map((doc) => ({ "_id": doc._id, ...(doc._source ?? {}) }));
 
-      if (!!options?.send?.call) data = await Promise.all(data.map((doc) => options.send?.(doc, req)));
-      if (!!options?.filter?.call) data = data.filter((doc) => options.filter?.(doc, req));
+      if (!!options?.send?.call) data = await Promise.all(data.map((doc) => options?.send?.(doc, req)));
+      if (!!options?.filter?.call) data = data.filter((doc) => options?.filter?.(doc, req));
 
       if (!!options?.filter?.call && !!options?.forceAll) {
         total = data.length;
@@ -190,7 +190,7 @@ export function readByIdElasticMiddleware(
       if (!!Array.isArray(req.body["elasticsearchIndices"])) req.body["elasticsearchIndices"].push(query_elastic.index);
       else req.body["elasticsearchIndices"] = [query_elastic.index];
       let doc = esRes.hits.hits[0];
-      let data = !!options?.send ? options.send({ "_id": doc?._id, ...(doc?._source ?? {}) }, req)
+      let data = !!options?.send ? options?.send({ "_id": doc?._id, ...(doc?._source ?? {}) }, req)
         : { "_id": doc?._id, ...(doc?._source ?? {}) }
 
       if (options?.next) {
