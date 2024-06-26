@@ -57,7 +57,7 @@ export function accessCheck(access: keyof IAccessLevel, options?: { bitMapNumber
 };
 
 
-function hasAccess(userAccess: number, methodOrNumber: "GET" | "POST" | "DELETE" | "PATCH" | number): boolean {
+export function hasAccess(userAccess: number, methodOrNumber: "GET" | "POST" | "DELETE" | "PATCH" | number): boolean {
   const binUserAccess = "0000" + (userAccess >>> 0).toString(2);
   if (typeof methodOrNumber === 'number') return binUserAccess.at(-methodOrNumber) == "1";
   return binUserAccess.at(accessCharPositions[methodOrNumber]) == "1";

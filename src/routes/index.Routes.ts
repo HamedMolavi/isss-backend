@@ -15,7 +15,7 @@ import trackReport from "./report/trackReport.Routes";
 
 import { passportGate } from "../authentication/authorize.auth";
 import { recordLastOperation } from "../middleware/userOperations.middleware";
-import { accessCheck } from "../authentication/accessCheck.auth";
+import { accessCheck, hasAccess } from "../authentication/accessCheck.auth";
 
 const router: Router = Router();
 
@@ -36,7 +36,10 @@ router.use("/config/user", userConfig)
 router.use("/config/admin", adminConfig)
 
 
-router.use("/newreports", newReport);
+router.use("/newreports", accessCheck("report", {
+  // map POST to read
+  extraFunction: (req, userAccess) => req.method === "POST" && !!userAccess && !!hasAccess(userAccess, "GET")
+}), newReport);
 router.use("/trackreports", trackReport);
 router.use("/reports", report);
 router.use("/reports/similar", similarity);

@@ -20,6 +20,7 @@ const AccessLevelSchema: Schema<IAccessLevel> = new Schema(
     typeName: { type: Number, default: 0, min: 0, max: 15 },
     systemLog: { type: Number, default: 0, min: 0, max: 15 },
     system: { type: Number, default: 0, min: 0, max: 15 },
+    report: { type: Number, default: 0, min: 0, max: 15 },
   },
   {
     collection: "AccessLevel",
