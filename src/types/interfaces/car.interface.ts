@@ -25,4 +25,5 @@ export interface ICarBrand extends Document {
 export interface ICarColor extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
+  fa_name: string
 }
