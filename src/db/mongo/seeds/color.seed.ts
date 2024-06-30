@@ -7,6 +7,7 @@ export async function makeSeedCarColor(): Promise<ICarColor | undefined> {
   if (!(await read(CarColor, { query: { name: 'unknown' } })).length) {
     const colors: ICarColor[] = await create(CarColor, {
       name: 'unknown',
+      fa_name: "نامشخص"
     });
     console.log("\t++ Seed data CarColor: name=unknown");
     return colors[0];
