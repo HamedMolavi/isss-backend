@@ -7,6 +7,7 @@ import { makeSeedModel } from "../db/mongo/seeds/model.seed";
 import { makeSeedCarBrand } from "../db/mongo/seeds/brand.seed";
 import { makeSeedCarColor } from "../db/mongo/seeds/color.seed";
 import { makeSeedLogType } from "../db/mongo/seeds/logType.seed";
+import { makeSeedPersonnel } from "../db/mongo/seeds/personnel.seed";
 
 export default async () => {
   let accessLevel = await makeSeedAccessLevel();
@@ -18,4 +19,5 @@ export default async () => {
   let carBrand = await makeSeedCarBrand();
   let carColor = await makeSeedCarColor();
   let logTypes = await makeSeedLogType();
+  let personnel = await makeSeedPersonnel();
 };
