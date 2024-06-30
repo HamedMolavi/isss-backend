@@ -17,7 +17,7 @@ import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 import mongoose, { Document } from "mongoose";
 import Time, { allowedPassConvert, allowedPassRevert } from "../../tools/time.tools";
-import { injectDataMiddleware } from "../../tools/request.tools";
+import { DoNotAllowOnDefault, injectDataMiddleware } from "../../tools/request.tools";
 
 const fs = new ImageFileSystem();
 //create router for add to routes file
@@ -74,6 +74,7 @@ router.patch("/:id",
 
 //add route for delete personnel
 router.delete("/:id",
+  DoNotAllowOnDefault(Personnel, { first_name: "Global" }),
   deleteByIdMiddleware(Personnel, { next: true, save: "doc" }), //also deletes image vector in post remove schema
   fs.deleteDirectoryMiddleware(["doc", "_id"], { force: true, send: "doc" })
 );
