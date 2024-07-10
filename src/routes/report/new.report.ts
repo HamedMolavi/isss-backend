@@ -193,6 +193,7 @@ function sendFunction(log: any, req: Request): any {
       plate_number: log.plate_number ? stringPlateToJson(log.plate_number) : "",
       owner: log?.owner ?? "",
       color: color?.name ?? "",
+      fa_color: color?.fa_name ?? "",
       brand: brand?.name ?? "",
       allowed: log.allowed,
       crop: crop,
