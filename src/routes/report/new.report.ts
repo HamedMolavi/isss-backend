@@ -113,6 +113,7 @@ function getSearchFunction(req: Request) {
 
 function postSearchFunction(req: Request) {
   const body = req.body;
+  body.cameras = body.cameras ?? [];
   let timezone = body.timez ?? body.timezone;
   const times_epoch: Array<{ gte: number, lte: number }> = body.date_start && Time.getEpochList(body.date_start, body.date_end, body.time_start, body.time_end, timezone);
   let plates = !!body.plates ? platesToStrings(body.plates) : [];
