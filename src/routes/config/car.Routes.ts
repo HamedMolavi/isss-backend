@@ -22,7 +22,7 @@ router.post("",
   // TODO: validate plateObj.second is defined in englishPlateDict
   existCheck(Car, { $and: [{ number_plate: "number_plate" }] }, "Car already exists!"),
   injectDataMiddleware(allowedPassConvert, { injData: "allowed_pass" }),
-  createMiddleware(["owner", "number_plate", "brand", "color", "camera_whitelist", "schedule_whitelist", "section_whitelist", "department_whitelist", "tracked", "allowed_pass"], Car, {
+  createMiddleware(["owner", "plate_type", "number_plate", "brand", "color", "camera_whitelist", "schedule_whitelist", "section_whitelist", "department_whitelist", "tracked", "allowed_pass"], Car, {
     send: carSendFunction
   }),
 );

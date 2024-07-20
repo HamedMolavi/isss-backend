@@ -26,12 +26,12 @@ router.post("/plate",
     // create mongo plate if not exist; TODO: please re factor this code!!! (H.M)
     // Car already exists, nothing else to do.
     (req, _res, next) => next(req.body["createCarFirst"] === undefined ? undefined : "route"),
-    createLogMiddleware("plate_log", Plate, ["color", "brand", "camera_id", "plate_number", "owner"])
+    createLogMiddleware("plate_log", Plate, ["color", "brand", "camera_id", "plate_number", "owner", "plate_type"])
 ).post("/plate",
     createMiddleware(
-        ["owner", "brand", "color", { "number_plate": (body: any) => body.plate_number }],
+        ["owner", "brand", "color", { "number_plate": (body: any) => body.plate_number }, "plate_type"],
         Car, { next: true }),
-    createLogMiddleware("plate_log", Plate, ["color", "brand", "camera_id", "plate_number", "owner"])
+    createLogMiddleware("plate_log", Plate, ["color", "brand", "camera_id", "plate_number", "owner", "plate_type"])
 );
 
 

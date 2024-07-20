@@ -24,6 +24,7 @@ export function unifiedSendFunction(log: any & { _id: string }, req: Request) {
     time: !!log?.timestamp ? new Date(typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
     timestamp: !!log?.timestamp ?? "",
     plate_number: log.plate_number ?? "",
+    plate_type: log.plate_type ?? "",
     owner: !!carDetails ? carDetails?.owner?.toName() : "",
     color: !!log?.color ? body['color']?.[log.color]?.name : "",
     brand: !!log?.brand ? body['brand']?.[log.brand]?.name : "",

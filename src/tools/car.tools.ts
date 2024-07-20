@@ -5,6 +5,7 @@ import { allowedPassRevert } from "./time.tools";
 export function carSendFunction(doc: ICar) {
   return {
     owner: doc.owner,
+    plate_type: doc.plate_type,
     number_plate: doc.number_plate,
     brand: doc.brand,
     color: doc.color,

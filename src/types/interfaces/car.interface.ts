@@ -5,6 +5,7 @@ export interface ICar extends Document {
   _id: Schema.Types.ObjectId;
   owner: Schema.Types.ObjectId;
   number_plate: string;
+  plate_type: string;
   brand: Schema.Types.ObjectId;
   color: Schema.Types.ObjectId;
   camera_whitelist: mongoose.Types.ObjectId[];

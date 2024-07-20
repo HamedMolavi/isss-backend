@@ -9,6 +9,7 @@ import JobTitle from "./jobTitle";
 const CarSchema: Schema<ICar> = new Schema({
   owner: { type: Schema.Types.ObjectId, ref: "Personnel", required: true },
   number_plate: { type: String, required: true },
+  plate_type: { type: String, required: true },
   brand: { type: Schema.Types.ObjectId, ref: "Car_Brand", required: true },
   color: { type: Schema.Types.ObjectId, ref: "Car_Color", required: true },
   camera_whitelist: { type: [mongoose.Types.ObjectId], ref: "Camera", default: [] },

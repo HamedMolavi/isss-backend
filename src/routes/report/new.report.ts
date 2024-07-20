@@ -189,6 +189,7 @@ function sendFunction(log: any, req: Request): any {
       section: personnel?.section_id?.name ?? section,
       time: !!log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
       plate_number: log.plate_number ?? "",
+      plate_type: log.plate_type ?? "",
       owner: log?.owner ?? "",
       color: color?.name ?? "",
       fa_color: color?.fa_name ?? "",

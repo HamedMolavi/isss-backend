@@ -12,7 +12,10 @@ export class CreatePlateLogBody {
   camera_id?: string;
   @IsString()
   owner?: string;
+  @IsString()
   plate_number?: string;
+  @IsString()
+  plate_type?: string;
 };
 
 
