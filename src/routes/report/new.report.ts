@@ -10,9 +10,7 @@ import { ReportFaceBody, ReportHumanBody, ReportObjectBody, ReportPlateBody } fr
 import CarBrand from "../../db/mongo/models/carBrand";
 import CarColor from "../../db/mongo/models/carColor";
 import { injectDataMiddleware } from "../../tools/request.tools";
-import { stringPlateToJson } from "../../tools/plate.tools";
 import { injectAllKindOfStuff } from "../../tools/middleware.tools";
-import { platesToStrings } from "../../tools/car.tools";
 import { SearchRequest } from "@elastic/elasticsearch/lib/api/typesWithBodyKey";
 import { ApiError } from "../../types/classes/error.class";
 import User from "../../db/mongo/models/user";
@@ -116,7 +114,7 @@ function postSearchFunction(req: Request) {
   body.cameras = body.cameras ?? [];
   let timezone = body.timez ?? body.timezone;
   const times_epoch: Array<{ gte: number, lte: number }> = body.date_start && Time.getEpochList(body.date_start, body.date_end, body.time_start, body.time_end, timezone);
-  let plates = !!body.plates ? platesToStrings(body.plates) : [];
+  let plates = body.plates ?? [];
   const userCameras = !!req.user.camera_access?.length ? req.user.camera_access?.map(el => el.toString()) : ["who's daddy"];
   const allowedSearchedCameras = body.cameras.filter((cam: any) => userCameras.includes(cam)).concat(["who's daddy"]);
   const cameras =
@@ -190,7 +188,7 @@ function sendFunction(log: any, req: Request): any {
       department: personnel?.section_id?.department_id?.name ?? department,
       section: personnel?.section_id?.name ?? section,
       time: !!log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
-      plate_number: log.plate_number ? stringPlateToJson(log.plate_number) : "",
+      plate_number: log.plate_number ?? "",
       owner: log?.owner ?? "",
       color: color?.name ?? "",
       fa_color: color?.fa_name ?? "",

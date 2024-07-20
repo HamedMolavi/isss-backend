@@ -5,13 +5,7 @@ import mongoose, { Schema } from "mongoose";
 export class CreateCarBody {
   @IsString()
   public owner?: mongoose.Types.ObjectId;
-  public number_plate?: {
-    "first": number,
-    "second": string,
-    "third": number,
-    "fourth": string,
-    "fifth": number
-  };
+  public number_plate?: string;
   @IsString()
   public brand?: mongoose.Types.ObjectId;
   @IsString()

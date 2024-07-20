@@ -9,7 +9,7 @@ import { ICar } from "../../types/interfaces/car.interface";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
-import { carSendFunction, stringifyPlate } from "../../tools/car.tools";
+import { carSendFunction } from "../../tools/car.tools";
 import { injectDataMiddleware } from "../../tools/request.tools";
 import Time, { allowedPassConvert } from "../../tools/time.tools";
 
@@ -20,9 +20,9 @@ const router: Router = Router();
 router.post("",
   dtoValidationMiddleware(CreateCarBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   // TODO: validate plateObj.second is defined in englishPlateDict
-  existCheck(Car, (body: { [key: string]: any }) => { return { number_plate: stringifyPlate(body) } }, "Car already exists!"),
+  existCheck(Car, { $and: [{ number_plate: "number_plate" }] }, "Car already exists!"),
   injectDataMiddleware(allowedPassConvert, { injData: "allowed_pass" }),
-  createMiddleware(["owner", { "number_plate": (body: { [key: string]: any }) => stringifyPlate(body) }, "brand", "color", "camera_whitelist", "schedule_whitelist", "section_whitelist", "department_whitelist", "tracked", "allowed_pass"], Car, {
+  createMiddleware(["owner", "number_plate", "brand", "color", "camera_whitelist", "schedule_whitelist", "section_whitelist", "department_whitelist", "tracked", "allowed_pass"], Car, {
     send: carSendFunction
   }),
 );
@@ -41,7 +41,6 @@ router.get("/:id",
 router.patch("/:id",
   updateByIdMiddleware(Car, {
     update: {
-      "number_plate": stringifyPlate,
       "time_start": {
         name: "allowed_pass.start",
         fn: (payload) => (new Date(payload.date_start + " " + payload.time_start + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime()

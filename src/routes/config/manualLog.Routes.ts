@@ -4,7 +4,6 @@ import { CreatePlateLogBody } from "../../validation/dto/plateLog.dto";
 import { createLogMiddleware } from "../../db/elastic/createLog";
 import { Plate } from "../../db/elastic/model/plate";
 import { createMiddleware } from "../../db/mongo/create.database";
-import { stringifyPlate } from "../../tools/car.tools";
 import Car from "../../db/mongo/models/car";
 import { englishPlateDict } from "../../tools/plate.tools";
 import { existCheck } from "../../validation/db";
@@ -17,11 +16,7 @@ const router: Router = Router();
 
 router.post("/plate",
     dtoValidationMiddleware(CreatePlateLogBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-    injectDataMiddleware(
-        (body: any) => `${body.plate_number?.first}${englishPlateDict[body.plate_number?.second]}${body.plate_number?.third}${body.plate_number?.fifth}`,
-        { injData: "number_plate" }
-    ),
-    existCheck(Car, { $and: [{ number_plate: "number_plate" }] }, "This plate doesn't exist on database!", {
+    existCheck(Car, { $and: [{ plate_number: "plate_number" }] }, "This plate doesn't exist on database!", {
         surpass(docs, req) {
             req.body["createCarFirst"] = !!req.body["is_correct"]; // create new Car(doc) and next()
             return !!req.body["is_correct"];
@@ -34,8 +29,7 @@ router.post("/plate",
     createLogMiddleware("plate_log", Plate, ["color", "brand", "camera_id", "plate_number", "owner"])
 ).post("/plate",
     createMiddleware(
-        ["owner", "brand", "color",
-            { "number_plate": (body: any) => `${body.plate_number?.first}${englishPlateDict[body.plate_number?.second]}${body.plate_number?.third}${body.plate_number?.fifth}` }],
+        ["owner", "brand", "color", { "number_plate": (body: any) => body.plate_number }],
         Car, { next: true }),
     createLogMiddleware("plate_log", Plate, ["color", "brand", "camera_id", "plate_number", "owner"])
 );

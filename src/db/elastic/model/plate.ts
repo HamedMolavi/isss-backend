@@ -20,14 +20,6 @@ export interface IPlate {
     allowed: boolean;
 }
 
-export interface PlateNumber {
-    first: string;
-    second: string;
-    third: string;
-    fourth: string;
-    fifth: string;
-}
-
 
 export class Plate {
     plate: IPlate = {
@@ -49,19 +41,17 @@ export class Plate {
         schedule_id: "",
         confidence: 0
     }
-    constructor(plateObj: {color: string, brand: string, camera_id: string, plate_number: PlateNumber, owner: string}) {
+    constructor(plateObj: {color: string, brand: string, camera_id: string, plate_number: string, owner: string}) {
         this.plate.color = plateObj.color;
         this.plate.brand = plateObj.brand;
         this.plate.allowed = true;
         this.plate.owner = plateObj.owner;
         this.plate.timestamp = (new Date()).getTime();
         this.plate.camera_id = plateObj.camera_id;
-        this.plate.plate_number = this.generatePlateNumber(plateObj.plate_number);
+        this.plate.plate_number = plateObj.plate_number;
     }
     toObject(): IPlate {
         return this.plate;
     }
-    generatePlateNumber(plate_number: PlateNumber): string {
-        return `${plate_number.first}${englishPlateDict[plate_number.second]}${plate_number.third}${plate_number.fifth}`;
-    }
+
 }

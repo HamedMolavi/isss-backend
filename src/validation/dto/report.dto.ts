@@ -27,22 +27,8 @@ export class ReportPlateBody {
     @IsOptional()
     @IsArray()
     cameras?: string[]
-    plate?: Plate
+    plate?: string
 };
-
-
-export class Plate {
-    @IsString()
-    first?: string
-    @IsString()
-    second?: string
-    @IsString()
-    third?: string
-    @IsString()
-    fourth?: string
-    @IsString()
-    fifth?: string
-}
 
 
 export class ReportFaceBody{

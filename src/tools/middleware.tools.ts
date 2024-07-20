@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from "express";
-import { stringPlateToJson } from "./plate.tools";
 import { ITrackLog, TrackLogData } from "../types/interfaces/track.interface";
 import { Types } from "mongoose";
 import { ApiError } from "../types/classes/error.class";
@@ -24,7 +23,7 @@ export function unifiedSendFunction(log: any & { _id: string }, req: Request) {
     fullName: (!!log.personnel_id && log.personnel_id !== "unknown") ? body['personnel']?.[log.personnel_id]?.toName() : "",
     time: !!log?.timestamp ? new Date(typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
     timestamp: !!log?.timestamp ?? "",
-    plate_number: !!log.plate_number ? stringPlateToJson(log.plate_number) : "",
+    plate_number: log.plate_number ?? "",
     owner: !!carDetails ? carDetails?.owner?.toName() : "",
     color: !!log?.color ? body['color']?.[log.color]?.name : "",
     brand: !!log?.brand ? body['brand']?.[log.brand]?.name : "",
