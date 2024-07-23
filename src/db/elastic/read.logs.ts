@@ -8,7 +8,6 @@ import { IPersonnel } from '../../types/interfaces/personnel.interface';
 import { getLogFromElastic } from './connect.database';
 import Time from '../../tools/time.tools';
 import { randomUuid } from '../../tools/utils.tools';
-import { platesToStrings } from '../../tools/car.tools';
 
 
 
