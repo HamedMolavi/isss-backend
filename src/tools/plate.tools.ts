@@ -98,3 +98,16 @@ export function english2Persian(plate_number: string): string {
     let result = `(${tmp.first}${tmp.second}${tmp.third}${tmp.fourth}${tmp.fifth})`
     return result;
 };
+
+export function typeToSearchable(body: { [key: string]: any }) {
+    let plate_number: string = body?.number_plate ?? body?.plate_number ?? "";
+    switch (body.plate_type) {
+        case "0":
+        case "1":
+            return plate_number.split("_").at(0);
+        case "2":
+            return plate_number.split("_").at(-1);
+        default:
+            return "";
+    }
+}

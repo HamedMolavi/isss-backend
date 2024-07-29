@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { persianPlateDict, englishPlateDict } from "../../tools/plate.tools";
+import { persianPlateDict, englishPlateDict, typeToSearchable } from "../../tools/plate.tools";
 import Car from "../../db/mongo/models/car";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import { CreateCarBody } from "../../validation/dto/car.dto";
@@ -22,7 +22,7 @@ router.post("",
   // TODO: validate plateObj.second is defined in englishPlateDict
   existCheck(Car, { $and: [{ number_plate: "number_plate" }] }, "Car already exists!"),
   injectDataMiddleware(allowedPassConvert, { injData: "allowed_pass" }),
-  createMiddleware(["owner", "plate_type", "number_plate", "brand", "color", "camera_whitelist", "schedule_whitelist", "section_whitelist", "department_whitelist", "tracked", "allowed_pass"], Car, {
+  createMiddleware(["owner", "plate_type", "number_plate", "brand", "color", "camera_whitelist", "schedule_whitelist", "section_whitelist", "department_whitelist", "tracked", "allowed_pass", { "searchable": (body: any) => !!body.plate_type ? typeToSearchable(body) : body.plate_number }], Car, {
     send: carSendFunction
   }),
 );

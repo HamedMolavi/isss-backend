@@ -5,7 +5,7 @@ import { createLogMiddleware } from "../../db/elastic/createLog";
 import { Plate } from "../../db/elastic/model/plate";
 import { createMiddleware } from "../../db/mongo/create.database";
 import Car from "../../db/mongo/models/car";
-import { englishPlateDict } from "../../tools/plate.tools";
+import { englishPlateDict, typeToSearchable } from "../../tools/plate.tools";
 import { existCheck } from "../../validation/db";
 import { injectDataMiddleware } from "../../tools/request.tools";
 
@@ -29,7 +29,10 @@ router.post("/plate",
     createLogMiddleware("plate_log", Plate, ["color", "brand", "camera_id", "plate_number", "owner", "plate_type"])
 ).post("/plate",
     createMiddleware(
-        ["owner", "brand", "color", { "number_plate": (body: any) => body.plate_number }, "plate_type"],
+        ["owner", "brand", "color", "plate_type",
+            { "number_plate": (body: any) => body.plate_number },
+            { "searchable": (body: any) => !!body.plate_type ? typeToSearchable(body) : body.plate_number },
+        ],
         Car, { next: true }),
     createLogMiddleware("plate_log", Plate, ["color", "brand", "camera_id", "plate_number", "owner", "plate_type"])
 );
