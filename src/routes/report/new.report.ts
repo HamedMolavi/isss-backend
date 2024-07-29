@@ -122,7 +122,6 @@ function postSearchFunction(req: Request) {
       !!body.cameras.length ? allowedSearchedCameras :
         userCameras;
   const fields: { [key: string]: Array<any> } = {
-    "plate_number": plates,
     "camera_id": cameras,
     "personnel_id": body.personnels,
     "brand": body.brands,
@@ -150,6 +149,17 @@ function postSearchFunction(req: Request) {
       //@ts-ignore
       "exists": { "field": "person_type" },
     })
+  }
+  if (!!plates.length) {
+    fieldQueries.push(...plates.map((el: string) => ({
+      "regexp": {
+        "plate_number": {
+          "value": el.replace("*", ".*"),
+          "flags": "ALL",
+          "case_insensitive": true
+        }
+      }
+    })))
   }
   const timeQueries = !!times_epoch && !!times_epoch.length ? [{
     bool: { should: times_epoch.map(time => ({ range: { timestamp: { gte: time.gte, lte: time.lte } } })), "minimum_should_match": 1 }
