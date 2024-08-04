@@ -56,7 +56,7 @@ router.use('/:type(tree|cumulative)/:id?',
   readMiddleware(Camera, undefined, { next: true, forceAll: true, save: "cameras" }),
 )
 router.use('/tree/:id?',
-  sendDataMiddleware((body: any) => body["trackData"]?.map((track: any) => daySendFunction(track, { body, "query": { "timezone": body.timezone as string | undefined } } as unknown as Request)), { forceAll: true })
+  sendDataMiddleware((body: any) => body["trackData"]?.map((track: any) => daySendFunction(track, { body, "query": { "timez": body.timez as string | undefined } } as unknown as Request)), { forceAll: true })
 )
 router.use('/cumulative/:id?',
   injectDataMiddleware((body: any) => {

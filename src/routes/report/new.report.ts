@@ -197,7 +197,7 @@ function sendFunction(log: any, req: Request): any {
       fullName: personnel?.toName() ?? "",
       department: personnel?.section_id?.department_id?.name ?? department,
       section: personnel?.section_id?.name ?? section,
-      time: !!log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timezone?.toString() ?? "Asia/Tehran" }) : "",
+      time: !!log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timez?.toString() ?? "Asia/Tehran" }) : "",
       plate_number: log.plate_number ?? "",
       plate_type: log.plate_type,
       owner: req.body?.['car']?.[log?.plate_number]?.owner?.toName?.() ?? "",
