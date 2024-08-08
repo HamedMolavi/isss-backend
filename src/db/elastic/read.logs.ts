@@ -190,7 +190,7 @@ export function readByIdElasticMiddleware(
       if (!!Array.isArray(req.body["elasticsearchIndices"])) req.body["elasticsearchIndices"].push(query_elastic.index);
       else req.body["elasticsearchIndices"] = [query_elastic.index];
       let doc = esRes.hits.hits[0];
-      let data = !!options?.send ? options?.send({ "_id": doc?._id, ...(doc?._source ?? {}) }, req)
+      let data = !!options?.send ? await options?.send({ "_id": doc?._id, ...(doc?._source ?? {}) }, req)
         : { "_id": doc?._id, ...(doc?._source ?? {}) }
 
       if (options?.next) {
@@ -209,7 +209,19 @@ export function readByIdElasticMiddleware(
   }
 };
 
-
-
-
-
+export async function readByIdElastic(
+  index: string, _id?: string,
+  options?: {
+  }): Promise<undefined | any> {
+  let query_elastic = {
+    index,
+    "query": {
+      "term": {
+        "_id": _id
+      }
+    }
+  };
+  const esRes = await process.esclient.search(query_elastic);
+  const doc = esRes?.hits?.hits?.[0];
+  return { "_id": doc?._id, ...(doc?._source ?? {}) }
+};
