@@ -17,9 +17,6 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
     job_id: { type: Schema.Types.ObjectId, ref: "JobTitle", default: undefined },
     personnel_code: { type: String, default: "" }, // () => randomUuid(10, "number").toString()
     camera_whitelist: { type: [Schema.Types.ObjectId], ref: "Camera", default: [] },
-    section_whitelist: { type: [Schema.Types.ObjectId], ref: "Section", default: [] },
-    schedule_whitelist: { type: [Schema.Types.ObjectId], ref: "Schedule", default: [] },
-    department_whitelist: { type: [Schema.Types.ObjectId], ref: "Department", default: [] },
     allowed_pass: { type: Schema.Types.Mixed, default: undefined },
     alert: { type: Boolean, default: false },
     tracked: { type: Boolean, default: false },
