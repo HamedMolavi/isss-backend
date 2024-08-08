@@ -1,5 +1,5 @@
 import { Request, Router } from "express";
-import { readByIdElasticMiddleware, readElasticMiddleware } from "../../db/elastic/read.logs";
+import { readByIdElastic, readByIdElasticMiddleware, readElasticMiddleware } from "../../db/elastic/read.logs";
 import { readMiddleware } from "../../db/mongo/read.database";
 import Camera from "../../db/mongo/models/camera";
 import Personnel from "../../db/mongo/models/personnel";
@@ -20,6 +20,7 @@ import { deleteByIdElasticMiddleware } from "../../db/elastic/delete.logs";
 
 //create router for add to routes file
 const router: Router = Router();
+const frame_index = process.env["FRAME_INDEX"] ?? "frame_log";
 // Validation //
 router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
   (req, res, next) => {
@@ -168,7 +169,7 @@ function postSearchFunction(req: Request) {
   } as SearchRequest;
   return query_elastic;
 };
-function sendFunction(log: any, req: Request): any {
+async function sendFunction(log: any, req: Request): Promise<any> {
 
   try {
     const tmpFlag = ["plate_log", "objectdetection_log"].includes(req.body['elasticsearchIndices']?.at(-1));
@@ -180,6 +181,8 @@ function sendFunction(log: any, req: Request): any {
     const section = req.body?.['camera']?.[log.camera_id]?.section_id?.name ?? "";
     const color = log?.color ? req.body['color'][log.color] : undefined;
     const brand = log?.brand ? req.body['brand'][log.brand] : undefined;
+    const frame_log = !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : {};
+    delete frame_log["_id"]
     return {
       _id: log?._id,
       camera_type: camera?.camera_type ?? "",
@@ -187,6 +190,8 @@ function sendFunction(log: any, req: Request): any {
       camera: camera?.name ?? "",
       camera_name: camera?.name ?? "",
       fullName: personnel?.toName() ?? "",
+      ...frame_log,
+      // frame: !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : "",
       department: personnel?.section_id?.department_id?.name ?? department,
       section: personnel?.section_id?.name ?? section,
       time: !!log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timez?.toString() ?? "Asia/Tehran" }) : "",
