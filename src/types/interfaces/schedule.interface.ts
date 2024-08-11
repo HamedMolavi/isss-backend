@@ -12,6 +12,8 @@ export interface ISchedule extends Document {
   sms: { send: boolean; active: boolean };
   alert: { send: boolean; active: boolean };
   state: { send: string; active: boolean };
+  with_full_frame: boolean;
+  update_full_frame: boolean;
   is_running: boolean;
 }
 //define config type
