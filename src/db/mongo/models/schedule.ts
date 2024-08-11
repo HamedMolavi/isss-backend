@@ -28,6 +28,8 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
     }>,
     sms: { type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
     alert:{ type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
+    with_full_frame: { type: Boolean, default: true },
+    update_full_frame: { type: Boolean, default: true },
     is_running: { type: Boolean, default: false },
   },
   {

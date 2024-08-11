@@ -29,6 +29,12 @@ export class CreateScheduleBody {
   @IsBoolean()
   @IsOptional()
   public justHuman?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  public with_full_frame?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  public update_full_frame?: boolean;
   @IsString()
   public state?: string;
 };
@@ -84,6 +90,12 @@ export class UpdateScheduleBody {
   public justHuman?: boolean;
   @IsString()
   public state?: string;
+  @IsBoolean()
+  @IsOptional()
+  public with_full_frame?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  public update_full_frame?: boolean;
 };
 
 
