@@ -70,6 +70,8 @@ ScheduleSchema.methods.toJSON = function () {
     users_alert: this.users_alert,
     sms: this.sms,
     alert: this.alert,
+    with_full_frame: this.with_full_frame,
+    update_full_frame: this.update_full_frame,
     is_running: this.is_running
   };
 };
