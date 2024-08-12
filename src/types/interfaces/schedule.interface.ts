@@ -12,8 +12,6 @@ export interface ISchedule extends Document {
   sms: { send: boolean; active: boolean };
   alert: { send: boolean; active: boolean };
   state: { send: string; active: boolean };
-  with_full_frame: boolean;
-  update_full_frame: boolean;
   is_running: boolean;
 }
 //define config type
@@ -25,6 +23,8 @@ interface IConfig {
   zones: Array<[[number, number], [number, number], [number, number], [number, number]]>;
   justHuman: boolean;
   state: string;
+  with_full_frame: boolean;
+  update_full_frame: boolean;
 }
 
 //define type of schedule for request body
