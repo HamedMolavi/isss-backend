@@ -18,6 +18,8 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
       max_people: { type: Number, default: 0 },
       zones: { type: Array<[[number, number], [number, number], [number, number], [number, number]]>, default: [[[0, 0], [1, 0], [1, 1], [0, 1]]] },
       justHuman: { type: Boolean, default: false },
+      with_full_frame: { type: Boolean, default: true },
+      update_full_frame: { type: Boolean, default: true },
       state: { type: String, default: "both" }
     },
     description: { type: String, required: true },
@@ -28,8 +30,6 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
     }>,
     sms: { type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
     alert:{ type: { send: Boolean, active: Boolean }, default: { send: false, mute: false } },
-    with_full_frame: { type: Boolean, default: true },
-    update_full_frame: { type: Boolean, default: true },
     is_running: { type: Boolean, default: false },
   },
   {
@@ -64,14 +64,14 @@ ScheduleSchema.methods.toJSON = function () {
       min_people: this.config.min_people ?? 0,
       max_people: this.config.max_people ?? 0,
       justHuman: this.config.justHuman,
+      with_full_frame: this.config?.with_full_frame ?? true,
+      update_full_frame: this.config?.update_full_frame ?? true,
       state: this.config.state
     },
     description: this.description,
     users_alert: this.users_alert,
     sms: this.sms,
     alert: this.alert,
-    with_full_frame: this.with_full_frame,
-    update_full_frame: this.update_full_frame,
     is_running: this.is_running
   };
 };
