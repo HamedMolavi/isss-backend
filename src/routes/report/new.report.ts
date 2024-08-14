@@ -210,6 +210,9 @@ async function sendFunction(log: any, req: Request): Promise<any> {
       human_count: log.human_count ?? 0,
       timestamp: log?.timestamp ?? "",
       confidence: log?.confidence ?? "",
+      image_id: log?.image_id ?? "",
+      hash_id: log?.hash_id ?? "",
+      face_confidence: log?.face_confidence ?? "",
       vector: log?.vector ?? ""
     };
   } catch (err: any) {
