@@ -46,11 +46,8 @@ export function getPropertyFromBody(req: Request, propertyName: string | Array<s
   let property: any = "";
   if (typeof propertyName === "string") property = req.body[propertyName];
   else {
-    let tmp = req.body[propertyName[0]];
-    for (let indx = 1; indx < propertyName.length; indx++) {
-      tmp = tmp?.[propertyName[indx]];
-      if (indx === propertyName.length - 1) property = tmp;
-    };
+    property = req.body[propertyName[0]];
+    for (let indx = 1; indx < propertyName.length; indx++) property = property?.[propertyName[indx]];
   }
   return property;
 }

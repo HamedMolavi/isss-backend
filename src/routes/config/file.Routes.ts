@@ -4,8 +4,9 @@ import PersonImage from "../../db/mongo/models/personImage";
 import { createMiddleware } from "../../db/mongo/create.database";
 import { randomUuid } from "../../tools/utils.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
-import { AddNotifPersonnelBody } from "../../validation/dto/notifPersonnel.dto";
 import mongoose from "mongoose";
+import { AddHostilePerson, AddPersonImage } from "../../validation/dto/files.dto";
+import { injectDataMiddleware } from "../../tools/request.tools";
 import Personnel from "../../db/mongo/models/personnel";
 import { allowedPassConvert } from "../../tools/time.tools";
 import JobTitle from "../../db/mongo/models/jobTitle";
@@ -13,7 +14,6 @@ import JobTitle from "../../db/mongo/models/jobTitle";
 //create customized redis client
 const cfs = new ImageFileSystem();
 //create customized redis client
-//TODO: parallel requests will overwrite responses
 const snapshotKafka = new SnapshotKafka();
 //create router for add to server
 const router: Router = Router();
@@ -32,21 +32,25 @@ router.get("/list",
   cfs.listMiddleware());
 
 router.post("/hostile",
+  dtoValidationMiddleware(AddHostilePerson, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  injectDataMiddleware((body: any) => ({ code: randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join("") }), { spread: true }),
+  createMiddleware([
+    { tracked: (body) => !!body["tracked"] },
+    { alert: (body) => !!body["alert"] },
+    { first_name: (body) => 'Hostile' },
+    { last_name: (body) => body["code"] },
+    { personnel_code: (body) => body["code"] }
+  ], Personnel, { save: "person", next: true }),
+
   async (req, res, next) => {
-    if (!req.body["image_str"] || !Array.isArray(req.body["image_str"]) || !req.body["image_str"].every(el => typeof el === "string")) return res.status(400).end();
     let data: any[] = [];
     let result: any[] = [];
-    const code = randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join("")
-    const person = await Personnel.create({
-      tracked: !!req.body["tracked"],
-      alert: !!req.body["alert"],
-      first_name: 'Hostile',
-      last_name: code,
-      personnel_code: code,
-    });
+    const person = req.body["person"];
     for (const image_str of req.body["image_str"]) {
-      await snapshotKafka.kafkaProduce({ image_str, "personnel_id": person.id, "soghra": "", });
-      data.push(await snapshotKafka.kafkaGet(person));
+      data.push(await snapshotKafka.kafkaSession({
+        consumerId: person?.id, consumerKey: 'asghar', producerKey: 'soghra',
+        producerInput: { image_str, personnel_id: person?.id }
+      }))
     }
     for (const aiResult of data) {
       if (!!aiResult?.has_face) {
@@ -71,57 +75,40 @@ router.post("/hostile",
   }
 );
 
-//api for upload image to redis
 router.post("/kafka",
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { save: "id", isInReq: true, next: true }, "personnel_id", "image_str", "soghra"),
-
-
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "personnel_id"),
-  //error check
-  (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == true ? next() : res.status(406).send({ message: "No face found", }),
+  dtoValidationMiddleware(AddPersonImage, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaSession,
+    (req) => [{
+      producerKey: "soghra", consumerKey: "asghar",
+      producerInput: { "personnel_id": req.body["personnel_id"], "image_str": req.body["image_str"] },
+      consumerId: req.body["personnel_id"]
+    }],
+    {
+      save: "aiResponse", next: true,
+      //error check
+      resultValidationFunction: (result) => !!result?.has_face ? undefined : { status: 406, message: "No face found", }
+    }
+  ),
   //save base64 file in assets
-  cfs.uploadAvatarMiddleware(["redisData", "face"], "personnel_id", { next: true }),
-  //project redisData in req.body
-  (req: Request, res: Response, next: NextFunction) => {
-    req.body["_id"] = req.body["redisData"]["_id"];
-    req.body["person_id"] = req.body["redisData"]["personnel_id"];
-    req.body["vector"] = req.body["redisData"]["embedding"];
-    // req.body["masked_embd"] = req.body["redisData"]["masked_embd"];
-    req.body["hash_id"] = req.body["redisData"]["face"];
-    // req.body["masked_face_id"] = req.body["redisData"]["masked_face"];
-    return next();
-  },
+  cfs.uploadAvatarMiddleware("aiResponse.face", "personnel_id", { next: true }),
+  injectDataMiddleware((body: any) => ({ _id: body["aiResponse"]["_id"], person_id: body["aiResponse"]["personnel_id"], vector: body["aiResponse"]["embedding"] }), { spread: true }),
   //create PersonImage document
-  createMiddleware(["person_id", "vector", "hash_id", "_id"], PersonImage, { next: false })
+  createMiddleware(["person_id", "vector", "hash_id", "_id"], PersonImage)
 );
-
-// //route for verified image in redis
-// router.post("/verify",
-//   snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "id"),
-//   //error check
-//   (req: Request, res: Response, next: NextFunction) => req.body["redisData"].has_face == true ? next() : res.status(406).send({ message: "No face found", }),
-//   //save base64 file in assets
-//   cfs.uploadAvatarMiddleware(["redisData", "face"], "id", { next: true }),
-//   //project redisData in req.body
-//   (req: Request, res: Response, next: NextFunction) => {
-//     req.body["person_id"] = req.body["redisData"]["personnel_id"];
-//     req.body["vector"] = req.body["redisData"]["embedding"];
-//     // req.body["masked_embd"] = req.body["redisData"]["masked_embd"];
-//     req.body["hash_id"] = req.body["redisData"]["face"];
-//     // req.body["masked_face_id"] = req.body["redisData"]["masked_face"];
-//     return next();
-//   },
-//   //create PersonImage document
-//   createMiddleware(["person_id", "vector", "hash_id", { "_id": (body: any) => new mongoose.Types.ObjectId().toHexString() }], PersonImage, { next: false })
-// );
 
 router.post("/search",
   (req: Request, res: Response, next: NextFunction) => {
     req.body.id = randomUuid(24);
     return next()
   },
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true, next: true }, "image_str", "confidence", "id", "akbar"),
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "id"),
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaSession,
+    (req) => [{
+      producerKey: "akbar", consumerKey: "kobra",
+      producerInput: ["image_str", "confidence", "id"].reduce((o, k) => Object.assign(o, { [k]: req.body[k] }), {}),
+      consumerId: req.body["id"]
+    }],
+    { save: "redisData", next: true }
+  ),
   //error check
   (req: Request, res: Response, next: NextFunction) => req.body["redisData"]?.has_face == true ?
     res.status(406).send({ message: "No face found", }) :
@@ -131,65 +118,44 @@ router.post("/search",
     })
 );
 
+router.post("/notifpersonnel/guest",
+  injectDataMiddleware(async (_body: any) => ({
+    code: randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join(""),
+    guestId: await JobTitle.findOne({ name: 'guest' }).exec().then(job => job?.id)
+  }), { spread: true }),
+  createMiddleware([
+    { guest: (_body) => true },
+    { allowed_pass: (body) => allowedPassConvert(body) ?? { "start": 0, "end": 2147483648000 } },
+    { first_name: (body) => 'Guest' },
+    { last_name: (body) => body["code"] },
+    { personnel_code: (body) => body["code"] },
+    { job_id: (body) => body["guestId"] }
+  ], Personnel, { save: "person", next: true }),
+  injectDataMiddleware((body: any) => ({ person_id: body.person?.id }), { spread: true }),
+)
 
 router.post("/notifpersonnel/:type?",
-  dtoValidationMiddleware(AddNotifPersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  async (req: Request, res: Response, next: NextFunction) => {
-    if (!!req.params["type"] && req.params["type"] === "guest") {
-      const code = randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join("")
-      let allowed_pass = allowedPassConvert(req.body) ?? { "start": 0, "end": 2147483648000 };
-      const person = await Personnel.create({
-        guest: true,
-        allowed_pass,
-        job_id: await JobTitle.findOne({ name: 'guest' }).exec().then(job => job?.id),
-        first_name: 'Guest',
-        last_name: code,
-        personnel_code: code,
-      });
-      req.body["person_id"] = person.id;
-    }
-    next();
-  },
-  (req: Request, res: Response, next: NextFunction) => {
-    req.body["redisData"] = {}
-    req.body["redisData"]["image_str"] = req.body["image_str"];
-    req.body["redisData"]["_id"] = new mongoose.Types.ObjectId().toHexString();
-    req.body["_id"] = req.body["redisData"]["_id"];
-    req.body["redisData"]["vector"] = req.body["vector"];
-    req.body["redisData"]["image_str"] = req.body["image_str"];
-    req.body["redisData"]["confidence"] = req.body["confidence"];
-    req.body["image_str"] = req.body["image_str"];
-    return next();
-  },
+  dtoValidationMiddleware(AddPersonImage, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  injectDataMiddleware((body: any) => ({ _id: new mongoose.Types.ObjectId().toHexString() }), { spread: true }),
+
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaSession,
+    (req) => [{
+      producerKey: "habil", consumerKey: "ghabil",
+      producerInput: ["person_id", "vector", "hash_id", "confidence", "_id"].reduce((o, k) => Object.assign(o, { [k]: req.body[k] }), {}),
+      consumerId: 'undefined' // req.body["person_id"]
+    }], {
+    save: "aiResponse", next: true,
+    resultValidationFunction: (result) => !result?.success ? { status: 400, message: result?.message, } : undefined
+  }),
+  cfs.uploadAvatarMiddleware("image_str", "person_id", { next: true }),
   //create PersonImage document
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { isInReq: true, next: true }, "person_id", "vector", "hash_id", "confidence", "_id", "habil"),
-  snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "response_ai", isInReq: true, next: true }, "person_id"),
-  ((req: Request, res: Response, next: NextFunction) => req.body["response_ai"]?.success == false ?
-    res.status(400).send({ message: req.body["response_ai"]?.message, }) :
-    next()),
-  cfs.uploadAvatarMiddleware(["redisData", "image_str"], "person_id", { next: true }, "hash_id"),
-  (req: Request, res: Response, next: NextFunction) => {
-    req.body["hash_id"] = req.body["redisData"]["image_str"];
-    req.body["redisData"]["image_str"] = req.body["image_str"];
-    req.body["redisData"]["vector"] = req.body["vector"];
-    req.body["redisData"]["confidence"] = req.body["confidence"];
-    return next();
-  },
-  createMiddleware(["person_id", "vector", "hash_id", "confidence", "_id"], PersonImage, { next: true }),
+  createMiddleware(["person_id", "vector", "hash_id", "confidence", "_id"], PersonImage, { next: true, save: "imageDoc" }),
   (req: Request, res: Response, next: NextFunction) => {
     res.status(201).send({
       success: true,
-      data: req.body.redisData ?? "",
+      data: { ...req?.body?.imageDoc?.toJSON(), "image_str": req?.body?.image_str },
     })
   },
 )
 
 export default router;
-
-
-// {
-//   timestamp: "2024-01-28T16:10:15.988Z",
-//   data: [
-//     "65b4e28ba0fdd48af803a025",
-//   ],
-// }

@@ -7,7 +7,7 @@ import { validate, ValidationError } from "class-validator";
 import { ApiError } from "../../types/classes/error.class";
 
 export function dtoValidationMiddleware(type: any, options?: { skipMissingProperties?: boolean, detailedMassage?: boolean, info?: string }): RequestHandler {
-  let defaultOpt = { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"]==="development" ? true : false, info: undefined };
+  let defaultOpt = { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: undefined };
   //@ts-ignore
   for (const key in options) defaultOpt[key] = options[key];
   return async (req: Request, _res: Response, next: NextFunction) => {
@@ -45,6 +45,25 @@ export function dtoValidationMiddleware(type: any, options?: { skipMissingProper
   property: string;
 }
 */
+
+@ValidatorConstraint({ name: 'isImageString', async: false })
+export class IsImageString implements ValidatorConstraintInterface {
+  validate(image_str: any, args: ValidationArguments & { object: any }) {
+    const jpegPrefix = 'data:image/jpeg;base64,';
+    const pngPrefix = 'data:image/png;base64,';
+    if (image_str.startsWith(jpegPrefix)) {
+      image_str = image_str.substring(jpegPrefix.length);
+    } else if (image_str.startsWith(pngPrefix)) {
+      image_str = image_str.substring(pngPrefix.length);
+    }
+    const base64Regex = /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/;
+    return base64Regex.test(image_str) && !!image_str;
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return `${args.property} should be a valid JPG or PNG image encoded with base64.`;
+  }
+}
 
 @ValidatorConstraint({ name: 'timeAndDate', async: false })
 export class TimeAndDateValidator implements ValidatorConstraintInterface {
@@ -102,10 +121,10 @@ export function Or(thisName: string, propertyNames: string[], validationOptions?
       return true; // If the value is not undefined or null, proceed with validation
     }
     // If the value is undefined or null, check if any of the other properties are defined
-    if(propertyNames.some((name)=>!!object[name])){
+    if (propertyNames.some((name) => !!object[name])) {
       return false; // pass this one
     }
     // If the value is undefined or null and none of the other properties are defined, the validation fails
     throw new Error(`One of these must be defiend: ${[thisName].concat(propertyNames).join(" - ")}!`)
   }, validationOptions);
- }
+}
