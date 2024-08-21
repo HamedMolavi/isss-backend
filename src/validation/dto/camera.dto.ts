@@ -10,22 +10,18 @@ export class CreateCameraBody {
   public nvr?: string;
   @IsString()
   @NotContains(" ")
-  @NotContains("_")
   public ip?: string;
   @IsString()
   public name?: string;
   @IsOptional()
   @IsString()
   @NotContains(" ")
-  @NotContains("_")
   public url?: string;
   @IsString()
   @NotContains(" ")
-  @NotContains("_")
   public username?: string;
   @IsString()
   @NotContains(" ")
-  @NotContains("_")
   public password?: string;
   @IsOptional()
   @IsBoolean()
