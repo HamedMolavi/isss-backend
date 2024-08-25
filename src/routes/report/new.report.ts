@@ -173,6 +173,7 @@ async function sendFunction(log: any, req: Request): Promise<any> {
     const brand = log?.brand ? req.body['brand'][log.brand] : undefined;
     const frame_log = !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : {};
     delete frame_log["_id"]
+    delete frame_log["personnel_id"]
     return {
       _id: log?._id,
       camera_type: camera?.camera_type ?? "",
@@ -180,6 +181,7 @@ async function sendFunction(log: any, req: Request): Promise<any> {
       camera: camera?.name ?? "",
       camera_name: camera?.name ?? "",
       fullName: personnel?.toName() ?? "",
+      personnel_id: personnel?.id ?? "unknown",
       ...frame_log,
       // frame: !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : "",
       department: personnel?.section_id?.department_id?.name ?? department,
