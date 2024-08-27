@@ -1,6 +1,3 @@
-
-// res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-// res.setHeader('Content-Disposition', 'attachment; filename=Workbook.xlsx');
 import Excel, { Column, Style } from "exceljs";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../types/classes/error.class";
@@ -44,11 +41,12 @@ export function sendExcelMiddleware(data: DataType,
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      if (options?.name) res.setHeader('Content-Disposition', `attachment; filename=${typeof options.name === 'function' ? options.name(req) : options.name}.xlsx`);
-      else {
-        const time = new Date().toLocaleString().replace(" ", "");
-        res.setHeader('Content-Disposition', `attachment; filename=Report-${time}-(${req.user.username}).xlsx`);
-      }
+      // if (options?.name) res.setHeader('Content-Disposition', `attachment; filename=${typeof options.name === 'function' ? options.name(req) : options.name}.xlsx`);
+      // else {
+      //   const time = new Date().toLocaleString().replace(" ", "");
+      // res.setHeader('Content-Disposition', `attachment; filename=Report-${time}-(${req.user.username}).xlsx`);
+      // }
+      // res.setHeader('Content-Disposition', `attachment; filename=Report.xlsx`);
       const workbook = new Excel.Workbook();
       // const workbook = new Excel.stream.xlsx.WorkbookWriter({
       //   stream: res,
