@@ -48,7 +48,7 @@ type Report = {
 export function readElasticMiddleware(
   index_name: string | ((req: Request) => string),
   options?: {
-    next?: boolean,
+    next?: boolean | ((req: Request) => Promise<boolean> | boolean),
     save?: string,
     forceAll?: boolean,
     send?: (doc: unknown, req: Request) => any | void | Promise<any | void>,
@@ -59,6 +59,7 @@ export function readElasticMiddleware(
   }): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
+      const nextValue = !!options?.next && (typeof options?.next !== "function" || !!options.next(req));
       //get page from url
       let strPage = req.query.page as string;
       let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -93,7 +94,7 @@ export function readElasticMiddleware(
         }
       }
 
-      if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !options?.next) {
+      if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !nextValue) {
         req.flash(`error ,${index} data not found in DB`);
         return next(new ApiError(404, `error ,${index} data not found in DB`));
       };
@@ -110,15 +111,15 @@ export function readElasticMiddleware(
       if (!!options?.filter?.call && !!options?.forceAll) {
         total = data.length;
         let start = ((page > 1 ? page : 1) - 1) * perPage;
-        if (!options?.next) data = data.slice(start, start + perPage);
+        if (!nextValue) data = data.slice(start, start + perPage);
       } else {
         total = typeof (esRes.hits.total) === 'number' ? esRes.hits.total
           : esRes.hits.total?.value;
-        // if (!options?.next) data.splice(0, search.from ?? 0);
+        // if (!nextValue) data.splice(0, search.from ?? 0);
       }
 
 
-      if (options?.next) {
+      if (nextValue) {
         req.body[options.save || 'esRes'] = data;
         req.body["esResTotal"] = total;
         return next();
@@ -164,13 +165,14 @@ export function readElasticMiddleware(
 export function readByIdElasticMiddleware(
   index_name: string | ((req: Request) => string),
   options?: {
-    next?: boolean,
+    next?: boolean | ((req: Request) => Promise<boolean> | boolean),
     send?: (doc: unknown, req: Request) => any | void | Promise<any | void>,
     save?: string,
     idFromReq?: (req: Request) => string | undefined,
   }, _id?: string): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
+      const nextValue = !!options?.next && (typeof options?.next !== "function" || !!options.next(req));
       let _timezone = req.query.timez as string;
       let id: string = options?.idFromReq?.(req) ?? _id ?? req.params.id ?? "dummy-id";
       let query_elastic = {
@@ -183,7 +185,7 @@ export function readByIdElasticMiddleware(
       };
 
       const esRes = await process.esclient.search(query_elastic);
-      if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !options?.next) {
+      if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !nextValue) {
         req.flash(`error ,${index_name} data not found in DB`);
         return next(new ApiError(404, `error ,${index_name} data not found in DB`));
       };
@@ -193,7 +195,7 @@ export function readByIdElasticMiddleware(
       let data = !!options?.send ? await options?.send({ "_id": doc?._id, ...(doc?._source ?? {}) }, req)
         : { "_id": doc?._id, ...(doc?._source ?? {}) }
 
-      if (options?.next) {
+      if (nextValue) {
         req.body[options?.save ?? 'esRes'] = data;
         return next();
       };

@@ -17,6 +17,7 @@ import { SearchRequest } from "@elastic/elasticsearch/lib/api/typesWithBodyKey";
 import { ApiError } from "../../types/classes/error.class";
 import User from "../../db/mongo/models/user";
 import { deleteByIdElasticMiddleware } from "../../db/elastic/delete.logs";
+import { faceCols, plateCols, sendExcelMiddleware } from "../../tools/excel.tools";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -50,50 +51,44 @@ router.use('/:index(face)/:id?',
 );
 // Delete //
 router.delete('/:index(plate|search|face|sabotage|human|objectdetection)/:id',
-  deleteByIdElasticMiddleware((req) => ({
-    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
-    "search": process.env["PLATE_INDEX"] ?? "plate_log",
-    "face": process.env["FACE_INDEX"] ?? "face_log",
-    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
-    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
-    "human": process.env["HUMAN_INDEX"] ?? "human_log"
-  }[req.params.index]) as string, { send: sendFunction, }),
+  deleteByIdElasticMiddleware(indexFunc, { send: sendFunction, }),
 );
 // Search //
-router.get('/:index(plate|search|face|sabotage|human|objectdetection)',
-  readElasticMiddleware((req) => ({
-    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
-    "search": process.env["PLATE_INDEX"] ?? "plate_log",
-    "face": process.env["FACE_INDEX"] ?? "face_log",
-    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
-    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
-    "human": process.env["HUMAN_INDEX"] ?? "human_log"
-  }[req.params.index]) as string, { send: sendFunction, searchFromReq: getSearchFunction, }),
-);
-router.get("/:index(plate|search|face|sabotage|human|objectdetection)/:id",
-  readByIdElasticMiddleware((req) => ({
-    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
-    "search": process.env["PLATE_INDEX"] ?? "plate_log",
-    "face": process.env["FACE_INDEX"] ?? "face_log",
-    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
-    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
-    "human": process.env["HUMAN_INDEX"] ?? "human_log"
-  }[req.params.index] as string), { send: sendFunction }),
-);
-router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
-  readElasticMiddleware((req) => ({
-    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
-    "search": process.env["PLATE_INDEX"] ?? "plate_log",
-    "face": process.env["FACE_INDEX"] ?? "face_log",
-    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
-    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
-    "human": process.env["HUMAN_INDEX"] ?? "human_log"
-  }[req.params.index]) as string, {
-    searchFromReq: postSearchFunction,
-    send: sendFunction
+router.get('/:index(plate|search|face|sabotage|human|objectdetection)(/:type(excel))?/?$',
+  readElasticMiddleware(indexFunc, {
+    send: sendFunction,
+    save: "esResult",
+    searchFromReq: getSearchFunction,
+    next: (req) => !!req.params["type"]
   }),
 );
+router.get('/:index(plate|search|face)(/:type(excel))?/?$',
+  sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
+);
+router.get("/:index(plate|search|face|sabotage|human|objectdetection)/:id?/:type(excel)?",
+  readByIdElasticMiddleware(indexFunc, {
+    send: sendFunction,
+    save: "esResult",
+    next: (req) => !!req.params["type"]
+  }),
+);
+router.get("/:index(plate|search|face)/:id?/:type(excel)?",
+  sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
+);
 
+router.post("/:index(plate|search|face|sabotage|human|objectdetection)(/:type(excel))?/?$",
+  readElasticMiddleware(indexFunc, {
+    searchFromReq: postSearchFunction,
+    send: sendFunction,
+    save: "esResult",
+    next: (req) => !!req.params["type"]
+  })
+);
+router.post("/:index(plate|search|face)(/:type(excel))?/?$",
+  sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
+);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function getSearchFunction(req: Request) {
   const accessList = req.user.role === 'admin' ? [] : !!req.user.camera_access?.length ? req.user.camera_access : ["who's daddy"]
   return {
@@ -112,6 +107,8 @@ function getSearchFunction(req: Request) {
   } as SearchRequest;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function postSearchFunction(req: Request) {
   const body = req.body;
   body.cameras = body.cameras ?? [];
@@ -159,8 +156,10 @@ function postSearchFunction(req: Request) {
   } as SearchRequest;
   return query_elastic;
 };
-async function sendFunction(log: any, req: Request): Promise<any> {
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+async function sendFunction(log: any, req: Request): Promise<any> {
   try {
     const tmpFlag = ["plate_log", "objectdetection_log"].includes(req.body['elasticsearchIndices']?.at(-1));
     const crop = tmpFlag ? log?.crop : log?.inner_crop ?? '';
@@ -211,6 +210,25 @@ async function sendFunction(log: any, req: Request): Promise<any> {
     console.error(err)
     return undefined;
   }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function indexFunc(req: Request) {
+  return {
+    "plate": process.env["PLATE_INDEX"] ?? "plate_log",
+    "search": process.env["PLATE_INDEX"] ?? "plate_log",
+    "face": process.env["FACE_INDEX"] ?? "face_log",
+    "sabotage": process.env["SABOTAGE_INDEX"] ?? "sabotage_log",
+    "objectdetection": process.env["OBJECT_INDEX"] ?? "objectdetection_log",
+    "human": process.env["HUMAN_INDEX"] ?? "human_log"
+  }[req.params.index] as string
+};
+function colsFunc(req: Request) {
+  return {
+    "plate": plateCols,
+    "search": plateCols,
+    "face": faceCols,
+  }[req.params.index as "plate" | "search" | "face"]
 };
 
 export default router;
