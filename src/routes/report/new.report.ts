@@ -115,7 +115,7 @@ function getSearchFunction(req: Request) {
               "should": typeof req.query?.search === 'string' && !!req.query.search && typeof req.params.index === 'string' && Object.prototype.hasOwnProperty.call(importantFields, req.params.index)
                 ? (importantFields[req.params.index as keyof typeof importantFields]).map((el: string | ((input: string) => string)) => ({
                   "regexp": {
-                    [typeof el === 'string' ? el : el.name]: ".*" + (typeof el === 'function' ? el(req.query.search as string) : req.query.search) + ".*"
+                    [typeof el === 'string' ? el : el.name]: {"value": ".*" + (typeof el === 'function' ? el(req.query.search as string) : req.query.search) + ".*", "case_insensitive": true }
                   }
                 }))
                 : [],
