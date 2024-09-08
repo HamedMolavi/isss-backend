@@ -119,7 +119,7 @@ export function stringPersianToStringEnglish(plate_number: string): string {
   else {
     const plateArray = plate_number.split("");
     for (const [indx, letter] of plateArray.entries()) {
-      if (Object.prototype.hasOwnProperty.call(englishPlateDict, letter)){
+      if (Object.prototype.hasOwnProperty.call(englishPlateDict, letter)) {
         plateArray[indx] = englishPlateDict[letter];
       }
     }
@@ -131,10 +131,19 @@ export function stringEnglishToStringPersian(plate_number: string): string {
   else {
     const plateArray = plate_number.split("");
     for (const [indx, letter] of plateArray.entries()) {
-      if (Object.prototype.hasOwnProperty.call(persianPlateDict, letter)){
+      if (Object.prototype.hasOwnProperty.call(persianPlateDict, letter)) {
         plateArray[indx] = persianPlateDict[letter];
       }
     }
     return plateArray.join("");
   }
+}
+
+export function stringTortl(plate_number: string, options?: { sep?: string }): string {
+  let arr = plate_number.split("");
+  let first = arr.slice(0, 2).join("");
+  let second = arr.slice(2, 3).join("");
+  let third = arr.slice(3, 6).join("");
+  let forth = arr.slice(6, 8).join("");
+  return [forth, "|", third, second, first].join(options?.sep ?? "");
 }

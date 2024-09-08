@@ -29,7 +29,7 @@ export function platesToStrings(plates: Array<{ [key: string]: string }>) {
   if (!plates.every((plate) => Object.values(plate).reduce((pre, curr) => pre + (!!curr ? 1 : 0), 0)===5)) return []
   results = plates.map(plate => {
     // all of fields are there
-    return `${plate.first}${englishPlateDict[plate.second]}${plate.third}${plate.fifth}`;
+    return `${plate.first}${englishPlateDict[plate.second]??"*"}${plate.third}${plate.fifth}`;
   })
 
   return results;
