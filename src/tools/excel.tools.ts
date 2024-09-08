@@ -3,6 +3,7 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../types/classes/error.class";
 import { platesToStrings } from "./car.tools";
 import sizeOf from 'image-size';
+import { stringEnglishToStringPersian } from "./plate.tools";
 
 type Col = {
   header?: string;
@@ -145,7 +146,7 @@ export const textStyle: Partial<Style> = {
 export const plateCols = {
   "type": { "header": "Model", "colSettings": { width: 16 }, "colStyle": textStyle },
   "owner": { "header": "Owner", "colSettings": { width: 16 }, "colStyle": textStyle, transform: (v: string) => !!v ? v : "Unknown" },
-  "plate_number": { "header": "Plate Number", "colSettings": { width: 16 }, "colStyle": textStyle, "transform": (plate: any) => platesToStrings([plate])[0] },
+  "plate_number": { "header": "Plate Number", "colSettings": { width: 16 }, "colStyle": textStyle, "transform": (plate: any) => stringEnglishToStringPersian(platesToStrings([plate])[0]) },
   "inner_crop": { "header": "Inner Crop", "colSettings": { width: 16 }, "image": true },
   "camera_name": { "header": "Camera Name", "colSettings": { width: 16 }, "colStyle": textStyle },
   "camera_type": { "header": "Camera Type", "colSettings": { width: 16 }, "colStyle": textStyle },
