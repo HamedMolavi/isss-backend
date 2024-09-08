@@ -126,3 +126,15 @@ export function stringPersianToStringEnglish(plate_number: string): string {
     return plateArray.join("");
   }
 }
+export function stringEnglishToStringPersian(plate_number: string): string {
+  if (typeof plate_number !== 'string') return "";
+  else {
+    const plateArray = plate_number.split("");
+    for (const [indx, letter] of plateArray.entries()) {
+      if (Object.prototype.hasOwnProperty.call(persianPlateDict, letter)){
+        plateArray[indx] = persianPlateDict[letter];
+      }
+    }
+    return plateArray.join("");
+  }
+}
