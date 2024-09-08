@@ -10,7 +10,7 @@ import { ReportFaceBody, ReportHumanBody, ReportObjectBody, ReportPlateBody } fr
 import CarBrand from "../../db/mongo/models/carBrand";
 import CarColor from "../../db/mongo/models/carColor";
 import { injectDataMiddleware } from "../../tools/request.tools";
-import { stringPlateToJson } from "../../tools/plate.tools";
+import { stringPersianToStringEnglish, stringPlateToJson } from "../../tools/plate.tools";
 import { injectAllKindOfStuff } from "../../tools/middleware.tools";
 import { platesToStrings } from "../../tools/car.tools";
 import { SearchRequest } from "@elastic/elasticsearch/lib/api/typesWithBodyKey";
@@ -22,6 +22,10 @@ import { faceCols, plateCols, sendExcelMiddleware } from "../../tools/excel.tool
 //create router for add to routes file
 const router: Router = Router();
 const frame_index = process.env["FRAME_INDEX"] ?? "frame_log";
+const importantFields = {
+  "face": ["description", "name", "camera_name", "personnel_code"],
+  "plate": ["description", "owner", "camera_name", function plate_number(input: string) { return stringPersianToStringEnglish(input) }]
+}
 // Validation //
 router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
   (req, res, next) => {
@@ -54,7 +58,7 @@ router.delete('/:index(plate|search|face|sabotage|human|objectdetection)/:id',
   deleteByIdElasticMiddleware(indexFunc, { send: sendFunction, }),
 );
 // Search //
-router.get('/:index(plate|search|face|sabotage|human|objectdetection)(/:type(excel))?/?$',
+router.get('/:index(plate|search|face|sabotage|human|objectdetection)(/:type(excel))?/?$', // total get
   readElasticMiddleware(indexFunc, {
     send: sendFunction,
     save: "esResult",
@@ -65,7 +69,7 @@ router.get('/:index(plate|search|face|sabotage|human|objectdetection)(/:type(exc
 router.get('/:index(plate|search|face)(/:type(excel))?/?$',
   sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
 );
-router.get("/:index(plate|search|face|sabotage|human|objectdetection)/:id?/:type(excel)?",
+router.get("/:index(plate|search|face|sabotage|human|objectdetection)/:id?/:type(excel)?", // get with id
   readByIdElasticMiddleware(indexFunc, {
     send: sendFunction,
     save: "esResult",
@@ -76,7 +80,7 @@ router.get("/:index(plate|search|face)/:id?/:type(excel)?",
   sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
 );
 
-router.post("/:index(plate|search|face|sabotage|human|objectdetection)(/:type(excel))?/?$",
+router.post("/:index(plate|search|face|sabotage|human|objectdetection)(/:type(excel))?/?$", // filter with body
   readElasticMiddleware(indexFunc, {
     searchFromReq: postSearchFunction,
     send: sendFunction,
@@ -94,19 +98,36 @@ function getSearchFunction(req: Request) {
   return {
     track_total_hits: true,
     query: {
-      bool: {
-        should: accessList?.map(value => ({
-          match: {
-            "camera_id": value.toString()
+      "bool": {
+        "must": [
+          {
+            "bool": { // ensure camera access for user
+              "should": accessList?.map(value => ({
+                match: {
+                  "camera_id": value.toString()
+                }
+              })),
+              "minimum_should_match": 1
+            }
+          },
+          {
+            "bool": { // search if provided
+              "should": typeof req.query?.search === 'string' && !!req.query.search && typeof req.params.index === 'string' && Object.prototype.hasOwnProperty.call(importantFields, req.params.index)
+                ? (importantFields[req.params.index as keyof typeof importantFields]).map((el: string | ((input: string) => string)) => ({
+                  "regexp": {
+                    [typeof el === 'string' ? el : el.name]: ".*" + (typeof el === 'function' ? el(req.query.search as string) : req.query.search) + ".*"
+                  }
+                }))
+                : [],
+              "minimum_should_match": 1
+            }
           }
-        })),
-        "minimum_should_match": 1
+        ]
       }
     },
     sort: [{ timestamp: { order: "desc" } }]
   } as SearchRequest;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function postSearchFunction(req: Request) {
