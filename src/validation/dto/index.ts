@@ -5,6 +5,8 @@ import { plainToInstance } from "class-transformer";
 import { validate, ValidationError } from "class-validator";
 // import { sanitize, Trim } from "class-sanitizer";
 import { ApiError } from "../../types/classes/error.class";
+import path from 'path';
+import { existsSync } from 'fs';
 
 export function dtoValidationMiddleware(type: any, options?: { skipMissingProperties?: boolean, detailedMassage?: boolean, info?: string }): RequestHandler {
   let defaultOpt = { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: undefined };
@@ -127,4 +129,18 @@ export function Or(thisName: string, propertyNames: string[], validationOptions?
     // If the value is undefined or null and none of the other properties are defined, the validation fails
     throw new Error(`One of these must be defiend: ${[thisName].concat(propertyNames).join(" - ")}!`)
   }, validationOptions);
+}
+
+@ValidatorConstraint({ name: 'timeAndDate', async: false })
+export class FileOrDirExists implements ValidatorConstraintInterface {
+  validate(p: string, args: ValidationArguments & { object: any }) {
+    const pathes: { prefix: string | undefined, postfix: string | undefined } = args.constraints[0] ?? {};
+    const wholePath = path.join(pathes.prefix ?? "", p, pathes.postfix ?? "");
+    if (existsSync(wholePath)) return true;
+    return false;
+  }
+
+  defaultMessage(args: ValidationArguments & { object: any }) {
+    return `No such file or directory: ${args.object[args.property]}`;
+  }
 }

@@ -19,6 +19,9 @@ import mongoose from "mongoose";
 const brokers = process.env["KAFKA_BOOTSTRAP"].split(",");
 const logLevel = l.ERROR;
 const consumerDataPerpareFunction = {
+  sara: (msg: any) => ({
+    [msg["_id"]]: msg
+  }),
   asghar: (msg: any) => ({
     [msg["personnel_id"]]: {
       timestamp: new Date().toISOString(),
@@ -53,6 +56,12 @@ const consumerDataPerpareFunction = {
 }
 
 const producerDataPerpareFunction = {
+  dara: async (inputs: any) => {
+    return {
+      _id: inputs['_id'],
+      path: inputs['path'],
+    };
+  },
   soghra: async (inputs: any) => {
     const full_frame: string = inputs.image_str ?? "";
     const personnel = await Personnel.findById(inputs.personnel_id).exec();
@@ -111,7 +120,7 @@ export class SnapshotKafka {
     this.ongoings = [];
   }
 
-  async kafkaSession(allInOneInput: { consumerKey: string, producerKey: string, producerInput: any, consumerId: string }) {
+  async kafkaSession(allInOneInput: { consumerKey: string, producerKey: string, producerInput: any, consumerId: string, timeout?: number }) {
     const { consumerKey, producerKey, producerInput, consumerId } = allInOneInput;
     if (!!this.ongoings.some(el => el === producerInput?.personnel_id || el === producerInput?.person_id)) throw Error(`This person has ongoing image process!`);
     const handler = producerDataPerpareFunction[producerKey as keyof typeof producerDataPerpareFunction];
@@ -122,7 +131,7 @@ export class SnapshotKafka {
     const producer = new Kafka({ logLevel, brokers }).producer();
     await producer.connect();
     const kafka = new Kafka({ clientId: 'backend', brokers });
-    const consumer = kafka.consumer({ groupId: generateRandomString(10) });
+    const consumer = kafka.consumer({ groupId: generateRandomString(10),  });
     await consumer.connect();
     await consumer.subscribe({ topic: 'snapshot', fromBeginning: false });
     if (!!producerInput?.personnel_id) this.ongoings.push(producerInput?.personnel_id);
@@ -135,7 +144,7 @@ export class SnapshotKafka {
         consumer.stop();
         return resolve(result);
       }
-      const timer = setTimeout(retHandler, 30000);
+      const timer = setTimeout(retHandler, allInOneInput.timeout ?? 30000);
       await consumer.run({
         eachMessage: async ({ message }) => {
           try {

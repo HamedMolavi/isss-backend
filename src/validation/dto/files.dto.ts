@@ -1,5 +1,5 @@
 import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, Validate, ArrayMaxSize, ArrayMinSize, IsNumber } from "class-validator";
-import { IsImageString, Or } from ".";
+import { FileOrDirExists, IsImageString, Or } from ".";
 
 
 export class AddPersonImage {
@@ -32,4 +32,10 @@ export class AddHostilePerson {
   @IsBoolean()
   @IsOptional()
   public alert?: boolean;
+};
+
+export class AddBatchPersonnel {
+  @Validate(FileOrDirExists, [{ prefix: __dirname + '/../../../face_DB' }])
+  @IsString()
+  public path?: boolean;
 };

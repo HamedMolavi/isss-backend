@@ -4060,6 +4060,11 @@ persian-date@^1.1.0:
   resolved "https://registry.npmjs.org/persian-date/-/persian-date-1.1.0.tgz"
   integrity sha512-YwV3703jLTTJFFQfP3RvMfvKZc5Z1yE++Deywox+hkVLuVN81VsTaZFma9k5P9SgfSUvXjiylbQVuf4YYLGOow==
 
+pickleparser@^0.2.1:
+  version "0.2.1"
+  resolved "https://registry.npmjs.org/pickleparser/-/pickleparser-0.2.1.tgz"
+  integrity sha512-kMzY3uFYcR6OjOqr7nV2nkaXaBsUEOafu3zgPxeD6s/2ueMfVQH8lrymcDWBPGx0OkVxGMikxQit6jgByXjwBg==
+
 picomatch@^2.0.4, picomatch@^2.2.1:
   version "2.3.1"
   resolved "https://registry.npmjs.org/picomatch/-/picomatch-2.3.1.tgz"
