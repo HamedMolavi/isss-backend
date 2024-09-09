@@ -191,6 +191,12 @@ export class SnapshotKafka {
     const kafka_key: string = Object.keys(inputs).at(-1) ?? "";
 
     const handlers = {
+      embedding: async () => {
+        return {
+          personnel_id: inputs['personnel_id'],
+          path: './face_DB/' + inputs['path'],
+        }
+      },
       soghra: async () => {
         const personnel = await Personnel.findById(inputs.personnel_id).exec();
         const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();

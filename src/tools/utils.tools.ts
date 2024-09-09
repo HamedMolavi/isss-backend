@@ -2,6 +2,9 @@ import { randomUUID } from "crypto";
 import inspector from 'inspector';
 import { Request } from "express";
 var randomWords = require('random-words-es');
+import fs from 'fs/promises';
+import path from 'path';
+import { Parser } from 'pickleparser';
 
 // bcrypt.hash("2", "$2b$10$/3XrA1.HamedMolaviC22O").then(hash => hash.slice(-31,-1))
 
@@ -97,3 +100,10 @@ export function calcVectorSize(vec: Array<number>): number {
 export function sum(arr: Array<number>) {
   return arr.reduce((res, cur) => res + cur, 0);
 };
+
+export async function unpickle(p: string) {
+  const pkl = await fs.readFile(p, 'binary');
+  const buffer = Buffer.from(pkl, 'binary');
+  const parser = new Parser();
+  return parser.parse(buffer);
+}
