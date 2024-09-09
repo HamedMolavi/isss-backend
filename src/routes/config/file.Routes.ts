@@ -50,7 +50,7 @@ router.post("/batch",
       producerKey: "dara", consumerKey: "sara",
       producerInput: { "path": req.body["path"], _id: req.body['_id'] },
       consumerId: req.body["_id"],
-      timeout: 60000
+      timeout: Math.max(readdirSync(path.join(__dirname, '../../../face_DB', req.body['path'])).length * 50, 10000)
     }],
     {
       save: "aiRes", next: true,
