@@ -34,7 +34,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = !!options?.forceAll || strPerPage?.toLowerCase() === "all"
-        ? 10000
+        ? 1000000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let docs: Document[] = (!!query && !!search)
         ? await model.find(await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
