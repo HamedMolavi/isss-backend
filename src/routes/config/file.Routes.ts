@@ -65,7 +65,7 @@ router.post("/batch",
       messages: [
         {
           key: "connect",
-          value: JSON.stringify({ "signal": "shutdown", "origin": "back", "sender": "back", "timeout": Math.max(readdirSync(path.join(__dirname, '../../../face_DB', req.body['path'])).length * 30, 10000) }),
+          value: JSON.stringify({ "signal": "shutdown", "origin": "back", "sender": "back", "timeout": Math.max(readdirSync(path.join(__dirname, '../../../face_DB', req.body['aiRes']['success_dir'])).length * 30, 10 * 60 * 1000) }),
         },
       ],
     })
@@ -84,12 +84,7 @@ router.post("/batch",
     const user_dir = path.join(__dirname, '../../../face_DB', req.body['path']);
     const picklePath = path.join(success_dir, 'embeddings.pkl');
     if (!data || !data['success_dir'] || !existsSync(picklePath)) return next(new ApiError(500, "Internal error!"));
-    const imageData_tmp: { [key: string]: Array<number> } = await unpickle(picklePath) as any;
-    const imageData: { [key: string]: Array<number> } = {
-      '9943363_9943363.jpg': imageData_tmp['9943363_9943363.jpg'],
-      '9943873_9943873.jpg': imageData_tmp['9943873_9943873.jpg']
-    };
-
+    const imageData: { [key: string]: Array<number> } = await unpickle(picklePath) as any;
     let successful_count = 0;
     let failed_count = data['failed'].length;
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -205,6 +200,18 @@ router.post("/batch",
         },
       ],
     })
+    await (new Promise((resolve, _rej) => {
+      producer.send({
+        topic: process.env["SIGNAL_TOPIC"],
+        messages: [
+          {
+            key: "connect",
+            value: JSON.stringify({ signal: "turnon", origin: "back", sender: "back" }),
+          },
+        ],
+      })
+      setTimeout(() => resolve(true), 1000);
+    }))
     await producer.send({
       topic: process.env["SIGNAL_TOPIC"],
       messages: [
