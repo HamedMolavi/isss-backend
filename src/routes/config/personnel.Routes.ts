@@ -83,17 +83,19 @@ const specialTypes = ["Hostile", "Guest"]
 async function personnelSendFunction(_personnel: any, req: Request) {
   let per = _personnel.toJSON();
   // TODO: fetch last location from normalizer server.
-  let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
-  let _camera;
-  if (logPersonnel?.data?.hits?.hits?.length > 0) {
-    try {
-      _camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate("section_id").exec();
-    } catch (error: any) {
-      if (error.name.toString() === 'CastError') console.log(`!!! Elastic data error: ${logPersonnel.data.hits.hits[0]?._source?.camera_id} as camera._id is wrong`);
+  if (!!req?.query?.lastSeen) {
+    let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
+    let _camera;
+    if (logPersonnel?.data?.hits?.hits?.length > 0) {
+      try {
+        _camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate("section_id").exec();
+      } catch (error: any) {
+        if (error.name.toString() === 'CastError') console.log(`!!! Elastic data error: ${logPersonnel.data.hits.hits[0]?._source?.camera_id} as camera._id is wrong`);
+      }
+      per.lastTimeSeen = new Date(logPersonnel.data?.hits?.hits[0]?._source?.timestamp);
     }
-    per.lastTimeSeen = new Date(logPersonnel.data?.hits?.hits[0]?._source?.timestamp);
+    (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
   }
-  (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
   if (!!per.allowed_pass) per.allowed_pass = allowedPassRevert(per);
   const type = specialTypes.find(t => req.originalUrl.toLowerCase().includes(t.toLowerCase()));
 
