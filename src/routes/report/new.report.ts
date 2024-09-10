@@ -115,7 +115,7 @@ function getSearchFunction(req: Request) {
               "should": typeof req.query?.search === 'string' && !!req.query.search && typeof req.params.index === 'string' && Object.prototype.hasOwnProperty.call(importantFields, req.params.index)
                 ? (importantFields[req.params.index as keyof typeof importantFields]).map((el: string | ((input: string) => string)) => ({
                   "regexp": {
-                    [typeof el === 'string' ? el : el.name]: {"value": ".*" + (typeof el === 'function' ? el(req.query.search as string) : req.query.search) + ".*", "case_insensitive": true }
+                    [typeof el === 'string' ? el : el.name]: { "value": ".*" + (typeof el === 'function' ? el(req.query.search as string) : req.query.search) + ".*", "case_insensitive": true }
                   }
                 }))
                 : [],
@@ -210,7 +210,7 @@ async function sendFunction(log: any, req: Request): Promise<any> {
       camera_id: camera?._id?.toString() ?? "",
       camera: camera?.name ?? "",
       camera_name: camera?.name ?? "",
-      fullName: personnel?.toName() ?? "",
+      fullName: personnel?.toName() ?? log.name ?? "",
       personnel_id: personnel?.id ?? "unknown",
       ...frame_log,
       // frame: !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : "",
