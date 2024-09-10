@@ -10,7 +10,7 @@ import { injectDataMiddleware } from "../../tools/request.tools";
 import Personnel from "../../db/mongo/models/personnel";
 import { allowedPassConvert } from "../../tools/time.tools";
 import JobTitle from "../../db/mongo/models/jobTitle";
-import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, unlinkSync, writeFileSync } from "fs";
 import path from "path";
 import { ApiError } from "../../types/classes/error.class";
 import { hashString } from "../../tools/hash";
@@ -57,6 +57,21 @@ router.post("/batch",
       resultValidationFunction: (result) => !!result?.success_dir ? undefined : { status: 500, message: "Not Successful!", }
     }
   ),
+  async (req, _res, next) => {
+    const producer = new Kafka({ logLevel: logLevel.ERROR, brokers: process.env["KAFKA_BOOTSTRAP"].split(","), }).producer();
+    await producer.connect();
+    await producer.send({
+      topic: process.env["SIGNAL_TOPIC"],
+      messages: [
+        {
+          key: "connect",
+          value: JSON.stringify({ "signal": "shutdown", "origin": "back", "sender": "back", "timeout": Math.max(readdirSync(path.join(__dirname, '../../../face_DB', req.body['path'])).length * 30, 10000) }),
+        },
+      ],
+    })
+    await producer.disconnect();
+    return next();
+  },
   // //save base64 file in assets
   // cfs.uploadAvatarMiddleware("aiResponse.face", "personnel_id", { next: true }),
   // injectDataMiddleware((body: any) => ({ _id: body["aiResponse"]["_id"], person_id: body["aiResponse"]["personnel_id"], vector: body["aiResponse"]["embedding"] }), { spread: true }),
@@ -69,51 +84,108 @@ router.post("/batch",
     const user_dir = path.join(__dirname, '../../../face_DB', req.body['path']);
     const picklePath = path.join(success_dir, 'embeddings.pkl');
     if (!data || !data['success_dir'] || !existsSync(picklePath)) return next(new ApiError(500, "Internal error!"));
-    const imageData: { [key: string]: Array<number> } = await unpickle(picklePath) as any;
+    const imageData_tmp: { [key: string]: Array<number> } = await unpickle(picklePath) as any;
+    const imageData: { [key: string]: Array<number> } = {
+      '9943363_9943363.jpg': imageData_tmp['9943363_9943363.jpg'],
+      '9943873_9943873.jpg': imageData_tmp['9943873_9943873.jpg']
+    };
 
-
+    let successful_count = 0;
+    let failed_count = data['failed'].length;
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     for (const personnelCode_imageName in imageData) {
       const personnel_code = personnelCode_imageName.split("_")[0];
+      let newPerson = false;
+      let person = await Personnel.findOne({ personnel_code }).exec();
+      if (!person) {
+        person = new Personnel({ personnel_code, first_name: personnel_code, last_name: personnel_code });
+        await person.save();
+        newPerson = true;
+      }
+      //////////////////////////////////////
       try {
         if (Object.prototype.hasOwnProperty.call(imageData, personnelCode_imageName)) {
           const imagesDirPath = path.join(success_dir, personnel_code);
-          if (!existsSync(imagesDirPath)) continue;
-          let person = await Personnel.findOne({ personnel_code }).exec();
-          if (!person) {
-            person = new Personnel({ personnel_code, first_name: personnel_code, last_name: personnel_code });
-            await person.save();
-          }
+          if (!existsSync(imagesDirPath)) { failed_count += 1; continue };
           const personnel_id = person.id;
           const imagePaths = readdirSync(imagesDirPath).filter(file => (/\.(png|jpg|jpeg|bmp)$/i).test(file.toLowerCase())).map((file) => path.join(imagesDirPath, file));
+          if (!imagePaths.length) console.log("wrong ext", readdirSync(imagesDirPath))
+          //////////////////////////////////////
           for (const imagePath of imagePaths) {
             const image64 = readFileSync(imagePath).toString('base64');
             const hash_id = hashString(image64, secret);
             const existingPersonImage = await PersonImage.findOne({ hash_id }).exec();
+            //////////////////////////////////////
+            if (!!existingPersonImage) {
+              const pervPerson = await Personnel.findById(existingPersonImage.person_id).exec();
+              if (person.id === pervPerson?.id) {
+                console.log(`Image already added for personnel ${person.id}/${personnel_code}: ${imagePath}`)
+              } else if (!!pervPerson) {
+                const pervPersonnel_code = pervPerson?.personnel_code;
+                console.log(`Image ${imagePath} exists for ${pervPersonnel_code} and can't be added to ${personnel_code}`);
+                let pp: string | undefined = data['successful'].find((p: string) => p.includes(personnelCode_imageName.replace('_', '/')));
+                if (typeof pp === 'string') {
+                  ensureDirSync(path.join(user_dir, personnel_code))
+                  const exactImagePath = path.join(__dirname, '../../../face_DB', pp);
+                  moveSync(exactImagePath, path.join(user_dir, `${personnel_code}/${path.basename(exactImagePath)}`), { overwrite: true })
+                  if (!readdirSync(path.dirname(exactImagePath)).length) rmdirSync(path.dirname(exactImagePath));
+                }
+                let pp2: string | undefined = data['successful'].find((p: string) => p.includes(pervPersonnel_code));
+                if (!!pp2) {
+                  ensureDirSync(path.join(user_dir, pervPersonnel_code))
+                  const exactImagePath = path.join(__dirname, '../../../face_DB', pp2);
+                  moveSync(exactImagePath, path.join(user_dir, `${pervPersonnel_code}/${path.basename(exactImagePath)}`), { overwrite: true })
+                  if (!readdirSync(path.dirname(exactImagePath)).length) rmdirSync(path.dirname(exactImagePath));
+                } else {
+                  try {
+                    ensureDirSync(path.join(user_dir, pervPersonnel_code));
+                    moveSync(path.join(assetsDir, pervPerson.id, `${pervPerson.id}-${existingPersonImage.hash_id}.jpeg`), path.join(user_dir, `${pervPersonnel_code}/${pervPersonnel_code}.jpg`), { overwrite: true })
+                  } catch (error) { }
+                }
+                failed_count += 2;
+                successful_count -= data['successful'].filter((p: string) => p.includes(pervPersonnel_code)).length;
+                await pervPerson?.delete();
+                await person.delete();
+                await existingPersonImage.delete();
+              }
+              continue;
+            }
+            //////////////////////////////////////
             const vector = imageData[personnelCode_imageName];
             const personnelImageDir = path.join(assetsDir, personnel_id);
             const name = `${personnel_id}-${hash_id}`;
             mkdirSync(personnelImageDir, { recursive: true });
             writeFileSync(path.join(personnelImageDir, `${name}.jpeg`), Buffer.from(image64, "base64"));
-            if (!!existingPersonImage) continue;
             const personImage = new PersonImage({ _id: new mongoose.Types.ObjectId().toHexString(), person_id: person._id, hash_id, vector });
             await personImage.save();
+            successful_count += 1;
           }
         }
       } catch (error) {
-        let pp: string | undefined = undefined;
-        data['successful'] = data['successful'].filter((p: string) => {
-          if (!p.includes(personnelCode_imageName.replace('_', '/'))) return true;
-          pp = p;
-          return false;
-        });
-        data['failed']?.push(pp);
+        console.log(error)
+        let pp: string | undefined = data['successful'].find((p: string) => p.includes(personnelCode_imageName.replace('_', '/')));
+        //  = data['successful'].filter((p: string) => {
+        //   if (!) return true;
+        //   pp = p;
+        //   return false;
+        // });
+        // data['failed']?.push(pp);
         if (typeof pp === 'string') {
           ensureDirSync(path.join(user_dir, personnel_code))
           moveSync(path.join(__dirname, '../../../face_DB', pp), path.join(user_dir, personnel_code), { overwrite: true })
         }
+        if (newPerson) {
+          await person.delete();
+        }
+        failed_count += 1;
       }
     }
-
+    // data['successful_count'] = data['successful'].length;
+    data['successful_count'] = successful_count;
+    data['successful'] = undefined;
+    // data['failed_count'] = data['failed'].length;
+    data['failed_count'] = failed_count;
+    data['failed'] = undefined;
     res.send({
       success: true,
       data
@@ -124,6 +196,15 @@ router.post("/batch",
       brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
     }).producer();
     await producer.connect();
+    await producer.send({
+      topic: process.env["DATA_TOPIC"] ?? 'data',
+      messages: [
+        {
+          key: "sio",
+          value: JSON.stringify({ type: 'batch', success: true, data }),
+        },
+      ],
+    })
     await producer.send({
       topic: process.env["SIGNAL_TOPIC"],
       messages: [
@@ -136,8 +217,6 @@ router.post("/batch",
     await producer.disconnect();
     return
   },
-
-
 )
 
 
