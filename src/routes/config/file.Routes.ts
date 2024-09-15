@@ -41,22 +41,30 @@ router.get("/list",
 
 router.post("/batch",
   dtoValidationMiddleware(AddBatchPersonnel, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  (req: Request, _res: Response, next: NextFunction) => {
-    req.body._id = randomUuid(24);
-    return next();
-  },
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaSession,
-    (req) => [{
-      producerKey: "dara", consumerKey: "sara",
-      producerInput: { "path": req.body["path"], _id: req.body['_id'] },
-      consumerId: req.body["_id"],
-      timeout: Math.max(readdirSync(path.join(__dirname, '../../../face_DB', req.body['path'])).length * 50, 10000)
-    }],
+    (req) => {
+      req.body._id = randomUuid(24); return [{
+        producerKey: "dara", consumerKey: "sara",
+        producerInput: { "path": req.body["path"], _id: req.body['_id'] },
+        consumerId: req.body["_id"],
+        timeout: Math.max(readdirSync(path.join(__dirname, '../../../face_DB', req.body['path'])).length * 50, 10000)
+      }]
+    },
     {
       save: "aiRes", next: true,
-      resultValidationFunction: (result) => !!result?.success_dir ? undefined : { status: 500, message: "Not Successful!", }
+      resultValidationFunction: (result) => !!result?.success_dir ? undefined : { status: 500, message: "Not Successful (no success dir in response)!", }
     }
   ),
+  // (req, res, next)=>{
+  //   req.body['aiRes'] = {
+  //     "success_dir": "DB_success_20240910_155141",
+  //     "successful": [
+  //       "DB_success_20240910_155141/9820574/9820574.jpg", "DB_success_20240910_155141/9319903/9319903.jpg", "DB_success_20240910_155141/9616734/9616734.jpg", "DB_success_20240910_155141/9942413/9942413.jpg", "DB_success_20240910_155141/9540153/9540153.jpg", "DB_success_20240910_155141/40110364/40110364.jpg" ],
+  //     "failed": [],
+  //     "_id": "7_4abe-82ff-31eabdc06e3e"
+  //   }
+  //   next();
+  // },
   async (req, _res, next) => {
     const producer = new Kafka({ logLevel: logLevel.ERROR, brokers: process.env["KAFKA_BOOTSTRAP"].split(","), }).producer();
     await producer.connect();
@@ -200,18 +208,18 @@ router.post("/batch",
         },
       ],
     })
-    await (new Promise((resolve, _rej) => {
-      producer.send({
-        topic: process.env["SIGNAL_TOPIC"],
-        messages: [
-          {
-            key: "connect",
-            value: JSON.stringify({ signal: "turnon", origin: "back", sender: "back" }),
-          },
-        ],
-      })
-      setTimeout(() => resolve(true), 1000);
-    }))
+    // await (new Promise((resolve, _rej) => {
+    //   producer.send({
+    //     topic: process.env["SIGNAL_TOPIC"],
+    //     messages: [
+    //       {
+    //         key: "connect",
+    //         value: JSON.stringify({ signal: "turnon", origin: "back", sender: "back" }),
+    //       },
+    //     ],
+    //   })
+    //   setTimeout(() => resolve(true), 5000);
+    // }))
     await producer.send({
       topic: process.env["SIGNAL_TOPIC"],
       messages: [
