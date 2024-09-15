@@ -18,6 +18,9 @@ import { ApiError } from "../../types/classes/error.class";
 import User from "../../db/mongo/models/user";
 import { deleteByIdElasticMiddleware } from "../../db/elastic/delete.logs";
 import { faceCols, plateCols, sendExcelMiddleware } from "../../tools/excel.tools";
+import { isValidObjectId, isObjectIdOrHexString } from "mongoose";
+import Section from "../../db/mongo/models/section";
+import Department from "../../db/mongo/models/department";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -38,21 +41,25 @@ router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
   Time.compareTimeMiddleware("start", "stop"),
 );
 // Inject Data //
-router.use('',
-  readMiddleware(Camera, undefined, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
-);
-router.use('/:index(plate|search)/:id?',
-  readMiddleware(Car, undefined, { forceAll: true, populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
-  readMiddleware(CarColor, undefined, { forceAll: true, populate: true, forcePopulate: ["color"], next: true, save: "color" }),
-  readMiddleware(CarBrand, undefined, { forceAll: true, populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
-  injectDataMiddleware(injectAllKindOfStuff(['color', 'brand']), { spread: true }),
-  injectDataMiddleware(injectAllKindOfStuff(['car'], "number_plate"), { spread: true }),
-);
-router.use('/:index(face)/:id?',
-  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["department_id"], next: true, save: "personnel" }),
-  injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
-);
+// router.use('',
+//   readMiddleware(Camera, undefined, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
+//   injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
+// );
+// router.use('/:index(plate|search)/:id?',
+//   readMiddleware(Car, undefined, { forceAll: true, populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
+//   readMiddleware(CarColor, undefined, { forceAll: true, populate: true, forcePopulate: ["color"], next: true, save: "color" }),
+//   readMiddleware(CarBrand, undefined, { forceAll: true, populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
+//   injectDataMiddleware(injectAllKindOfStuff(['color', 'brand']), { spread: true }),
+//   injectDataMiddleware(injectAllKindOfStuff(['car'], "number_plate"), { spread: true }),
+// );
+// router.use('/:index(face)/:id?',
+//   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["department_id"], next: true, save: "personnel" }),
+//   injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
+// );
+router.use('', (req, res, next) => {
+  Object.assign(req.body, { cameras: {}, personnel: {}, brands: {}, colors: {}, sections: {}, departments: {} });
+  next();
+});
 // Delete //
 router.delete('/:index(plate|search|face|sabotage|human|objectdetection)/:id',
   deleteByIdElasticMiddleware(indexFunc, { send: sendFunction, }),
@@ -195,12 +202,66 @@ async function sendFunction(log: any, req: Request): Promise<any> {
     const tmpFlag = ["plate_log", "objectdetection_log"].includes(req.body['elasticsearchIndices']?.at(-1));
     const crop = tmpFlag ? log?.crop : log?.inner_crop ?? '';
     const inner_crop = tmpFlag ? log?.inner_crop : "";
-    const camera = log.camera_id ? req.body?.['camera']?.[log.camera_id] : undefined;
-    const personnel = (log.personnel_id && log.personnel_id !== "unknown") ? req.body['personnel'][log.personnel_id] : undefined;
-    const department = req.body?.['camera']?.[log.camera_id]?.section_id?.department_id?.name ?? "";
-    const section = req.body?.['camera']?.[log.camera_id]?.section_id?.name ?? "";
-    const color = log?.color ? req.body['color'][log.color] : undefined;
-    const brand = log?.brand ? req.body['brand'][log.brand] : undefined;
+
+    // const camera = log.camera_id ? req.body?.['camera']?.[log.camera_id] : undefined;
+    // const camera = !!log.camera_id && isValidObjectId(log.camera_id) ? await Camera.findById(log.camera_id).exec() : undefined;
+    let camera: any = undefined;
+    let sectionDoc: any = undefined;
+    let departmentDoc: any = undefined;
+    if (Object.prototype.hasOwnProperty.call(req.body['cameras'], log.camera_id)) {
+      camera = req.body?.['camera']?.[log.camera_id];
+      sectionDoc = req.body?.['sections']?.[log.camera_id];
+      departmentDoc = req.body?.['departments']?.[log.camera_id];
+    } else if (!!log.camera_id && isValidObjectId(log.camera_id)) {
+      camera = await Camera.findById(log.camera_id).exec();
+      Object.assign(req.body['cameras'], { [log.camera_id]: camera });
+      if (!!camera) {
+        sectionDoc = await Section.findById(camera.section_id).exec();
+        Object.assign(req.body['sections'], { [log.camera_id]: sectionDoc });
+        if (!!sectionDoc) {
+          departmentDoc = !!sectionDoc?.department_id ? await Department.findById(sectionDoc?.department_id).exec() : undefined;
+          Object.assign(req.body['departments'], { [log.camera_id]: departmentDoc })
+        }
+      }
+    }
+
+    // const personnel = (log.personnel_id && log.personnel_id !== "unknown") ? req.body['personnel'][log.personnel_id] : undefined;
+    // const personnel = !!log.personnel_id && log.personnel_id !== "unknown" && !!isValidObjectId(log.personnel_id) ? await Personnel.findById(log.personnel_id).exec() : undefined;
+    let personnel: any = undefined;
+    if (Object.prototype.hasOwnProperty.call(req.body['personnel'], log.personnel_id)) {
+      personnel = req.body?.['personnel']?.[log.personnel_id];
+    } else if (!!log.personnel_id && log.personnel_id !== "unknown" && isValidObjectId(log.personnel_id)) {
+      personnel = await Personnel.findById(log.personnel_id).exec();
+      Object.assign(req.body['personnel'], { [log.personnel_id]: personnel })
+    }
+
+    // const section = req.body?.['camera']?.[log.camera_id]?.section_id?.name ?? "";
+    // const sectionDoc = !!camera?.section_id ? await Section.findById(camera?.section_id).exec() : undefined;
+    const section = sectionDoc?.name ?? "";
+
+    // const department = req.body?.['camera']?.[log.camera_id]?.section_id?.department_id?.name ?? "";
+    // const departmentDoc = !!sectionDoc?.department_id ? await Department.findById(sectionDoc?.department_id).exec() : undefined;
+    const department = departmentDoc?.name ?? "";
+
+    // const color = log?.color ? req.body['color'][log.color] : undefined;
+    // const color = !!log?.color ? await CarColor.findById(log.color).exec() : undefined;
+    let color = undefined;
+    if (Object.prototype.hasOwnProperty.call(req.body['colors'], log.color)) {
+      color = req.body?.['colors']?.[log.color];
+    } else if (!!log.color && isValidObjectId(log.color)) {
+      color = await CarColor.findById(log.color).exec();
+      Object.assign(req.body['colors'], { [log.color]: color })
+    }
+    // const brand = log?.brand ? req.body['brand'][log.brand] : undefined;
+    // const brand = !!log?.brand ? await CarBrand.findById(log.brand).exec() : undefined;
+    let brand = undefined;
+    if (Object.prototype.hasOwnProperty.call(req.body['brands'], log.brand)) {
+      brand = req.body?.['brands']?.[log.brand];
+    } else if (!!log.brand && isValidObjectId(log.brand)) {
+      brand = await Personnel.findById(log.brand).exec();
+      Object.assign(req.body['brands'], { [log.brand]: brand })
+    }
+
     const frame_log = !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : {};
     delete frame_log["_id"]
     delete frame_log["personnel_id"]
@@ -214,8 +275,10 @@ async function sendFunction(log: any, req: Request): Promise<any> {
       personnel_id: personnel?.id ?? "unknown",
       ...frame_log,
       // frame: !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : "",
-      department: personnel?.section_id?.department_id?.name ?? department,
-      section: personnel?.section_id?.name ?? section,
+      // department: personnel?.section_id?.department_id?.name ?? department,
+      department,
+      // section: personnel?.section_id?.name ?? section,
+      section,
       time: !!log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timez?.toString() ?? "Asia/Tehran" }) : "",
       plate_number: log.plate_number ? stringPlateToJson(log.plate_number) : "",
       owner: log?.owner ?? "",
