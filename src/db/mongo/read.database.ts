@@ -77,7 +77,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         data,
         page: page,
         perPage: perPage,
-        total: data,
+        total,
         pages: Math.ceil(total / perPage),
       });
     } catch (err: any) {
