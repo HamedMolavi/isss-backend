@@ -44,6 +44,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         req.flash("error", model.collection.collectionName + " not found");
         return next(new ApiError(404, model.collection.collectionName + " not found"));
       };
+      const total = await model.countDocuments().exec();
 
       if (!!docs.length && !!options?.populate && (!!req.query.populate || !!options?.forcePopulate?.length)) {
         let populates: string[] = [];
@@ -76,8 +77,8 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         data,
         page: page,
         perPage: perPage,
-        total: data.length,
-        pages: Math.ceil((data.length) / perPage),
+        total: data,
+        pages: Math.ceil(total / perPage),
       });
     } catch (err: any) {
       return next(new ApiError(500, "internal server error , " + err.message));
