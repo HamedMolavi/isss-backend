@@ -14,19 +14,14 @@ const fs = new ImageFileSystem();
 const router: Router = Router();
 
 const specialTypes = ["Hostile", "Guest"]
-router.get(["", "/hostile", "/guest"],
-  readMiddleware(PersonImage, undefined, { populate: true, next: true, save: "personnelImages", forceAll: true }),
-  async (req, res, next) => {
-    try {
-      const type = specialTypes.find(t => req.originalUrl.toLowerCase().includes(t.toLowerCase()));
-      //query for get personnel by id from DB
-      let personnel = (await Personnel.find().exec()).filter(per => !!type ? per?.first_name === type : !specialTypes.includes(per?.first_name));
-      let personnelImages: (IPersonImage & Required<{
-        _id: Schema.Types.ObjectId;
-      }>)[] = req.body["personnelImages"];
-      let result = personnel.map(person => {
+router.get("/?:type(guest|hostile|normal)?$",
+  readMiddleware(Personnel, (person_type) => ({ person_type }), {
+    populate: true, save: "personnel",
+    "searchFromParams": (params) => params?.type?.toLowerCase() ?? 'normal',
+    "send": async (person, _req) => {
+      const images = await PersonImage.find({ person_id: person._id }).exec();
+      if (!!images.length) {
         let pathRead = path.join(__dirname, `../../../assets/image/${person.id}/`);
-        const images = personnelImages.filter((personImage: any) => !!personImage.person_id && ((mongoose.isObjectIdOrHexString(personImage.person_id.toString()) ? personImage.person_id.toString() : personImage.person_id.id) === person.id));
         const files = images.map(image => person.id + "-" + image.hash_id + ".jpeg");
         const imageFilesRead = fs.readFiles(pathRead, files);
         return {
@@ -34,16 +29,10 @@ router.get(["", "/hostile", "/guest"],
           "person_id": images?.[0]?.person_id,
           "images": imageFilesRead ?? []
         }
-      });
-      //return response to client
-      return res.status(200).json({
-        success: true,
-        data: result,
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "Internal server error , " + err.message));
+      } else return undefined;
     }
-  })
+  }),
+);
 
 //route for get personnel by id from DB
 router.get(

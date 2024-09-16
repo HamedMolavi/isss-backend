@@ -245,6 +245,7 @@ router.post("/hostile",
     { alert: (body) => !!body["alert"] },
     { first_name: (body) => 'Hostile' },
     { last_name: (body) => body["code"] },
+    { person_type: (_body) => 'hostile' },
     { personnel_code: (body) => body["code"] }
   ], Personnel, { save: "person", next: true }),
 
@@ -252,6 +253,9 @@ router.post("/hostile",
     let data: any[] = [];
     let result: any[] = [];
     const person = req.body["person"];
+    if (!Array.isArray(req.body["image_str"]))
+      if (typeof req.body["image_str"] === 'string') req.body["image_str"] = [req.body["image_str"]];
+      else next(new ApiError(400, "Bad request!"));
     for (const image_str of req.body["image_str"]) {
       data.push(await snapshotKafka.kafkaSession({
         consumerId: person?.id, consumerKey: 'asghar', producerKey: 'soghra',
@@ -334,6 +338,7 @@ router.post("/notifpersonnel/guest",
     { allowed_pass: (body) => allowedPassConvert(body) ?? { "start": 0, "end": 2147483648000 } },
     { first_name: (body) => 'Guest' },
     { last_name: (body) => body["code"] },
+    { person_type: (_body) => 'guest' },
     { personnel_code: (body) => body["code"] },
     { job_id: (body) => body["guestId"] }
   ], Personnel, { save: "person", next: true }),
