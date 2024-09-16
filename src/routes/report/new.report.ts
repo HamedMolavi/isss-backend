@@ -57,7 +57,7 @@ router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
 //   injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
 // );
 router.use('', (req, res, next) => {
-  Object.assign(req.body, { cameras: {}, personnel: {}, brands: {}, colors: {}, sections: {}, departments: {} });
+  Object.assign(req.body, { db_cameras: {}, db_personnel: {}, db_brands: {}, db_colors: {}, db_sections: {}, db_departments: {} });
   next();
 });
 // Delete //
@@ -208,19 +208,19 @@ async function sendFunction(log: any, req: Request): Promise<any> {
     let camera: any = undefined;
     let sectionDoc: any = undefined;
     let departmentDoc: any = undefined;
-    if (Object.prototype.hasOwnProperty.call(req.body['cameras'], log.camera_id)) {
-      camera = req.body?.['camera']?.[log.camera_id];
-      sectionDoc = req.body?.['sections']?.[log.camera_id];
-      departmentDoc = req.body?.['departments']?.[log.camera_id];
+    if (Object.prototype.hasOwnProperty.call(req.body['db_cameras'], log.camera_id)) {
+      camera = req.body?.['db_cameras']?.[log.camera_id];
+      sectionDoc = req.body?.['db_sections']?.[log.camera_id];
+      departmentDoc = req.body?.['db_departments']?.[log.camera_id];
     } else if (!!log.camera_id && isValidObjectId(log.camera_id)) {
       camera = await Camera.findById(log.camera_id).exec();
-      Object.assign(req.body['cameras'], { [log.camera_id]: camera });
+      Object.assign(req.body['db_cameras'], { [log.camera_id]: camera });
       if (!!camera) {
         sectionDoc = await Section.findById(camera.section_id).exec();
-        Object.assign(req.body['sections'], { [log.camera_id]: sectionDoc });
+        Object.assign(req.body['db_sections'], { [log.camera_id]: sectionDoc });
         if (!!sectionDoc) {
           departmentDoc = !!sectionDoc?.department_id ? await Department.findById(sectionDoc?.department_id).exec() : undefined;
-          Object.assign(req.body['departments'], { [log.camera_id]: departmentDoc })
+          Object.assign(req.body['db_departments'], { [log.camera_id]: departmentDoc })
         }
       }
     }
@@ -228,11 +228,11 @@ async function sendFunction(log: any, req: Request): Promise<any> {
     // const personnel = (log.personnel_id && log.personnel_id !== "unknown") ? req.body['personnel'][log.personnel_id] : undefined;
     // const personnel = !!log.personnel_id && log.personnel_id !== "unknown" && !!isValidObjectId(log.personnel_id) ? await Personnel.findById(log.personnel_id).exec() : undefined;
     let personnel: any = undefined;
-    if (Object.prototype.hasOwnProperty.call(req.body['personnel'], log.personnel_id)) {
-      personnel = req.body?.['personnel']?.[log.personnel_id];
+    if (Object.prototype.hasOwnProperty.call(req.body['db_personnel'], log.personnel_id)) {
+      personnel = req.body?.['db_personnel']?.[log.personnel_id];
     } else if (!!log.personnel_id && log.personnel_id !== "unknown" && isValidObjectId(log.personnel_id)) {
       personnel = await Personnel.findById(log.personnel_id).exec();
-      Object.assign(req.body['personnel'], { [log.personnel_id]: personnel })
+      Object.assign(req.body['db_personnel'], { [log.personnel_id]: personnel })
     }
 
     // const section = req.body?.['camera']?.[log.camera_id]?.section_id?.name ?? "";
@@ -246,20 +246,20 @@ async function sendFunction(log: any, req: Request): Promise<any> {
     // const color = log?.color ? req.body['color'][log.color] : undefined;
     // const color = !!log?.color ? await CarColor.findById(log.color).exec() : undefined;
     let color = undefined;
-    if (Object.prototype.hasOwnProperty.call(req.body['colors'], log.color)) {
-      color = req.body?.['colors']?.[log.color];
+    if (Object.prototype.hasOwnProperty.call(req.body['db_colors'], log.color)) {
+      color = req.body?.['db_colors']?.[log.color];
     } else if (!!log.color && isValidObjectId(log.color)) {
       color = await CarColor.findById(log.color).exec();
-      Object.assign(req.body['colors'], { [log.color]: color })
+      Object.assign(req.body['db_colors'], { [log.color]: color })
     }
     // const brand = log?.brand ? req.body['brand'][log.brand] : undefined;
     // const brand = !!log?.brand ? await CarBrand.findById(log.brand).exec() : undefined;
     let brand = undefined;
-    if (Object.prototype.hasOwnProperty.call(req.body['brands'], log.brand)) {
-      brand = req.body?.['brands']?.[log.brand];
+    if (Object.prototype.hasOwnProperty.call(req.body['db_brands'], log.brand)) {
+      brand = req.body?.['db_brands']?.[log.brand];
     } else if (!!log.brand && isValidObjectId(log.brand)) {
       brand = await Personnel.findById(log.brand).exec();
-      Object.assign(req.body['brands'], { [log.brand]: brand })
+      Object.assign(req.body['db_brands'], { [log.brand]: brand })
     }
 
     const frame_log = !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : {};
