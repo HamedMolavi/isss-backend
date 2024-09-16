@@ -87,7 +87,7 @@ router.patch("/:id",
       }
     }
   }),
-  fs.uploadAvatarMiddleware("avatar_str", "doc._id", { fileName: "avatar" }),
+  fs.uploadAvatarMiddleware("avatar_str", "doc._id", { fileName: "avatar", resultPropertyName: "doc" }),
 );
 
 //add route for delete personnel
