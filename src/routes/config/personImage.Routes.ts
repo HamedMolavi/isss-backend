@@ -16,7 +16,7 @@ const router: Router = Router();
 const specialTypes = ["Hostile", "Guest"]
 router.get("/?:type(guest|hostile|normal)?$",
   readMiddleware(Personnel, (person_type) => ({ person_type }), {
-    populate: true, save: "personnel",
+    populate: true, save: "personnel", forceAll: true,
     "searchFromParams": (params) => params?.type?.toLowerCase() ?? 'normal',
     "send": async (person, _req) => {
       const images = await PersonImage.find({ person_id: person._id }).exec();
@@ -26,7 +26,7 @@ router.get("/?:type(guest|hostile|normal)?$",
         const imageFilesRead = fs.readFiles(pathRead, files);
         return {
           "_id": person.id,
-          "person_id": images?.[0]?.person_id,
+          "person_id": person,
           "images": imageFilesRead ?? []
         }
       } else return undefined;
