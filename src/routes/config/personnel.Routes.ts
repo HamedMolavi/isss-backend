@@ -23,6 +23,24 @@ const fs = new ImageFileSystem();
 //create router for add to routes file
 const router: Router = Router();
 const rawSearch = (search: string) => {
+  if (search.includes(":")) {
+    let res: { [key: string]: any } = {}
+    const splitted = search.split(':');
+    for (let i = 0; i < splitted.length; i += 2) {
+      const key = splitted[i];
+      let value: any = splitted[i + 1];
+      if (!value) continue
+      else if (value?.toLowerCase() === 'true') value = true;
+      else if (value?.toLowerCase() === 'false') value = false;
+      res[key] = value;
+    }
+    return res;
+    // const key = search.split(':').at(0);
+    // let value: any = search.split(':').at(1);
+    // if (value?.toLowerCase() === 'true') value = true;
+    // if (value?.toLowerCase() === 'false') value = false;
+    // if (!!key) return { [key]: value }
+  }
   return {
     $or: [
       { first_name: { $regex: search } },
