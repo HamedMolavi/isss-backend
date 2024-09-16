@@ -9,7 +9,7 @@ export async function read(model: any, options?: { query?: FilterQuery<any>, pop
   return docs;
 };
 
-export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any>,
+export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any> | Promise<FilterQuery<any>>,
   options?: {
     forceAll?: boolean,
     next?: boolean,
@@ -44,8 +44,9 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         req.flash("error", model.collection.collectionName + " not found");
         return next(new ApiError(404, model.collection.collectionName + " not found"));
       };
-      const total = await model.countDocuments().exec();
-
+      const total = (!!query && !!search)
+        ? await model.countDocuments(await query(search)).exec()
+        : await model.countDocuments().exec();
       if (!!docs.length && !!options?.populate && (!!req.query.populate || !!options?.forcePopulate?.length)) {
         let populates: string[] = [];
 
