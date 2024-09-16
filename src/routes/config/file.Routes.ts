@@ -208,18 +208,18 @@ router.post("/batch",
         },
       ],
     })
-    // await (new Promise((resolve, _rej) => {
-    //   producer.send({
-    //     topic: process.env["SIGNAL_TOPIC"],
-    //     messages: [
-    //       {
-    //         key: "connect",
-    //         value: JSON.stringify({ signal: "turnon", origin: "back", sender: "back" }),
-    //       },
-    //     ],
-    //   })
-    //   setTimeout(() => resolve(true), 5000);
-    // }))
+    await (new Promise((resolve, _rej) => {
+      producer.send({
+        topic: process.env["SIGNAL_TOPIC"],
+        messages: [
+          {
+            key: "connect",
+            value: JSON.stringify({ signal: "turnon", origin: "back", sender: "back" }),
+          },
+        ],
+      })
+      setTimeout(() => resolve(true), 5000);
+    }))
     await producer.send({
       topic: process.env["SIGNAL_TOPIC"],
       messages: [
