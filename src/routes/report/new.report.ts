@@ -203,8 +203,6 @@ async function sendFunction(log: any, req: Request): Promise<any> {
     const crop = tmpFlag ? log?.crop : log?.inner_crop ?? '';
     const inner_crop = tmpFlag ? log?.inner_crop : "";
 
-    // const camera = log.camera_id ? req.body?.['camera']?.[log.camera_id] : undefined;
-    // const camera = !!log.camera_id && isValidObjectId(log.camera_id) ? await Camera.findById(log.camera_id).exec() : undefined;
     let camera: any = undefined;
     let sectionDoc: any = undefined;
     let departmentDoc: any = undefined;
@@ -224,27 +222,20 @@ async function sendFunction(log: any, req: Request): Promise<any> {
         }
       }
     }
-
-    // const personnel = (log.personnel_id && log.personnel_id !== "unknown") ? req.body['personnel'][log.personnel_id] : undefined;
-    // const personnel = !!log.personnel_id && log.personnel_id !== "unknown" && !!isValidObjectId(log.personnel_id) ? await Personnel.findById(log.personnel_id).exec() : undefined;
-    let personnel: any = undefined;
-    if (Object.prototype.hasOwnProperty.call(req.body['db_personnel'], log.personnel_id)) {
-      personnel = req.body?.['db_personnel']?.[log.personnel_id];
-    } else if (!!log.personnel_id && log.personnel_id !== "unknown" && isValidObjectId(log.personnel_id)) {
-      personnel = await Personnel.findById(log.personnel_id).exec();
-      Object.assign(req.body['db_personnel'], { [log.personnel_id]: personnel })
-    }
-
-    // const section = req.body?.['camera']?.[log.camera_id]?.section_id?.name ?? "";
-    // const sectionDoc = !!camera?.section_id ? await Section.findById(camera?.section_id).exec() : undefined;
     const section = sectionDoc?.name ?? "";
-
-    // const department = req.body?.['camera']?.[log.camera_id]?.section_id?.department_id?.name ?? "";
-    // const departmentDoc = !!sectionDoc?.department_id ? await Department.findById(sectionDoc?.department_id).exec() : undefined;
     const department = departmentDoc?.name ?? "";
 
-    // const color = log?.color ? req.body['color'][log.color] : undefined;
-    // const color = !!log?.color ? await CarColor.findById(log.color).exec() : undefined;
+    let personnel: any = undefined;
+    const log_personnel_id = log.type === "plate" ? log?.owner
+      : log.type === "face" ? log?.personnel_id
+        : "unknown";
+    if (Object.prototype.hasOwnProperty.call(req.body['db_personnel'], log_personnel_id)) {
+      personnel = req.body?.['db_personnel']?.[log_personnel_id];
+    } else if (!!log_personnel_id && log_personnel_id !== "unknown" && isValidObjectId(log_personnel_id)) {
+      personnel = await Personnel.findById(log_personnel_id).exec();
+      Object.assign(req.body['db_personnel'], { [log_personnel_id]: personnel });
+    }
+
     let color = undefined;
     if (Object.prototype.hasOwnProperty.call(req.body['db_colors'], log.color)) {
       color = req.body?.['db_colors']?.[log.color];
@@ -252,8 +243,6 @@ async function sendFunction(log: any, req: Request): Promise<any> {
       color = await CarColor.findById(log.color).exec();
       Object.assign(req.body['db_colors'], { [log.color]: color })
     }
-    // const brand = log?.brand ? req.body['brand'][log.brand] : undefined;
-    // const brand = !!log?.brand ? await CarBrand.findById(log.brand).exec() : undefined;
     let brand = undefined;
     if (Object.prototype.hasOwnProperty.call(req.body['db_brands'], log.brand)) {
       brand = req.body?.['db_brands']?.[log.brand];
