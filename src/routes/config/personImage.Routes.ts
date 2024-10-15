@@ -6,7 +6,7 @@ import { ImageFileSystem } from "../../tools/kafkaFile.tools";
 import Personnel from "../../db/mongo/models/personnel";
 import mongoose, { Schema } from "mongoose";
 import { IPersonImage } from "../../types/interfaces/personImage.interface";
-import { readMiddleware } from "../../db/mongo/read.database";
+import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 
 //create customized filesystem
 const fs = new ImageFileSystem();
@@ -37,43 +37,18 @@ router.get("/?:type(guest|hostile|normal)?$",
 //route for get personnel by id from DB
 router.get(
   "/:id",
-  async function (req: Request, res: Response, next: NextFunction) {
-    try {
-      let id: string = req.params.id;
-      //verify body request
-      if (!id) {
-        req.flash("error", "Please enter id");
-        return next(new ApiError(400, "Please enter id"));
-      }
-
-      //query for get personnel by id from DB
-      let personImages = await PersonImage.find({ person_id: id })
-        .select("hash_id")
-        .exec();
-      //send not found if personnel not found
-      if (!personImages) {
-        req.flash("error", "personImages not found");
-        return next(new ApiError(404, "personImages not found"));
-      }
-      let files = personImages?.map((elem) => id + "-" + elem.hash_id + ".jpeg");
+  readMiddleware(PersonImage, (id) => ({ person_id: id }), {
+    populate: true,
+    send: (doc, req) => {
+      let person_id: string = req.params.id;
+      let file = person_id + "-" + doc.hash_id + ".jpeg";
       //define path folder fo read files
-      let pathRead = path.join(__dirname, `./../../../assets/image/${id}/`);
-      let faces_base64: Object[] | null = [];
+      let pathRead = path.join(__dirname, `./../../../assets/image/${person_id}/`);
       //check for exist path
-      faces_base64 = fs.readFiles(pathRead, files); //read all file in directory path an convert to base62 and get list base64
-      if (faces_base64 == null) {
-        req.flash("error", "path not found");
-        return next(new ApiError(404, "not found"));
-      }
-      //return response to client
-      return res.status(200).json({
-        success: true,
-        data: faces_base64,
-      });
-    } catch (err: any) {
-      return next(new ApiError(500, "Internal server error , " + err.message));
+      let face_base64 = fs.readFiles(pathRead, [file])?.[0];
+      return face_base64;
     }
-  }
+  }),
 );
 
 //add route for delete image from folder assets\image

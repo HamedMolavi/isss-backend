@@ -8,9 +8,6 @@ export interface ICar extends Document {
   brand: Schema.Types.ObjectId;
   color: Schema.Types.ObjectId;
   camera_whitelist: mongoose.Types.ObjectId[];
-  section_whitelist: Schema.Types.ObjectId[];
-  department_whitelist: Schema.Types.ObjectId[];
-  schedule_whitelist: Schema.Types.ObjectId[];
   tracked: boolean;
   allowed_pass: {"start": number, "end": number} | undefined;
   create_date: Date;

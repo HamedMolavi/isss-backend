@@ -26,6 +26,77 @@ const snapshotKafka = new SnapshotKafka();
 //create router for add to server
 const router: Router = Router();
 
+router.post("/batch",
+  (req, res, next) => {
+    if (!req.body['path'] || !existsSync(path.join('../../../face_DB', req.body['path']))) {
+      return next(new ApiError(404, "No such directory!"));
+    }
+    req.body['personnel_id'] = Date.now().toString();
+    return next();
+  },
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaProduce, { save: "aiResult", isInReq: true, next: true }, "personnel_id", "path", "embedding"),
+  snapshotKafka.middlewareWraper(snapshotKafka.kafkaGet, { save: "redisData", isInReq: true, next: true }, "personnel_id"),
+  async (req, res, next) => {
+    const data: any = req.body['redisData'];
+    const assetsDir = path.join('../../../assets/image');
+    const success_dir = path.join('../../../face_DB', data['success_dir']);
+    const picklePath = path.join(success_dir, 'embeddings.pkl');
+    if (!data || !data['success_dir'] || !existsSync(picklePath)) {
+      return next(new ApiError(500, "Internal error!"));
+    }
+    const imageData: { [key: string]: Array<number> } = await unpickle(picklePath) as any;
+    for (const personnelCode_hashId in imageData) {
+      try {
+        const personnel_code = personnelCode_hashId.split("_")[1];
+        if (Object.prototype.hasOwnProperty.call(imageData, personnelCode_hashId)) {
+          const imagesDirPath = path.join(success_dir, personnel_code);
+          if (!existsSync(imagesDirPath)) continue;
+          let person = await Personnel.findOne({ personnel_code }).exec();
+          if (!person) {
+            person = new Personnel({ personnel_code });
+            await person.save();
+          }
+          const personnel_id = person.id;
+          const imagePaths = readdirSync(imagesDirPath).filter(file => (/\.(png|jpg|jpeg|bmp)$/i).test(file.toLowerCase())).map((file) => path.join(imagesDirPath, file));
+          for (const imagePath of imagePaths) {
+            const vector = imageData[personnelCode_hashId];
+            const image64 = readFileSync(imagePath).toString('base64');
+            const hash_id = hashString(image64, secret);
+            const personnelImageDir = path.join(assetsDir, personnel_id);
+            const name = `${personnel_id}-${hash_id}`;
+            mkdirSync(personnelImageDir, { recursive: true });
+            writeFileSync(path.join(personnelImageDir, `${name}.jpeg`), Buffer.from(image64, "base64"));
+            const personImage = new PersonImage({ person_id: person._id, hash_id, vector });
+            await personImage.save();
+            unlinkSync(imagePath);
+          }
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    res.send({
+      success: true,
+    })
+    const producer = new Kafka({
+      logLevel: logLevel.ERROR,
+      brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
+    }).producer();
+    await producer.connect();
+    await producer.send({
+      topic: process.env["SIGNAL_TOPIC"],
+      messages: [
+        {
+          key: "face",
+          value: JSON.stringify({ signal: "restart", origin: "back", sender: "back" }),
+        },
+      ],
+    })
+    await producer.disconnect();
+    return
+  }
+)
 //create api for upload image
 router.post("/upload",
   cfs.uploadAvatarMiddleware("image_str", "perssonel_id"),

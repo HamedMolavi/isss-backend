@@ -20,15 +20,6 @@ export class CreateCarBody {
   @IsArray()
   public camera_whitelist?: string[];
   @IsOptional()
-  @IsArray()
-  public section_whitelist?: string[];
-  @IsOptional()
-  @IsArray()
-  public schedule_whitelist?: string[];
-  @IsOptional()
-  @IsArray()
-  public department_whitelist?: string[];
-  @IsOptional()
   @IsBoolean()
   public tracked?: boolean;
   @IsOptional()

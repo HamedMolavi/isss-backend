@@ -206,9 +206,6 @@ interface CreatePersonnelBody {
   tracked?: boolean| null;
   personnel_code: string| null;
   camera_whitelist?: string[]| null;
-  department_whitelist?: string[]| null;
-  section_whitelist?: string[]| null;
-  schedule_whitelist?: string[]| null;
   is_active: boolean| null;
   time_start?: string;
   date_start?: string;
