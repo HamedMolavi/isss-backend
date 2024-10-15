@@ -142,3 +142,4 @@ tmp_Dockerfile
 # files
 assets
 *temp*
+face_DB

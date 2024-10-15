@@ -13,26 +13,26 @@ const fs = new ImageFileSystem();
 //create router for add to routes file
 const router: Router = Router();
 
-router.get(["", "/hostile"],
-  readMiddleware(PersonImage, undefined, { populate: true, next: true, save: "personnelImages", forceAll: true }),
-  readMiddleware(Personnel, undefined, {
-    populate: true, save: "personnel",
-    send: (person, req) => {
-      if ((person?.first_name === "Hostile") === req.originalUrl.toLowerCase().includes("hostile")) {
+const specialTypes = ["Hostile", "Guest"]
+router.get("/?:type(guest|hostile|normal)?$",
+  readMiddleware(Personnel, (person_type) => ({ person_type }), {
+    populate: true, save: "personnel", forceAll: true,
+    "searchFromParams": (params) => params?.type?.toLowerCase() ?? 'normal',
+    "send": async (person, _req) => {
+      const images = await PersonImage.find({ person_id: person._id }).exec();
+      if (!!images.length) {
         let pathRead = path.join(__dirname, `../../../assets/image/${person.id}/`);
-        const images = req.body?.["personnelImages"]?.filter((personImage: any) => !!personImage.person_id && ((mongoose.isObjectIdOrHexString(personImage.person_id.toString()) ? personImage.person_id.toString() : personImage.person_id.id) === person.id));
-        const files = images.map((image: IPersonImage & Required<{ _id: Schema.Types.ObjectId; }>) => person.id + "-" + image.hash_id + ".jpeg");
+        const files = images.map(image => person.id + "-" + image.hash_id + ".jpeg");
         const imageFilesRead = fs.readFiles(pathRead, files);
         return {
           "_id": person.id,
-          "person_id": images?.[0]?.person_id,
+          "person_id": person,
           "images": imageFilesRead ?? []
         }
-      }
-      return undefined;
+      } else return undefined;
     }
-  })
-)
+  }),
+);
 
 //route for get personnel by id from DB
 router.get(
