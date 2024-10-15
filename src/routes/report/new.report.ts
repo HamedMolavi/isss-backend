@@ -21,6 +21,7 @@ import { faceCols, plateCols, sendExcelMiddleware } from "../../tools/excel.tool
 import { isValidObjectId, isObjectIdOrHexString } from "mongoose";
 import Section from "../../db/mongo/models/section";
 import Department from "../../db/mongo/models/department";
+import PersonImage from "../../db/mongo/models/personImage";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -57,7 +58,7 @@ router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
 //   injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
 // );
 router.use('', (req, res, next) => {
-  Object.assign(req.body, { db_cameras: {}, db_personnel: {}, db_brands: {}, db_colors: {}, db_sections: {}, db_departments: {} });
+  Object.assign(req.body, { db_cameras: {}, db_personnel: {}, db_person_image: {}, db_brands: {}, db_colors: {}, db_sections: {}, db_departments: {} });
   next();
 });
 // Delete //
@@ -236,6 +237,17 @@ async function sendFunction(log: any, req: Request): Promise<any> {
       Object.assign(req.body['db_personnel'], { [log_personnel_id]: personnel });
     }
 
+    let hash_id = undefined;
+    if (!!log?.hash_id) hash_id = log.hash_id;
+    else if (Object.prototype.hasOwnProperty.call(req.body['db_person_image'], log.image_id)) {
+      const image = req.body?.['db_person_image']?.[log.image_id];
+      hash_id = image?.hash_id;
+    } else if (!!log.image_id && isValidObjectId(log.image_id)) {
+      const image = await PersonImage.findById(log.image_id).exec();
+      Object.assign(req.body['db_person_image'], { [log.image_id]: image })
+      hash_id = image?.hash_id;
+    }
+
     let color = undefined;
     if (Object.prototype.hasOwnProperty.call(req.body['db_colors'], log.color)) {
       color = req.body?.['db_colors']?.[log.color];
@@ -285,7 +297,7 @@ async function sendFunction(log: any, req: Request): Promise<any> {
       timestamp: log?.timestamp ?? "",
       confidence: log?.confidence ?? "",
       image_id: log?.image_id ?? "",
-      hash_id: log?.hash_id ?? "",
+      hash_id: hash_id ?? "",
       face_confidence: log?.face_confidence ?? "",
       vector: log?.vector ?? ""
     };
