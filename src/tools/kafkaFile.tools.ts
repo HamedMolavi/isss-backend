@@ -97,7 +97,7 @@ const producerDataPerpareFunction = {
       id: inputs.id
     };
   },
-
+  // add vector from AI to existing personnel
   habil: (inputs: any) => {
     const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
     // const frame = full_frame?.split(',')[1] ?? full_frame;
