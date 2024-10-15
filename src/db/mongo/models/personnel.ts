@@ -6,6 +6,7 @@ import Car from "./car";
 import fs from 'fs-extra';
 import { randomUuid } from "../../../tools/utils.tools";
 
+const person_types = ['normal', 'guest', 'hostile', 'client_buyer', 'client_seller'];
 //create personnel model with schema for save in DB
 const PersonnelSchema: Schema<IPersonnel> = new Schema(
   {
@@ -13,10 +14,10 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
     last_name: { type: String, required: true },
     person_type: {
       type: String,
-      enum: ['normal', 'guest', 'hostile'],
+      enum: person_types,
       default: 'normal',
       validate: {
-        validator: (v: string) => ['normal', 'guest', 'hostile'].includes(v),
+        validator: (v: string) => person_types.includes(v),
         message: '{VALUE} is not a valid person type'
       }
     },
