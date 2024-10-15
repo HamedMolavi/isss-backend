@@ -5,4 +5,3 @@ yarn-error.log
 .gitignore
 yarn.lock
 docker-compose.yml
-face_DB

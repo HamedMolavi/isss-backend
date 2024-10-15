@@ -22,15 +22,11 @@ router.post('/:type(tree|table|cumulative)',
   dtoValidationMiddleware(ReadSimilarVectorsBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
 )
 // Inject Camera and Personnel data from mongo to populate the elastic log with their info
-// router.use('/table/:id?',
-//   readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-//   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["department_id"], next: true, save: "personnel" }),
-//   injectDataMiddleware(injectAllKindOfStuff(['camera', 'personnel']), { spread: true }),
-// )
-router.use('', (req, res, next) => {
-  Object.assign(req.body, { db_cameras: {}, db_personnel: {}, db_brands: {}, db_colors: {}, db_sections: {}, db_departments: {}, db_cars: {} });
-  next();
-});
+router.use('/table/:id?',
+  readMiddleware(Camera, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
+  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["department_id"], next: true, save: "personnel" }),
+  injectDataMiddleware(injectAllKindOfStuff(['camera', 'personnel']), { spread: true }),
+)
 // Read the log or get vector from body
 router.use('/:type(tree|table|cumulative)/:id?',
   readByIdElasticMiddleware(`${process.env["FACE_INDEX"] ?? "face_log"}`, {

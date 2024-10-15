@@ -18,10 +18,6 @@ import { ApiError } from "../../types/classes/error.class";
 import User from "../../db/mongo/models/user";
 import { deleteByIdElasticMiddleware } from "../../db/elastic/delete.logs";
 import { faceCols, plateCols, sendExcelMiddleware } from "../../tools/excel.tools";
-import { isValidObjectId, isObjectIdOrHexString } from "mongoose";
-import Section from "../../db/mongo/models/section";
-import Department from "../../db/mongo/models/department";
-import PersonImage from "../../db/mongo/models/personImage";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -42,25 +38,21 @@ router.post("/:index(plate|search|face|sabotage|human|objectdetection)",
   Time.compareTimeMiddleware("start", "stop"),
 );
 // Inject Data //
-// router.use('',
-//   readMiddleware(Camera, undefined, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-//   injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
-// );
-// router.use('/:index(plate|search)/:id?',
-//   readMiddleware(Car, undefined, { forceAll: true, populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
-//   readMiddleware(CarColor, undefined, { forceAll: true, populate: true, forcePopulate: ["color"], next: true, save: "color" }),
-//   readMiddleware(CarBrand, undefined, { forceAll: true, populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
-//   injectDataMiddleware(injectAllKindOfStuff(['color', 'brand']), { spread: true }),
-//   injectDataMiddleware(injectAllKindOfStuff(['car'], "number_plate"), { spread: true }),
-// );
-// router.use('/:index(face)/:id?',
-//   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["department_id"], next: true, save: "personnel" }),
-//   injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
-// );
-router.use('', (req, res, next) => {
-  Object.assign(req.body, { db_cameras: {}, db_personnel: {}, db_person_image: {}, db_brands: {}, db_colors: {}, db_sections: {}, db_departments: {} });
-  next();
-});
+router.use('',
+  readMiddleware(Camera, undefined, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
+  injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
+);
+router.use('/:index(plate|search)/:id?',
+  readMiddleware(Car, undefined, { forceAll: true, populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
+  readMiddleware(CarColor, undefined, { forceAll: true, populate: true, forcePopulate: ["color"], next: true, save: "color" }),
+  readMiddleware(CarBrand, undefined, { forceAll: true, populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
+  injectDataMiddleware(injectAllKindOfStuff(['color', 'brand']), { spread: true }),
+  injectDataMiddleware(injectAllKindOfStuff(['car'], "number_plate"), { spread: true }),
+);
+router.use('/:index(face)/:id?',
+  readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["department_id"], next: true, save: "personnel" }),
+  injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
+);
 // Delete //
 router.delete('/:index(plate|search|face|sabotage|human|objectdetection)/:id',
   deleteByIdElasticMiddleware(indexFunc, { send: sendFunction, }),
@@ -123,7 +115,7 @@ function getSearchFunction(req: Request) {
               "should": typeof req.query?.search === 'string' && !!req.query.search && typeof req.params.index === 'string' && Object.prototype.hasOwnProperty.call(importantFields, req.params.index)
                 ? (importantFields[req.params.index as keyof typeof importantFields]).map((el: string | ((input: string) => string)) => ({
                   "regexp": {
-                    [typeof el === 'string' ? el : el.name]: { "value": ".*" + (typeof el === 'function' ? el(req.query.search as string) : req.query.search) + ".*", "case_insensitive": true }
+                    [typeof el === 'string' ? el : el.name]: {"value": ".*" + (typeof el === 'function' ? el(req.query.search as string) : req.query.search) + ".*", "case_insensitive": true }
                   }
                 }))
                 : [],
@@ -170,16 +162,6 @@ function postSearchFunction(req: Request) {
       "minimum_should_match": 1
     }
   }));
-  if (!!body.person_type && typeof body.person_type === 'string') {
-    fieldQueries.push({
-      //@ts-ignore
-      "match": { "person_type": body.person_type }
-    })
-    fieldQueries.push({
-      //@ts-ignore
-      "exists": { "field": "person_type" },
-    })
-  }
   const timeQueries = !!times_epoch && !!times_epoch.length ? [{
     bool: { should: times_epoch.map(time => ({ range: { timestamp: { gte: time.gte, lte: time.lte } } })), "minimum_should_match": 1 }
   }] : [];
@@ -203,66 +185,12 @@ async function sendFunction(log: any, req: Request): Promise<any> {
     const tmpFlag = ["plate_log", "objectdetection_log"].includes(req.body['elasticsearchIndices']?.at(-1));
     const crop = tmpFlag ? log?.crop : log?.inner_crop ?? '';
     const inner_crop = tmpFlag ? log?.inner_crop : "";
-
-    let camera: any = undefined;
-    let sectionDoc: any = undefined;
-    let departmentDoc: any = undefined;
-    if (Object.prototype.hasOwnProperty.call(req.body['db_cameras'], log.camera_id)) {
-      camera = req.body?.['db_cameras']?.[log.camera_id];
-      sectionDoc = req.body?.['db_sections']?.[log.camera_id];
-      departmentDoc = req.body?.['db_departments']?.[log.camera_id];
-    } else if (!!log.camera_id && isValidObjectId(log.camera_id)) {
-      camera = await Camera.findById(log.camera_id).exec();
-      Object.assign(req.body['db_cameras'], { [log.camera_id]: camera });
-      if (!!camera) {
-        sectionDoc = await Section.findById(camera.section_id).exec();
-        Object.assign(req.body['db_sections'], { [log.camera_id]: sectionDoc });
-        if (!!sectionDoc) {
-          departmentDoc = !!sectionDoc?.department_id ? await Department.findById(sectionDoc?.department_id).exec() : undefined;
-          Object.assign(req.body['db_departments'], { [log.camera_id]: departmentDoc })
-        }
-      }
-    }
-    const section = sectionDoc?.name ?? "";
-    const department = departmentDoc?.name ?? "";
-
-    let personnel: any = undefined;
-    const log_personnel_id = log.type === "plate" ? log?.owner
-      : log.type === "face" ? log?.personnel_id
-        : "unknown";
-    if (Object.prototype.hasOwnProperty.call(req.body['db_personnel'], log_personnel_id)) {
-      personnel = req.body?.['db_personnel']?.[log_personnel_id];
-    } else if (!!log_personnel_id && log_personnel_id !== "unknown" && isValidObjectId(log_personnel_id)) {
-      personnel = await Personnel.findById(log_personnel_id).exec();
-      Object.assign(req.body['db_personnel'], { [log_personnel_id]: personnel });
-    }
-
-    let hash_id = undefined;
-    if (!!log?.hash_id) hash_id = log.hash_id;
-    else if (Object.prototype.hasOwnProperty.call(req.body['db_person_image'], log.image_id)) {
-      const image = req.body?.['db_person_image']?.[log.image_id];
-      hash_id = image?.hash_id;
-    } else if (!!log.image_id && isValidObjectId(log.image_id)) {
-      const image = await PersonImage.findById(log.image_id).exec();
-      Object.assign(req.body['db_person_image'], { [log.image_id]: image })
-      hash_id = image?.hash_id;
-    }
-
-    let color = undefined;
-    if (Object.prototype.hasOwnProperty.call(req.body['db_colors'], log.color)) {
-      color = req.body?.['db_colors']?.[log.color];
-    } else if (!!log.color && isValidObjectId(log.color)) {
-      color = await CarColor.findById(log.color).exec();
-      Object.assign(req.body['db_colors'], { [log.color]: color })
-    }
-    let brand = undefined;
-    if (Object.prototype.hasOwnProperty.call(req.body['db_brands'], log.brand)) {
-      brand = req.body?.['db_brands']?.[log.brand];
-    } else if (!!log.brand && isValidObjectId(log.brand)) {
-      brand = await Personnel.findById(log.brand).exec();
-      Object.assign(req.body['db_brands'], { [log.brand]: brand })
-    }
-
+    const camera = log.camera_id ? req.body?.['camera']?.[log.camera_id] : undefined;
+    const personnel = (log.personnel_id && log.personnel_id !== "unknown") ? req.body['personnel'][log.personnel_id] : undefined;
+    const department = req.body?.['camera']?.[log.camera_id]?.section_id?.department_id?.name ?? "";
+    const section = req.body?.['camera']?.[log.camera_id]?.section_id?.name ?? "";
+    const color = log?.color ? req.body['color'][log.color] : undefined;
+    const brand = log?.brand ? req.body['brand'][log.brand] : undefined;
     const frame_log = !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : {};
     delete frame_log["_id"]
     delete frame_log["personnel_id"]
@@ -272,14 +200,12 @@ async function sendFunction(log: any, req: Request): Promise<any> {
       camera_id: camera?._id?.toString() ?? "",
       camera: camera?.name ?? "",
       camera_name: camera?.name ?? "",
-      fullName: personnel?.toName() ?? log.name ?? "",
+      fullName: personnel?.toName() ?? "",
       personnel_id: personnel?.id ?? "unknown",
       ...frame_log,
       // frame: !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : "",
-      // department: personnel?.section_id?.department_id?.name ?? department,
-      department,
-      // section: personnel?.section_id?.name ?? section,
-      section,
+      department: personnel?.section_id?.department_id?.name ?? department,
+      section: personnel?.section_id?.name ?? section,
       time: !!log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timez?.toString() ?? "Asia/Tehran" }) : "",
       plate_number: log.plate_number ? stringPlateToJson(log.plate_number) : "",
       owner: log?.owner ?? "",
@@ -297,7 +223,7 @@ async function sendFunction(log: any, req: Request): Promise<any> {
       timestamp: log?.timestamp ?? "",
       confidence: log?.confidence ?? "",
       image_id: log?.image_id ?? "",
-      hash_id: hash_id ?? "",
+      hash_id: log?.hash_id ?? "",
       face_confidence: log?.face_confidence ?? "",
       vector: log?.vector ?? ""
     };

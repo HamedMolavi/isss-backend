@@ -1,14 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { stringPlateToJson } from "./plate.tools";
 import { ITrackLog, TrackLogData } from "../types/interfaces/track.interface";
-import { isValidObjectId, Types } from "mongoose";
+import { Types } from "mongoose";
 import { ApiError } from "../types/classes/error.class";
-import Camera from "../db/mongo/models/camera";
-import Section from "../db/mongo/models/section";
-import Department from "../db/mongo/models/department";
-import Personnel from "../db/mongo/models/personnel";
-import CarColor from "../db/mongo/models/carColor";
-import Car from "../db/mongo/models/car";
 
 export function injectAllKindOfStuff(stuff: string[], field: string = "_id") {
   return (body: any) => stuff.reduce((acc, entity) => {
@@ -17,77 +11,29 @@ export function injectAllKindOfStuff(stuff: string[], field: string = "_id") {
   }, {} as Record<string, any>)
 }
 
-export async function unifiedSendFunction(log: any & { _id: string }, req: Request) {
+export function unifiedSendFunction(log: any & { _id: string }, req: Request) {
   const { body } = req;
   // Check if log.plate_number is null or undefined before accessing properties
-  let car: any = undefined;
-  if (Object.prototype.hasOwnProperty.call(req.body['db_cars'], log.plate_number)) {
-    car = req.body?.['db_cars']?.['plate_number']
-  } else if (!!log.plate_number) {
-    car = await Car.findOne({ number_plate: log['plate_number'] }).populate('owner').exec();
-    Object.assign(req.body['db_personnel'], { [log.plate_number]: car });
-  }
-  let camera: any = undefined;
-  let sectionDoc: any = undefined;
-  let departmentDoc: any = undefined;
-  if (Object.prototype.hasOwnProperty.call(req.body['db_cameras'], log.camera_id)) {
-    camera = req.body?.['db_cameras']?.[log.camera_id];
-    sectionDoc = req.body?.['db_sections']?.[log.camera_id];
-    departmentDoc = req.body?.['db_departments']?.[log.camera_id];
-  } else if (!!log.camera_id && isValidObjectId(log.camera_id)) {
-    camera = await Camera.findById(log.camera_id).exec();
-    Object.assign(req.body['db_cameras'], { [log.camera_id]: camera });
-    if (!!camera) {
-      sectionDoc = await Section.findById(camera.section_id).exec();
-      Object.assign(req.body['db_sections'], { [log.camera_id]: sectionDoc });
-      if (!!sectionDoc) {
-        departmentDoc = !!sectionDoc?.department_id ? await Department.findById(sectionDoc?.department_id).exec() : undefined;
-        Object.assign(req.body['db_departments'], { [log.camera_id]: departmentDoc })
-      }
-    }
-  }
-  const section = sectionDoc?.name ?? "";
-  const department = departmentDoc?.name ?? "";
-  let personnel: any = undefined;
-  if (Object.prototype.hasOwnProperty.call(req.body['db_personnel'], log.personnel_id)) {
-    personnel = req.body?.['db_personnel']?.[log.personnel_id];
-  } else if (!!log.personnel_id && log.personnel_id !== "unknown" && isValidObjectId(log.personnel_id)) {
-    personnel = await Personnel.findById(log.personnel_id).exec();
-    Object.assign(req.body['db_personnel'], { [log.personnel_id]: personnel })
-  }
-  let color = undefined;
-  if (Object.prototype.hasOwnProperty.call(req.body['db_colors'], log.color)) {
-    color = req.body?.['db_colors']?.[log.color];
-  } else if (!!log.color && isValidObjectId(log.color)) {
-    color = await CarColor.findById(log.color).exec();
-    Object.assign(req.body['db_colors'], { [log.color]: color })
-  }
-  let brand = undefined;
-  if (Object.prototype.hasOwnProperty.call(req.body['db_brands'], log.brand)) {
-    brand = req.body?.['db_brands']?.[log.brand];
-  } else if (!!log.brand && isValidObjectId(log.brand)) {
-    brand = await Personnel.findById(log.brand).exec();
-    Object.assign(req.body['db_brands'], { [log.brand]: brand })
-  }
+  const carDetails = !!log?.plate_number ? body?.["car"]?.[log.plate_number] : undefined;
   return {
     _id: log?._id,
     ...log,
-    camera_id: camera?._id?.toString() ?? "",
-    camera: camera?.name ?? "",
-    camera_type: camera?.type ?? "",
-    fullName: personnel?.toName() ?? "",
+    camera_id: !!log.camera_id ? body['camera']?.[log.camera_id]?._id?.toString() : "",
+    camera: !!log.camera_id ? body['camera']?.[log.camera_id]?.name : "",
+    camera_type: !!log.camera_id ? body['camera']?.[log.camera_id]?.type : "",
+    fullName: (!!log.personnel_id && log.personnel_id !== "unknown") ? body['personnel']?.[log.personnel_id]?.toName() : "",
     time: !!log?.timestamp ? new Date(typeof log.timestamp === "string" ? Number(log.timestamp) : log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timez?.toString() ?? "Asia/Tehran" }) : "",
     timestamp: !!log?.timestamp ?? "",
     plate_number: !!log.plate_number ? stringPlateToJson(log.plate_number) : "",
-    owner: car?.owner?.toName() ?? "",
-    color: color?.name ?? "",
-    brand: brand?.name ?? "",
-    department: department ?? "",
-    section: section ?? "",
+    owner: !!carDetails ? carDetails?.owner?.toName() : "",
+    color: !!log?.color ? body['color']?.[log.color]?.name : "",
+    brand: !!log?.brand ? body['brand']?.[log.brand]?.name : "",
+    department: body['camera']?.[log.camera_id]?.section_id?.department_id?.name ?? "",
+    section: body['camera']?.[log.camera_id]?.section_id?.name ?? "",
     allowed: log.allowed,
     crop: log.plate_number !== undefined ? log?.crop : log?.inner_crop,
     inner_crop: log.plate_number !== undefined ? log?.inner_crop : "",
-    video: camera?.url ?? "",
+    video: !!log.camera_id ? body['camera'][log.camera_id]?.url : "",
   };
 }
 
