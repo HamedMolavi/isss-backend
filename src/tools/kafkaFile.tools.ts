@@ -4,7 +4,7 @@ import {
   Consumer,
   Kafka,
   Producer,
-  logLevel as l,
+  logLevel,
 } from "kafkajs";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../types/classes/error.class";
@@ -15,194 +15,291 @@ import { IPersonnel } from "../types/interfaces/personnel.interface";
 import { getPropertyFromBody } from "./utils.tools";
 import { generateRandomString } from "./util.tools";
 import mongoose from "mongoose";
-
-const brokers = process.env["KAFKA_BOOTSTRAP"].split(",");
-const logLevel = l.ERROR;
-const consumerDataPerpareFunction = {
-  sara: (msg: any) => ({
-    [msg["_id"]]: msg
-  }),
-  asghar: (msg: any) => ({
-    [msg["personnel_id"]]: {
-      timestamp: new Date().toISOString(),
-      _id: msg["_id"],
-      personnel_id: msg["personnel_id"],
-      personnel_name: msg["personnel_name"] as string | undefined,
-      face: msg["cropped_face"] as string | undefined,
-      masked_face: msg["masked_face"] as string | undefined,
-      masked_embd: msg["masked_embd"] as number[] | undefined,
-      embedding: msg["cropped_embd"] as number[] | undefined,
-      has_face: msg["has_face"] as boolean,
-      multi_face: msg["multi_face"] as boolean | undefined,
-    }
-  }),
-  kobra: (msg: any) => ({
-    [msg["id"]]: {
-      timestamp: new Date().toISOString(),
-      data: msg["matches"]?.map((elem: any) => {
-        return elem.id;
-      })
-    }
-  }),
-  ghabil: (msg: any) => ({
-    [msg["person_id"]]: {
-      timestamp: new Date().toISOString(),
-      _id: msg["_id"] as string | null,
-      status_code: msg["status_code"] as number | null,
-      success: msg["success"] as boolean | null,
-      message: msg["message"] as string | null,
-    }
-  }),
-}
-
-const producerDataPerpareFunction = {
-  dara: async (inputs: any) => {
-    return {
-      _id: inputs['_id'],
-      path: inputs['path'],
-    };
-  },
-  soghra: async (inputs: any) => {
-    const full_frame: string = inputs.image_str ?? "";
-    const personnel = await Personnel.findById(inputs.personnel_id).exec();
-    const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
-    const name = personnel ? `${personnel.first_name} ${personnel.last_name}` : '';
-    const frame = full_frame?.split(',')[1] ?? full_frame;
-    return {
-      _id: new mongoose.Types.ObjectId().toHexString(),
-      personnel_id: personnel?.id ?? '',
-      personnel_name: name,
-      full_frame: frame ?? "",
-      face: "",
-      embedding: "",
-      has_face: "0",
-      confidence: inputs.confidence ?? "0",
-      timestamp: timestamp,
-    };
-  },
-
-  akbar: (inputs: any) => {
-    const full_frame: string = inputs.image_str ?? "";
-    const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
-    const frame = full_frame?.split(',')[1] ?? full_frame;
-    return {
-      personnel_id: '',
-      personnel_name: '',
-      full_frame: frame ?? "",
-      face: "",
-      embedding: "",
-      has_face: "0",
-      confidence: inputs.confidence ?? "0",
-      timestamp: timestamp,
-      id: inputs.id
-    };
-  },
-
-  habil: (inputs: any) => {
-    const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
-    // const frame = full_frame?.split(',')[1] ?? full_frame;
-    return {
-      _id: inputs._id ?? "",
-      personnel_id: inputs.person_id ?? "",
-      hash_id: inputs.hash_id ?? "",
-      vector: inputs.vector ?? [],
-      confidence: inputs.confidence ?? "0",
-      timestamp: timestamp,
-    };
-  },
-};
+// TODO: clean this shit up.
 
 
 export class SnapshotKafka {
-  ongoings: string[];
-
-  constructor() {
-    this.ongoings = [];
-  }
-
-  async kafkaSession(allInOneInput: { consumerKey: string, producerKey: string, producerInput: any, consumerId: string, timeout?: number }) {
-    const { consumerKey, producerKey, producerInput, consumerId } = allInOneInput;
-    if (!!this.ongoings.some(el => el === producerInput?.personnel_id || el === producerInput?.person_id)) throw Error(`This person has ongoing image process!`);
-    const handler = producerDataPerpareFunction[producerKey as keyof typeof producerDataPerpareFunction];
-    if (!handler) return undefined;
-    const sentData = await handler(producerInput);
-    const msg = Buffer.from(JSON.stringify(sentData), "utf8");
-    let result: any = { error: "No data found for the given ID" };
-    const producer = new Kafka({ logLevel, brokers }).producer();
-    await producer.connect();
-    const kafka = new Kafka({ clientId: 'backend', brokers });
-    const consumer = kafka.consumer({ groupId: generateRandomString(10),  });
-    await consumer.connect();
-    await consumer.subscribe({ topic: 'snapshot', fromBeginning: false });
-    if (!!producerInput?.personnel_id) this.ongoings.push(producerInput?.personnel_id);
-    // if (!!producerInput?.person_id) this.ongoings.push(producerInput?.person_id);
-    /////////////////////////////////////////////////////////////////////////////////////////////
-    return new Promise(async (resolve, _reject) => {
-      const retHandler = () => {
-        clearTimeout(timer);
-        this.ongoings = this.ongoings.filter(el => !!el && el !== consumerId);
-        consumer.stop();
-        return resolve(result);
-      }
-      const timer = setTimeout(retHandler, allInOneInput.timeout ?? 30000);
-      await consumer.run({
-        eachMessage: async ({ message }) => {
-          try {
-            const msg = JSON.parse(message.value?.toString("utf8") as string);
-            const key = message.key?.toString();
-            if (key !== consumerKey) return;
-            const handler = consumerDataPerpareFunction[consumerKey as keyof typeof consumerDataPerpareFunction];
-            const body = handler(msg);
-            result = Object.values(body)[0];
-            const _id = Object.keys(body)[0];
-            if (_id !== consumerId) return;
-            return retHandler();
-          } catch (error) {
-            return retHandler();
-          }
-        }
-      })
-      await producer.send({ topic: "snapshot", messages: [{ key: producerKey, value: msg }] })
-        .then(_ => producer.disconnect());
-    })
-
-  }
-
-  middlewareWraper(f: Function, inputs: (req: Request) => any[],
+  buffer: { [key: string]: any };
+  consumer: any;
+  // consumer: Consumer;
+  producer: Producer;
+  //redisClient: RedisClientType | undefined
+  middlewareWraper: (
+    f: Function,
     options: {
       resultPropertyName?: string | undefined;
-      resultValidationFunction?: (result: any) => undefined | { status: number; message: string } | Promise<undefined | { status: number; message: string }>;
+      isInReq?: boolean;
       save?: string | undefined;
       next?: boolean;
-    }
-  ) {
-    return async (req: Request, res: Response, next: NextFunction) => {
-      let result: any
-      try {
-        result = await f.call(this, ...inputs(req));
-      } catch (e: any) {
-        return next(new ApiError(500, e.toString()));
-      };
+    },
+    ...args: any[]
+  ) => RequestHandler;
+  // json: Function
 
-      if (!!options.save) req.body[options.save] = result;
-      if (!!options?.resultValidationFunction?.call) {
-        let errMsg = await options.resultValidationFunction.call(this, result);
-        if (!!errMsg) return next(new ApiError(errMsg.status, errMsg.message));
-      }
-      if (!!options.resultPropertyName) {
-        return res.status(201).json({
-          success: true,
-          data: req.body[options.resultPropertyName as string],
-        });
-      }
-      if (!!options.next) return next();
-      return res.status(201).json({
-        success: true,
-        data: result,
+  constructor() {
+    this.buffer = {};
+
+    // Create consumer 
+    const kafka = new Kafka({
+      clientId: 'my-app',
+      brokers: [process.env?.KAFKA_BOOTSTRAP]
+    });
+    let group_id = generateRandomString(10)
+    this.consumer = kafka.consumer({
+      groupId: group_id,
+      retry: {
+        // Try to reconnect after 10seg
+        initialRetryTime: 10 * 1000,
+        retries: 10,
+      },
+      heartbeatInterval: 25000,
+
+    });
+
+    // Connect to consumer
+    const run = async () => {
+      await this.consumer.connect();
+
+      // Subscribe to topics
+      await this.consumer.subscribe({
+        topic: 'snapshot',
+        fromBeginning: false
       });
-    };
+
+      await this.consumer.run({
+        //  .subscribe({ topic: "snapshot", fromBeginning: false })
+        //  .then(async () => {
+        //  await this.consumer.connect();
+        //this.consumer.run({
+        eachMessage: async ({ message }: any) => {
+          const msg = JSON.parse(message.value?.toString("utf8") as string);
+          if (message.key?.toString() === "asghar") {
+            this.buffer[msg["personnel_id"]] = {
+              _id: msg["_id"],
+              personnel_id: msg["personnel_id"],
+              personnel_name: msg["personnel_name"] as string | null,
+              face: msg["cropped_face"] as string | null,
+              masked_face: msg["masked_face"] as string | null,
+              masked_embd: msg["masked_embd"] as number[] | null,
+              embedding: msg["cropped_embd"] as number[] | null,
+              has_face: msg["has_face"] as boolean,
+              multi_face: msg["multi_face"] as boolean | null,
+            };
+          }
+          else if (message.key?.toString() === "kobra") {
+            this.buffer[msg["id"]] = msg["matches"]?.map((elem: any) => {
+              return elem.id;
+            });
+          }
+          else if (message.key?.toString() === "ghabil") {
+            this.buffer[msg["personnel_id"]] = {
+              _id: msg["_id"] as string | null,
+              status_code: msg["status_code"] as number | null,
+              success: msg["success"] as boolean | null,
+              message: msg["message"] as string | null,
+            };
+          }
+        },
+      });
+
+      // Run consumer
+      // await consumer.run({
+      //   eachMessage: async ({ topic, partition, message }) => {
+      //     // Handle message
+      //     console.log({
+      //       topic,
+      //       partition,
+      //       offset: message.offset,
+      //       value: message.value?.toString()
+      //     });
+      //   }
+      // })
+    }
+
+    run().catch(e => console.error(`[example/consumer] ${e.message}`, e));
+
+    // Gracefully stop the consumer
+    const gracefulShutdown = async () => {
+      await this.consumer.disconnect();
+    }
+
+    process.on('SIGINT', gracefulShutdown);
+    process.on('SIGTERM', gracefulShutdown);
+    // this.consumer = new Kafka({
+    //   logLevel: logLevel.ERROR,
+    //   brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
+    //   //brokers: process.env["KAFKA_BOOTSTRAP"]
+    //   // }).consumer({ groupId: "sdgfsdfgas" });
+    // }).consumer({
+    //   groupId: "aaaaaa",
+    //   sessionTimeout: 30000, // longer session timeout
+    // });
+    // this.consumer
+
+    this.producer = new Kafka({
+      logLevel: logLevel.ERROR,
+      brokers: process.env["KAFKA_BOOTSTRAP"].split(","),
+    }).producer({
+      retry: {
+        restartOnFailure: async (err) =>
+          !Boolean(console.log("Kafka Connect Failure:", err)),
+      },
+      allowAutoTopicCreation: true, // TODO: should be false.
+    });
+    this.producer.connect();
+    this.middlewareWraper =
+      (
+        f: Function,
+        options: {
+          resultPropertyName?: string | undefined;
+          isInReq?: boolean;
+          save?: string | undefined;
+          next?: boolean;
+        },
+        ...args: any[]
+      ) =>
+        async (req: Request, res: Response, next: NextFunction) => {
+          /*
+        takes an function to wrap it with RequestHandler.
+        Inside it will call the function with the given args.
+        If isInReq is true, you can give property names of req.body in args.
+        If resultPropertyName is not undefiend, the result sent to the user will be req.body[resultPropertyName]
+        */
+          const inputs = options.isInReq
+            ? args.reduce((obj, key) => {
+              obj[key] = req.body[key];
+              return obj;
+            }, {})
+            : args;
+          const result = await f(inputs);
+          if (!!options.save) req.body[options.save] = result;
+          if (!!options.resultPropertyName) {
+            return res.status(201).json({
+              success: true,
+              data: req.body[options.resultPropertyName as string],
+            });
+          } else if (!!options.next) return next();
+          return res.status(201).json({
+            success: true,
+            data: result,
+          });
+        };
   }
 
+  kafkaProduce = async (inputs: { [key: string]: string }) => {
+    const full_frame: string = inputs.image_str ?? "";
+    const kafka_key: string = Object.keys(inputs).at(-1) ?? "";
+
+    const handlers = {
+      embedding: async () => {
+        return {
+          personnel_id: inputs['personnel_id'],
+          path: './face_DB/' + inputs['path'],
+        }
+      },
+      soghra: async () => {
+        const personnel = await Personnel.findById(inputs.personnel_id).exec();
+        const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
+        const name = personnel ? `${personnel.first_name} ${personnel.last_name}` : '';
+        const frame = full_frame?.split(',')[1] ?? full_frame;
+
+        return {
+          _id: new mongoose.Types.ObjectId().toHexString(),
+          personnel_id: personnel?.id ?? '',
+          personnel_name: name,
+          full_frame: frame ?? "",
+          face: "",
+          embedding: "",
+          has_face: "0",
+          confidence: inputs.confidence ?? "0",
+          timestamp: timestamp,
+        };
+      },
+      akbar: () => {
+        const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
+        const frame = full_frame?.split(',')[1] ?? full_frame;
+        return {
+          personnel_id: '',
+          personnel_name: '',
+          full_frame: frame ?? "",
+          face: "",
+          embedding: "",
+          has_face: "0",
+          confidence: inputs.confidence ?? "0",
+          timestamp: timestamp,
+          id: inputs.id
+        };
+      },
+      habil: () => {
+        const timestamp = new Date(new Date().toLocaleString() + "+0").toISOString();
+        // const frame = full_frame?.split(',')[1] ?? full_frame;
+        return {
+          _id: inputs._id ?? "",
+          personnel_id: inputs.person_id ?? "",
+          vector: inputs.vector ?? [],
+          confidence: inputs.confidence ?? "0",
+          timestamp: timestamp,
+        };
+      },
+    };
+
+    const handler = handlers[kafka_key as keyof typeof handlers];
+    if (!handler) return;
+
+    const redisData = await handler();
+
+    const msg = Buffer.from(JSON.stringify(redisData), "utf8");
+    this.producer.send({
+      topic: "snapshot",
+      messages: [
+        {
+          key: kafka_key,
+          value: msg,
+        },
+      ],
+    });
+    return {
+      message: "Uploaded the file successfully",
+      id: redisData.personnel_id,
+    };
+  };
+
+  kafkaGet = async (id: any) => {
+    let bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
+    let count = 0;
+    while (!bufferEntry && count < 14) {
+      // console.log(id)
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 1 second delay
+      bufferEntry = this.buffer[id.id] ?? this.buffer[id.personnel_id];
+      count++;
+      // if (count == 8) {
+      //   break
+      // }
+    }
+    // Initialize the result object with a timestamp
+    let result: any = { timestamp: new Date().toISOString() };
+
+    if (Array.isArray(bufferEntry)) {
+      // If the buffer entry is an array, include it under a specific key
+      result.data = bufferEntry;
+      delete this.buffer[id.id];
+      delete this.buffer[id.personnel_id];
+    } else if (bufferEntry && typeof bufferEntry === 'object') {
+      // If the buffer entry is an object, spread its properties into the result
+      //@ts-ignore
+      result = { ...result, ...bufferEntry };
+      delete this.buffer[id.id];
+      delete this.buffer[id.personnel_id];
+    } else {
+      // If there's no data for the given ID, include an error message
+      result.error = "No data found for the given ID";
+    }
+
+    // Consider whether you need to delete the buffer entry after retrieval
+    //delete this.buffer[id];
+
+    return result;
+  };
 }
 
 
@@ -217,7 +314,6 @@ export class ImageFileSystem {
     this.preCreateDirectories();
     this.hash = (imgBase64: string) => hashString(imgBase64, this.secret);
   }
-
   uploadAvatar = (id: string, imageStr: string, options?: { fileName?: string }) => {
     let imagePath: string = "";
     let name = "";
@@ -241,17 +337,22 @@ export class ImageFileSystem {
   };
 
   uploadAvatarMiddleware = (
-    imagePropertyName: string,
-    idPropertyName: string,
-    options?: { next?: boolean; fileName?: string, resultPropertyName?: string },
+    imagePropertyName: string | Array<string>,
+    idPropertyName: string | Array<string>,
+    options?: { next?: boolean; fileName?: string },
+    resultPropertyName: string = ""
   ) => {
+    /*
+    use result property name to identify wether you want to send a customized result to the user.
+    */
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
         let imagePath: string = "";
         let name = "";
-        // person id data
-        let id = String(getPropertyFromBody(req, idPropertyName.split(".")) ?? "");
-        let imageStr = String(getPropertyFromBody(req, imagePropertyName.split(".")) ?? "");
+        //id data
+        let id = String(getPropertyFromBody(req, idPropertyName) ?? "");
+        //avatarStr data
+        let imageStr = String(getPropertyFromBody(req, imagePropertyName) ?? "");
         let check = !!imageStr && !!id;
         if (check) {
           imageStr = imageStr.split(",").length >= 2 ? imageStr.split(",")[1] : imageStr;
@@ -259,9 +360,9 @@ export class ImageFileSystem {
           else {
             const hash = this.hash(imageStr);
             name = `${id}-${hash}`;
-            // req.body["redisData"][typeof imagePropertyName === "string" ? imagePropertyName : imagePropertyName[imagePropertyName.length - 1]] = hash;
-            req.body["hash_id"] = hash;
+            req.body["redisData"][typeof imagePropertyName === "string" ? imagePropertyName : imagePropertyName[imagePropertyName.length - 1]] = hash;
           }
+          //convert file to buffer
           let image = Buffer.from(imageStr as string, "base64");
           //get path for save file
           const imageDir = this.makeAndReturnNewDirectoryForUser(id as string);
@@ -270,7 +371,7 @@ export class ImageFileSystem {
           fs.writeFileSync(imagePath, image);
         };
         if (!!options?.next) return next();
-        if (!options?.resultPropertyName) {
+        if (!resultPropertyName) {
           return res.status(check ? 201 : 404).json({
             success: check,
             data: check ? {
@@ -282,7 +383,7 @@ export class ImageFileSystem {
         } else {
           return res.status(201).json({
             success: true,
-            data: req.body[options.resultPropertyName]
+            data: req.body[resultPropertyName]
           });
         }
       } catch (e: any) {
@@ -433,7 +534,6 @@ export class ImageFileSystem {
       if (!fs.existsSync(this.baseDir)) fs.mkdirSync(this.baseDir);
     }
   }
-
   private async preCreateDirectories() {
     const personnel: IPersonnel[] = await read(Personnel);
     for (const person of personnel) {
@@ -442,7 +542,6 @@ export class ImageFileSystem {
       } catch (_) { }
     }
   }
-
   private makeAndReturnNewDirectoryForUser(id: string) {
     const p = path.join(this.baseDir, id);
     if (!fs.existsSync(p)) {
@@ -451,5 +550,4 @@ export class ImageFileSystem {
     }
     return p;
   }
-
 }

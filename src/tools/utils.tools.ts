@@ -2,8 +2,8 @@ import { randomUUID } from "crypto";
 import inspector from 'inspector';
 import { Request } from "express";
 var randomWords = require('random-words-es');
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import fs from 'fs/promises';
+import path from 'path';
 import { Parser } from 'pickleparser';
 
 // bcrypt.hash("2", "$2b$10$/3XrA1.HamedMolaviC22O").then(hash => hash.slice(-31,-1))
@@ -49,8 +49,11 @@ export function getPropertyFromBody(req: Request, propertyName: string | Array<s
   let property: any = "";
   if (typeof propertyName === "string") property = req.body[propertyName];
   else {
-    property = req.body[propertyName[0]];
-    for (let indx = 1; indx < propertyName.length; indx++) property = property?.[propertyName[indx]];
+    let tmp = req.body[propertyName[0]];
+    for (let indx = 1; indx < propertyName.length; indx++) {
+      tmp = tmp?.[propertyName[indx]];
+      if (indx === propertyName.length - 1) property = tmp;
+    };
   }
   return property;
 }
