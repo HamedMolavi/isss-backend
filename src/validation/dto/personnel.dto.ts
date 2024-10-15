@@ -51,6 +51,15 @@ export class CreatePersonnelBody {
   @IsArray()
   @IsOptional()
   public camera_whitelist?: string[]| null;
+  @IsArray()
+  @IsOptional()
+  public department_whitelist?: string[]| null;
+  @IsArray()
+  @IsOptional()
+  public section_whitelist?: string[]| null;
+  @IsArray()
+  @IsOptional()
+  public schedule_whitelist?: string[]| null;
   @IsBoolean()
   @IsOptional()
   public alert?: boolean;
@@ -101,6 +110,15 @@ export class UpdatePersonnelBody {
   @IsArray()
   @IsOptional()
   public camera_whitelist?: string[];
+  @IsArray()
+  @IsOptional()
+  public department_whitelist?: string[];
+  @IsArray()
+  @IsOptional()
+  public section_whitelist?: string[];
+  @IsArray()
+  @IsOptional()
+  public schedule_whitelist?: string[];
   @Validate(EndgtrStartValidator)
   @Validate(TimeAndDateValidator, ['date_start'])
   @IsString()

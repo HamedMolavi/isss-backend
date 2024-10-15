@@ -23,6 +23,24 @@ const fs = new ImageFileSystem();
 //create router for add to routes file
 const router: Router = Router();
 const rawSearch = (search: string) => {
+  if (search.includes(":")) {
+    let res: { [key: string]: any } = {}
+    const splitted = search.split(':');
+    for (let i = 0; i < splitted.length; i += 2) {
+      const key = splitted[i];
+      let value: any = splitted[i + 1];
+      if (!value) continue
+      else if (value?.toLowerCase() === 'true') value = true;
+      else if (value?.toLowerCase() === 'false') value = false;
+      res[key] = value;
+    }
+    return res;
+    // const key = search.split(':').at(0);
+    // let value: any = search.split(':').at(1);
+    // if (value?.toLowerCase() === 'true') value = true;
+    // if (value?.toLowerCase() === 'false') value = false;
+    // if (!!key) return { [key]: value }
+  }
   return {
     $or: [
       { first_name: { $regex: search } },
@@ -40,11 +58,11 @@ router.post("",
   existCheck(Personnel, { $and: [{ first_name: "first_name" }, { last_name: "last_name" }] }, "Personnel already exists!"),
   injectDataMiddleware(allowedPassConvert, { injData: "allowed_pass" }),
   createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "camera_whitelist", "allowed_pass", "alert"], Personnel, { next: true, save: "doc" }),
-  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { fileName: "avatar" }, "doc"),
+  fs.uploadAvatarMiddleware("avatar_str", "doc._id", { fileName: "avatar", resultPropertyName: "doc" }),
 );
 
 //route for get personnels list
-router.get(["", "/search", "/hostile"],
+router.get(["", "/search", "/hostile", "/guest"],
   readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction, populate: true })
 );
 
@@ -69,7 +87,7 @@ router.patch("/:id",
       }
     }
   }),
-  fs.uploadAvatarMiddleware("avatar_str", ["doc", "_id"], { fileName: "avatar" }, "doc"),
+  fs.uploadAvatarMiddleware("avatar_str", "doc._id", { fileName: "avatar", resultPropertyName: "doc" }),
 );
 
 //add route for delete personnel
@@ -79,22 +97,27 @@ router.delete("/:id",
   fs.deleteDirectoryMiddleware(["doc", "_id"], { force: true, send: "doc" })
 );
 
+const specialTypes = ["Hostile", "Guest"]
 async function personnelSendFunction(_personnel: any, req: Request) {
   let per = _personnel.toJSON();
   // TODO: fetch last location from normalizer server.
-  let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
-  let _camera;
-  if (logPersonnel?.data?.hits?.hits?.length > 0) {
-    try {
-      _camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate("section_id").exec();
-    } catch (error: any) {
-      if (error.name.toString() === 'CastError') console.log(`!!! Elastic data error: ${logPersonnel.data.hits.hits[0]?._source?.camera_id} as camera._id is wrong`);
+  if (!!req?.query?.lastSeen) {
+    let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
+    let _camera;
+    if (logPersonnel?.data?.hits?.hits?.length > 0) {
+      try {
+        _camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate("section_id").exec();
+      } catch (error: any) {
+        if (error.name.toString() === 'CastError') console.log(`!!! Elastic data error: ${logPersonnel.data.hits.hits[0]?._source?.camera_id} as camera._id is wrong`);
+      }
+      per.lastTimeSeen = new Date(logPersonnel.data?.hits?.hits[0]?._source?.timestamp);
     }
-    per.lastTimeSeen = new Date(logPersonnel.data?.hits?.hits[0]?._source?.timestamp);
+    (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
   }
-  (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
   if (!!per.allowed_pass) per.allowed_pass = allowedPassRevert(per);
-  return (per?.first_name === "Hostile") === req.originalUrl.toLowerCase().includes("hostile") ? per : undefined; // don't panic, it's just XNOR
+  const type = specialTypes.find(t => req.originalUrl.toLowerCase().includes(t.toLowerCase()));
+
+  return (!!type ? per?.first_name === type : !specialTypes.includes(per?.first_name)) ? per : undefined;
 };
 
 export default router;

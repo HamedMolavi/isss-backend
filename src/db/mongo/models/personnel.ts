@@ -11,12 +11,24 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
   {
     first_name: { type: String, required: true },
     last_name: { type: String, required: true },
+    person_type: {
+      type: String,
+      enum: ['normal', 'guest', 'hostile'],
+      default: 'normal',
+      validate: {
+        validator: (v: string) => ['normal', 'guest', 'hostile'].includes(v),
+        message: '{VALUE} is not a valid person type'
+      }
+    },
     national_code: { type: String, default: "" }, // () => randomUuid(10, "number").toString()
     email: { type: String, default: "test@gmail.com" },
     phone_number: { type: String, default: "" },
     job_id: { type: Schema.Types.ObjectId, ref: "JobTitle", default: undefined },
     personnel_code: { type: String, default: "" }, // () => randomUuid(10, "number").toString()
     camera_whitelist: { type: [Schema.Types.ObjectId], ref: "Camera", default: [] },
+    section_whitelist: { type: [Schema.Types.ObjectId], ref: "Section", default: [] },
+    schedule_whitelist: { type: [Schema.Types.ObjectId], ref: "Schedule", default: [] },
+    department_whitelist: { type: [Schema.Types.ObjectId], ref: "Department", default: [] },
     allowed_pass: { type: Schema.Types.Mixed, default: undefined },
     alert: { type: Boolean, default: false },
     tracked: { type: Boolean, default: false },
@@ -71,11 +83,11 @@ PersonnelSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "
     //   const vector = image.vector;
     //   const vectorFilePath = `../../assets/image/${doc.id}/${doc.id}-${image.hash_id}.jpeg`;
     //   fs.writeFile(vectorFilePath, JSON.stringify(vector));
-      // if (!!image.masked_embd) {
-      //   const masked_embd = image.masked_embd;
-      //   const maskedFilePath = `../../../assets/image/${doc.first_name}_${doc.last_name}_${image.masked_face_id}.txt`;
-      //   fs.writeFile(maskedFilePath, JSON.stringify(masked_embd));
-      // };
+    // if (!!image.masked_embd) {
+    //   const masked_embd = image.masked_embd;
+    //   const maskedFilePath = `../../../assets/image/${doc.first_name}_${doc.last_name}_${image.masked_face_id}.txt`;
+    //   fs.writeFile(maskedFilePath, JSON.stringify(masked_embd));
+    // };
     // } catch (_) { }
     await image.delete();
   };

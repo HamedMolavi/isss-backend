@@ -1,6 +1,6 @@
 import { setupInteractive } from "../interactive/interactive.cluster";
 import connectToDBs from "../db/index.database";
-import { setUpPassport } from "../setups/passport.setup";
+import { setUpPassport } from "./passport.setup";
 import seedSetup from "./seed.setup";
 import { initBalancer } from "../tools/loadBalancer.tools";
 import { SignalConsumer } from "../tools/systemSignal.tools";

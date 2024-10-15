@@ -9,7 +9,7 @@ export async function read(model: any, options?: { query?: FilterQuery<any>, pop
   return docs;
 };
 
-export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any>,
+export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any> | Promise<FilterQuery<any>>,
   options?: {
     forceAll?: boolean,
     next?: boolean,
@@ -34,7 +34,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       //get perPage from url
       let strPerPage = req.query.perPage as string;
       let perPage = !!options?.forceAll || strPerPage?.toLowerCase() === "all"
-        ? 10000
+        ? 1000000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let docs: Document[] = (!!query && !!search)
         ? await model.find(await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
@@ -44,7 +44,9 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         req.flash("error", model.collection.collectionName + " not found");
         return next(new ApiError(404, model.collection.collectionName + " not found"));
       };
-
+      const total = (!!query && !!search)
+        ? await model.countDocuments(await query(search)).exec()
+        : await model.countDocuments().exec();
       if (!!docs.length && !!options?.populate && (!!req.query.populate || !!options?.forcePopulate?.length)) {
         let populates: string[] = [];
 
@@ -76,8 +78,8 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         data,
         page: page,
         perPage: perPage,
-        total: data.length,
-        pages: Math.ceil((data.length) / perPage),
+        total,
+        pages: Math.ceil(total / perPage),
       });
     } catch (err: any) {
       return next(new ApiError(500, "internal server error , " + err.message));
