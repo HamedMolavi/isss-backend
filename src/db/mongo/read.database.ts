@@ -41,7 +41,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         !!options?.aggregate
           ? (
             (!!query && !!search)
-              ? await model.aggregate(await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()?.map((doc: any) => new model(doc))
+              ? (await model.aggregate(await query(search)).limit(perPage).skip(perPage * (page - 1)).exec())?.map((doc: any) => new model(doc))
               : await model.find({}).limit(perPage).skip(perPage * (page - 1)).exec()
           )
           : (
