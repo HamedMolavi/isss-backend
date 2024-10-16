@@ -20,10 +20,6 @@ export class CreateProductBody {
   @ArrayMinSize(1)
   @IsArray()
   images?: Array<string>;
-  // @ValidateNested({ each: true })
-  // @Type(() => CreateProductFeature)
-  // @IsArray()
-  // features?: Array<{ name: string, value: any }>
   @IsNumber()
   @IsOptional()
   product_weight?: number
@@ -44,8 +40,4 @@ export class UpdateProductBody {
   @ArrayMinSize(1)
   @IsArray()
   images?: Array<string>;
-  // @ValidateNested({ each: true })
-  // @Type(() => CreateProductFeature)
-  // @IsArray()
-  // features?: Array<{ name: string, value: any }>
 };
