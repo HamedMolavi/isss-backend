@@ -11,6 +11,7 @@ export async function read(model: any, options?: { query?: FilterQuery<any>, pop
 
 export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any> | Promise<FilterQuery<any>>,
   options?: {
+    aggregate?: boolean,
     forceAll?: boolean,
     next?: boolean,
     save?: string,
@@ -36,9 +37,18 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       let perPage = !!options?.forceAll || strPerPage?.toLowerCase() === "all"
         ? 1000000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-      let docs: Document[] = (!!query && !!search)
-        ? await model.find(await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
-        : await model.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+      let docs: Document[] =
+        !!options?.aggregate
+          ? (
+            (!!query && !!search)
+              ? await model.aggregate(await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
+              : await model.aggregate({}).limit(perPage).skip(perPage * (page - 1)).exec()
+          )
+          : (
+            (!!query && !!search)
+              ? await model.find(await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
+              : await model.find({}).limit(perPage).skip(perPage * (page - 1)).exec()
+          );
       //return response not found to client if not found
       if (!docs.length && !options?.next) {
         req.flash("error", model.collection.collectionName + " not found");
