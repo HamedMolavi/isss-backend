@@ -106,7 +106,7 @@ const producerDataPerpareFunction = {
       personnel_id: inputs.person_id ?? "",
       hash_id: inputs.hash_id ?? "",
       vector: inputs.vector ?? [],
-      confidence: inputs.confidence ?? "0",
+      confidence: inputs.confidence ?? "0.99",
       timestamp: timestamp,
     };
   },
