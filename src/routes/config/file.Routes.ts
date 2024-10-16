@@ -367,6 +367,7 @@ router.post("/notifpersonnel/client",
     { product_code: (body) => body['person']['personnel_code'] },
     { person_id: (body) => body['person']['_id'] },
     { face_log_id: (body) => body['face_log_id'] },
+    { features: (body) => []}
   ], Product, { next: true, save: "product", }),
 )
 

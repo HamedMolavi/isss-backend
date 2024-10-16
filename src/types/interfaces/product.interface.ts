@@ -5,6 +5,7 @@ export interface IProduct extends Document {
   name: string;
   images: Array<string>;
   product_code: string;
+  features: Array<{ name: string, value: any }>
   person_id: mongoose.Types.ObjectId;
   face_log_id: string;
 }
