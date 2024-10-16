@@ -366,9 +366,19 @@ router.post("/notifpersonnel/client",
     { images: (body) => body['product_images'] },
     { product_code: (body) => body['person']['personnel_code'] },
     { person_id: (body) => body['person']['_id'] },
-    { face_log_id: (body) => body['face_log_id'] },
-    { features: (body) => []}
+    "face_log_id",
+    { features: (body) => [{ name: "product_weight", value: body['product_weight'] }] }
   ], Product, { next: true, save: "product", }),
+  injectDataMiddleware((body: any) => ({
+    "first_name": body["first_name"],
+    "last_name": body["last_name"],
+    "client_type": body["client_type"],
+    "phone_number": body["phone_number"],
+    "product_images": body["product_images"],
+    "product_name": body["product_name"],
+    "product_weight": body["product_weight"],
+  }), { injData: "sendings" }),
+
 )
 
 router.post("/notifpersonnel/:type?",
@@ -390,7 +400,11 @@ router.post("/notifpersonnel/:type?",
   (req: Request, res: Response, next: NextFunction) => {
     res.status(201).send({
       success: true,
-      data: { ...req?.body?.imageDoc?.toJSON(), "image_str": req?.body?.image_str },
+      data: {
+        ...req?.body?.imageDoc?.toJSON(),
+        "image_str": req?.body?.image_str,
+        ...req.body['sendings']
+      },
     })
   },
 )

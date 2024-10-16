@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, Validate, ArrayMaxSize, ArrayMinSize, IsNumber, IsEnum } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, Validate, ArrayMaxSize, ArrayMinSize, IsNumber, IsEnum, IsArray, IsNotEmpty } from "class-validator";
 import { FileOrDirExists, IsImageString, Or } from ".";
 
 enum ClientType {
@@ -7,8 +7,10 @@ enum ClientType {
 }
 
 export class AddClient {
+  @IsNotEmpty()
   @IsString()
   first_name?: string;
+  @IsNotEmpty()
   @IsString()
   last_name?: string;
   @IsEnum(ClientType)
@@ -18,7 +20,9 @@ export class AddClient {
   @IsOptional()
   product_name?: string;
   @Validate(IsImageString, { each: true })
-  @IsString()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  @IsArray()
   product_images?: string;
   @IsString()
   face_log_id?: string;
