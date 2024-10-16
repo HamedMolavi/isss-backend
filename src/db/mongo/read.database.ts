@@ -97,7 +97,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
   }
 };
 
-export function readByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: boolean, idFromReq?: (req: Request) => string | undefined }, _id?: string): RequestHandler {
+export function readByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: boolean, idFromReq?: (req: Request) => string | undefined, forcePopulate?: string[], }, _id?: string): RequestHandler {
   return async function middleware(req: Request, res: Response, next: NextFunction) {
     try {
       //get id from params in url
@@ -116,6 +116,7 @@ export function readByIdMiddleware(model: any, options?: { next?: boolean, save?
         let populates = req.query.populate instanceof String
           ? req.query.populate.split(",").map((el) => el.trim())
           : (req.query.populate as string[]).map((el) => el.trim());
+        if (!!options?.forcePopulate) options.forcePopulate.forEach((p) => { if (!populates.includes(p)) populates.push(p) });
         let idx = populates.length - 1;
         while (!!populates.length && idx >= 0) {
           const populate = populates[idx];
