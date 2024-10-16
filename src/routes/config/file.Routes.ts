@@ -358,7 +358,7 @@ router.post("/notifpersonnel/client",
     { alert: (_) => false },
     { personnel_code: (_) => randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join("") },
     { job_id: async (_) => await JobTitle.findOne({ name: 'client' }).exec().then(job => job?.id) },
-    { camera_whitelist: async (_) => await Camera.find({}).exec().then(cameras => cameras.filter(cam => cam._id)) },
+    { camera_whitelist: async (_) => await Camera.find({}).exec().then(cameras => cameras.map(cam => cam._id)) },
   ], Personnel, { save: "person", next: true }),
   injectDataMiddleware((body: any) => ({ person_id: body.person?.id }), { spread: true }),
   createMiddleware([
