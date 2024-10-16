@@ -53,10 +53,10 @@ export class IsImageString implements ValidatorConstraintInterface {
   validate(image_str: any, args: ValidationArguments & { object: any }) {
     const jpegPrefix = 'data:image/jpeg;base64,';
     const pngPrefix = 'data:image/png;base64,';
-    if (image_str.startsWith(jpegPrefix)) {
-      image_str = image_str.substring(jpegPrefix.length);
-    } else if (image_str.startsWith(pngPrefix)) {
-      image_str = image_str.substring(pngPrefix.length);
+    if (image_str?.startsWith(jpegPrefix)) {
+      image_str = image_str?.substring(jpegPrefix.length);
+    } else if (image_str?.startsWith(pngPrefix)) {
+      image_str = image_str?.substring(pngPrefix.length);
     }
     const base64Regex = /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/;
     return base64Regex.test(image_str) && !!image_str;
