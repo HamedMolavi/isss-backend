@@ -62,7 +62,7 @@ router.post("",
 );
 
 //route for get personnels list
-router.get(["", "/search", "/hostile", "/guest"],
+router.get(["", "/search", "/hostile", "/guest", "/client"],
   readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction, populate: true })
 );
 
@@ -97,12 +97,12 @@ router.delete("/:id",
   fs.deleteDirectoryMiddleware(["doc", "_id"], { force: true, send: "doc" })
 );
 
-const specialTypes = ["Hostile", "Guest"]
-async function personnelSendFunction(_personnel: any, req: Request) {
-  let per = _personnel.toJSON();
+const specialTypes = ["hostile", "guest", "client"]
+async function personnelSendFunction(person: IPersonnel & Required<{ _id: mongoose.Types.ObjectId }>, req: Request) {
+  let per: any = person.toJSON();
   // TODO: fetch last location from normalizer server.
   if (!!req?.query?.lastSeen) {
-    let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
+    let logPersonnel = await requestForGetPersonnel(person._id.toString());
     let _camera;
     if (logPersonnel?.data?.hits?.hits?.length > 0) {
       try {
@@ -115,9 +115,16 @@ async function personnelSendFunction(_personnel: any, req: Request) {
     (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
   }
   if (!!per.allowed_pass) per.allowed_pass = allowedPassRevert(per);
-  const type = specialTypes.find(t => req.originalUrl.toLowerCase().includes(t.toLowerCase()));
-
-  return (!!type ? per?.first_name === type : !specialTypes.includes(per?.first_name)) ? per : undefined;
+  const type = specialTypes.find(st => req.originalUrl.toLowerCase().includes(st));
+  const person_st = specialTypes.find((st) => person.person_type.includes(st));
+  switch (true) {
+    case !!type && type === person_st:
+      return per;
+    case !type && !person_st:
+      return per;
+    default:
+      return undefined;
+  }
 };
 
 export default router;

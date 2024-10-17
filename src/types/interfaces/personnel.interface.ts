@@ -18,6 +18,6 @@ export interface IPersonnel extends Document {
   tracked: boolean;
   create_date: Date;
   alert: boolean;
-  person_type: 'normal' | 'guest' | 'hostile';
+  person_type: 'normal' | 'guest' | 'hostile' | 'client_buyer' | 'client_seller';
   toName: () => string;
 };
