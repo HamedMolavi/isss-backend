@@ -2,6 +2,7 @@ import mongoose, { Document } from "mongoose";
 
 export interface IProduct extends Document {
   _id: mongoose.Types.ObjectId;
+  create_date: Date;
   name: string;
   images: Array<string>;
   product_code: string;

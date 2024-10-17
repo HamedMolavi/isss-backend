@@ -50,6 +50,15 @@ const rawSearch = (search: string) => {
       { phone_number: { $regex: search } }]
   }
 };
+const personnelDefaultQueryFunction = (bodyQueryPramas: { [key: string]: any }) => {
+  const result: any = { $and: [{ person_type: "normal" }] };
+  console.log(bodyQueryPramas.type)
+  if (!!bodyQueryPramas.type) {
+    const type = specialTypes.find(st => bodyQueryPramas.type.toLowerCase().includes(st) || st.toLowerCase().includes(bodyQueryPramas.type));
+    result["$and"] = [{ person_type: { $regex: type } }];
+  }
+  return result;
+}
 
 
 //add route for register new personnel
@@ -62,8 +71,8 @@ router.post("",
 );
 
 //route for get personnels list
-router.get(["", "/search", "/hostile", "/guest", "/client"],
-  readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction, populate: true })
+router.get("(/:type(search|hostile|guest|client))?/?$",
+  readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction, populate: true, defaultQuery: personnelDefaultQueryFunction })
 );
 
 //route for get personnel by id from DB
@@ -115,16 +124,17 @@ async function personnelSendFunction(person: IPersonnel & Required<{ _id: mongoo
     (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
   }
   if (!!per.allowed_pass) per.allowed_pass = allowedPassRevert(per);
-  const type = specialTypes.find(st => req.originalUrl.toLowerCase().includes(st));
-  const person_st = specialTypes.find((st) => person.person_type.includes(st));
-  switch (true) {
-    case !!type && type === person_st:
-      return per;
-    case !type && !person_st:
-      return per;
-    default:
-      return undefined;
-  }
+  // const type = specialTypes.find(st => req.originalUrl.toLowerCase().includes(st));
+  // const person_st = specialTypes.find((st) => person.person_type.includes(st));
+  // switch (true) {
+  //   case !!type && type === person_st:
+  //     return per;
+  //   case !type && !person_st:
+  //     return per;
+  //   default:
+  //     return undefined;
+  // }
+  return per
 };
 
 export default router;

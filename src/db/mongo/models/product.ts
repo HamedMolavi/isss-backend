@@ -1,8 +1,10 @@
 import mongoose, { Schema } from "mongoose";
 import { IProduct } from "../../../types/interfaces/product.interface";
+import Personnel from "./personnel";
 
 const ProductSchema: Schema<IProduct> = new Schema(
   {
+    create_date: { type: Date, default: Date.now },
     name: { type: String, required: true },
     images: Array<{ type: String, default: [] }>,
     product_code: { type: String, required: true },
@@ -25,7 +27,8 @@ const ProductSchema: Schema<IProduct> = new Schema(
 
 
 // ProductSchema.post('save', balanceNewCamera);
-// ProductSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc) => {
+// ProductSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc: (IProduct & Required<{ _id: Schema.Types.ObjectId; }>)) => {
+//   await Personnel.deleteOne({ _id: doc.person_id });
 // });
 
 

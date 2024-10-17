@@ -13,6 +13,7 @@ import Product from "../../db/mongo/models/product";
 import { IProduct } from "../../types/interfaces/product.interface";
 import PersonImage from "../../db/mongo/models/personImage";
 import { ImageFileSystem } from "../../tools/kafkaFile.tools";
+import Personnel from "../../db/mongo/models/personnel";
 
 //create customized filesystem
 const fs = new ImageFileSystem();
@@ -101,22 +102,29 @@ router.get("/:id",
 
 router.delete("/:id",
   // DoNotAllowOnDefault(Product, { name: "default" }),
-  deleteByIdMiddleware(Product), //also deletes image vector in post remove schema
+  deleteByIdMiddleware(Personnel, {
+    idGenerator: async (bodyQueryPramas: any) => await Personnel.findById(await Product.findById(bodyQueryPramas.id).then(doc => doc?.person_id)).exec().then(doc => doc?.id)
+  }), //also deletes image vector in post remove schema
+  // deleteByIdMiddleware(Product), //also deletes image vector in post remove schema
 );
 
 async function productSendFunction(productDoc: IProduct & Required<{ _id: mongoose.Types.ObjectId; }>, req: Request) {
-  if (isValidObjectId(productDoc.person_id)) productDoc.populate('person_id');
-  const person: any = productDoc.person_id;
-  const images = await PersonImage.find({ person_id: person._id }).exec();
-  let pathRead = path.join(__dirname, `../../../assets/image/${person.id}/`);
-  const files = images.map(image => person.id + "-" + image.hash_id + ".jpeg");
-  const imageFilesRead = fs.readFiles(pathRead, files);
-  return {
-    ...productDoc.toJSON(),
-    ...productDoc.features.reduce((ret: any, el) => { ret[el.name] = el.value; return ret }, {}),
-    "person_images": imageFilesRead
+  try {
+    if (isValidObjectId(productDoc.person_id)) productDoc.populate('person_id');
+    const person: any = productDoc.person_id;
+    const images = await PersonImage.find({ person_id: person._id }).exec();
+    let pathRead = path.join(__dirname, `../../../assets/image/${person.id}/`);
+    const files = images.map(image => person.id + "-" + image.hash_id + ".jpeg");
+    const imageFilesRead = fs.readFiles(pathRead, files);
+    return {
+      ...productDoc.toJSON(),
+      ...productDoc.features.reduce((ret: any, el) => { ret[el.name] = el.value; return ret }, {}),
+      "person_images": imageFilesRead
+    }
+  } catch (error) {
+    console.error(error);
+    return undefined;
   }
-
 };
 
 export default router;
