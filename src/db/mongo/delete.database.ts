@@ -3,11 +3,14 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import { Document } from "mongoose";
 
-export function deleteByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction }): RequestHandler {
+export function deleteByIdMiddleware(model: any, options?: {
+  next?: boolean, save?: string, send?: CallableFunction,
+  idGenerator?: (bodyQueryPramas: any) => "string" | Promise<"string">
+}): RequestHandler {
   return async function (req: Request, res: Response, next: NextFunction) {
     try {
       //get id from url
-      let id = req.params.id;
+      let id = !!options?.idGenerator ? await options.idGenerator({ ...req.body, ...req.params, ...req.query }) : req.params.id;
       if (!id) return next(new ApiError(400, "Bad request id not found"));
 
       let doc: Document = await model.findByIdAndDelete(id).exec();
