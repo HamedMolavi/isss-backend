@@ -34,7 +34,7 @@ router.use("/departments", accessCheck("department"), departementRoutes);
 router.use("/sections", accessCheck("section"), sectionRoutes);
 router.use("/jobtitles", accessCheck("job"), jobTitleRoutes);
 router.use("/personnels", accessCheck("personnel"), personnelRoutes);
-router.use("/transactions", productRoutes);
+router.use("/transactions", accessCheck("product"), productRoutes);
 router.use("/schedules", accessCheck("schedule"), scheduleRoutes);
 router.use("/files", fileRoutes);
 router.use("/models", modelRoutes);
