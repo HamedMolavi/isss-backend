@@ -5,6 +5,7 @@ import PersonImage from "./personImage";
 import Car from "./car";
 import fs from 'fs-extra';
 import { randomUuid } from "../../../tools/utils.tools";
+import Product from "./product";
 
 const person_types = ['normal', 'guest', 'hostile', 'client_buyer', 'client_seller'];
 //create personnel model with schema for save in DB
@@ -94,6 +95,9 @@ PersonnelSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "
   };
   await PersonImage.deleteMany({ person_id: doc._id }).exec(); // to ensure
   await Car.deleteMany({ owner: doc._id }).exec();
+  let products = await Product.find({ person_id: doc._id }).exec();
+  for (const product of products) await product.delete();
+  await Product.deleteMany({ person_id: doc._id }).exec(); // to ensure
 });
 
 
