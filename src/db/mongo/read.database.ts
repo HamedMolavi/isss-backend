@@ -12,7 +12,7 @@ export async function read(model: any, options?: { query?: FilterQuery<any>, pop
 
 export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any> | Promise<FilterQuery<any>>,
   options?: {
-    defaultQuery?: FilterQuery<any>,
+    defaultQuery?: (bodyQueryPramas: any) => FilterQuery<any> | Promise<FilterQuery<any>>,
     aggregate?: boolean,
     forceAll?: boolean,
     next?: boolean,
@@ -39,17 +39,18 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       let perPage = !!options?.forceAll || strPerPage?.toLowerCase() === "all"
         ? 1000000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
+      let defaultQuery = await options?.defaultQuery?.({ ...req.body, ...req.query, ...req.params });
       let docs: Document[] =
         !!options?.aggregate
           ? (
             (!!query && !!search)
-              ? (await model.aggregate(!!options?.defaultQuery ? deepmerge(options.defaultQuery, await query(search)) : await query(search)).limit(perPage).skip(perPage * (page - 1)).exec())?.map((doc: any) => new model(doc))
-              : await model.find(options?.defaultQuery ?? {}).limit(perPage).skip(perPage * (page - 1)).exec()
+              ? (await model.aggregate(!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)).limit(perPage).skip(perPage * (page - 1)).exec())?.map((doc: any) => new model(doc))
+              : await model.find(defaultQuery ?? {}).limit(perPage).skip(perPage * (page - 1)).exec()
           )
           : (
             (!!query && !!search)
-              ? await model.find(!!options?.defaultQuery ? deepmerge(options.defaultQuery, await query(search)) : await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
-              : await model.find(options?.defaultQuery ?? {}).limit(perPage).skip(perPage * (page - 1)).exec()
+              ? await model.find(!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
+              : await model.find(defaultQuery ?? {}).limit(perPage).skip(perPage * (page - 1)).exec()
           );
       //return response not found to client if not found
       if (!docs.length && !options?.next) {
@@ -57,8 +58,8 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         return next(new ApiError(404, model.collection.collectionName + " not found"));
       };
       const total = (!!query && !!search)
-        ? await model.countDocuments(!!options?.defaultQuery ? deepmerge(options.defaultQuery, await query(search)) : await query(search)).exec()
-        : await model.countDocuments().exec();
+        ? await model.countDocuments(!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)).exec()
+        : await model.countDocuments(defaultQuery ?? {}).exec();
       if (!!docs.length && !!options?.populate && (!!req.query.populate || !!options?.forcePopulate?.length)) {
         let populates: string[] = [];
 
