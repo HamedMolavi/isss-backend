@@ -2,7 +2,7 @@ import { SnapshotKafka, ImageFileSystem } from "../../tools/kafkaFile.tools";
 import { NextFunction, Router, Request, Response } from "express";
 import PersonImage from "../../db/mongo/models/personImage";
 import { createMiddleware } from "../../db/mongo/create.database";
-import { randomUuid, unpickle } from "../../tools/utils.tools";
+import { randomUuid, resizeImage, unpickle } from "../../tools/utils.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import mongoose from "mongoose";
 import { AddBatchPersonnel, AddHostilePerson, AddPersonImage } from "../../validation/dto/files.dto";
@@ -234,9 +234,6 @@ router.post("/batch",
   },
 )
 
-
-
-
 router.post("/hostile",
   dtoValidationMiddleware(AddHostilePerson, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   injectDataMiddleware((body: any) => ({ code: randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join("") }), { spread: true }),
@@ -256,7 +253,8 @@ router.post("/hostile",
     if (!Array.isArray(req.body["image_str"]))
       if (typeof req.body["image_str"] === 'string') req.body["image_str"] = [req.body["image_str"]];
       else next(new ApiError(400, "Bad request!"));
-    for (const image_str of req.body["image_str"]) {
+    for (let image_str of req.body["image_str"]) {
+      image_str = image_str?.length > 900 * 1024 ? `data:image/jpeg;base64,${await resizeImage(image_str)}` : image_str;
       data.push(await snapshotKafka.kafkaSession({
         consumerId: person?.id, consumerKey: 'asghar', producerKey: 'soghra',
         producerInput: { image_str, personnel_id: person?.id }
@@ -288,11 +286,14 @@ router.post("/hostile",
 router.post("/kafka",
   dtoValidationMiddleware(AddPersonImage, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaSession,
-    (req) => [{
-      producerKey: "soghra", consumerKey: "asghar",
-      producerInput: { "personnel_id": req.body["personnel_id"], "image_str": req.body["image_str"] },
-      consumerId: req.body["personnel_id"]
-    }],
+    async (req) => {
+      const image_str = req.body["image_str"]?.length > 900 * 1024 ? `data:image/jpeg;base64,${await resizeImage(req.body["image_str"])}` : req.body["image_str"];
+      return [{
+        producerKey: "soghra", consumerKey: "asghar",
+        producerInput: { "personnel_id": req.body["personnel_id"], image_str },
+        consumerId: req.body["personnel_id"]
+      }]
+    },
     {
       save: "aiResponse", next: true,
       //error check
@@ -312,11 +313,15 @@ router.post("/search",
     return next()
   },
   snapshotKafka.middlewareWraper(snapshotKafka.kafkaSession,
-    (req) => [{
-      producerKey: "akbar", consumerKey: "kobra",
-      producerInput: ["image_str", "confidence", "id"].reduce((o, k) => Object.assign(o, { [k]: req.body[k] }), {}),
-      consumerId: req.body["id"]
-    }],
+    async (req) => {
+      const image_str = req.body["image_str"]?.length > 900 * 1024 ? `data:image/jpeg;base64,${await resizeImage(req.body["image_str"])}` : req.body["image_str"];
+      req.body['image_str'] = image_str;
+      return [{
+        producerKey: "akbar", consumerKey: "kobra",
+        producerInput: ["image_str", "confidence", "id"].reduce((o, k) => Object.assign(o, { [k]: req.body[k] }), {}),
+        consumerId: req.body["id"]
+      }]
+    },
     { save: "redisData", next: true }
   ),
   //error check

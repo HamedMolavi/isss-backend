@@ -1,5 +1,16 @@
 # Server
 
+## Versioning
+
+2
+
+* 2.0.0: lts
+* 2.0.1: Jimp image file routes and image dto validation changed
+
+3
+
+* 3.0.0: Product management lts
+
 ## Structure
 
 ```js

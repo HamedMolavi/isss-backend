@@ -168,7 +168,7 @@ export class SnapshotKafka {
 
   }
 
-  middlewareWraper(f: Function, inputs: (req: Request) => any[],
+  middlewareWraper(f: Function, inputs: (req: Request) => any[] | Promise<any[]>,
     options: {
       resultPropertyName?: string | undefined;
       resultValidationFunction?: (result: any) => undefined | { status: number; message: string } | Promise<undefined | { status: number; message: string }>;
@@ -179,7 +179,7 @@ export class SnapshotKafka {
     return async (req: Request, res: Response, next: NextFunction) => {
       let result: any
       try {
-        result = await f.call(this, ...inputs(req));
+        result = await f.call(this, ...await inputs(req));
       } catch (e: any) {
         return next(new ApiError(500, e.toString()));
       };

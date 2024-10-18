@@ -59,7 +59,7 @@ export class IsImageString implements ValidatorConstraintInterface {
       image_str = image_str.substring(pngPrefix.length);
     }
     const base64Regex = /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/;
-    return base64Regex.test(image_str) && !!image_str;
+    return !!image_str && (image_str.length > 1024*1024 || base64Regex.test(image_str));
   }
 
   defaultMessage(args: ValidationArguments) {

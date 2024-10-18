@@ -5,6 +5,7 @@ var randomWords = require('random-words-es');
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Parser } from 'pickleparser';
+import { Jimp, ResizeStrategy } from "jimp";
 
 // bcrypt.hash("2", "$2b$10$/3XrA1.HamedMolaviC22O").then(hash => hash.slice(-31,-1))
 
@@ -103,4 +104,16 @@ export async function unpickle(p: string) {
   const buffer = Buffer.from(pkl, 'binary');
   const parser = new Parser();
   return parser.parse(buffer);
+}
+
+type BufferEncoding = 'ascii' | 'utf8' | 'utf-8' | 'utf16le' | 'ucs2' | 'ucs-2' | 'base64' | 'base64url' | 'latin1' | 'binary' | 'hex';
+export async function resizeImage(imageString: string, inputs?: { w?: number, h?: number, encoding?: BufferEncoding }) {
+  const encoding = inputs?.encoding ?? "base64";
+  const data = imageString.split(encoding).at(-1);
+  if (!data) return imageString;
+  const buffer = Buffer.from(data, encoding);
+  let img = await Jimp.read(buffer);
+  let resizedImg = await img.resize({ w: inputs?.w ?? 1920, h: inputs?.h, mode: ResizeStrategy.BICUBIC });
+  const encodedString = (await resizedImg.getBuffer("image/jpeg", { quality: 90 })).toString(encoding);
+  return encodedString;
 }
