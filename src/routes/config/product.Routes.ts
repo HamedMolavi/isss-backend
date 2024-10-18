@@ -110,7 +110,7 @@ router.delete("/:id",
 
 async function productSendFunction(productDoc: IProduct & Required<{ _id: mongoose.Types.ObjectId; }>, req: Request) {
   try {
-    if (isValidObjectId(productDoc.person_id)) productDoc.populate('person_id');
+    if (isValidObjectId(productDoc.person_id)) await productDoc.populate('person_id');
     const person: any = productDoc.person_id;
     const images = await PersonImage.find({ person_id: person._id }).exec();
     let pathRead = path.join(__dirname, `../../../assets/image/${person.id}/`);
@@ -119,7 +119,8 @@ async function productSendFunction(productDoc: IProduct & Required<{ _id: mongoo
     return {
       ...productDoc.toJSON(),
       ...productDoc.features.reduce((ret: any, el) => { ret[el.name] = el.value; return ret }, {}),
-      "person_images": imageFilesRead
+      "person_images": imageFilesRead,
+      "client_type": person.person_type
     }
   } catch (error) {
     console.error(error);
