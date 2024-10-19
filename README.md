@@ -9,7 +9,8 @@
 
 3
 
-* 3.0.0: Product management lts
+* 3.0.0: Product management
+* 3.0.1: Product management lts (+ Jimp image file routes and image dto validation changed)
 
 ## Structure
 
