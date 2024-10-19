@@ -211,7 +211,7 @@ async function productExcelSendFunction(productDoc: IProduct & Required<{ _id: m
   return {
     first_name: person.first_name,
     last_name: person.last_name,
-    person_image: imageFilesRead?.[0],
+    person_image: imageFilesRead?.[0]?.faces_base64,
     name: productDoc.name,
     person_type: person.person_type,
     image: productDoc.images[0],
