@@ -40,26 +40,23 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         ? 1000000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
       let defaultQuery = await options?.defaultQuery?.({ ...req.body, ...req.query, ...req.params });
+      const filterQuery = (!!query && !!search ? (!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)) : defaultQuery) ?? {};
       let docs: Document[] =
-        !!options?.aggregate
-          ? (
-            (!!query && !!search)
-              ? (await model.aggregate(!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)).limit(perPage).skip(perPage * (page - 1)).exec())?.map((doc: any) => new model(doc))
-              : await model.find(defaultQuery ?? {}).limit(perPage).skip(perPage * (page - 1)).exec()
-          )
-          : (
-            (!!query && !!search)
-              ? await model.find(!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
-              : await model.find(defaultQuery ?? {}).limit(perPage).skip(perPage * (page - 1)).exec()
-          );
+        !!options?.aggregate && !!query && !!search
+          ? (await model.aggregate(filterQuery).limit(perPage).skip(perPage * (page - 1)).exec())?.map((doc: any) => new model(doc))
+          : await model.find(filterQuery).limit(perPage).skip(perPage * (page - 1)).exec();
       //return response not found to client if not found
       if (!docs.length && !options?.next) {
         req.flash("error", model.collection.collectionName + " not found");
         return next(new ApiError(404, model.collection.collectionName + " not found"));
       };
-      const total = (!!query && !!search)
-        ? await model.countDocuments(!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)).exec()
-        : await model.countDocuments(defaultQuery ?? {}).exec();
+      const total =
+        !!options?.aggregate && !!query && !!search
+          ? await model.aggregate(filterQuery?.concat({ $count: 'documentCount' })).exec().then((r: any) => r[0]["documentCount"])
+          : await model.countDocuments(filterQuery).exec();
+      // (!!query && !!search)
+      //   ? await model.countDocuments(!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)).exec()
+      //   : await model.countDocuments(defaultQuery ?? {}).exec();
       if (!!docs.length && !!options?.populate && (!!req.query.populate || !!options?.forcePopulate?.length)) {
         let populates: string[] = [];
 
