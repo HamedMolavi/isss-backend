@@ -87,7 +87,7 @@ export function sendExcelMiddleware(data: DataType,
             const valueWidth = (value ?? "").toString().length;
             if (valueWidth > (width ?? 16)) refCol.width = valueWidth * 1.2;
             if (image && !!row[key]) {
-              let imgBuffer = Buffer.from(value, 'base64');
+              let imgBuffer = Buffer.from(row[key].split('base64,').at(-1), 'base64');
               let dimensions = sizeOf(imgBuffer);
               const imageId = workbook.addImage({
                 base64: row[key],
@@ -198,10 +198,10 @@ export const faceCols = {
 export const productCols = {
   first_name: { "header": "نام", "colSettings": { width: 16 }, "colStyle": textStyle },
   last_name: { "header": "نام خانوادگی", "colSettings": { width: 16 }, "colStyle": textStyle },
-  person_image: { "header": "تصویر", "colSettings": { width: 16 }, "image": true },
+  // person_image: { "header": "تصویر", "colSettings": { width: 16 }, "image": true },
   name: { "header": "نام محصول", "colSettings": { width: 16 }, "colStyle": textStyle },
   person_type: { "header": "خریدار / فروشنده", "colSettings": { width: 16 }, "colStyle": textStyle, transform: (v: string) => v === "client_buyer" ? "خریدار" : "فروشنده" },
-  image: { "header": "تصویر محصول", "colSettings": { width: 16 }, "image": true, transform: (i: string) => i.split('base64,').at(-1) },
+  image: { "header": "تصویر محصول", "colSettings": { width: 16 }, "image": true },
   create_time: { "header": "زمان ثبت", "colSettings": { width: 16 }, "colStyle": textStyle, transform: (d: Date) => d.toTimeString().split(" ")[0] },
   create_date: { "header": "تاریخ ثبت", "colSettings": { width: 16 }, "colStyle": textStyle, transform: (d: Date) => d.toLocaleDateString("fa-ir")},
   product_weight: { "header": "وزن محصول", "colSettings": { width: 16 }, "colStyle": textStyle },
