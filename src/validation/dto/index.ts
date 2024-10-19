@@ -91,7 +91,7 @@ export class EndgtrStartValidator implements ValidatorConstraintInterface {
   }
 
   defaultMessage(args: ValidationArguments) {
-    return 'Custom function validation failed.';
+    return 'end time must be greater than start time.';
   }
 }
 
