@@ -15,6 +15,7 @@ import PersonImage from "../../db/mongo/models/personImage";
 import { ImageFileSystem } from "../../tools/kafkaFile.tools";
 import Personnel from "../../db/mongo/models/personnel";
 import { productCols, sendExcelMiddleware } from "../../tools/excel.tools";
+import Time from "../../tools/time.tools";
 
 //create customized filesystem
 const fs = new ImageFileSystem();
@@ -58,25 +59,34 @@ const rawSearch = (search: string) => {
   return query
 };
 
-const filterSearch = (bodyStr: string) => {
-  const body = JSON.parse(bodyStr);
-  const query: PipelineStage[] = [
-    { $lookup: { from: "Personnel", localField: "person_id", foreignField: "_id", as: "person" } },
-    { $unwind: "$person" },
-    {
-      $match: {
-        $and: [
-          body['name'] && { "name": { $regex: body['name'] } },
-          body['personnels']?.filter((el: any) => !!el)?.length && { $or: body['personnels']?.filter((el: any) => !!el).map((person_id: string) => ({ "person_id": new mongoose.Types.ObjectId(person_id) })) },
-          body['client_type'] && { "person.person_type": body['client_type'] },
-          body['time_start'] && { create_date: { $gt: new Date(body["date_start"] + " " + body["time_start"]) } },
-          body['time_end'] && { create_date: { $lt: new Date(body["date_end"] + " " + body["time_end"]) } },
-        ].filter(el => !!el)
-      }
-    },
-    { $replaceWith: `$$ROOT` }
-  ];
-  return query
+const filterSearch = (bodyStrOrSearchString: string) => {
+  try {
+    const body = JSON.parse(bodyStrOrSearchString);
+    const query: PipelineStage[] = [
+      { $lookup: { from: "Personnel", localField: "person_id", foreignField: "_id", as: "person" } },
+      { $unwind: "$person" },
+      {
+        $match: {
+          $and: [
+            body['product_name'] && { "name": { $regex: body['product_name'] } },
+            body['personnels']?.filter((el: any) => !!el)?.length && { $or: body['personnels']?.filter((el: any) => !!el).map((person_id: string) => ({ "person_id": new mongoose.Types.ObjectId(person_id) })) },
+            body['client_type'] && { "person.person_type": body['client_type'] }
+          ].filter(el => !!el)
+        }
+      },
+      { $replaceWith: `$$ROOT` }
+    ];
+    if (!!body.date_start && !!body.date_end) {
+      let timezone = body.timez ?? body.timezone;
+      const times_epoch = Time.getEpochList(body.date_start, body.date_end, body.time_start ?? "00:00", body.time_end ?? "23:59", !!timezone ? timezone : "Asia/Tehran");
+      if (!!times_epoch.length) (query[2] as any)?.['$match']['$and'].push(
+        { $or: times_epoch.map(el => ({ create_date: { $gt: new Date(parseInt(el.gte)), $lt: new Date(parseInt(el.lte)) } })) }
+      )
+    }
+    return query
+  } catch (error) {
+    return rawSearch(bodyStrOrSearchString)
+  }
 };
 
 //////    CREATE
@@ -109,10 +119,18 @@ router.get("/excel",
 
 router.post("/filter$",
   dtoValidationMiddleware(FilterProductBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  Time.compareTimeMiddleware("time_start", "time_end"),
   readMiddleware(Product, filterSearch, {
     populate: true, forcePopulate: ["person_id"], aggregate: true,
     send: productSendFunction,
-    searchFromBody: (body) => Object.values(body).some((v: any) => ["string", "boolean", "number"].includes(typeof v) ? !!v : !!v?.filter((el: any) => !!el)?.length) ? JSON.stringify(body) : ""
+    searchFromBody: (body) => {
+      if (
+        (!!body.date_start && !!body.date_end) ||
+        Object.entries(body).filter(([k,]: any[]) => !["date_start", "date_end", "time_start", "time_end"].includes(k))
+          .some(([, v]: any[]) => ["string", "boolean", "number"].includes(typeof v) ? !!v : !!v?.filter((el: any) => !!el)?.length)
+      ) return JSON.stringify(body);
+      return "";
+    }
   }),
 );
 
