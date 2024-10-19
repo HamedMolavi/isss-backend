@@ -19,5 +19,6 @@ export interface IAccessLevel extends Document {
   systemLog: number;
   system: number;
   report: number;
+  product: number;
 }
 

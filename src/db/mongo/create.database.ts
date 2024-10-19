@@ -9,7 +9,7 @@ export function createMiddleware(keys: Array<string | { [key: string]: (body: an
       for (const key of keys) {
         // if (!Object.prototype.hasOwnProperty.call(req.body, typeof key === "string" ? key : Object.keys(key)[0])) continue;
         if (typeof (key) === "string") payload[key] = req.body[key];
-        else if (typeof (key) === "object") payload[Object.keys(key)[0]] = Object.values(key)[0](req.body);
+        else if (typeof (key) === "object") payload[Object.keys(key)[0]] = await Object.values(key)[0](req.body);
       };
       // trim string based values
       for (const key in payload) {

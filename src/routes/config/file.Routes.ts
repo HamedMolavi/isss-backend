@@ -5,7 +5,7 @@ import { createMiddleware } from "../../db/mongo/create.database";
 import { randomUuid, resizeImage, unpickle } from "../../tools/utils.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import mongoose from "mongoose";
-import { AddBatchPersonnel, AddHostilePerson, AddPersonImage } from "../../validation/dto/files.dto";
+import { AddBatchPersonnel, AddClient, AddHostilePerson, AddPersonImage } from "../../validation/dto/files.dto";
 import { injectDataMiddleware } from "../../tools/request.tools";
 import Personnel from "../../db/mongo/models/personnel";
 import { allowedPassConvert } from "../../tools/time.tools";
@@ -17,6 +17,9 @@ import { hashString } from "../../tools/hash";
 import { IPersonnel } from "../../types/interfaces/personnel.interface";
 import { Kafka, logLevel } from "kafkajs";
 import { ensureDirSync, moveSync } from "fs-extra";
+import Product from "../../db/mongo/models/product";
+import Camera from "../../db/mongo/models/camera";
+import { ISection } from "../../types/interfaces/section.interface";
 
 const secret = process.env["SESSION_SECRET"];
 //create customized redis client
@@ -350,6 +353,39 @@ router.post("/notifpersonnel/guest",
   injectDataMiddleware((body: any) => ({ person_id: body.person?.id }), { spread: true }),
 )
 
+router.post("/notifpersonnel/client",
+  dtoValidationMiddleware(AddClient, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  createMiddleware([
+    { first_name: (body) => body["first_name"] },
+    { last_name: (body) => body["last_name"] },
+    { person_type: (body) => body['client_type'] },
+    { phone_number: (body) => body['phone_number'] },
+    { alert: (_) => false },
+    { personnel_code: (_) => randomUuid(4, "number").toString() + (new Date()).toLocaleDateString().split("/").map(el => ("0" + el + "0").slice(-3, -1)).join("") },
+    { job_id: async (_) => await JobTitle.findOne({ name: 'client' }).exec().then(job => job?.id) },
+    { camera_whitelist: async (_) => await Camera.find({}).exec().then(cameras => cameras.map(cam => cam._id)) },
+  ], Personnel, { save: "person", next: true }),
+  injectDataMiddleware((body: any) => ({ person_id: body.person?.id }), { spread: true }),
+  createMiddleware([
+    { name: (body) => body['product_name'] ?? 'product' },
+    { images: (body) => body['product_images'] },
+    { product_code: (body) => body['person']['personnel_code'] },
+    { person_id: (body) => body['person']['_id'] },
+    "face_log_id",
+    { features: (body) => [{ name: "product_weight", value: body['product_weight'] }] }
+  ], Product, { next: true, save: "product", }),
+  injectDataMiddleware((body: any) => ({
+    "first_name": body["first_name"],
+    "last_name": body["last_name"],
+    "client_type": body["client_type"],
+    "phone_number": body["phone_number"],
+    "product_images": body["product_images"],
+    "product_name": body["product_name"],
+    "product_weight": body["product_weight"],
+  }), { injData: "sendings" }),
+
+)
+
 router.post("/notifpersonnel/:type?",
   dtoValidationMiddleware(AddPersonImage, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   injectDataMiddleware((body: any) => ({ _id: new mongoose.Types.ObjectId().toHexString() }), { spread: true }),
@@ -369,7 +405,11 @@ router.post("/notifpersonnel/:type?",
   (req: Request, res: Response, next: NextFunction) => {
     res.status(201).send({
       success: true,
-      data: { ...req?.body?.imageDoc?.toJSON(), "image_str": req?.body?.image_str },
+      data: {
+        ...req?.body?.imageDoc?.toJSON(),
+        "image_str": req?.body?.image_str,
+        ...req.body['sendings']
+      },
     })
   },
 )

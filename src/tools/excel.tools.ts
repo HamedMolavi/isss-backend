@@ -87,7 +87,7 @@ export function sendExcelMiddleware(data: DataType,
             const valueWidth = (value ?? "").toString().length;
             if (valueWidth > (width ?? 16)) refCol.width = valueWidth * 1.2;
             if (image && !!row[key]) {
-              let imgBuffer = Buffer.from(row[key], 'base64');
+              let imgBuffer = Buffer.from(row[key].split('base64,').at(-1), 'base64');
               let dimensions = sizeOf(imgBuffer);
               const imageId = workbook.addImage({
                 base64: row[key],
@@ -97,6 +97,7 @@ export function sendExcelMiddleware(data: DataType,
             }
             return value
           } catch (error) {
+            console.error(error)
             return ""
           }
         })
@@ -149,7 +150,7 @@ export const plateCols = {
   "plate_number": {
     "header": "Plate Number", "colSettings": { width: 16, }, "colStyle": {
       font: { name: 'Arial Black', family: 4, size: 14, bold: true },
-      alignment: { horizontal: "center" as "center", vertical: "middle" as "middle", wrapText: false, readingOrder: "rtl" as "rtl"}
+      alignment: { horizontal: "center" as "center", vertical: "middle" as "middle", wrapText: false, readingOrder: "rtl" as "rtl" }
     }, "transform": (plate: any) => stringTortl(stringEnglishToStringPersian(platesToStrings([plate])[0]), { sep: " " })
   },
   "inner_crop": { "header": "Inner Crop", "colSettings": { width: 16 }, "image": true },
@@ -192,4 +193,16 @@ export const faceCols = {
   "face_confidence": { "header": "Confidence", "colSettings": { width: 16 }, transform: (v: string) => parseFloat(v), "colStyle": { "numFmt": "0.00%", alignment: { horizontal: "center" as "center", vertical: "middle" as "middle" } } },
   "time": { "header": "Time", "colSettings": { width: 32 }, "colStyle": textStyle },
   // "crop": { "header": "Crop", "colSettings": { width: 16 }, "image": true },
+}
+
+export const productCols = {
+  first_name: { "header": "نام", "colSettings": { width: 16 }, "colStyle": textStyle },
+  last_name: { "header": "نام خانوادگی", "colSettings": { width: 16 }, "colStyle": textStyle },
+  person_image: { "header": "تصویر", "colSettings": { width: 16 }, "image": true },
+  name: { "header": "نام محصول", "colSettings": { width: 16 }, "colStyle": textStyle },
+  person_type: { "header": "خریدار / فروشنده", "colSettings": { width: 16 }, "colStyle": textStyle, transform: (v: string) => v === "client_buyer" ? "خریدار" : "فروشنده" },
+  image: { "header": "تصویر محصول", "colSettings": { width: 16 }, "image": true },
+  create_time: { "header": "زمان ثبت", "colSettings": { width: 16 }, "colStyle": textStyle, transform: (d: Date) => d.toTimeString().split(" ")[0] },
+  create_date: { "header": "تاریخ ثبت", "colSettings": { width: 16 }, "colStyle": textStyle, transform: (d: Date) => d.toLocaleDateString("fa-ir")},
+  product_weight: { "header": "وزن محصول", "colSettings": { width: 16 }, "colStyle": textStyle },
 }

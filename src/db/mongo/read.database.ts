@@ -1,6 +1,7 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
 import { Document, FilterQuery } from "mongoose";
+import deepmerge from "deepmerge";
 
 export async function read(model: any, options?: { query?: FilterQuery<any>, populate?: string }) {
   let docs: Document[] | any = !!options?.populate
@@ -11,6 +12,8 @@ export async function read(model: any, options?: { query?: FilterQuery<any>, pop
 
 export function readMiddleware(model: any, query?: (search: string) => FilterQuery<any> | Promise<FilterQuery<any>>,
   options?: {
+    defaultQuery?: (bodyQueryPramas: any) => FilterQuery<any> | Promise<FilterQuery<any>>,
+    aggregate?: boolean,
     forceAll?: boolean,
     next?: boolean,
     save?: string,
@@ -36,17 +39,24 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       let perPage = !!options?.forceAll || strPerPage?.toLowerCase() === "all"
         ? 1000000
         : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
-      let docs: Document[] = (!!query && !!search)
-        ? await model.find(await query(search)).limit(perPage).skip(perPage * (page - 1)).exec()
-        : await model.find({}).limit(perPage).skip(perPage * (page - 1)).exec();
+      let defaultQuery = await options?.defaultQuery?.({ ...req.body, ...req.query, ...req.params });
+      const filterQuery = (!!query && !!search ? (!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)) : defaultQuery) ?? {};
+      let docs: Document[] =
+        !!options?.aggregate && !!query && !!search
+          ? (await model.aggregate(filterQuery).limit(perPage).skip(perPage * (page - 1)).exec())?.map((doc: any) => new model(doc))
+          : await model.find(filterQuery).limit(perPage).skip(perPage * (page - 1)).exec();
       //return response not found to client if not found
       if (!docs.length && !options?.next) {
         req.flash("error", model.collection.collectionName + " not found");
         return next(new ApiError(404, model.collection.collectionName + " not found"));
       };
-      const total = (!!query && !!search)
-        ? await model.countDocuments(await query(search)).exec()
-        : await model.countDocuments().exec();
+      const total =
+        !!options?.aggregate && !!query && !!search
+          ? await model.aggregate(filterQuery?.concat({ $count: 'documentCount' })).exec().then((r: any) => r[0]["documentCount"])
+          : await model.countDocuments(filterQuery).exec();
+      // (!!query && !!search)
+      //   ? await model.countDocuments(!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)).exec()
+      //   : await model.countDocuments(defaultQuery ?? {}).exec();
       if (!!docs.length && !!options?.populate && (!!req.query.populate || !!options?.forcePopulate?.length)) {
         let populates: string[] = [];
 
@@ -87,7 +97,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
   }
 };
 
-export function readByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: boolean, idFromReq?: (req: Request) => string | undefined }, _id?: string): RequestHandler {
+export function readByIdMiddleware(model: any, options?: { next?: boolean, save?: string, send?: CallableFunction, populate?: boolean, idFromReq?: (req: Request) => string | undefined, forcePopulate?: string[], }, _id?: string): RequestHandler {
   return async function middleware(req: Request, res: Response, next: NextFunction) {
     try {
       //get id from params in url
@@ -102,10 +112,11 @@ export function readByIdMiddleware(model: any, options?: { next?: boolean, save?
       };
 
 
-      if (!!options?.populate && !!req.query.populate) {
+      if (!!options?.populate && (!!req.query.populate || !!options?.forcePopulate?.length)) {
         let populates = req.query.populate instanceof String
           ? req.query.populate.split(",").map((el) => el.trim())
-          : (req.query.populate as string[]).map((el) => el.trim());
+          : (req.query.populate as string[])?.map((el) => el.trim()) ?? [];
+        if (!!options?.forcePopulate) options.forcePopulate.forEach((p) => { if (!populates.includes(p)) populates.push(p) });
         let idx = populates.length - 1;
         while (!!populates.length && idx >= 0) {
           const populate = populates[idx];

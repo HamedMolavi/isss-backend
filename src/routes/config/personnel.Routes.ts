@@ -50,20 +50,29 @@ const rawSearch = (search: string) => {
       { phone_number: { $regex: search } }]
   }
 };
+const personnelDefaultQueryFunction = (bodyQueryPramas: { [key: string]: any }) => {
+  const result: any = { $and: [{ person_type: "normal" }] };
+  console.log(bodyQueryPramas.type)
+  if (!!bodyQueryPramas.type) {
+    const type = specialTypes.find(st => bodyQueryPramas.type.toLowerCase().includes(st) || st.toLowerCase().includes(bodyQueryPramas.type));
+    result["$and"] = [{ person_type: { $regex: type } }];
+  }
+  return result;
+}
 
 
 //add route for register new personnel
 router.post("",
   dtoValidationMiddleware(CreatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-  existCheck(Personnel, { $and: [{ first_name: "first_name" }, { last_name: "last_name" }] }, "Personnel already exists!"),
+  // existCheck(Personnel, { $and: [{ first_name: "first_name" }, { last_name: "last_name" }] }, "Personnel already exists!"),
   injectDataMiddleware(allowedPassConvert, { injData: "allowed_pass" }),
   createMiddleware(["first_name", "last_name", "national_code", "email", "phone_number", "job_id", "tracked", "personnel_code", "camera_whitelist", "allowed_pass", "alert"], Personnel, { next: true, save: "doc" }),
   fs.uploadAvatarMiddleware("avatar_str", "doc._id", { fileName: "avatar", resultPropertyName: "doc" }),
 );
 
 //route for get personnels list
-router.get(["", "/search", "/hostile", "/guest"],
-  readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction, populate: true })
+router.get("(/:type(search|hostile|guest|client))?/?$",
+  readMiddleware(Personnel, rawSearch, { next: false, send: personnelSendFunction, populate: true, defaultQuery: personnelDefaultQueryFunction })
 );
 
 //route for get personnel by id from DB
@@ -97,12 +106,12 @@ router.delete("/:id",
   fs.deleteDirectoryMiddleware(["doc", "_id"], { force: true, send: "doc" })
 );
 
-const specialTypes = ["Hostile", "Guest"]
-async function personnelSendFunction(_personnel: any, req: Request) {
-  let per = _personnel.toJSON();
+const specialTypes = ["hostile", "guest", "client"]
+async function personnelSendFunction(person: IPersonnel & Required<{ _id: mongoose.Types.ObjectId }>, req: Request) {
+  let per: any = person.toJSON();
   // TODO: fetch last location from normalizer server.
   if (!!req?.query?.lastSeen) {
-    let logPersonnel = await requestForGetPersonnel(_personnel._id.toString());
+    let logPersonnel = await requestForGetPersonnel(person._id.toString());
     let _camera;
     if (logPersonnel?.data?.hits?.hits?.length > 0) {
       try {
@@ -115,9 +124,17 @@ async function personnelSendFunction(_personnel: any, req: Request) {
     (per.lastCameraSeen = _camera ? _camera.name : ""), (per.lastSection = _camera ? _camera.section_id : "");
   }
   if (!!per.allowed_pass) per.allowed_pass = allowedPassRevert(per);
-  const type = specialTypes.find(t => req.originalUrl.toLowerCase().includes(t.toLowerCase()));
-
-  return (!!type ? per?.first_name === type : !specialTypes.includes(per?.first_name)) ? per : undefined;
+  // const type = specialTypes.find(st => req.originalUrl.toLowerCase().includes(st));
+  // const person_st = specialTypes.find((st) => person.person_type.includes(st));
+  // switch (true) {
+  //   case !!type && type === person_st:
+  //     return per;
+  //   case !type && !person_st:
+  //     return per;
+  //   default:
+  //     return undefined;
+  // }
+  return per
 };
 
 export default router;
