@@ -8,7 +8,7 @@ import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 import mongoose, { Document, FilterQuery, isValidObjectId, PipelineStage } from "mongoose";
 import { DoNotAllowOnDefault, injectDataMiddleware } from "../../tools/request.tools";
-import { CreateProductBody, UpdateProductBody } from "../../validation/dto/product.dto";
+import { CreateProductBody, FilterProductBody, UpdateProductBody } from "../../validation/dto/product.dto";
 import Product from "../../db/mongo/models/product";
 import { IProduct } from "../../types/interfaces/product.interface";
 import PersonImage from "../../db/mongo/models/personImage";
@@ -58,6 +58,28 @@ const rawSearch = (search: string) => {
   return query
 };
 
+const filterSearch = (bodyStr: string) => {
+  const body = JSON.parse(bodyStr);
+  const query: PipelineStage[] = [
+    { $lookup: { from: "Personnel", localField: "person_id", foreignField: "_id", as: "person" } },
+    { $unwind: "$person" },
+    {
+      $match: {
+        $and: [
+          body['name'] && { "name": { $regex: body['name'] } },
+          body['personnels']?.filter((el: any) => !!el)?.length && { $or: body['personnels']?.filter((el: any) => !!el).map((person_id: string) => ({ "person_id": new mongoose.Types.ObjectId(person_id) })) },
+          body['client_type'] && { "person.person_type": body['client_type'] },
+          body['time_start'] && { create_date: { $gt: new Date(body["date_start"] + " " + body["time_start"]) } },
+          body['time_end'] && { create_date: { $lt: new Date(body["date_end"] + " " + body["time_end"]) } },
+        ].filter(el => !!el)
+      }
+    },
+    { $replaceWith: `$$ROOT` }
+  ];
+  return query
+};
+
+//////    CREATE
 router.post("",
   dtoValidationMiddleware(CreateProductBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   existCheck(Product, { $and: [{ product_code: "product_code" }] }, "Product already exists!"),
@@ -75,58 +97,64 @@ router.post("",
   }),
 );
 
-router.get("/excel",
-  readMiddleware(Product, rawSearch, {
-    populate: true, aggregate: true, forcePopulate: ["person_id"], next: true, save: "products",
-    send: async (productDoc: IProduct & Required<{ _id: mongoose.Types.ObjectId; }>, req) => {
-      if (isValidObjectId(productDoc.person_id)) await productDoc.populate('person_id');
-      const person: any = productDoc.person_id;
-      const images = await PersonImage.find({ person_id: person._id }).exec();
-      let pathRead = path.join(__dirname, `../../../assets/image/${person.id}/`);
-      const files = images.map(image => person.id + "-" + image.hash_id + ".jpeg");
-      const imageFilesRead = fs.readFiles(pathRead, files);
-      return {
-        first_name: person.first_name,
-        last_name: person.last_name,
-        person_image: imageFilesRead?.[0],
-        name: productDoc.name,
-        person_type: person.person_type,
-        image: productDoc.images[0],
-        create_time: productDoc.create_date,
-        create_date: productDoc.create_date,
-        product_weight: productDoc.features.find(el => el.name === "product_weight")?.value
-      }
-    },
-  }),
-  sendExcelMiddleware({ cols: productCols, rows: "products" })
-);
+//////    READ
 
 router.get("",
   readMiddleware(Product, rawSearch, { populate: true, aggregate: true, forcePopulate: ["person_id"], send: productSendFunction }),
-
 );
+
+router.get("/excel",
+  readMiddleware(Product, rawSearch, { populate: true, aggregate: true, forcePopulate: ["person_id"], next: true, save: "products", send: productExcelSendFunction }),
+);
+
+router.post("/filter$",
+  dtoValidationMiddleware(FilterProductBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  readMiddleware(Product, filterSearch, {
+    populate: true, forcePopulate: ["person_id"], aggregate: true,
+    send: productSendFunction,
+    searchFromBody: (body) => Object.values(body).some((v: any) => ["string", "boolean", "number"].includes(typeof v) ? !!v : !!v?.filter((el: any) => !!el)?.length) ? JSON.stringify(body) : ""
+  }),
+);
+
+router.post("/filter/excel",
+  dtoValidationMiddleware(FilterProductBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  readMiddleware(Product, filterSearch, {
+    populate: true, forcePopulate: ["person_id"], aggregate: true, save: "products", next: true,
+    send: productExcelSendFunction,
+    searchFromBody: (body) => Object.values(body).some((v: any) => ["string", "boolean", "number"].includes(typeof v) ? !!v : !!v?.filter((el: any) => !!el)?.length) ? JSON.stringify(body) : ""
+  }),
+);
+
+router.use("*/excel$",
+  sendExcelMiddleware({ cols: productCols, rows: "products" })
+)
+
 router.get("/:id",
   readByIdMiddleware(Product, { populate: true, forcePopulate: ["person_id"], send: productSendFunction })
 );
 
-// router.patch("/:id",
-//   dtoValidationMiddleware(UpdatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
-//   existCheck(Personnel, { $or: [{ national_code: "national_code" }, { personnel_code: "personnel_code" }] }, "Personnel already exists!"),
-//   updateByIdMiddleware(Personnel, {
-//     next: true, save: "doc", update: {
-//       "time_start": {
-//         name: "allowed_pass.start",
-//         fn: (payload) => (new Date(payload.date_start + " " + payload.time_start + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime()
-//       },
-//       "time_end": {
-//         name: "allowed_pass.end",
-//         fn: (payload) => (new Date(payload.date_end + " " + payload.time_end + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime()
-//       }
-//     }
-//   }),
-//   fs.uploadAvatarMiddleware("avatar_str", "doc._id", { fileName: "avatar", resultPropertyName: "doc" }),
-// );
+//////    UPDATE
+/*
+router.patch("/:id",
+  dtoValidationMiddleware(UpdatePersonnelBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
+  existCheck(Personnel, { $or: [{ national_code: "national_code" }, { personnel_code: "personnel_code" }] }, "Personnel already exists!"),
+  updateByIdMiddleware(Personnel, {
+    next: true, save: "doc", update: {
+      "time_start": {
+        name: "allowed_pass.start",
+        fn: (payload) => (new Date(payload.date_start + " " + payload.time_start + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime()
+      },
+      "time_end": {
+        name: "allowed_pass.end",
+        fn: (payload) => (new Date(payload.date_end + " " + payload.time_end + Time.getUtcOffset(process.env.TZ ?? "Asia/Tehran"))).getTime()
+      }
+    }
+  }),
+  fs.uploadAvatarMiddleware("avatar_str", "doc._id", { fileName: "avatar", resultPropertyName: "doc" }),
+);
+*/
 
+//////    DELETE
 router.delete("/:id",
   // DoNotAllowOnDefault(Product, { name: "default" }),
   deleteByIdMiddleware(Personnel, {
@@ -155,4 +183,23 @@ async function productSendFunction(productDoc: IProduct & Required<{ _id: mongoo
   }
 };
 
+async function productExcelSendFunction(productDoc: IProduct & Required<{ _id: mongoose.Types.ObjectId; }>, req: Request) {
+  if (isValidObjectId(productDoc.person_id)) await productDoc.populate('person_id');
+  const person: any = productDoc.person_id;
+  const images = await PersonImage.find({ person_id: person._id }).exec();
+  let pathRead = path.join(__dirname, `../../../assets/image/${person.id}/`);
+  const files = images.map(image => person.id + "-" + image.hash_id + ".jpeg");
+  const imageFilesRead = fs.readFiles(pathRead, files);
+  return {
+    first_name: person.first_name,
+    last_name: person.last_name,
+    person_image: imageFilesRead?.[0],
+    name: productDoc.name,
+    person_type: person.person_type,
+    image: productDoc.images[0],
+    create_time: productDoc.create_date,
+    create_date: productDoc.create_date,
+    product_weight: productDoc.features.find(el => el.name === "product_weight")?.value
+  }
+}
 export default router;

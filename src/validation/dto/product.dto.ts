@@ -10,6 +10,40 @@ export class CreateProductFeature {
   value?: any;
 }
 
+export class FilterProductBody {
+  @IsString()
+  @IsOptional()
+  name?: string;
+  @IsString({ each: true })
+  @IsArray()
+  @IsOptional()
+  personnels?: mongoose.Types.ObjectId;
+  @IsNumber()
+  @IsOptional()
+  product_weight?: number
+  // @IsArray()
+  // @IsOptional()
+  // product_codes?: string;
+  @Validate(EndgtrStartValidator)
+  @Validate(TimeAndDateValidator, ['date_start'])
+  @IsString()
+  @IsOptional()
+  time_start?: string;
+  @Validate(TimeAndDateValidator, ['time_start'])
+  @IsString()
+  @IsOptional()
+  date_start?: string;
+  @Validate(EndgtrStartValidator)
+  @Validate(TimeAndDateValidator, ['date_end'])
+  @IsString()
+  @IsOptional()
+  time_end?: string;
+  @Validate(TimeAndDateValidator, ['time_end'])
+  @IsString()
+  @IsOptional()
+  date_end?: string;
+};
+
 export class CreateProductBody {
   @IsString()
   name?: string;

@@ -198,7 +198,7 @@ export const faceCols = {
 export const productCols = {
   first_name: { "header": "نام", "colSettings": { width: 16 }, "colStyle": textStyle },
   last_name: { "header": "نام خانوادگی", "colSettings": { width: 16 }, "colStyle": textStyle },
-  // person_image: { "header": "تصویر", "colSettings": { width: 16 }, "image": true },
+  person_image: { "header": "تصویر", "colSettings": { width: 16 }, "image": true },
   name: { "header": "نام محصول", "colSettings": { width: 16 }, "colStyle": textStyle },
   person_type: { "header": "خریدار / فروشنده", "colSettings": { width: 16 }, "colStyle": textStyle, transform: (v: string) => v === "client_buyer" ? "خریدار" : "فروشنده" },
   image: { "header": "تصویر محصول", "colSettings": { width: 16 }, "image": true },
