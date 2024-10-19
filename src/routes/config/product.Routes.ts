@@ -14,6 +14,7 @@ import { IProduct } from "../../types/interfaces/product.interface";
 import PersonImage from "../../db/mongo/models/personImage";
 import { ImageFileSystem } from "../../tools/kafkaFile.tools";
 import Personnel from "../../db/mongo/models/personnel";
+import { productCols, sendExcelMiddleware } from "../../tools/excel.tools";
 
 //create customized filesystem
 const fs = new ImageFileSystem();
@@ -72,6 +73,32 @@ router.post("",
   ], Product, {
     send: (doc: IProduct & Required<{ _id: mongoose.Types.ObjectId; }>) => Object.assign(doc.toJSON(), doc.features.reduce((ret: any, el) => { ret[el.name] = el.value; return ret }, {}))
   }),
+);
+
+router.get("/excel",
+  readMiddleware(Product, rawSearch, {
+    populate: true, aggregate: true, forcePopulate: ["person_id"], next: true, save: "products",
+    send: async (productDoc: IProduct & Required<{ _id: mongoose.Types.ObjectId; }>, req) => {
+      if (isValidObjectId(productDoc.person_id)) await productDoc.populate('person_id');
+      const person: any = productDoc.person_id;
+      const images = await PersonImage.find({ person_id: person._id }).exec();
+      let pathRead = path.join(__dirname, `../../../assets/image/${person.id}/`);
+      const files = images.map(image => person.id + "-" + image.hash_id + ".jpeg");
+      const imageFilesRead = fs.readFiles(pathRead, files);
+      return {
+        first_name: person.first_name,
+        last_name: person.last_name,
+        person_image: imageFilesRead?.[0],
+        name: productDoc.name,
+        person_type: person.person_type,
+        image: productDoc.images[0],
+        create_time: productDoc.create_date,
+        create_date: productDoc.create_date,
+        product_weight: productDoc.features.find(el => el.name === "product_weight")?.value
+      }
+    },
+  }),
+  sendExcelMiddleware({ cols: productCols, rows: "products" })
 );
 
 router.get("",
