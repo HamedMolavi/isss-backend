@@ -367,12 +367,12 @@ router.post("/notifpersonnel/client",
   ], Personnel, { save: "person", next: true }),
   injectDataMiddleware((body: any) => ({ person_id: body.person?.id }), { spread: true }),
   createMiddleware([
-    { name: (body) => body['product_name'] ?? 'product' },
+    { name: (body) => !!body['product_name'] ? body['product_name'] : 'طلا' },
     { images: (body) => body['product_images'] },
     { product_code: (body) => body['person']['personnel_code'] },
     { person_id: (body) => body['person']['_id'] },
     "face_log_id",
-    { features: (body) => [{ name: "product_weight", value: body['product_weight'] }] }
+    { features: (body) => [{ name: "product_weight", value: body['product_weight'] ?? 0 }] }
   ], Product, { next: true, save: "product", }),
   injectDataMiddleware((body: any) => ({
     "first_name": body["first_name"],
