@@ -16,8 +16,8 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 
     req.session.save((err: Error) => {
       if (req.user.role !== "admin") {
-        const maxAge = req.body.is_remember ? 8 * 60 * 60 * 1000 : 15 * 60 * 1000;
-        //             if remeber     8 hours       else    15 minutes
+        const maxAge = req.body.is_remember ? 31536000000 : 28800000;
+        //             if remeber     1 year       else    8 hours
         req.session.cookie.maxAge = maxAge;
       }
       req.session.ip = req.ip ?? req.socket.remoteAddress;
