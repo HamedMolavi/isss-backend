@@ -5,10 +5,10 @@ import { ApiError } from "./error.class";
 const onvif = require("node-onvif");
 
 export class getStreamUriStrategy implements IFailoverStrategy {
-    args: { first: ICameraInfo, second: ICameraInfo["nvr"], error: NextFunction } & IFailoverStrategy["args"];
+    args: { zeros: string | undefined, first: ICameraInfo, second: ICameraInfo["nvr"], error: NextFunction } & IFailoverStrategy["args"];
     strategies: ((...params: any[]) => any)[];
 
-    constructor(args: { first: ICameraInfo, second: ICameraInfo["nvr"], error: NextFunction }) {
+    constructor(args: { zeros: string | undefined, first: ICameraInfo, second: ICameraInfo["nvr"], error: NextFunction }) {
         this.args = args;
         this.strategies = strategies;
     };
@@ -29,6 +29,24 @@ export class getStreamUriStrategy implements IFailoverStrategy {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const strategies: ((...params: any[]) => any)[] = [
+    async function zeros(url: string) {
+        /*
+        // Regular expression to match the username and password pattern
+        const credentialsRegex = /^(rtsp:\/\/)([^:]+):([^@]+)@/;
+        // Regular expression to match the IP address pattern
+        const ipRegex = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/;
+        // Extract the username and password from the URL
+        const credentialsMatch = url.match(credentialsRegex);
+        const username = credentialsMatch ? credentialsMatch[2] : '';
+        const password = credentialsMatch ? credentialsMatch[3] : '';
+        // Replace the matched username, password, and IP address with placeholders
+        url = url
+            .replace(credentialsRegex, '$1{username}:{password}@')
+            .replace(ipRegex, '{ip}');
+        */
+       if (!!url) return url;
+       throw new Error("No url provided!");
+    },
     async function first(camInfo: ICameraInfo): Promise<string> {
         let device = new onvif.OnvifDevice({
             xaddr: "http://" + camInfo.ip + ":80/onvif/device_service",
@@ -55,7 +73,7 @@ const strategies: ((...params: any[]) => any)[] = [
         uri = uri?.replace(WORD_BEFORE_REPLACE_STREAM, WORD_AFTER_REPLACE_STREAM + nvr);
         return uri;
     },
-    async function third(camInfo): Promise<string> {
+    async function third(..._): Promise<string> {
         return 'rtsp://{username}:{password}@{ip}:554/live'; // best guess
     },
     async function error(next: NextFunction) {

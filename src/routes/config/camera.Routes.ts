@@ -37,29 +37,7 @@ router.post(
   "",
   dtoValidationMiddleware(CreateCameraBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
   //existCheck(Camera, { $and: [{ ip: "ip" }, { nvr: "nvr" }], }, "Camera already exists!"),
-  (req: Request, res: Response, next: NextFunction) => {
-    // Check if req.body.url is not empty, null, or undefined
-    if (!req.body.url && req.body.url === "") {
-      // Assuming getStreamUri(CameraInfoKeys) is a function that needs to be called with req, res, next
-      getStreamUri(CameraInfoKeys)(req, res, next);
-    } else {
-      // Regular expression to match the username and password pattern
-      const credentialsRegex = /^(rtsp:\/\/)([^:]+):([^@]+)@/;
-      // Regular expression to match the IP address pattern
-      const ipRegex = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/;
-
-      // Extract the username and password from the URL
-      const credentialsMatch = req.body.url.match(credentialsRegex);
-      const username = credentialsMatch ? credentialsMatch[2] : '';
-      const password = credentialsMatch ? credentialsMatch[3] : '';
-
-      // Replace the matched username, password, and IP address with placeholders
-      req.body.url = req.body.url
-        .replace(credentialsRegex, '$1{username}:{password}@')
-        .replace(ipRegex, '{ip}');
-      next();
-    }
-  },
+  getStreamUri(CameraInfoKeys),
   //getStreamUri(CameraInfoKeys), //get live stream uri(rtsp link from camera)
   createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "camera_type", "url"], Camera, { next: true, save: "addedCamera" }),
   async function middleware(req: Request, res: Response, next: NextFunction) {

@@ -10,7 +10,7 @@ export function getStreamUri(camInfo: ICameraInfo): RequestHandler { // TODO: up
   return async function middleware(req: Request, res: Response, next: NextFunction): Promise<void> {
     // setting up camInfo based on body
     for (const key in camInfo) if (Object.prototype.hasOwnProperty.call(req.body, key)) camInfo[key] = req.body[key];
-    let uri: string | undefined = await new getStreamUriStrategy({ first: camInfo, second: camInfo.nvr, error: next }).do();
+    let uri: string | undefined = await new getStreamUriStrategy({ zeros: req.body['url'], first: camInfo, second: camInfo.nvr, error: next }).do();
     if (!!uri) {
       req.body.url = uri;
       next();
@@ -89,7 +89,7 @@ export async function testCameraMiddleware(req: Request, res: Response, next: Ne
   try {
     //get jason from body request
     let cam_test = req.body; //cameraInfo
-    let stream_uri :string ="";
+    let stream_uri: string = "";
     if (!cam_test.url) {
       //get live stream uri(rtsp link from camera)
       let stream_uri = await oldGetStreamUri(cam_test);
@@ -97,7 +97,7 @@ export async function testCameraMiddleware(req: Request, res: Response, next: Ne
         req.flash("error", "rtsp link not found");
         return next(new ApiError(400, "rtsp link not found"));
       };
-    }else{
+    } else {
       stream_uri = cam_test.url
     }
 
