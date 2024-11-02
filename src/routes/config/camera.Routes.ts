@@ -17,6 +17,7 @@ import Personnel from "../../db/mongo/models/personnel";
 import Car from "../../db/mongo/models/car";
 import Schedule from "../../db/mongo/models/schedule";
 import ModelToCamera from "../../db/mongo/models/modelToCamera";
+import { ApiError } from "../../types/classes/error.class";
 
 //create router for add to server
 const router: Router = Router();
@@ -39,6 +40,12 @@ router.post(
   //existCheck(Camera, { $and: [{ ip: "ip" }, { nvr: "nvr" }], }, "Camera already exists!"),
   getStreamUri(CameraInfoKeys),
   //getStreamUri(CameraInfoKeys), //get live stream uri(rtsp link from camera)
+  async (req, res, next) => {
+    const maxCameraAllowed = parseInt(process.env.MAX_CAMERAS ?? '4');
+    const cameraRegistered = await Camera.countDocuments().exec();
+    if (maxCameraAllowed <= cameraRegistered) return next(new ApiError(405, `Your license allows only ${maxCameraAllowed} Cameras!`));
+    next();
+  },
   createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "camera_type", "url"], Camera, { next: true, save: "addedCamera" }),
   async function middleware(req: Request, res: Response, next: NextFunction) {
     const cam: ICamera & Required<{ _id: Types.ObjectId; }> = req.body["addedCamera"];

@@ -9,6 +9,7 @@ declare global {
       esclient: Client
     }
     interface ProcessEnv {
+      MAX_CAMERAS: string
       SIGNAL_TOPIC: string
       SIGNAL_KEY: string
       MAX_LOAD: string
