@@ -52,7 +52,6 @@ const rawSearch = (search: string) => {
 };
 const personnelDefaultQueryFunction = (bodyQueryPramas: { [key: string]: any }) => {
   const result: any = { $and: [{ person_type: "normal" }] };
-  console.log(bodyQueryPramas.type)
   if (!!bodyQueryPramas.type) {
     const type = specialTypes.find(st => bodyQueryPramas.type.toLowerCase().includes(st) || st.toLowerCase().includes(bodyQueryPramas.type));
     result["$and"] = [{ person_type: { $regex: type } }];
