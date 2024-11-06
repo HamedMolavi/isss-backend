@@ -16,7 +16,7 @@ import { platesToStrings } from "../../tools/car.tools";
 import { SearchRequest } from "@elastic/elasticsearch/lib/api/typesWithBodyKey";
 import { ApiError } from "../../types/classes/error.class";
 import User from "../../db/mongo/models/user";
-import { deleteByIdElasticMiddleware } from "../../db/elastic/delete.logs";
+import { deleteByIdElasticMiddleware, deleteElasticMiddleware } from "../../db/elastic/delete.logs";
 import { faceCols, plateCols, sendExcelMiddleware } from "../../tools/excel.tools";
 import { isValidObjectId, isObjectIdOrHexString } from "mongoose";
 import Section from "../../db/mongo/models/section";
@@ -62,6 +62,9 @@ router.use('', (req, res, next) => {
   next();
 });
 // Delete //
+router.delete('/:index(plate|search|face|sabotage|human|objectdetection)',
+  deleteElasticMiddleware(indexFunc),
+);
 router.delete('/:index(plate|search|face|sabotage|human|objectdetection)/:id',
   deleteByIdElasticMiddleware(indexFunc, { send: sendFunction, }),
 );

@@ -1,6 +1,12 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
-
+const frame_index = process.env["FRAME_INDEX"] ?? "frame_log";
+const plate_index = process.env["PLATE_INDEX"] ?? "plate_log";
+const search_index = process.env["PLATE_INDEX"] ?? "plate_log";
+const face_index = process.env["FACE_INDEX"] ?? "face_log";
+const sabotage_index = process.env["SABOTAGE_INDEX"] ?? "sabotage_log";
+const objectdetection_index = process.env["OBJECT_INDEX"] ?? "objectdetection_log";
+const human_index = process.env["HUMAN_INDEX"] ?? "human_log";
 
 /**
  * Middleware generator for deleting a document by ID in Elasticsearch.
@@ -59,6 +65,51 @@ export function deleteByIdElasticMiddleware(
     } catch (err: any) {
       if (err.statusCode === 404) return next(new ApiError(404, "Log not found " + err.meta?.body?._id));
       if (err.meta?.body?.error?.type === "index_not_found_exception") return next(new ApiError(500, "internal server error , " + err.message));
+      return next(new ApiError(500, "internal server error , " + err.message));
+    }
+  }
+};
+
+export function deleteElasticMiddleware(index_name: string | ((req: Request) => string), options?: { next?: boolean, save?: string }): RequestHandler {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    try {
+      const confirm = req.query['confirm']?.toString()?.toLocaleLowerCase() === "true";
+      if (!confirm) return next(new ApiError(400, "You didn't confirm the deletion or you don't have the access!"));
+      const index = typeof (index_name) === "function" ? index_name(req) : index_name;
+      const count: number = parseInt(req.query['count']?.toString()?.toLocaleLowerCase() ?? '10000');
+
+      const searchResult = await process.esclient.search({ index, size: count, sort: [{ timestamp: { order: 'desc' } }], _source: ['frame_id'] });
+      const ids: Array<string> = [];
+      const frameIds: Array<string> = [];
+      for (const doc of searchResult.hits.hits) {
+        ids.push(doc._id);
+        if (!!(doc._source as any).frame_id) frameIds.push((doc._source as any).frame_id);
+      };
+      const result = await process.esclient.deleteByQuery({
+        index, body: { query: { terms: { _id: ids } } }
+      });
+      process.esclient.indices.flush({ index, force: true, ignore_unavailable: true })
+      if ([plate_index, search_index, face_index].includes(index)) {
+        const deletedFrames = await process.esclient.deleteByQuery({
+          index: frame_index, body: { query: { terms: { _id: frameIds } } }
+        });
+        process.esclient.indices.flush({ index: frame_index, force: true, ignore_unavailable: true })
+      }
+
+      if (!!Array.isArray(req.body["elasticsearchIndices"])) req.body["elasticsearchIndices"].push(index);
+      else req.body["elasticsearchIndices"] = [index];
+
+      if (options?.next) {
+        req.body[options?.save ?? 'esRes'] = result;
+        return next();
+      }
+
+      return res.status(204).json({
+        success: true,
+        data: result,
+      });
+    } catch (err: any) {
+      if (err.statusCode === 404 || err.meta?.body?.error?.type === "index_not_found_exception") return next(new ApiError(404, "index not found " + err.meta?.body?._id));
       return next(new ApiError(500, "internal server error , " + err.message));
     }
   }

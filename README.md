@@ -6,6 +6,7 @@
 
 * 2.0.0: lts
 * 2.0.1: Jimp image file routes and image dto validation changed
+* 2.0.2: delete elastic logs routes
 
 3
 
