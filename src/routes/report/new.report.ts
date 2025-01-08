@@ -272,7 +272,7 @@ async function sendFunction(log: any, req: Request): Promise<any> {
     if (Object.prototype.hasOwnProperty.call(req.body['db_brands'], log.brand)) {
       brand = req.body?.['db_brands']?.[log.brand];
     } else if (!!log.brand && isValidObjectId(log.brand)) {
-      brand = await Personnel.findById(log.brand).exec();
+      brand = await CarBrand.findById(log.brand).exec();
       Object.assign(req.body['db_brands'], { [log.brand]: brand })
     }
 
