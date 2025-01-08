@@ -103,6 +103,16 @@ router.post("/:index(plate|search|face)(/:type(excel))?/?$",
   sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
 );
 
+router.post('/:index(plate|face)/backup', // backup & delete true
+  deleteElasticMiddleware(indexFunc, {
+    sendDocsInsteadOfDeleteResult:true,
+    send: sendFunction,
+    save: "esResult",
+    next: true
+  }),
+  sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
+);
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function getSearchFunction(req: Request) {
   const accessList = req.user.role === 'admin' ? [] : !!req.user.camera_access?.length ? req.user.camera_access : ["who's daddy"]
