@@ -1,8 +1,12 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, NotContains } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, NotContains, Validate } from "class-validator";
 import mongoose, { Schema } from "mongoose";
+import { LicenseRestricion } from ".";
+import Camera from "../../db/mongo/models/camera";
 
 
 export class CreateCameraBody {
+  @Validate(LicenseRestricion, [{ model: Camera, env: "MAX_CAMERAS", default: 4 }])
+  public _?: any;
   public section_id?: mongoose.Types.ObjectId;
   @IsString()
   public network?: string;

@@ -7,6 +7,7 @@ import { validate, ValidationError } from "class-validator";
 import { ApiError } from "../../types/classes/error.class";
 import path from 'path';
 import { existsSync } from 'fs';
+import mongoose from 'mongoose';
 
 export function dtoValidationMiddleware(type: any, options?: { skipMissingProperties?: boolean, detailedMassage?: boolean, info?: string }): RequestHandler {
   let defaultOpt = { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: undefined };
@@ -59,7 +60,7 @@ export class IsImageString implements ValidatorConstraintInterface {
       image_str = image_str?.substring(pngPrefix.length);
     }
     const base64Regex = /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/;
-    return !!image_str && (image_str.length > 1024*1024 || base64Regex.test(image_str));
+    return !!image_str && (image_str.length > 1024 * 1024 || base64Regex.test(image_str));
   }
 
   defaultMessage(args: ValidationArguments) {
@@ -142,5 +143,25 @@ export class FileOrDirExists implements ValidatorConstraintInterface {
 
   defaultMessage(args: ValidationArguments & { object: any }) {
     return `No such file or directory: ${args.object[args.property]}`;
+  }
+}
+
+
+@ValidatorConstraint({ name: 'licenseRestricion', async: false })
+export class LicenseRestricion implements ValidatorConstraintInterface {
+  validate(_p: string, args: ValidationArguments & { object: any, constraints: [{ model: mongoose.Model<{}, {}, {}, {}>, env: string, default?: number }] }) {
+    const evnVarName = args.constraints[0].env;
+    const preValue = process.env[evnVarName];
+    let value: number;
+    try {
+      value = parseInt(preValue ?? "4");
+    } catch (error) {
+      value = args.constraints[0]?.default ?? 4;
+    }
+    return args.constraints[0].model.countDocuments().exec().then(v => v < value);
+  }
+
+  defaultMessage(args: ValidationArguments & { object: any }) {
+    return `License violation!`;
   }
 }
