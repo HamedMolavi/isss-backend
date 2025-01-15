@@ -149,7 +149,15 @@ export class FileOrDirExists implements ValidatorConstraintInterface {
 
 @ValidatorConstraint({ name: 'licenseRestricion', async: false })
 export class LicenseRestricion implements ValidatorConstraintInterface {
-  validate(_p: string, args: ValidationArguments & { object: any, constraints: [{ model: mongoose.Model<{}, {}, {}, {}>, env: string, default?: number }] }) {
+  async validate(_p: string, args: ValidationArguments & {
+    object: any, constraints: [{
+      model: mongoose.Model<{}, {}, {}, {}>,
+      env: string,
+      default?: number,
+      bypass?: (object: any) => boolean | Promise<boolean>
+    }]
+  }) {
+    if (!!args.constraints[0]?.bypass?.call && await args.constraints[0].bypass(args.object)) return true;
     const evnVarName = args.constraints[0].env;
     const preValue = process.env[evnVarName];
     let value: number;
