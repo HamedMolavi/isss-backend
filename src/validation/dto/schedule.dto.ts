@@ -1,9 +1,18 @@
 import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber, IsObject, Validate } from "class-validator";
 import mongoose, { Schema } from "mongoose";
-import { Comparison } from ".";
+import { Comparison, LicenseRestricion } from ".";
+import Schedule from "../../db/mongo/models/schedule";
+import Model from "../../db/mongo/models/model";
 
 
 export class CreateScheduleBody {
+  @Validate(LicenseRestricion, [{
+    model: Schedule, env: "MAX_FACES", default: 4, bypass: async (object: any) => await Model.findById(object['model_id']).exec().then(m => m?.category !== "face")
+  }])
+  @Validate(LicenseRestricion, [{
+    model: Schedule, env: "MAX_PLATES", default: 4, bypass: async (object: any) => await Model.findById(object['model_id']).exec().then(m => m?.category !== "plate")
+  }])
+  public _?: any;
   @Validate(Comparison, ["gte", 0])
   @Validate(Comparison, ["lse", 100])
   @IsNumber()
