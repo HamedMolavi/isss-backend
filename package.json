@@ -95,6 +95,7 @@
     "systeminformation": "^5.21.23",
     "trez-sms-client": "^1.0.4",
     "ts-node": "^10.7.0",
+    "winston": "^3.17.0",
     "winston-loki": "^6.0.5"
   },
   "devDependencies": {
