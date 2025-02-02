@@ -96,8 +96,7 @@
     "trez-sms-client": "^1.0.4",
     "ts-node": "^10.7.0",
     "winston": "^3.17.0",
-    "winston-loki": "^6.0.5",
-    "winston-mongodb": "^6.0.0"
+    "winston-loki": "^6.0.5"
   },
   "devDependencies": {
     "@types/config": "^0.0.41",
