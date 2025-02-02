@@ -4,6 +4,7 @@ import { setUpPassport } from "./passport.setup";
 import seedSetup from "./seed.setup";
 import { initBalancer } from "../tools/loadBalancer.tools";
 import { SignalConsumer } from "../tools/systemSignal.tools";
+import { setupLogger } from "./logger.setup";
 
 
 export default async function setup() {
@@ -14,4 +15,5 @@ export default async function setup() {
   setUpPassport();
   await initBalancer();
   await SignalConsumer.setupDefault();
+  await setupLogger();
 };

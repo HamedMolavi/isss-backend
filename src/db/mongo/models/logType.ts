@@ -1,27 +1,34 @@
 import mongoose, { Schema } from "mongoose";
 import { ILogType } from "../../../types/interfaces/logType.interface";
+import { MongooseTransport } from "../../../logger/transports";
 
-//create LogType model with schema for save in DB
-const LogTypeSchema: Schema<ILogType> = new Schema(
-  {
-    name: { type: String, required: true },
-    filePath: { type: String },
-    defaultConfig: { type: Object },
-  },
-  {
-    collection: "LogType",
-    toJSON: {
-      transform(_doc, ret) {
-        delete ret["filePath"];
-        return ret;
-      },
-    }
-  }
-);
+export const DEFAULT_LOG_TYPE: ILogType = {
+  name: "default",
+  system: true,
+  ts: 0,
+  method: true,
+  user: true,
+  ip: true,
+  result: true,
+};
 
-// LogTypeSchema.post('save', async (doc)=>{});
-// LogTypeSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc) => { });
-
-// Compile model from schema
-const LogType = mongoose.model("LogType", LogTypeSchema);
-export default LogType;
+const LogTypeSchema: Schema<ILogType> = new mongoose.Schema({
+  name: { type: String, required: true },
+  system: { type: Boolean, default: false },
+  ts: { type: Number, default: Date.now },
+  method: { type: Boolean, required: true },
+  user: { type: Boolean, required: true },
+  ip: { type: Boolean, required: true },
+  result: { type: Boolean, required: true },
+}, {
+  collection: 'LogType'
+})
+LogTypeSchema.post('save', function (log) {
+  // if (!process.logType || process.logType.ts < log.ts) process.logType = log.toJSON();
+  if (!MongooseTransport.logType || MongooseTransport.logType.ts < log.ts) MongooseTransport.logType = log.toJSON();
+})
+LogTypeSchema.post('remove', function (log) {
+  // if (!!process.logType && process.logType.ts === log.ts) process.logType = log.toJSON();
+  if (!!MongooseTransport.logType && MongooseTransport.logType.ts === log.ts) MongooseTransport.logType = log.toJSON();
+})
+export const LogType = mongoose.model('LogType', LogTypeSchema);

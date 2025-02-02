@@ -117,3 +117,5 @@ export async function resizeImage(imageString: string, inputs?: { w?: number, h?
   const encodedString = (await resizedImg.getBuffer("image/jpeg", { quality: 90 })).toString(encoding);
   return encodedString;
 }
+
+export const JSON_hash = (obj: any) => { obj.hash = "Not implemented yet."; return obj };
