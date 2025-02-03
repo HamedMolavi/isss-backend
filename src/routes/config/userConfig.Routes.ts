@@ -18,6 +18,7 @@ import testSMS from "./testSMS.Routes";
 import testEmail from "./testEmailSend.Routes";
 import snapshot from "./snapshot.Routes";
 import manualLog from "./manualLog.Routes";
+import logType from "./logType.Routes";
 import userAccessLevel from "./userAccessLevel.Routes";
 
 const router: Router = Router();
@@ -46,6 +47,7 @@ router.use("/testsms", testSMS);
 router.use("/testemail", testEmail);
 router.use("/snapshot", snapshot);
 router.use("/manuallog", manualLog);
+router.use("/logtype", logType);
 
 
 export default router;
