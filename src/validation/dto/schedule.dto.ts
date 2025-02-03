@@ -3,14 +3,21 @@ import mongoose, { Schema } from "mongoose";
 import { Comparison, LicenseRestricion } from ".";
 import Schedule from "../../db/mongo/models/schedule";
 import Model from "../../db/mongo/models/model";
+import ModelToCamera from "../../db/mongo/models/modelToCamera";
 
 
 export class CreateScheduleBody {
   @Validate(LicenseRestricion, [{
-    model: Schedule, env: "MAX_FACES", default: 4, bypass: async (object: any) => await Model.findById(object['model_id']).exec().then(m => m?.category !== "face")
+    countFn: async () => await Model.findOne({ 'category': 'face' })
+      .then(m => ModelToCamera.find({ 'model_id': m?.id }))
+      .then(m2cs => Schedule.countDocuments({ $or: m2cs.map(m2c => ({ 'model_camera_id': m2c.id })) })),
+    env: "MAX_FACES", default: 4, bypass: async (object: any) => await Model.findById(object['model_id']).exec().then(m => m?.category !== "face")
   }])
   @Validate(LicenseRestricion, [{
-    model: Schedule, env: "MAX_PLATES", default: 4, bypass: async (object: any) => await Model.findById(object['model_id']).exec().then(m => m?.category !== "plate")
+    countFn: async () => await Model.findOne({ 'category': 'plate' })
+      .then(m => ModelToCamera.find({ 'model_id': m?.id }))
+      .then(m2cs => Schedule.countDocuments({ $or: m2cs.map(m2c => ({ 'model_camera_id': m2c.id })) })),
+    env: "MAX_PLATES", default: 4, bypass: async (object: any) => await Model.findById(object['model_id']).exec().then(m => m?.category !== "plate")
   }])
   public _?: any;
   @Validate(Comparison, ["gte", 0])
