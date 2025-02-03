@@ -30,8 +30,6 @@ declare global {
       WORD_BEFORE_REPLACE_STREAM: string
       WORD_AFTER_REPLACE_STREAM: string
       MODELS: string
-      LOGTYPES: string
-      MDPATH: string
     }
   }
 }
