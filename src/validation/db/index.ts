@@ -63,7 +63,7 @@ export function existCheck(model: Model<any>, query: any, info?: string, options
         };
         break;
     };
-    if (!newQuery.length) {
+    if (!newQuery.length && state !== 2) {
       return next();
     }
     let docs = (await model.find(newQuery).exec())?.filter((doc) => (!id || id !== doc._id.toString()));
