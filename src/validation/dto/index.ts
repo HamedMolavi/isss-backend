@@ -151,7 +151,8 @@ export class FileOrDirExists implements ValidatorConstraintInterface {
 export class LicenseRestricion implements ValidatorConstraintInterface {
   async validate(_p: string, args: ValidationArguments & {
     object: any, constraints: [{
-      model: mongoose.Model<{}, {}, {}, {}>,
+      model?: mongoose.Model<{}, {}, {}, {}>,
+      countFn?: () => Promise<number> | number,
       env: string,
       default?: number,
       bypass?: (object: any) => boolean | Promise<boolean>
@@ -166,7 +167,11 @@ export class LicenseRestricion implements ValidatorConstraintInterface {
     } catch (error) {
       value = args.constraints[0]?.default ?? 4;
     }
-    return args.constraints[0].model.countDocuments().exec().then(v => v < value);
+    if (!!args.constraints[0].model)
+      return args.constraints[0].model.countDocuments().exec().then(v => v < value);
+    else if (!!args.constraints[0].countFn)
+      return await args.constraints[0].countFn() < value;
+    return false;
   }
 
   defaultMessage(args: ValidationArguments & { object: any }) {
