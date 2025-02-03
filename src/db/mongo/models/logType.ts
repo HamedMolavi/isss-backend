@@ -16,10 +16,10 @@ const LogTypeSchema: Schema<ILogType> = new mongoose.Schema({
   name: { type: String, required: true },
   system: { type: Boolean, default: false },
   ts: { type: Number, default: Date.now },
-  method: { type: Boolean, required: true },
-  user: { type: Boolean, required: true },
-  ip: { type: Boolean, required: true },
-  result: { type: Boolean, required: true },
+  method: { type: Boolean, default: true },
+  user: { type: Boolean, default: true },
+  ip: { type: Boolean, default: true },
+  result: { type: Boolean, default: true },
 }, {
   collection: 'LogType'
 })
