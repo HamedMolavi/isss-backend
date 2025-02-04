@@ -8,6 +8,7 @@ import { ApiError } from "../../types/classes/error.class";
 import path from 'path';
 import { existsSync } from 'fs';
 import mongoose from 'mongoose';
+import { count, Pipeline } from '../../db/mongo/count.database';
 
 export function dtoValidationMiddleware(type: any, options?: { skipMissingProperties?: boolean, detailedMassage?: boolean, info?: string }): RequestHandler {
   let defaultOpt = { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: undefined };
@@ -147,31 +148,32 @@ export class FileOrDirExists implements ValidatorConstraintInterface {
 }
 
 
-@ValidatorConstraint({ name: 'licenseRestricion', async: false })
-export class LicenseRestricion implements ValidatorConstraintInterface {
+@ValidatorConstraint({ name: 'countLicenseRestricion', async: false })
+export class CountLicenseRestricion implements ValidatorConstraintInterface {
   async validate(_p: string, args: ValidationArguments & {
     object: any, constraints: [{
-      model?: mongoose.Model<{}, {}, {}, {}>,
-      countFn?: () => Promise<number> | number,
-      env: string,
-      default?: number,
-      bypass?: (object: any) => boolean | Promise<boolean>
+      model: mongoose.Model<{}, {}, {}, {}>,
+      env?: string | ((object: any) => string | Promise<string>),
+      defualtNumber?: number,
+      pipelines?: Pipeline[] | ((object: any) => Pipeline[] | Promise<Pipeline[]>),
     }]
   }) {
-    if (!!args.constraints[0]?.bypass?.call && await args.constraints[0].bypass(args.object)) return true;
-    const evnVarName = args.constraints[0].env;
-    const preValue = process.env[evnVarName];
-    let value: number;
     try {
-      value = parseInt(preValue ?? "4");
+
+      let { object, constraints: [{ model, env, defualtNumber, pipelines }] } = args
+      if (typeof pipelines === 'function') pipelines = await pipelines(object);
+      const c = await count(model, { pipelines });
+      const preValue = process.env[(typeof env === 'function' ? await env(object) : env) ?? 'dummy-string-hamed'];
+      let value: number;
+      try {
+        value = parseInt(preValue ?? "4");
+      } catch (error) {
+        value = defualtNumber ?? 4;
+      }
+      return c < value;
     } catch (error) {
-      value = args.constraints[0]?.default ?? 4;
+      return false;
     }
-    if (!!args.constraints[0].model)
-      return args.constraints[0].model.countDocuments().exec().then(v => v < value);
-    else if (!!args.constraints[0].countFn)
-      return await args.constraints[0].countFn() < value;
-    return false;
   }
 
   defaultMessage(args: ValidationArguments & { object: any }) {
