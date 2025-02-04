@@ -118,4 +118,6 @@ export async function resizeImage(imageString: string, inputs?: { w?: number, h?
   return encodedString;
 }
 
+export const idToCollectionName = (el: string) => el.replace('_id', '').split('_').map(el => el[0].toUpperCase() + el.slice(1)).join('_');
+
 export const JSON_hash = (obj: any) => { obj.hash = "Not implemented yet."; return obj };
