@@ -117,3 +117,5 @@ export async function resizeImage(imageString: string, inputs?: { w?: number, h?
   const encodedString = (await resizedImg.getBuffer("image/jpeg", { quality: 90 })).toString(encoding);
   return encodedString;
 }
+
+export const idToCollectionName = (el: string) => el.replace('_id', '').split('_').map(el => el[0].toUpperCase() + el.slice(1)).join('_');
