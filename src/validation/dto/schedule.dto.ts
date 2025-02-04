@@ -1,25 +1,22 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber, IsObject, Validate } from "class-validator";
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional, IsArray, IsNumber, IsObject, Validate, validateOrReject } from "class-validator";
 import mongoose, { Schema } from "mongoose";
-import { Comparison, LicenseRestricion } from ".";
+import { Comparison, CountLicenseRestricion } from ".";
 import Schedule from "../../db/mongo/models/schedule";
 import Model from "../../db/mongo/models/model";
 import ModelToCamera from "../../db/mongo/models/modelToCamera";
+import { readById } from "../../db/mongo/read.database";
 
 
 export class CreateScheduleBody {
-  @Validate(LicenseRestricion, [{
-    countFn: async () => await Model.findOne({ 'category': 'face' })
-      .then(m => ModelToCamera.find({ 'model_id': m?.id }))
-      .then(m2cs => Schedule.countDocuments({ $or: m2cs.map(m2c => ({ 'model_camera_id': m2c.id })) })),
-    env: "MAX_FACES", default: 4, bypass: async (object: any) => await Model.findById(object['model_id']).exec().then(m => m?.category !== "face")
+  @Validate(CountLicenseRestricion, [{
+    model: Schedule,
+    env: async (object: any) => "MAX_" + (await readById(Model, object.model_id)).category.toUpperCase() + "S",
+    pipelines: async (object: any) => [
+      'model_camera_id',
+      'model_camera_id.model_id',
+      { 'model_camera_id.model_id.category': (await readById(Model, object.model_id)).category }
+    ]
   }])
-  @Validate(LicenseRestricion, [{
-    countFn: async () => await Model.findOne({ 'category': 'plate' })
-      .then(m => ModelToCamera.find({ 'model_id': m?.id }))
-      .then(m2cs => Schedule.countDocuments({ $or: m2cs.map(m2c => ({ 'model_camera_id': m2c.id })) })),
-    env: "MAX_PLATES", default: 4, bypass: async (object: any) => await Model.findById(object['model_id']).exec().then(m => m?.category !== "plate")
-  }])
-  public _?: any;
   @Validate(Comparison, ["gte", 0])
   @Validate(Comparison, ["lse", 100])
   @IsNumber()
