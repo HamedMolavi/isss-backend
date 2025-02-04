@@ -1,7 +1,8 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../../types/classes/error.class";
-import { Document, FilterQuery } from "mongoose";
+import { DefaultSchemaOptions, Document, FilterQuery, Model as MongooseModel, Schema } from "mongoose";
 import deepmerge from "deepmerge";
+type modelType = MongooseModel<any, {}, {}, {}, Schema<any, MongooseModel<any, any, any, any, any>, {}, {}, {}, {}, DefaultSchemaOptions, any>>;
 
 export async function read(model: any, options?: { query?: FilterQuery<any>, populate?: string }) {
   let docs: Document[] | any = !!options?.populate
@@ -145,6 +146,31 @@ export function readByIdMiddleware(model: any, options?: { next?: boolean, save?
       else return next(new ApiError(500, "internal server error , " + err.message));
     }
   }
+};
+
+export async function readById(model: modelType, id: string | Schema.Types.ObjectId,
+  options?: { populate?: any, forcePopulate?: string[], }
+) {
+  let doc = await model.findById(id).exec();
+
+  if (!!options?.populate) {
+    let populates = options.populate instanceof String
+      ? options.populate.split(",").map((el) => el.trim())
+      : (options.populate as string[])?.map((el) => el.trim()) ?? [];
+    if (!!options?.forcePopulate) options.forcePopulate.forEach((p) => { if (!populates.includes(p)) populates.push(p) });
+    let idx = populates.length - 1;
+    while (!!populates.length && idx >= 0) {
+      const populate = populates[idx];
+      let keys = getAllKeys(doc.toObject());
+      let populatePath = keys.find((key) => key === populate || key.split(".").some((el) => el === populate));
+      if (!!populatePath) {
+        doc = await doc.populate(populatePath);
+        populates.splice(idx, 1);
+        idx = populates.length - 1;
+      } else idx--;
+    };
+  };
+  return doc;
 };
 
 function getAllKeys(obj: { [key: string]: any }) {
