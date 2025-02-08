@@ -7,6 +7,7 @@ import { DEFAULT_LOG_TYPE, LogType } from '../db/mongo/models/logType';
 import { Log } from '../db/mongo/models/secLog';
 import { appendFileSync } from 'fs';
 import mongoose from 'mongoose';
+import { Mutex } from 'async-mutex';
 
 export class MongooseTransport extends Transport {
   buffer: Array<ILog>;
@@ -19,7 +20,7 @@ export class MongooseTransport extends Transport {
     user: (req: Request) => { return req.user.username },
     result: (req: Request) => { return req.res?.statusCode },
   };
-  // [key in keyof typeof LOG_TYPE_KEYS]: Function;
+  mutex: Mutex;
   public static logType: ILogType = DEFAULT_LOG_TYPE;
   constructor(options?: Transport.TransportStreamOptions & { bufferLimit?: number, flushInterval?: number }) {
     super(options);
@@ -39,18 +40,32 @@ export class MongooseTransport extends Transport {
           MongooseTransport.logType = doc?.toJSON() ?? DEFAULT_LOG_TYPE;
         }
       });
+    this.mutex = new Mutex();
   }
 
   flushBuffer() {
-    if (this.buffer.length > 0) {
-      const logsToInsert = this.buffer.splice(0, this.buffer.length);
-      Log.insertMany(logsToInsert)
-        .then((docs) => { console.log("saved", docs[0]) })
-        .catch((err) => {
-          console.error('Error flushing logs to MongoDB:', err);
-          appendFileSync('fallback-logs.json', JSON.stringify(logsToInsert) + '\n');
-        });
-    }
+    let logsToInsert: any;
+    let released = true;
+    this.mutex
+      .acquire()
+      .then((_release) => {
+        released = false;
+        if (this.buffer.length > 0) {
+          logsToInsert = this.buffer.splice(0, this.buffer.length);
+          return Log.insertMany(logsToInsert)
+        }
+      })
+      .then(docs => {
+        // console.log(docs);
+        this.mutex.release();
+        released = true;
+      })
+      .catch((err) => {
+        if (!released) this.mutex.release();
+        console.error('Error flushing logs to MongoDB:', err);
+        appendFileSync('fallback-logs.json', JSON.stringify(logsToInsert) + '\n');
+      });;
+
   }
 
   log(infoAndReq: ILog & { req: Request }, callback: () => void) { // req: Request
