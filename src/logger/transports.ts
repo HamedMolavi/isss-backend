@@ -34,6 +34,7 @@ export class MongooseTransport extends Transport {
       .exec((err, doc) => {
         if (err) {
           console.error("Error in fetching default log type:\n", err);
+          process.exit(1);
         } else {
           MongooseTransport.logType = doc?.toJSON() ?? DEFAULT_LOG_TYPE;
         }
@@ -44,7 +45,7 @@ export class MongooseTransport extends Transport {
     if (this.buffer.length > 0) {
       const logsToInsert = this.buffer.splice(0, this.buffer.length);
       Log.insertMany(logsToInsert)
-        // .then((docs) => { console.log("saved", docs[0]) })
+        .then((docs) => { console.log("saved", docs[0]) })
         .catch((err) => {
           console.error('Error flushing logs to MongoDB:', err);
           appendFileSync('fallback-logs.json', JSON.stringify(logsToInsert) + '\n');
