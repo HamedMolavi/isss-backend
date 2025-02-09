@@ -9,7 +9,7 @@ import { setupLogger } from "./logger.setup";
 
 export default async function setup() {
   await setupInteractive();
-  const dbResults = await connectToDBs({ mongo: process.env["MONGODB_URL"].split(",").map((el) => el.trim()), redis: process.env["REDIS_URL"] ,elastic:process.env["ELASTIC_SEARCH"]});
+  const dbResults = await connectToDBs({ mongo: process.env["MONGODB_URL"].split(",").map((el) => el.trim()), redis: process.env["REDIS_URL"], elastic: process.env["ELASTIC_SEARCH"], sqlite: process.env["SQLITE_PATH"] });
   process.esclient = dbResults["elastic"];
   await seedSetup();
   setUpPassport();
