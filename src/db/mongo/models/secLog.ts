@@ -12,7 +12,7 @@ const LogSchema: Schema<ILog> = new Schema({
 }, {
   minimize: false,
   collection: "Log",
-  capped: { size: 500 * 1024 },
+  capped: parseInt(process.env["LOG_COLLECTION_SIZE"] ?? "512"),
   timestamps: { createdAt: true, updatedAt: true },
   writeConcern: { j: false }
 });
@@ -38,5 +38,5 @@ LogSchema.post('save', function (doc, next) {
   SQLite.insert("Hash", { _id: doc.id, hash: doc.hash })
   next();
 })
-export const Log = mongoose.model("test", LogSchema);
+export const Log = mongoose.model("Log", LogSchema);
 console.log()
