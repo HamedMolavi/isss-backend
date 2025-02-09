@@ -1,8 +1,10 @@
 import winston from "winston";
 import { MongooseTransport } from "../logger/transports";
 import { Logger } from "../logger";
+import { SQLite } from "../db/sqlite";
 
 export async function setupLogger() {
+  SQLite.createTable("Hash");
   const transports = {
     console: new winston.transports.Console({
       level: 'info',
