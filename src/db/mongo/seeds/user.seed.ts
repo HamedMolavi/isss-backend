@@ -11,7 +11,7 @@ export async function makeSeedUser(accessLevel: IAccessLevel): Promise<IUser | u
       camera: true,
       report: true,
       configuration: true,
-      username: 'test',
+      username: 'admin',
       password: '123',
       access_level: accessLevel._id,
       phone_number: '09330379999',
