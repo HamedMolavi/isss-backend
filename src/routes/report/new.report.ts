@@ -77,7 +77,7 @@ router.get('/:index(plate|search|face|sabotage|human|objectdetection)(/:type(exc
     next: (req) => !!req.params["type"]
   }),
 );
-router.get('/:index(plate|search|face)(/:type(excel))?/?$',
+router.get('/:index(plate|search|face)/:type(excel)/?$',
   sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
 );
 router.get("/:index(plate|search|face|sabotage|human|objectdetection)/:id?/:type(excel)?", // get with id
@@ -99,7 +99,7 @@ router.post("/:index(plate|search|face|sabotage|human|objectdetection)(/:type(ex
     next: (req) => !!req.params["type"]
   })
 );
-router.post("/:index(plate|search|face)(/:type(excel))?/?$",
+router.post("/:index(plate|search|face)/:type(excel)/?$",
   sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
 );
 
