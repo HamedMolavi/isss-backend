@@ -14,6 +14,7 @@
 * 3.0.2: delete elastic logs routes
 * 3.0.3: Camera and Schedule License check alteration
 * 3.0.4: **Fixed** Camera and Schedule License check alteration
+* 3.0.5: Plate report got new feature, plate_search_type = 'normal' | 'noplate' | 'damaged' | 'similar'
 
 ## Structure
 
