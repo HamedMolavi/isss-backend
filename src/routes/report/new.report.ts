@@ -22,6 +22,8 @@ import { isValidObjectId, isObjectIdOrHexString } from "mongoose";
 import Section from "../../db/mongo/models/section";
 import Department from "../../db/mongo/models/department";
 import PersonImage from "../../db/mongo/models/personImage";
+import { plateToQueryJSON } from "../../tools/elastic.tools";
+import { QueryDslQueryContainer } from "@elastic/elasticsearch/lib/api/types";
 
 //create router for add to routes file
 const router: Router = Router();
@@ -105,7 +107,7 @@ router.post("/:index(plate|search|face)/:type(excel)/?$",
 
 router.post('/:index(plate|face)/backup', // backup & delete true
   deleteElasticMiddleware(indexFunc, {
-    sendDocsInsteadOfDeleteResult:true,
+    sendDocsInsteadOfDeleteResult: true,
     send: sendFunction,
     save: "esResult",
     next: true
@@ -152,19 +154,19 @@ function getSearchFunction(req: Request) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function postSearchFunction(req: Request) {
+  let score: { script?: string, min_score?: number } = {};
+  let query: QueryDslQueryContainer & { bool: { must: QueryDslQueryContainer[], must_not: QueryDslQueryContainer[], should: QueryDslQueryContainer[] } };
+  //---- Prepration
   const body = req.body;
-  body.cameras = body.cameras ?? [];
   let timezone = body.timez ?? body.timezone;
   const times_epoch: Array<{ gte: number, lte: number }> = body.date_start && Time.getEpochList(body.date_start, body.date_end, body.time_start, body.time_end, timezone);
-  let plates = !!body.plates ? platesToStrings(body.plates) : [];
   const userCameras = !!req.user.camera_access?.length ? req.user.camera_access?.map(el => el.toString()) : ["who's daddy"];
-  const allowedSearchedCameras = body.cameras.filter((cam: any) => userCameras.includes(cam)).concat(["who's daddy"]);
+  const allowedSearchedCameras = body.cameras?.filter((cam: any) => userCameras.includes(cam)).concat(["who's daddy"]);
   const cameras =
-    req.user.role === 'admin' ? body.cameras :
-      !!body.cameras.length ? allowedSearchedCameras :
-        userCameras;
+    (req.user.role === 'admin' ? body.cameras :
+      !!body.cameras?.length ? allowedSearchedCameras :
+        userCameras) ?? [];
   const fields: { [key: string]: Array<any> } = {
-    "plate_number": plates,
     "camera_id": cameras,
     "personnel_id": body.personnels,
     "brand": body.brands,
@@ -173,38 +175,57 @@ function postSearchFunction(req: Request) {
     "human_count": body.human_count,
     "allowed": body.allowed === undefined || body.allowed === null ? [] : Array.isArray(body.allowed) ? body.allowed : [body.allowed]
   };
-  const fieldQueries = Object.entries(fields).filter(([, values]) => !!values && values.length > 0).map(([field, values]) => ({
+
+  // Make clauses
+  query = {
     bool: {
-      should: values.map(value => ({
-        match: {
-          [`${field}`]: value
-        }
-      })),
-      "minimum_should_match": 1
+      must: [ // Between fields there are ANDs. This way for each field there is a must restriction.
+        ...Object.entries(fields).filter(([, values]) => !!values && values.length > 0).map(([field, values]) => (
+          {
+            bool: {
+              should: [ // In a field (for example cameras), between each possible value there are ORs.
+                ...values.map(value => ({
+                  match: {
+                    [`${field}`]: value
+                  }
+                })),
+              ],
+              "minimum_should_match": 1
+            }
+          })),
+
+        ...(!!times_epoch && !!times_epoch.length ? [{
+          bool: { should: times_epoch.map(time => ({ range: { timestamp: { gte: time.gte, lte: time.lte } } })), "minimum_should_match": 1 }
+        }] : []),
+
+        ...(!!body.person_type && typeof body.person_type === 'string' ? [
+          { "match": { "person_type": body.person_type } }, { "exists": { "field": "person_type" } }
+        ] : []),
+      ],
+      must_not: [],
+      should: []
     }
-  }));
-  if (!!body.person_type && typeof body.person_type === 'string') {
-    fieldQueries.push({
-      //@ts-ignore
-      "match": { "person_type": body.person_type }
-    })
-    fieldQueries.push({
-      //@ts-ignore
-      "exists": { "field": "person_type" },
-    })
   }
-  const timeQueries = !!times_epoch && !!times_epoch.length ? [{
-    bool: { should: times_epoch.map(time => ({ range: { timestamp: { gte: time.gte, lte: time.lte } } })), "minimum_should_match": 1 }
-  }] : [];
-  const combinedQueries = [...fieldQueries, ...timeQueries];
+  // Plate search special clauses and alter other parts of query
+  if (body.plate_search_type === 'noplate') body.plates = [{ "first": "**", "second": "*", "third": "***", "fourth": "ایران", "fifth": "**" }];
+  if (!!body.plates?.length) {
+    let plates = platesToStrings(body.plates);
+    let plate_search_type = body.plate_search_type ?? 'normal';
+    query?.bool?.must?.push(
+      {
+        "bool": { // each field => they have to be OR
+          "should": plates.map((plateString) => plateToQueryJSON(plateString, plate_search_type, { originalQueryToAlter: query })),
+          "minimum_should_match": 1
+        }
+      }
+    );
+
+  }
+
   let query_elastic = {
     track_total_hits: true,
-    query: {
-      bool: {
-        must: combinedQueries,
-      }
-    },
-    sort: [{ timestamp: { order: "desc" } }]
+    sort: [{ timestamp: { order: "desc" } }],
+    query
   } as SearchRequest;
   return query_elastic;
 };
