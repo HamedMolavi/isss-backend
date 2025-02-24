@@ -214,12 +214,11 @@ function postSearchFunction(req: Request) {
     query?.bool?.must?.push(
       {
         "bool": { // each field => they have to be OR
-          "should": plates.map((plateString) => plateToQueryJSON(plateString, plate_search_type, { originalQueryToAlter: query })),
+          "should": plates.map((plateString) => plateToQueryJSON(plateString, plate_search_type, { originalQueryToAlter: query })).flat(),
           "minimum_should_match": 1
         }
       }
     );
-
   }
 
   let query_elastic = {
@@ -315,7 +314,7 @@ async function sendFunction(log: any, req: Request): Promise<any> {
       // section: personnel?.section_id?.name ?? section,
       section,
       time: !!log?.timestamp ? new Date(log.timestamp).toLocaleString("en-US", { timeZone: req.query?.timez?.toString() ?? "Asia/Tehran" }) : "",
-      plate_number: log.plate_number ? stringPlateToJson(log.plate_number) : "",
+      plate_number: stringPlateToJson(log.plate_number),
       owner: log?.owner ?? "",
       color: color?.name ?? "",
       fa_color: color?.fa_name ?? "",
