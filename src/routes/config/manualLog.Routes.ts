@@ -18,7 +18,7 @@ const router: Router = Router();
 router.post("/plate",
     dtoValidationMiddleware(CreatePlateLogBody, { skipMissingProperties: false, detailedMassage: process.env["NODE_ENV"] === "development" ? true : false, info: "please fill all fields" }),
     injectDataMiddleware(
-        (body: any) => `${body.plate_number?.first}${englishPlateDict[body.plate_number?.second]}${body.plate_number?.third}${body.plate_number?.fifth}`,
+        stringifyPlate,
         { injData: "number_plate" }
     ),
     existCheck(Car, { $and: [{ number_plate: "number_plate" }] }, "This plate doesn't exist on database!", {
