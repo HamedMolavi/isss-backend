@@ -1,17 +1,11 @@
 import { ICar } from "../types/interfaces/car.interface";
-import { englishPlateDict, persianPlateDict } from "./plate.tools";
+import { DIGITS, englishPlateDict, persianPlateDict, stringPlateToJson } from "./plate.tools";
 import { allowedPassRevert } from "./time.tools";
 
 export function carSendFunction(doc: ICar) {
   return {
     owner: doc.owner,
-    number_plate: {
-      first: Number(doc.number_plate.substr(0, 2)),
-      second: persianPlateDict[doc.number_plate.substr(2, 1)],
-      third: Number(doc.number_plate.substr(3, 3)),
-      fourth: "ایران",
-      fifth: Number(doc.number_plate.substr(6, 2)),
-    },
+    number_plate: stringPlateToJson(doc.number_plate),
     brand: doc.brand,
     color: doc.color,
     allowed_pass: !!doc.allowed_pass ? allowedPassRevert(doc) : undefined,
@@ -20,8 +14,11 @@ export function carSendFunction(doc: ICar) {
   }
 };
 export function stringifyPlate(body: { "number_plate"?: { [key: string]: string } }) {
-  if (!body?.number_plate) return undefined;
-  return `${body.number_plate?.first}${englishPlateDict[body.number_plate?.second]}${body.number_plate?.third}${body.number_plate?.fifth}`
+  if (!body?.number_plate) return "";
+  return `${body.number_plate?.first.split('').map(i => DIGITS[i] ?? "_").slice(0, 2).join('')
+    }${englishPlateDict[body.number_plate?.second] ?? "_"
+    }${body.number_plate?.third.split('').map(i => DIGITS[i] ?? "_").slice(0, 3).join('')
+    }${!!body.number_plate?.fifth ? body.number_plate?.fifth.split('').map(i => DIGITS[i] ?? "_").slice(0, 2).join('') : "__"}`
 };
 
 export function platesToStrings(plates: Array<{ first: string, second: string, third: string, fourth: 'ایران', fifth: string }>) {
