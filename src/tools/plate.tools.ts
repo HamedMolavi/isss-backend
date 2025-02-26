@@ -146,6 +146,7 @@ export function formatNumber(str: string, options?: { len?: number, }) {
 }
 
 export function stringPlateToJson(plate_number: string) {
+  if (typeof plate_number !== 'string') return "";
   let plateNumber1 = formatNumber(plate_number.slice(0, 2), { len: 2 });
   let plateNumber2 = !!plate_number.slice(2, 3).match(new RegExp(/\*/)) ? plate_number.slice(2, 3) : persianPlateDict[plate_number.slice(2, 3)];
   let plateNumber3 = formatNumber(plate_number.slice(3, 6), { len: 3 });
