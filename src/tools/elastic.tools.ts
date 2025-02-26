@@ -7,7 +7,7 @@ export function plateToQueryJSON(plate: string, plate_search_type: 'normal' | 'n
 ): QueryDslQueryContainer[] {
   switch (plate_search_type) {
     case 'normal':
-      return [{ "wildcard": { "plate_number.keyword": { "value": plate.toLowerCase() } } }];
+      return [{ "wildcard": { "plate_number.keyword": { "value": plate } } }];
     case 'noplate':
       return [{ "term": { "plate_number.keyword": "********" } }, { "term": { "plate_number.keyword": "" } }];
     case 'similar':
