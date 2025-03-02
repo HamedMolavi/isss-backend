@@ -28,10 +28,10 @@ WORKDIR /isss-backend
 # COPY assets ./assets ./
 COPY --from=builder /isss-backend /isss-backend
 COPY tsconfig.json ./
-COPY src ./src 
+COPY obfuscated ./src
 COPY security ./security
 # RUN npm run build
 
 EXPOSE 3000
 
-CMD [ "ts-node" , "./src/server.ts" ]
+CMD [ "node" , "./src/server.js" ]
