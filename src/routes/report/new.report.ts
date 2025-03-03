@@ -301,6 +301,7 @@ async function sendFunction(log: any, req: Request): Promise<any> {
     delete frame_log["personnel_id"]
     return {
       _id: log?._id,
+      type: log?.type,
       camera_type: camera?.camera_type ?? "",
       camera_id: camera?._id?.toString() ?? "",
       camera: camera?.name ?? "",
