@@ -6,7 +6,7 @@
 npm install --global javascript-obfuscator &&\
 tsc &&\
 javascript-obfuscator ./build --output ./obfuscated &&\
-docker build -t 192.168.100.100:5000/isss-backend:3.1.5 &&\
+docker build -t 192.168.100.100:5000/isss-backend:3.1.5 . &&\
 docker push 192.168.100.100:5000/isss-backend:3.1.5
 ```
 
