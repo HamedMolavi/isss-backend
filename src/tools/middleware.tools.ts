@@ -1,14 +1,9 @@
 import { NextFunction, Request, Response } from "express";
-import { stringPlateToJson } from "./plate.tools";
 import { ITrackLog, TrackLogData } from "../types/interfaces/track.interface";
 import { isValidObjectId, Types } from "mongoose";
 import { ApiError } from "../types/classes/error.class";
 import Camera from "../db/mongo/models/camera";
-import Section from "../db/mongo/models/section";
-import Department from "../db/mongo/models/department";
-import Personnel from "../db/mongo/models/personnel";
 import CarColor from "../db/mongo/models/carColor";
-import Car from "../db/mongo/models/car";
 
 export function injectAllKindOfStuff(stuff: string[], field: string = "_id") {
   return (body: any) => stuff.reduce((acc, entity) => {
@@ -18,6 +13,7 @@ export function injectAllKindOfStuff(stuff: string[], field: string = "_id") {
 }
 
 export async function unifiedSendFunction(log: any & { _id: string }, req: Request) {
+  /*
   const { body } = req;
   // Check if log.plate_number is null or undefined before accessing properties
   let car: any = undefined;
@@ -89,6 +85,7 @@ export async function unifiedSendFunction(log: any & { _id: string }, req: Reque
     inner_crop: log.plate_number !== undefined ? log?.inner_crop : "",
     video: camera?.url ?? "",
   };
+  */
 }
 
 interface ExtendedTrackLogData extends TrackLogData {
@@ -98,6 +95,7 @@ interface localTrackLog extends ITrackLog {
   data: Array<ExtendedTrackLogData>
 }
 export function dataCollector(logs: (undefined | { camera_id?: string; timestamp?: number; personnel_id?: string; inner_crop?: string; })[]) {
+  /*
   return logs.reverse().reduce((result: localTrackLog[], log) => {
     if (!log || typeof (log["timestamp"]) !== "number" || typeof (log["camera_id"]) !== "string") return result;
     let nowDay = Math.floor(log["timestamp"] / 86400000);
@@ -132,10 +130,12 @@ export function dataCollector(logs: (undefined | { camera_id?: string; timestamp
     }
     return result;
   }, [] as localTrackLog[])
+  */
 }
 
 export function sendDataMiddleware(fn: CallableFunction, options?: { params?: boolean, forceAll?: boolean }) {
   return async (req: Request, res: Response, next: NextFunction) => {
+    /*
     try {
       let data: any = await fn(!!options?.params ? req.params : req.body)
       if (!data) {
@@ -165,5 +165,6 @@ export function sendDataMiddleware(fn: CallableFunction, options?: { params?: bo
       req.flash("error", "Internal Error!" + error.message);
       return next(new ApiError(500, "Internal Error!" + error.message));
     };
+    */
   };
 };

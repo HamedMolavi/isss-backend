@@ -1,12 +1,6 @@
 import mongoose, { Schema } from "mongoose";
-import Model from "./model";
-import ModelToCamera from "./modelToCamera";
-import Schedule from "./schedule";
 import { CameraTypes } from "../../../types/enums/camera.enum";
 import { ICamera } from "../../../types/interfaces/camera.interface";
-import { balanceNewCamera } from "../../../tools/loadBalancer.tools";
-import User from "./user";
-import Personnel from "./personnel";
 
 //create camera model with schema for save in DB
 const CameraSchema: Schema<ICamera> = new Schema(
@@ -41,41 +35,6 @@ const CameraSchema: Schema<ICamera> = new Schema(
 );
 
 
-CameraSchema.post('save', balanceNewCamera);
 
-
-
-CameraSchema.post(["remove", "deleteOne", "deleteMany", "findOneAndDelete", "findOneAndRemove"], async (doc) => {
-  let model_cameras = await ModelToCamera.find({ camera_id: doc._id, }).exec();
-  let models = await Model.find({}).exec();
-  let users = await User.find({}).exec();
-  let personnel = await Personnel.find({}).exec();
-  users = users.filter((user) => user.camera_access?.map((camera_id) => camera_id.toString()).includes(doc._id.toString()));
-  personnel = personnel.filter((person) => person.camera_whitelist?.map((camera_id) => camera_id.toString()).includes(doc._id.toString()));
-  models = models.filter((model) => model_cameras.some(m2c => m2c.model_id.toString() === model.id));
-  // delete all children Schedules
-  model_cameras.forEach(model_camera => Schedule.deleteMany({ model_camera_id: model_camera._id }).exec());
-  // re-balance affected models
-  models.forEach(model => process.load[model.category][model.name] -= 1);
-  // delete all children model_cameras
-  await ModelToCamera.deleteMany({
-    camera_id: doc._id,
-  }, { returnDocument: "before" }).exec();
-  // delete camera access of each user
-  for (const user of users) {
-    let oldCA = user.camera_access;
-    user.camera_access = oldCA?.filter((camera_id) => camera_id.toString() != doc._id.toString());
-    await user.save();
-  };
-  // delete camera whitelist of each personnel
-  for (const person of personnel) {
-    let oldCW = person.camera_whitelist;
-    person.camera_whitelist = oldCW?.filter((camera_id) => camera_id.toString() != doc._id.toString());
-    await person.save();
-  };
-});
-
-
-// Compile model from schema
 const Camera = mongoose.model("Camera", CameraSchema);
 export default Camera;

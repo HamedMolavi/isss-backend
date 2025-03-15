@@ -10,14 +10,7 @@ import { readMiddleware, readByIdMiddleware } from "../../db/mongo/read.database
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 import mongoose, { Document, Model, Types } from "mongoose";
-import User from "../../db/mongo/models/user";
-import { IUser } from "../../types/interfaces/user.interface";
 import { injectDataMiddleware } from "../../tools/request.tools";
-import Personnel from "../../db/mongo/models/personnel";
-import Car from "../../db/mongo/models/car";
-import Schedule from "../../db/mongo/models/schedule";
-import ModelToCamera from "../../db/mongo/models/modelToCamera";
-import { ApiError } from "../../types/classes/error.class";
 
 //create router for add to server
 const router: Router = Router();
@@ -40,22 +33,7 @@ router.post(
   //existCheck(Camera, { $and: [{ ip: "ip" }, { nvr: "nvr" }], }, "Camera already exists!"),
   getStreamUri(CameraInfoKeys),
   //getStreamUri(CameraInfoKeys), //get live stream uri(rtsp link from camera)
-  createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "camera_type", "url"], Camera, { next: true, save: "addedCamera" }),
-  async function middleware(req: Request, res: Response, next: NextFunction) {
-    const cam: ICamera & Required<{ _id: Types.ObjectId; }> = req.body["addedCamera"];
-    let user = await User.findById(req.user._id).exec() as IUser & Required<{ _id: Types.ObjectId; }>;
-    let accessedCameras = user.camera_access ?? [];
-    accessedCameras.push(cam._id);
-    user.camera_access = accessedCameras;
-    await User.findOneAndUpdate(req.user._id, { $set: { camera_access: accessedCameras } }, {
-      new: true,
-      overwrite: true
-    });
-    return res.status(201).json({
-      success: true,
-      data: cam,
-    });
-  }
+  createMiddleware(["section_id", "nvr", "ip", "name", "username", "password", "network", "is_enabled", "camera_type", "url"], Camera, { next: true, save: "addedCamera" })
 );
 
 //route for get id camera with ip from back RTSPtoWEBRTC
@@ -71,39 +49,7 @@ router.get("",
   readMiddleware(Camera, searchRaw, { populate: true, send: sendFunction }),
 );
 
-//listing routes
-router.get("/:id/white/personnel",
-  readMiddleware(Personnel, (search) => { return { camera_whitelist: { $in: [new mongoose.Types.ObjectId(search)] } } }, { populate: true, searchFromParams: (params) => params.id })
-);
-router.get("/:id/white/cars",
-  readMiddleware(Car, (search) => { return { camera_whitelist: { $in: [new mongoose.Types.ObjectId(search)] } } }, { populate: true, searchFromParams: (params) => params.id })
-);
-router.get("/:id/white",
-  readMiddleware(Car, (search) => { return { camera_whitelist: { $in: [new mongoose.Types.ObjectId(search)] } } }, { populate: true, searchFromParams: (params) => params.id, next: true, save: "cars" }),
-  readMiddleware(Personnel, (search) => { return { camera_whitelist: { $in: [new mongoose.Types.ObjectId(search)] } } }, { populate: true, searchFromParams: (params) => params.id, next: true, save: "personnel" }),
-  async function middleware(req: Request, res: Response, next: NextFunction) {
-    const page = parseInt(req.query.page as string) > 0 ? parseInt(req.query.page as string) : 1;
-    const perPage = (req.query.perPage as string).toLowerCase() === "all" ? 10000 : parseInt(req.query.perPage as string) > 0 ? parseInt(req.query.perPage as string) : 1
-    const data = [req.body.personnel, req.body.cars];
-    return res.status(200).json({
-      success: true,
-      data,
-      page,
-      perPage,
-      total: data.length,
-      pages: Math.ceil(data.length / perPage),
-    });
-  }
-);
-router.get("/:id/schedules",
-  readMiddleware(Schedule, async (search) => {
-    // { ip: { $regex: search, $options: "i" } },
-    let result: { $or: Array<{ "model_camera_id": any }> } = { $or: [] };
-    const m2cs = await ModelToCamera.find({ camera_id: new mongoose.Types.ObjectId(search) }).exec();
-    for (const m2c of m2cs) result["$or"].push({ "model_camera_id": m2c._id })
-    return result
-  }, { populate: true, searchFromParams: (params) => params.id }),
-);
+
 //route for get camera by id from DB
 router.get("/:id",
   readByIdMiddleware(Camera, { populate: true, send: sendFunction })
@@ -123,7 +69,7 @@ router.delete("/:id",
 function sendFunction(
   camera: (Document<unknown, any, ICamera> & Omit<ICamera & Required<{ _id: Types.ObjectId; }>, never>),
   req: Request) {
-  if (req.user.role === "admin") return {
+  return {
     _id: camera._id,
     section_id: camera.section_id,
     network: camera.network,
@@ -138,8 +84,5 @@ function sendFunction(
     create_date: camera.create_date,
     camera_type: camera.camera_type,
   };
-  else if (req.user.role === "user") if (req.user.camera_access?.some(((id) => id == camera.id))) return camera;
-  // return undefined to skip if user has no access
-  return;
 };
 export default router;

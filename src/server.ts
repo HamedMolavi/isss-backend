@@ -9,7 +9,6 @@ import http from "http";
 import https from "https";
 import app from "./app/app.Application";
 import setup from "./setups/index";
-import { run } from "./interactive/index.cluster";
 
 
 async function main() {
@@ -45,4 +44,4 @@ async function main() {
     };
   })
 };
-run(main);
+main();
