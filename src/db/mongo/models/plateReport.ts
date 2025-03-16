@@ -4,6 +4,7 @@ import { IPlateReport } from "../../../types/interfaces/plateReport.interface";
 
 const PlateReportSchema: Schema<IPlateReport> = new Schema(
   {
+    _id: { type: String, required: true },
     direction: { type: String, required: true },
     plate_number: { type: String, required: true },
     frame: { type: String, required: true },

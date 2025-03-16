@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 
 //define camera type
 export interface IPlateReport extends Document {
-  _id: mongoose.Types.ObjectId;
+  _id: string;
   direction: string;
   plate_number: string;
   frame: string;
