@@ -1,0 +1,82 @@
+[
+  {
+    "_id": {
+      "$oid": "659ab5653af1ae7dd92664ad"
+    },
+    "name": "unknown",
+    "fa_name": "نامشخص",
+    "slug": ""
+  },
+  {
+    "_id": {
+      "$oid": "65af790d4f9fd3f1b63f553b"
+    },
+    "name": "yellow",
+    "fa_name": "زرد",
+    "slug": ""
+  },
+  {
+    "_id": {
+      "$oid": "65af79134f9fd3f1b63f553c"
+    },
+    "name": "white",
+    "fa_name": "سفید",
+    "slug": ""
+  },
+  {
+    "_id": {
+      "$oid": "65af79214f9fd3f1b63f553d"
+    },
+    "name": "black",
+    "fa_name": "سیاه",
+    "slug": ""
+  },
+  {
+    "_id": {
+      "$oid": "65af792d4f9fd3f1b63f553e"
+    },
+    "name": "gray",
+    "fa_name": "خاکستری",
+    "slug": ""
+  },
+  {
+    "_id": {
+      "$oid": "65af79464f9fd3f1b63f553f"
+    },
+    "name": "red",
+    "fa_name": "قرمز",
+    "slug": ""
+  },
+  {
+    "_id": {
+      "$oid": "65af79514f9fd3f1b63f5540"
+    },
+    "name": "green",
+    "fa_name": "سبز",
+    "slug": ""
+  },
+  {
+    "_id": {
+      "$oid": "65af795d4f9fd3f1b63f5541"
+    },
+    "name": "blue",
+    "fa_name": "آبی",
+    "slug": ""
+  },
+  {
+    "_id": {
+      "$oid": "65af79664f9fd3f1b63f5542"
+    },
+    "name": "silver",
+    "fa_name": "نقره ای",
+    "slug": ""
+  },
+  {
+    "_id": {
+      "$oid": "65af79704f9fd3f1b63f5543"
+    },
+    "name": "brown",
+    "fa_name": "قهوه ای",
+    "slug": ""
+  }
+]

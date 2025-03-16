@@ -22,14 +22,17 @@ export function countMiddleware(
       if (!!options?.next) {
         if (!!options.save) req.body[options.save] = result;
         else req.body["count"] = result;
-        return next();
+        next();
+        return;
       };
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         data: !!options?.send ? options.send(result) : result,
       });
+      return;
     } catch (err: any) {
-      return next(new ApiError(500, "Internal server error , " + err.message));
+      next(new ApiError(500, "Internal server error , " + err.message));
+      return;
     }
   }
 };

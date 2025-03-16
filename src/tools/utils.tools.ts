@@ -4,7 +4,6 @@ import { Request } from "express";
 var randomWords = require('random-words-es');
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { Parser } from 'pickleparser';
 import { Jimp, ResizeStrategy } from "jimp";
 
 // bcrypt.hash("2", "$2b$10$/3XrA1.HamedMolaviC22O").then(hash => hash.slice(-31,-1))
@@ -99,12 +98,6 @@ export function sum(arr: Array<number>) {
   return arr.reduce((res, cur) => res + cur, 0);
 };
 
-export async function unpickle(p: string) {
-  const pkl = await fs.readFile(p, 'binary');
-  const buffer = Buffer.from(pkl, 'binary');
-  const parser = new Parser();
-  return parser.parse(buffer);
-}
 
 type BufferEncoding = 'ascii' | 'utf8' | 'utf-8' | 'utf16le' | 'ucs2' | 'ucs-2' | 'base64' | 'base64url' | 'latin1' | 'binary' | 'hex';
 export async function resizeImage(imageString: string, inputs?: { w?: number, h?: number, encoding?: BufferEncoding }) {

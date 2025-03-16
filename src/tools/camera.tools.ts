@@ -15,7 +15,6 @@ export function getStreamUri(camInfo: ICameraInfo): RequestHandler { // TODO: up
       req.body.url = uri;
       next();
     } else {
-      req.flash("error", "rtsp link not found");
       return next(new ApiError(400, "rtsp link not found"));
     };
   };
@@ -58,7 +57,7 @@ async function oldGetStreamUri(camInfo: cameraInfo): Promise<string | undefined>
 async function testCamera(cam: CameraInfoBody, streamUri: string) {
   //send request to back RTSPtoWEBRTC api for send ip and get id
   const response = await axios.post(
-    process.env["WEB_STREAM"],
+    process.env["WEB_STREAM"] ?? "",
     {
       ip: cam.ip,
       username: cam.username,
@@ -94,7 +93,6 @@ export async function testCameraMiddleware(req: Request, res: Response, next: Ne
       //get live stream uri(rtsp link from camera)
       let stream_uri = await oldGetStreamUri(cam_test);
       if (stream_uri == undefined) {
-        req.flash("error", "rtsp link not found");
         return next(new ApiError(400, "rtsp link not found"));
       };
     } else {

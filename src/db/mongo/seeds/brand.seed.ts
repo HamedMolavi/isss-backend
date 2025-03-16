@@ -1,15 +1,26 @@
-import { ICarBrand } from "../../../types/interfaces/car.interface";
-import { create } from "../create.database";
-import CarBrand from "../models/carBrand";
-import { read } from "../read.database";
+import { existsSync, readFileSync } from "fs";
+import CarBrand, { ICarBrand } from "../models/carBrand";
+import { join } from "path";
+import { Types } from "mongoose";
 
 export async function makeSeedCarBrand(): Promise<ICarBrand | undefined> {
-  if (!(await read(CarBrand, { query: { name: 'unknown' } })).length) {
-    const brands: ICarBrand[] = await create(CarBrand, {
-      name: 'unknown',
-    });
-    console.log("\t++ Seed data CarBrand: name=unknown");
-    return brands[0];
-  };
+  try {
+    if (!!existsSync(join(__dirname, './brand.json'))) {
+      const brands = JSON.parse(readFileSync(join(__dirname, './brand.json')).toString('utf-8'));
+      const insertings: ICarBrand[] = [];
+      for (const brand of brands) {
+        if (!(await CarBrand.exists({ name: brand.name }))) {
+          console.log("\t++ Seed data CarBrand: name=", brand.name);
+          brand['_id'] = new Types.ObjectId(brand['_id']['$oid']);
+          insertings.push(brand);
+        };
+      }
+      const docs = await CarBrand.insertMany(insertings, { ordered: true });
+      return docs[0];
+    }
+
+  } catch (error) {
+    console.error("Error creating brand seed", error);
+  }
   return undefined;
 }

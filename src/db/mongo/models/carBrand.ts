@@ -1,10 +1,15 @@
 import mongoose, { Schema, Document } from "mongoose";
-import { ICarBrand } from "../../../types/interfaces/car.interface";
+
+export interface ICarBrand extends Document {
+    _id: mongoose.Types.ObjectId;
+    name: string;
+    fa_name: string;
+}
 
 //create car_brand model with schema for save in DB
 const CarBrandSchema: Schema<ICarBrand> = new Schema({
     name: { type: String, required: true },
-    system: { type: Boolean, default: false },
+    fa_name: { type: String, required: true },
 }, {
     collection: "Car_Brand"
 });

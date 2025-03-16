@@ -7,7 +7,6 @@ import { createMiddleware } from "../../db/mongo/create.database";
 import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
 import { deleteByIdMiddleware } from "../../db/mongo/delete.database";
 import mongoose from "mongoose";
-import { carSendFunction } from "../../tools/car.tools";
 import { updateByIdMiddleware } from "../../db/mongo/update.database";
 import { DoNotAllowOnDefault, injectDataMiddleware } from "../../tools/request.tools";
 //create router for add to server file 

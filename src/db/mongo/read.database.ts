@@ -16,7 +16,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
     defaultQuery?: (bodyQueryPramas: any) => FilterQuery<any> | Promise<FilterQuery<any>>,
     aggregate?: boolean,
     forceAll?: boolean,
-    next?: boolean,
+    next?: boolean | ((req: Request) => Promise<boolean> | boolean),
     save?: string,
     send?: (doc: any, req: Request) => any | void | Promise<any | void>,
     populate?: boolean,
@@ -28,6 +28,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
   return async function (req: Request, res: Response, next: NextFunction) {
 
     try {
+      const nextValue = !!options?.next && (typeof options?.next !== "function" || !!options.next(req));
       //get page from url
       let strPage = req.query.page as string;
       let page = !options?.forceAll && parseInt(strPage) > 0 ? parseInt(strPage) : 1;
@@ -47,9 +48,9 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
           ? (await model.aggregate(filterQuery).limit(perPage).skip(perPage * (page - 1)).exec())?.map((doc: any) => new model(doc))
           : await model.find(filterQuery).limit(perPage).skip(perPage * (page - 1)).exec();
       //return response not found to client if not found
-      if (!docs.length && !options?.next) {
-        req.flash("error", model.collection.collectionName + " not found");
-        return next(new ApiError(404, model.collection.collectionName + " not found"));
+      if (!docs.length && nextValue) {
+        next(new ApiError(404, model.collection.collectionName + " not found"));
+        return
       };
       const total =
         !!options?.aggregate && !!query && !!search
@@ -78,13 +79,14 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       };
       let data = (await Promise.all(docs.map((doc) => !!options?.send ? options.send(doc, req) : doc))).filter((doc) => doc !== undefined);
 
-      if (!!options?.next) {
+      if (!!nextValue) {
         if (!!options.save) req.body[options.save] = data;
         else req.body["docs"] = data;
-        return next();
+        next();
+        return
       };
       //return response to client
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         data,
         page: page,
@@ -92,8 +94,10 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
         total,
         pages: Math.ceil(total / perPage),
       });
+      return
     } catch (err: any) {
-      return next(new ApiError(500, "internal server error , " + err.message));
+      next(new ApiError(500, "internal server error , " + err.message));
+      return
     }
   }
 };
@@ -108,8 +112,8 @@ export function readByIdMiddleware(model: any, options?: { next?: boolean, save?
 
       //return error if docs not found
       if (!doc) {
-        req.flash("error", model.collection.collectionName + " not found");
-        return next(new ApiError(404, model.collection.collectionName + " not found"));
+        next(new ApiError(404, model.collection.collectionName + " not found"));
+        return
       };
 
 
@@ -134,16 +138,19 @@ export function readByIdMiddleware(model: any, options?: { next?: boolean, save?
       if (!!options?.next) {
         if (!!options.save) req.body[options.save] = doc;
         else req.body["doc"] = doc;
-        return next();
+        next();
+        return
       };
       //send response to client
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         data: !!options?.send ? await options.send(doc, req) : doc,
       });
+      return
     } catch (err: any) {
-      if (err.kind === 'ObjectId') return next(new ApiError(400, `id must be valid: ${req.params.id}`));
-      else return next(new ApiError(500, "internal server error , " + err.message));
+      if (err.kind === 'ObjectId') next(new ApiError(400, `id must be valid: ${req.params.id}`));
+      else next(new ApiError(500, "internal server error , " + err.message));
+      return
     }
   }
 };
@@ -153,23 +160,23 @@ export async function readById(model: modelType, id: string | Schema.Types.Objec
 ) {
   let doc = await model.findById(id).exec();
 
-  if (!!options?.populate) {
-    let populates = options.populate instanceof String
-      ? options.populate.split(",").map((el) => el.trim())
-      : (options.populate as string[])?.map((el) => el.trim()) ?? [];
-    if (!!options?.forcePopulate) options.forcePopulate.forEach((p) => { if (!populates.includes(p)) populates.push(p) });
-    let idx = populates.length - 1;
-    while (!!populates.length && idx >= 0) {
-      const populate = populates[idx];
-      let keys = getAllKeys(doc.toObject());
-      let populatePath = keys.find((key) => key === populate || key.split(".").some((el) => el === populate));
-      if (!!populatePath) {
-        doc = await doc.populate(populatePath);
-        populates.splice(idx, 1);
-        idx = populates.length - 1;
-      } else idx--;
-    };
-  };
+  // if (!!options?.populate) {
+  //   let populates = options.populate instanceof String
+  //     ? options.populate.split(",").map((el) => el.trim())
+  //     : (options.populate as string[])?.map((el) => el.trim()) ?? [];
+  //   if (!!options?.forcePopulate) options.forcePopulate.forEach((p) => { if (!populates.includes(p)) populates.push(p) });
+  //   let idx = populates.length - 1;
+  //   while (!!populates.length && idx >= 0) {
+  //     const populate = populates[idx];
+  //     let keys = getAllKeys(doc?.toJSONSchema());
+  //     let populatePath = keys.find((key) => key === populate || key.split(".").some((el) => el === populate));
+  //     if (!!populatePath) {
+  //       doc = await doc?.populate(populatePath);
+  //       populates.splice(idx, 1);
+  //       idx = populates.length - 1;
+  //     } else idx--;
+  //   };
+  // };
   return doc;
 };
 

@@ -69,7 +69,6 @@ export function existCheck(model: Model<any>, query: any, info?: string, options
     let docs = (await model.find(newQuery).exec())?.filter((doc) => (!id || id !== doc._id.toString()));
     let flag = (!!docs?.length !== !!options?.notExist) && (!options?.surpass || !options.surpass(docs, req));
     if (flag) {
-      req.flash("error", info ?? "Already exists!");
       return next(new ApiError(400, info ?? "Already exists!"));
     };
     next();

@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response, Router } from "express";
 import userConfig from "./config/userConfig.Routes";
-
 import newReport from "./report/new.report"
 
 const router: Router = Router();

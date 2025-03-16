@@ -1,9 +1,9 @@
 import Excel, { Column, Style } from "exceljs";
 import { NextFunction, Request, RequestHandler, Response } from "express";
 import { ApiError } from "../types/classes/error.class";
-import { platesToStrings } from "./car.tools";
 import sizeOf from 'image-size';
 import { stringEnglishToStringPersian, stringTortl } from "./plate.tools";
+import { platesToStrings } from "./plate.tools";
 
 type Col = {
   header?: string;
@@ -53,8 +53,8 @@ export function sendExcelMiddleware(data: DataType,
       //   stream: res,
       //   zip: { zlib: { level: 9 } }, // Don't delete this
       // });
-      workbook.creator = req.user?.username;
-      workbook.lastModifiedBy = req.user?.username;
+      workbook.creator = "Ariapa";
+      workbook.lastModifiedBy = "Ariapa";
       workbook.created = new Date();
       const worksheet = workbook.addWorksheet('Data', { pageSetup: { paperSize: 9, orientation: 'portrait' } });
       // worksheet.views = [{ "state": "normal", "rightToLeft": options?.rtl }];

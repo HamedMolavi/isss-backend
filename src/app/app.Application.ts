@@ -1,6 +1,7 @@
 import express, { Application, NextFunction, Request, Response } from "express";
 import routes from "../routes/index.Routes";
 import { ApiError } from "../types/classes/error.class";
+import { ErrorRequestHandler } from 'express';
 import middlewares from "../middleware/index";
 
 //create express app
@@ -26,13 +27,12 @@ app.use(function notFound(req: Request, _res: Response, next: NextFunction) {
 
 
 
-//app stack error handler
-app.use(function errorHandler(
+const errorHandler: ErrorRequestHandler = (
   err: ApiError,
   _req: Request,
   res: Response,
   _next: NextFunction
-) {
+) => {
   const statusCode = err.statusCode || 500;
   if (err.message !== "File not found") {
     console.log("Error in endpoint: ", {
@@ -41,11 +41,13 @@ app.use(function errorHandler(
       stack: err.stack,
     });
   }
-  return res.status(statusCode).send({
+  res.status(statusCode).send({
     success: false,
     message: err.message,
     stack: process.env.NODE_ENV === "development" ? err.stack : "",
   });
-});
+};
+//app stack error handler
+app.use(errorHandler)
 
 export default app;

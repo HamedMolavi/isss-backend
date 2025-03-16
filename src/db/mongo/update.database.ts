@@ -14,8 +14,8 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
       //get id from url
       let id: string = req.params.id || req.body.id;
       if (!id) {
-        req.flash("error", "id not found");
-        return next(new ApiError(400, "Bad request"));
+        next(new ApiError(400, "Bad request"));
+        return
       };
       //get json from body request
       const payload = req.body;
@@ -25,8 +25,8 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
       let doc: Document = await model.findById(id).exec();
       //return error if user not found
       if (!doc) {
-        req.flash("error", model.collection.name + " not found");
-        return next(new ApiError(404, model.collection.name + " not found"));
+        next(new ApiError(404, model.collection.name + " not found"));
+        return
       };
       let keys = Object.keys(payload).filter((el) => !options?.ignore || !options?.ignore?.includes(el));
       let updateObject: { [key: string]: any } = {};
@@ -49,11 +49,11 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
       };
       updateObject = Object.keys(model.schema.paths).reduce((result, preKey) => {
         let value = getNestedObjectValue(updateObject, preKey.split("."));
-        if (value !== undefined)
-       {
-        result[preKey] = value;
-       } 
+        if (value !== undefined) {
+          result[preKey] = value;
+        }
         return result;
+
       }, {} as typeof updateObject)
       doc = await model.findByIdAndUpdate(id, { $set: updateObject }, {
         new: true,
@@ -63,15 +63,18 @@ export function updateByIdMiddleware(model: Model<any, any, any, any>, options?:
       if (!!options?.next) {
         if (options?.save) req.body[options.save] = doc
         else req.body["doc"] = doc
-        return next();
+        next();
+        return
       };
       //send response to client with user
-      return res.status(201).json({
+      res.status(201).json({
         success: true,
         data: !!options?.send ? options.send(doc) : doc,
       });
+      return
     } catch (err: any) {
-      return next(new ApiError(500, "internal server error , " + err.message));
+      next(new ApiError(500, "internal server error , " + err.message));
+      return
     }
   }
 };
@@ -85,7 +88,6 @@ export function updateByListMiddleware(
     try {
       let listField = req.body?.schedules;
       if (!listField) {
-        req.flash('error', 'schedules not found');
         return next(new ApiError(400, 'Bad request'));
       }
 
@@ -131,9 +133,11 @@ export function updateByListMiddleware(
         doc = await model.findByIdAndUpdate(payload.id, { $set: updateObject }, { new: true, overwrite: true }).exec();
       }
 
-      return res.status(201).json({ success: true, data: listField });
+      res.status(201).json({ success: true, data: listField });
+      return
     } catch (err: any) {
-      return next(new ApiError(500, 'internal server error , ' + err.message));
+      next(new ApiError(500, 'internal server error , ' + err.message));
+      return
     }
   };
 }

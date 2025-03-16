@@ -1,8 +1,13 @@
 import { ICameraInfo } from "../interfaces/camera.interface";
-import { IFailoverStrategy } from "../interfaces/strategy.interface";
 import { NextFunction } from "express";
 import { ApiError } from "./error.class";
 const onvif = require("node-onvif");
+
+export interface IFailoverStrategy {
+    args: { [key: string]: any[] | any }
+    strategies: ((...args: any[]) => any)[]
+    do: () => any
+}
 
 export class getStreamUriStrategy implements IFailoverStrategy {
     args: { zeros: string | undefined, first: ICameraInfo, second: ICameraInfo["nvr"], error: NextFunction } & IFailoverStrategy["args"];

@@ -14,7 +14,6 @@ export function injectDataMiddleware(fn: CallableFunction, options?: { params?: 
       };
       next();
     } catch (error) {
-      req.flash("error", "Internal Error!");
       return next(new ApiError(500, "Internal Error!"));
     };
   };
@@ -35,7 +34,6 @@ export function docSendMiddleware(bodyFieldName: string | string[]) {
     if (typeof bodyFieldName === "string") data = req.body?.[bodyFieldName];
     else for (const fieldName of bodyFieldName) data = [...data, ...req.body?.[fieldName]];
     if (!data || !data.length) {
-      req.flash("error", bodyFieldName + " not found");
       return next(new ApiError(404, bodyFieldName + " not found"));
     };
     return res.status(200).json({
@@ -70,17 +68,11 @@ export function DoNotAllowOnDefault(model: any, query: FilterQuery<any>) {
     readMiddleware(model, (search: string) => { return { _id: new mongoose.Types.ObjectId(search), ...query } }, { searchFromParams: (params) => params.id, next: true, save: 'docs' }),
     (req: Request, res: Response, next: NextFunction) => {
       if (!!req.body["docs"].length) {
-        req.flash("error", "Can't change default " + model.collection.collectionName + "!");
-        return next(new ApiError(403, "Can't change default " + model.collection.collectionName + "!"));
+        next(new ApiError(403, "Can't change default " + model.collection.collectionName + "!"));
+        return
       };
-      return next();
+      next();
+      return
     }
   ];
 };
-
-export function exposeUserToBody(options?: { propertyName?: string }) {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    req.body[options?.propertyName ?? "user"] = req.user;
-    return next();
-  }
-}

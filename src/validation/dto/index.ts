@@ -22,7 +22,6 @@ export function dtoValidationMiddleware(type: any, options?: { skipMissingProper
           const dtoErrorsString = defaultOpt["detailedMassage"]
             ? errors.map((error: ValidationError) => (Object as any).values(error.constraints)).join(", ")
             : "Bad request!"
-          if (!!defaultOpt["info"]) req.flash("error", defaultOpt["info"]);
           next(new ApiError(400, dtoErrorsString));
         } else {
           //TODO: sanitize the object and call the next middleware
@@ -152,7 +151,7 @@ export class FileOrDirExists implements ValidatorConstraintInterface {
 export class CountLicenseRestricion implements ValidatorConstraintInterface {
   async validate(_p: string, args: ValidationArguments & {
     object: any, constraints: [{
-      model: mongoose.Model<{}, {}, {}, {}>,
+      model: mongoose.Model<{}, {}, {}, mongoose.Schema<any, mongoose.Model<any, any, any, any, any>, {}, {}, {}, {}, mongoose.DefaultSchemaOptions, any>>,
       env?: string | ((object: any) => string | Promise<string>),
       defualtNumber?: number,
       pipelines?: Pipeline[] | ((object: any) => Pipeline[] | Promise<Pipeline[]>),

@@ -1,7 +1,9 @@
 import mongoose, { Schema, Document } from "mongoose";
-import { ICarColor } from "../../../types/interfaces/car.interface";
-
-
+export interface ICarColor extends Document {
+    _id: mongoose.Types.ObjectId;
+    name: string;
+    fa_name: string
+}
 
 //create car_color model with schema for save in DB
 const CarColorSchema: Schema<ICarColor> = new Schema({

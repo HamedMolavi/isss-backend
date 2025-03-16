@@ -5,7 +5,7 @@ export function createMiddleware(keys: Array<string | { [key: string]: (body: an
   return async function middleware(req: Request, res: Response, next: NextFunction) {
     try {
       //get json from body request
-      let payload: { [key: string]: string | Array<string>} ={};
+      let payload: { [key: string]: string | Array<string> } = {};
       for (const key of keys) {
         // if (!Object.prototype.hasOwnProperty.call(req.body, typeof key === "string" ? key : Object.keys(key)[0])) continue;
         if (typeof (key) === "string") payload[key] = req.body[key];
@@ -22,18 +22,20 @@ export function createMiddleware(keys: Array<string | { [key: string]: (body: an
       let doc = new model(payload);
       await doc.save();
       //return success
-      req.flash("info", `${model.collection.collectionName} added.`);
       if (!!options?.next) {
         if (!!options.save) req.body[options.save] = doc;
         else req.body["data"] = doc;
-        return next();
+        next();
+        return
       };
-      return res.status(201).json({
+      res.status(201).json({
         success: true,
         data: !!options?.send ? options.send(doc) : doc.toJSON(),
       });
+      return
     } catch (err: any) {
-      return next(new ApiError(500, "Internal server error , " + err.message));
+      next(new ApiError(500, "Internal server error , " + err.message));
+      return
     }
   }
 };

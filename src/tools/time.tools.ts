@@ -1,4 +1,3 @@
-import { ISchedule } from "../types/interfaces/schedule.interface";
 import { NextFunction, Request, Response } from "express";
 import { Clock, Cron, CronDay, DayOfWeek, Hours, Minutes, TwoDigitsClock, TwoDigitsHours, TwoDigitsMinutes } from "../types/interfaces/time.interface";
 import reverseString from "./reverseString";
@@ -62,7 +61,6 @@ export default class Time {
   static compareTimeMiddleware(startNamePropery: string, stopNamePropery: string) {
     return (req: Request, res: Response, next: NextFunction) => {
       if (!!req.body[startNamePropery] && !!req.body[stopNamePropery] && !this.compareTime(req.body[startNamePropery], req.body[stopNamePropery])) {
-        req.flash("error", "Invalid time");
         return next(new ApiError(400, "Invalid time"));
       };
       next();
@@ -119,7 +117,7 @@ export default class Time {
   };
 
   //for overlap validation of schedules
-  static validateTime(newStart: Clock, newStop: Clock, newDayOfWeek: Array<string>, schedules: ISchedule[]) {
+  static validateTime(newStart: Clock, newStop: Clock, newDayOfWeek: Array<string>, schedules: any[]) {
     return schedules.every((schedule) => { // all of schedules must let new schedule pass (no overlap)
       let oldDayOfweek = schedule.start_cron.split(" ").pop() as string;
       return newDayOfWeek.every((el) => {
@@ -139,7 +137,6 @@ export default class Time {
   static validateTimeMiddleware(startNamePropery: string, stopNamePropery: string, dayOfWeekNameProperty: string, scheduleListNamePropery: string) {
     return (req: Request, res: Response, next: NextFunction) => {
       if (this.validateTime(req.body[startNamePropery], req.body[stopNamePropery], req.body[dayOfWeekNameProperty], req.body[scheduleListNamePropery])) return next();
-      req.flash("error", "Overlaped Schedule!");
       return next(new ApiError(400, "Overlaped Schedule!"));
     };
   };
