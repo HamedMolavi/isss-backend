@@ -10,28 +10,16 @@ RUN apt-get update && apt-get install -y curl docker.io
 
 COPY package.json .
 COPY package-lock.json* .
-# RUN yarn install
-# RUN yarn global add typescript ts-node 
 RUN npm install
 RUN npm install -g typescript ts-node 
-# RUN echo http://repository.fit.cvut.cz/mirrors/alpine/v3.8/main > /etc/apk/repositories; \
-#     echo http://repository.fit.cvut.cz/mirrors/alpine/v3.8/community >> /etc/apk/repositories
-# RUN echo -e "http://nl.alpinelinux.org/alpine/v3.16/main\nhttp://nl.alpinelinux.org/alpine/v3.16/community" > /etc/apk/repositories
-# RUN apk update
-# RUN apk add
-# RUN apk add ffmpeg
 
-FROM builder
-WORKDIR /isss-backend
 #COPY logs ./logs ./
 #COPY security ./security ./
 # COPY assets ./assets ./
-COPY --from=builder /isss-backend /isss-backend
-# COPY tsconfig.json ./
-COPY obfuscated ./src
-COPY security ./security
+COPY tsconfig.json ./
+COPY . .
 # RUN npm run build
 
 EXPOSE 3000
 
-CMD [ "node" , "./src/server.js" ]
+CMD [ "ts-node" , "./src/server.ts" ]
