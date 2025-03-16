@@ -1,546 +1,2354 @@
 [
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b34d"
+      "$oid": "67d5a41f60a1ae5eb8df46ed"
     },
     "name": "206",
-    "fa_name": "پژو 206",
-    "slug": ""
+    "slug": "peugeot206",
+    "fa_name": "پژو ۲۰۶"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b34e"
+      "$oid": "67d5a41f60a1ae5eb8df46ee"
     },
     "name": "207i",
-    "fa_name": "پژو 207",
-    "slug": ""
+    "slug": "peugeot207",
+    "fa_name": "پژو ۲۰۷"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b34f"
+      "$oid": "67d5a41f60a1ae5eb8df46ef"
     },
     "name": "405_RD",
-    "fa_name": "پژو 405/ آردی / روآ",
-    "slug": ""
+    "slug": "peugeot405",
+    "fa_name": "پژو ۴۰۵"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b350"
+      "$oid": "67d5a41f60a1ae5eb8df46f0"
     },
     "name": "Arisun",
-    "fa_name": "آریسان",
-    "slug": ""
+    "slug": "arisan",
+    "fa_name": "آریسان"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b351"
+      "$oid": "67d5a41f60a1ae5eb8df46f1"
     },
-    "name": "Brilliance",
-    "fa_name": "برلیانس",
-    "slug": ""
+    "name": "BMC-Pro827-2006_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b352"
+      "$oid": "67d5a41f60a1ae5eb8df46f2"
+    },
+    "name": "Bedford_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46f3"
+    },
+    "name": "Brilliance-H220",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46f4"
+    },
+    "name": "Brilliance-H230",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46f5"
+    },
+    "name": "Brilliance-H320",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46f6"
+    },
+    "name": "Brilliance-H330",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46f7"
+    },
+    "name": "Brilliance-V5",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46f8"
+    },
+    "name": "Brilliance_Crossc",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46f9"
+    },
+    "name": "C&C-U480_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46fa"
     },
     "name": "Citroen_C3",
-    "fa_name": "سیتروئن C3",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b353"
+      "$oid": "67d5a41f60a1ae5eb8df46fb"
+    },
+    "name": "DAF-XF106-480_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46fc"
+    },
+    "name": "Dayun_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46fd"
     },
     "name": "Dena",
-    "fa_name": "دنا",
-    "slug": ""
+    "slug": "dena",
+    "fa_name": "دنا"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b354"
+      "$oid": "67d5a41f60a1ae5eb8df46fe"
+    },
+    "name": "Dongfeng-DFH1180B_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df46ff"
     },
     "name": "HcCross",
-    "fa_name": "اچ سی کراس",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b355"
+      "$oid": "67d5a41f60a1ae5eb8df4700"
     },
-    "name": "Hyundai",
-    "fa_name": "هیوندا",
-    "slug": ""
+    "name": "Isuzu-Citiport_van",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b356"
+      "$oid": "67d5a41f60a1ae5eb8df4701"
     },
-    "name": "JackS5",
-    "fa_name": "جک S5",
-    "slug": ""
+    "name": "Isuzu-NQR-NPR_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b357"
+      "$oid": "67d5a41f60a1ae5eb8df4702"
     },
-    "name": "KIA",
-    "fa_name": "کیا",
-    "slug": ""
+    "name": "Isuzu-Novo_van",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b358"
+      "$oid": "67d5a41f60a1ae5eb8df4703"
+    },
+    "name": "Isuzu-elf_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4704"
+    },
+    "name": "Iveco-daily_Minibus",
+    "slug": "minibus",
+    "fa_name": "مینی بوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4705"
+    },
+    "name": "KIA-carens",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4706"
+    },
+    "name": "KIA-mohave",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4707"
+    },
+    "name": "KIA-opirus",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4708"
+    },
+    "name": "KIA-picanto",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4709"
+    },
+    "name": "KIA-sorento",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df470a"
+    },
+    "name": "KIA-sportage",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df470b"
     },
     "name": "KIA_cerato",
-    "fa_name": "کیا سراتو",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b359"
+      "$oid": "67d5a41f60a1ae5eb8df470c"
     },
     "name": "KIA_optima",
-    "fa_name": "کیا اپتیما",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b35a"
+      "$oid": "67d5a41f60a1ae5eb8df470d"
+    },
+    "name": "KIA_soul",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df470e"
     },
     "name": "KaraMazdaPickup",
-    "fa_name": "پیکاپ مزدا",
-    "slug": ""
+    "slug": "vanet",
+    "fa_name": "وانت"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b35b"
+      "$oid": "67d5a41f60a1ae5eb8df470f"
     },
     "name": "L90_Parse_Tundar",
-    "fa_name": "تندر L90",
-    "slug": ""
+    "slug": "L90",
+    "fa_name": "ال نود"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b35c"
+      "$oid": "67d5a41f60a1ae5eb8df4710"
     },
-    "name": "Lexus",
-    "fa_name": "لکسوس",
-    "slug": ""
+    "name": "MAN_A44_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b35d"
+      "$oid": "67d5a41f60a1ae5eb8df4711"
+    },
+    "name": "MAN_Lion_City_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4712"
+    },
+    "name": "MAN_Lion_Coach_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4713"
+    },
+    "name": "MAN_Lion_Intercity_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4714"
     },
     "name": "MVM_110",
-    "fa_name": "ام وی ام 110",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b35e"
+      "$oid": "67d5a41f60a1ae5eb8df4715"
     },
     "name": "MVM_315",
-    "fa_name": "ام وی ام 315",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b35f"
+      "$oid": "67d5a41f60a1ae5eb8df4716"
     },
     "name": "MVM_530",
-    "fa_name": "ام وی ام 530",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b360"
+      "$oid": "67d5a41f60a1ae5eb8df4717"
     },
     "name": "MVM_550",
-    "fa_name": "ام وی ام 550",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b361"
+      "$oid": "67d5a41f60a1ae5eb8df4718"
+    },
+    "name": "MVM_Chery Karry_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4719"
     },
     "name": "MVM_X22",
-    "fa_name": "ام وی ام x22",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b362"
+      "$oid": "67d5a41f60a1ae5eb8df471a"
     },
     "name": "MVM_X22_pro",
-    "fa_name": "ام وی ام x22 پرو",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b363"
+      "$oid": "67d5a41f60a1ae5eb8df471b"
     },
     "name": "MVM_X33_S",
-    "fa_name": "ام وی ام x33 S",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b364"
-    },
-    "name": "Matiz",
-    "fa_name": "ماتیز",
-    "slug": ""
-  },
-  {
-    "_id": {
-      "$oid": "65ae67704d8e361cf687b365"
+      "$oid": "67d5a41f60a1ae5eb8df471c"
     },
     "name": "NeissanVanet",
-    "fa_name": "نیسان وانت",
-    "slug": ""
+    "slug": "nissan",
+    "fa_name": "نیسان"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b366"
+      "$oid": "67d5a41f60a1ae5eb8df471d"
     },
     "name": "Pars",
-    "fa_name": "پژو پارس",
-    "slug": ""
+    "slug": "pars",
+    "fa_name": "پارس"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b367"
+      "$oid": "67d5a41f60a1ae5eb8df471e"
     },
     "name": "PeykanSavari",
-    "fa_name": "پیکان",
-    "slug": ""
+    "slug": "peykan",
+    "fa_name": "پیکان"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b368"
+      "$oid": "67d5a41f60a1ae5eb8df471f"
     },
     "name": "PeykanVanet",
-    "fa_name": "پیکان وانت",
-    "slug": ""
+    "slug": "vanet",
+    "fa_name": "وانت"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b369"
+      "$oid": "67d5a41f60a1ae5eb8df4720"
     },
     "name": "Pride131nasimsaba",
-    "fa_name": "پراید",
-    "slug": ""
+    "slug": "pride",
+    "fa_name": "پراید"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b36a"
+      "$oid": "67d5a41f60a1ae5eb8df4721"
     },
     "name": "Pride132and111",
-    "fa_name": "پراید 132/111",
-    "slug": ""
+    "slug": "pride",
+    "fa_name": "پراید"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b36b"
+      "$oid": "67d5a41f60a1ae5eb8df4722"
     },
     "name": "Pride141",
-    "fa_name": "پراید 141",
-    "slug": ""
+    "slug": "pride",
+    "fa_name": "پراید"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b36c"
+      "$oid": "67d5a41f60a1ae5eb8df4723"
     },
     "name": "PrideVanet151",
-    "fa_name": "پراید وانت 151",
-    "slug": ""
+    "slug": "pride",
+    "fa_name": "پراید"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b36d"
+      "$oid": "67d5a41f60a1ae5eb8df4724"
     },
     "name": "Quik",
-    "fa_name": "کوییک",
-    "slug": ""
+    "slug": "quick",
+    "fa_name": "کوییک"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b36e"
-    },
-    "name": "RenaultPK",
-    "fa_name": "رنو PK",
-    "slug": ""
-  },
-  {
-    "_id": {
-      "$oid": "65ae67704d8e361cf687b36f"
+      "$oid": "67d5a41f60a1ae5eb8df4725"
     },
     "name": "RioSD",
-    "fa_name": "ریو SD",
-    "slug": ""
+    "slug": "rio",
+    "fa_name": "ریو"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b370"
+      "$oid": "67d5a41f60a1ae5eb8df4726"
     },
     "name": "Runna",
-    "fa_name": "رانا",
-    "slug": ""
+    "slug": "rana",
+    "fa_name": "رانا"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b371"
+      "$oid": "67d5a41f60a1ae5eb8df4727"
     },
     "name": "Saina",
-    "fa_name": "ساینا",
-    "slug": ""
+    "slug": "saina",
+    "fa_name": "ساینا"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b372"
+      "$oid": "67d5a41f60a1ae5eb8df4728"
     },
     "name": "Samand",
-    "fa_name": "سمند",
-    "slug": ""
+    "slug": "samand",
+    "fa_name": "سمند"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b373"
+      "$oid": "67d5a41f60a1ae5eb8df4729"
     },
     "name": "SamandSoren",
-    "fa_name": "سمند سورن",
-    "slug": ""
+    "slug": "samand",
+    "fa_name": "سمند"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b374"
+      "$oid": "67d5a41f60a1ae5eb8df472a"
     },
     "name": "Shahin",
-    "fa_name": "شاهین",
-    "slug": ""
+    "slug": "shahin",
+    "fa_name": "شاهین"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b375"
+      "$oid": "67d5a41f60a1ae5eb8df472b"
+    },
+    "name": "TEMSA_Safari_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df472c"
     },
     "name": "Tiba",
-    "fa_name": "تیبا",
-    "slug": ""
+    "slug": "tiba",
+    "fa_name": "تیبا"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b376"
+      "$oid": "67d5a41f60a1ae5eb8df472d"
+    },
+    "name": "Van-Delica_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df472e"
+    },
+    "name": "Volkswagen-Type 2-(T1)_Minibus",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df472f"
+    },
+    "name": "Wrightbus-StreetLite_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4730"
     },
     "name": "Xantia",
-    "fa_name": "زانتیا",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b377"
+      "$oid": "67d5a41f60a1ae5eb8df4731"
     },
     "name": "Zoti_Ario",
-    "fa_name": "زوتی آریو",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b378"
+      "$oid": "67d5a41f60a1ae5eb8df4732"
     },
-    "name": "bicycle",
-    "fa_name": "دوچرخه",
-    "slug": ""
+    "name": "amico-araz2door",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b379"
+      "$oid": "67d5a41f60a1ae5eb8df4733"
     },
-    "name": "bus",
-    "fa_name": "اتوبوس",
-    "slug": ""
+    "name": "amico-asna4door",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b37a"
+      "$oid": "67d5a41f60a1ae5eb8df4734"
     },
-    "name": "changan",
-    "fa_name": "چانگان",
-    "slug": ""
+    "name": "audi-q5",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b37b"
+      "$oid": "67d5a41f60a1ae5eb8df4735"
+    },
+    "name": "audi-ttcoupe",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4736"
+    },
+    "name": "badsan-b8_truck",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4737"
+    },
+    "name": "bmw-1seriescoupe",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4738"
+    },
+    "name": "bmw-1serieshatchback",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4739"
+    },
+    "name": "bmw-2seriesactivetourer",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df473a"
+    },
+    "name": "bmw-2seriesconvertible",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df473b"
+    },
+    "name": "bmw-2seriescoupe",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df473c"
+    },
+    "name": "bmw-3seriesconvertible",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df473d"
+    },
+    "name": "bmw-3seriescoupe",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df473e"
+    },
+    "name": "bmw-3seriesgt",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df473f"
+    },
+    "name": "bmw-3seriessedan",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4740"
+    },
+    "name": "bmw-4seriesconvertible",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4741"
+    },
+    "name": "bmw-4seriescoupe",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4742"
+    },
+    "name": "bmw-4seriesgrancoupe",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4743"
+    },
+    "name": "bmw-5seriessedan",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4744"
+    },
+    "name": "bmw-6seriesconvertible",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4745"
+    },
+    "name": "bmw-6seriescoupe",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4746"
+    },
+    "name": "bmw-6seriesgrancoupe",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4747"
+    },
+    "name": "bmw-7series",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4748"
+    },
+    "name": "bmw-classic",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4749"
+    },
+    "name": "bmw-iseries",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df474a"
+    },
+    "name": "bmw-x1",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df474b"
+    },
+    "name": "bmw-x3",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df474c"
+    },
+    "name": "bmw-x4",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df474d"
+    },
+    "name": "bmw-x5",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df474e"
+    },
+    "name": "bmw-x6",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df474f"
+    },
+    "name": "bmw-z4",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4750"
+    },
+    "name": "changan-cs35",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4751"
+    },
+    "name": "changan-cs35plus",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4752"
+    },
+    "name": "changan-eado",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4753"
+    },
+    "name": "chenglong-h7_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4754"
+    },
+    "name": "chery-arrizo5",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4755"
+    },
+    "name": "chery-arrizo5-fl",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4756"
+    },
+    "name": "chery-arrizo6",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4757"
     },
     "name": "chery-tiggo5",
-    "fa_name": "چری تیگو 5",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b37c"
+      "$oid": "67d5a41f60a1ae5eb8df4758"
     },
-    "name": "daewoo",
-    "fa_name": "دوو",
-    "slug": ""
+    "name": "chery-tiggo7",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b37d"
+      "$oid": "67d5a41f60a1ae5eb8df4759"
+    },
+    "name": "chery-viana",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df475a"
+    },
+    "name": "daewoo-BH120_bus",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df475b"
+    },
+    "name": "daewoo-cielo",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df475c"
+    },
+    "name": "daewoo-matiz",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df475d"
+    },
+    "name": "daewoo-racer",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df475e"
+    },
+    "name": "faw_truck",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df475f"
+    },
+    "name": "foton-View_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4760"
+    },
+    "name": "foton_truck",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4761"
     },
     "name": "fownix-arrizo6pro",
-    "fa_name": "فونیکس آریزو6 پرو",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b37e"
+      "$oid": "67d5a41f60a1ae5eb8df4762"
+    },
+    "name": "fownix-fx",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4763"
     },
     "name": "fownix-tiggo7pro",
-    "fa_name": "فونیکس تیگو7 پرو",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b37f"
+      "$oid": "67d5a41f60a1ae5eb8df4764"
     },
     "name": "fownix-tiggo8pro",
-    "fa_name": "فونیکس تیگو8 پرو",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b380"
+      "$oid": "67d5a41f60a1ae5eb8df4765"
     },
-    "name": "geely",
-    "fa_name": "جیلی",
-    "slug": ""
+    "name": "geely-emgrand",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b381"
+      "$oid": "67d5a41f60a1ae5eb8df4766"
     },
-    "name": "jack_G3",
-    "fa_name": "جک G3",
-    "slug": ""
+    "name": "geely-emgrandRV",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b382"
+      "$oid": "67d5a41f60a1ae5eb8df4767"
     },
-    "name": "jack_G4",
-    "fa_name": "جک G4",
-    "slug": ""
+    "name": "geely-emgrandX",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b383"
+      "$oid": "67d5a41f60a1ae5eb8df4768"
     },
-    "name": "jack_G5",
-    "fa_name": "جک G5",
-    "slug": ""
+    "name": "geely-gc6",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b384"
+      "$oid": "67d5a41f60a1ae5eb8df4769"
+    },
+    "name": "haima-7x",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df476a"
+    },
+    "name": "haima-8s",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df476b"
+    },
+    "name": "haima-s5",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df476c"
+    },
+    "name": "haima-s7",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df476d"
+    },
+    "name": "honda-accord-ex",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df476e"
+    },
+    "name": "honda-accord-exa",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df476f"
+    },
+    "name": "honda-accord-exb",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4770"
+    },
+    "name": "honda-accord-exi",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4771"
+    },
+    "name": "honda-accord-exl",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4772"
+    },
+    "name": "honda-accord-lxb",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4773"
+    },
+    "name": "honda-civic-1990-2000",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4774"
+    },
+    "name": "honda-civic-2000-2010",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4775"
+    },
+    "name": "honda-crv-ex",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4776"
+    },
+    "name": "honda-crv-touring",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4777"
+    },
+    "name": "hyundai-County_Minibus",
+    "slug": "minibus",
+    "fa_name": "مینی بوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4778"
+    },
+    "name": "hyundai-accent",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4779"
+    },
+    "name": "hyundai-avante",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df477a"
+    },
+    "name": "hyundai-azera",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df477b"
+    },
+    "name": "hyundai-creta",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df477c"
+    },
+    "name": "hyundai-elantra",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df477d"
+    },
+    "name": "hyundai-excel",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df477e"
+    },
+    "name": "hyundai-genesis",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df477f"
+    },
+    "name": "hyundai-h1_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4780"
+    },
+    "name": "hyundai-i10",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4781"
+    },
+    "name": "hyundai-i20",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4782"
+    },
+    "name": "hyundai-i30",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4783"
+    },
+    "name": "hyundai-i40",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4784"
+    },
+    "name": "hyundai-mighty_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4785"
+    },
+    "name": "hyundai-santafe-ix45",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4786"
+    },
+    "name": "hyundai-sonata",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4787"
+    },
+    "name": "hyundai-tiburon",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4788"
+    },
+    "name": "hyundai-tucson-ix35",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4789"
+    },
+    "name": "hyundai-veloster",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df478a"
+    },
+    "name": "hyundai-veracruz-ix55",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df478b"
+    },
+    "name": "ikd-K375D-Kavian_truck",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df478c"
+    },
+    "name": "ikd-arin_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df478d"
+    },
+    "name": "ikd-vana_van_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df478e"
+    },
+    "name": "isuzu-turquoise_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df478f"
+    },
+    "name": "jack-N56_truck",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a41f60a1ae5eb8df4790"
+    },
+    "name": "jack_Refine_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4791"
     },
     "name": "jack_S3",
-    "fa_name": "جک S3",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b385"
+      "$oid": "67d5a42060a1ae5eb8df4792"
     },
-    "name": "lifan",
-    "fa_name": "لیفان",
-    "slug": ""
+    "name": "jack_S5",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b386"
+      "$oid": "67d5a42060a1ae5eb8df4793"
+    },
+    "name": "jack_j3",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4794"
+    },
+    "name": "jack_j4",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4795"
+    },
+    "name": "jack_j5",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4796"
+    },
+    "name": "karsan-J10_Minibus",
+    "slug": "minibus",
+    "fa_name": "مینی بوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4797"
+    },
+    "name": "kia-cadenza",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4798"
+    },
+    "name": "lexus-ct",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4799"
+    },
+    "name": "lexus-es",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df479a"
+    },
+    "name": "lexus-gs",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df479b"
+    },
+    "name": "lexus-is",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df479c"
+    },
+    "name": "lexus-ls",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df479d"
+    },
+    "name": "lexus-lx",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df479e"
+    },
+    "name": "lexus-nx",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df479f"
+    },
+    "name": "lexus-rx",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47a0"
+    },
+    "name": "lifan_520",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47a1"
+    },
+    "name": "lifan_520i",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47a2"
+    },
+    "name": "lifan_620",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47a3"
+    },
+    "name": "lifan_820",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47a4"
+    },
+    "name": "lifan_X50",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47a5"
+    },
+    "name": "lifan_X60",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47a6"
+    },
+    "name": "lifan_X70",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47a7"
     },
     "name": "mazda-323",
-    "fa_name": "مزدا 323",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b387"
+      "$oid": "67d5a42060a1ae5eb8df47a8"
     },
     "name": "mazda_3",
-    "fa_name": "مزدا 3",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b388"
+      "$oid": "67d5a42060a1ae5eb8df47a9"
     },
-    "name": "megan",
-    "fa_name": "مگان",
-    "slug": ""
+    "name": "mercedesbenz-0457_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b389"
+      "$oid": "67d5a42060a1ae5eb8df47aa"
     },
-    "name": "motorcycle",
-    "fa_name": "موتور سیکلت",
-    "slug": ""
+    "name": "mercedesbenz-911-1924_truck",
+    "slug": "vanet",
+    "fa_name": "وانت"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b38a"
+      "$oid": "67d5a42060a1ae5eb8df47ab"
     },
-    "name": "reno_sandro",
-    "fa_name": "رنو ساندرو",
-    "slug": ""
+    "name": "mercedesbenz-Citaro_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b38b"
+      "$oid": "67d5a42060a1ae5eb8df47ac"
+    },
+    "name": "mercedesbenz-O309_Minibus",
+    "slug": "minibus",
+    "fa_name": "مینی بوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47ad"
+    },
+    "name": "mercedesbenz-O500_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47ae"
+    },
+    "name": "mercedesbenz-Sprinter_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47af"
+    },
+    "name": "mercedesbenz-T2_Minibus",
+    "slug": "minibus",
+    "fa_name": "مینی بوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47b0"
+    },
+    "name": "mercedesbenz-Travego_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47b1"
+    },
+    "name": "mercedesbenz-V-Class_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47b2"
+    },
+    "name": "mercedesbenz-Vito_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47b3"
+    },
+    "name": "mercedesbenz-bclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47b4"
+    },
+    "name": "mercedesbenz-cclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47b5"
+    },
+    "name": "mercedesbenz-cclasscoupe",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47b6"
+    },
+    "name": "mercedesbenz-classic",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47b7"
+    },
+    "name": "mercedesbenz-clclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47b8"
+    },
+    "name": "mercedesbenz-clsclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47b9"
+    },
+    "name": "mercedesbenz-eclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47ba"
+    },
+    "name": "mercedesbenz-eclassconvertible",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47bb"
+    },
+    "name": "mercedesbenz-eclasscoupe",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47bc"
+    },
+    "name": "mercedesbenz-glaclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47bd"
+    },
+    "name": "mercedesbenz-gleclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47be"
+    },
+    "name": "mercedesbenz-glkclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47bf"
+    },
+    "name": "mercedesbenz-mlclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47c0"
+    },
+    "name": "mercedesbenz-sclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47c1"
+    },
+    "name": "mercedesbenz-slcclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47c2"
+    },
+    "name": "mercedesbenz-slclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47c3"
+    },
+    "name": "mercedesbenz-slkclass",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47c4"
+    },
+    "name": "mercedesbenz-van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47c5"
+    },
+    "name": "mitsubishi-asx",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47c6"
+    },
+    "name": "mitsubishi-galant",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47c7"
+    },
+    "name": "mitsubishi-lancer",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47c8"
+    },
+    "name": "mitsubishi-mirage",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47c9"
+    },
+    "name": "mitsubishi-outlander",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47ca"
+    },
+    "name": "mitsubishi-outlanderphev",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47cb"
+    },
+    "name": "mitsubishi-pajero2door",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47cc"
+    },
+    "name": "mitsubishi-pajero4door",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47cd"
+    },
+    "name": "mitsubishi-pickup",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47ce"
+    },
+    "name": "nissan-juke",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47cf"
+    },
+    "name": "nissan-kicks",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47d0"
+    },
+    "name": "nissan-maximair",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47d1"
+    },
+    "name": "nissan-murano",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47d2"
+    },
+    "name": "nissan-patrol2doorir",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47d3"
+    },
+    "name": "nissan-patrol4doorir",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47d4"
+    },
+    "name": "nissan-patrolpickup",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47d5"
+    },
+    "name": "nissan-pickupir2cab",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47d6"
+    },
+    "name": "nissan-qashqai",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47d7"
+    },
+    "name": "nissan-roniz",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47d8"
+    },
+    "name": "nissan-seranza",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47d9"
+    },
+    "name": "nissan-sunny",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47da"
+    },
+    "name": "nissan-teanaim",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47db"
+    },
+    "name": "nissan-tiida",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47dc"
+    },
+    "name": "nissan-xtrail",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47dd"
+    },
+    "name": "optare-solo_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47de"
+    },
+    "name": "renault-Premium-320.26S_truck",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47df"
+    },
+    "name": "renault-megan",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47e0"
+    },
+    "name": "renault-pk",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47e1"
+    },
+    "name": "renault-sandero",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47e2"
+    },
+    "name": "scania_Citywide_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47e3"
+    },
+    "name": "scania_Higer_A30_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47e4"
+    },
+    "name": "scania_Irizar_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47e5"
+    },
+    "name": "scania_Maral-Oghab Afshan_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47e6"
+    },
+    "name": "scania_truck",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47e7"
+    },
+    "name": "suzuki-ciaz",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47e8"
+    },
+    "name": "suzuki-grandvitara",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47e9"
+    },
+    "name": "suzuki-grandvitarair",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47ea"
+    },
+    "name": "suzuki-kizashi",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47eb"
     },
     "name": "tara",
-    "fa_name": "تارا",
-    "slug": ""
+    "slug": "tara",
+    "fa_name": "تارا"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b38c"
+      "$oid": "67d5a42060a1ae5eb8df47ec"
     },
-    "name": "toyota",
-    "fa_name": "تویوتا",
-    "slug": ""
+    "name": "toyota-aurion",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b38d"
+      "$oid": "67d5a42060a1ae5eb8df47ed"
+    },
+    "name": "toyota-coaster_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47ee"
+    },
+    "name": "toyota-corona",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47ef"
+    },
+    "name": "toyota-cressida",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47f0"
+    },
+    "name": "toyota-fjcruiser",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47f1"
+    },
+    "name": "toyota-furtuner",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47f2"
+    },
+    "name": "toyota-gt86",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47f3"
+    },
+    "name": "toyota-hiace_van",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47f4"
+    },
+    "name": "toyota-hilux-double-cabin",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47f5"
+    },
+    "name": "toyota-hilux-single-cabin",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47f6"
+    },
+    "name": "toyota-landcruiser2door",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47f7"
+    },
+    "name": "toyota-landcruiser4door",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47f8"
+    },
+    "name": "toyota-landcruiserpickup2door",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47f9"
+    },
+    "name": "toyota-landcruiserpickup4door",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47fa"
+    },
+    "name": "toyota-prado2doors",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47fb"
+    },
+    "name": "toyota-prado4doors",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47fc"
+    },
+    "name": "toyota-prius",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47fd"
+    },
+    "name": "toyota-rav4",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47fe"
+    },
+    "name": "toyota-yaris-hatchback",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df47ff"
+    },
+    "name": "toyota-yaris-sadan",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4800"
     },
     "name": "toyota_camry",
-    "fa_name": "تویوتا کمری",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b38e"
+      "$oid": "67d5a42060a1ae5eb8df4801"
+    },
+    "name": "toyota_carina",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4802"
+    },
+    "name": "toyota_chr",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4803"
     },
     "name": "toyota_corolla",
-    "fa_name": "تویوتا کرولا",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae67704d8e361cf687b38f"
+      "$oid": "67d5a42060a1ae5eb8df4804"
     },
-    "name": "truck",
-    "fa_name": "کامیون",
-    "slug": ""
+    "name": "toyota_crown",
+    "slug": "etc",
+    "fa_name": "سایر"
   },
   {
     "_id": {
-      "$oid": "65ae6796ce60dfc7dbd4e566"
+      "$oid": "67d5a42060a1ae5eb8df4805"
+    },
+    "name": "volvo-9700_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4806"
+    },
+    "name": "volvo-B9R_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4807"
+    },
+    "name": "volvo-c70-convatable",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4808"
+    },
+    "name": "volvo-fh_truck",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4809"
+    },
+    "name": "volvo-kurtc_bus",
+    "slug": "autobus",
+    "fa_name": "اتوبوس"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df480a"
+    },
+    "name": "volvo-n10_truck",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df480b"
+    },
+    "name": "volvo-v40-cross-country",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df480c"
+    },
+    "name": "volvo-v40-r-design-plus",
+    "slug": "vanet",
+    "fa_name": "وانت"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df480d"
+    },
+    "name": "volvo-xc60-rdesignplus",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df480e"
+    },
+    "name": "volvo-xc60-selux",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df480f"
+    },
+    "name": "volvo-xc90-inscription",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4810"
+    },
+    "name": "volvo-xc90-momentum",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4811"
+    },
+    "name": "volvo-xc90-rdesign",
+    "slug": "etc",
+    "fa_name": "سایر"
+  },
+  {
+    "_id": {
+      "$oid": "67d5a42060a1ae5eb8df4812"
     },
     "name": "unknown",
-    "fa_name": "ناشناس",
-    "slug": ""
+    "slug": "etc",
+    "fa_name": "سایر"
   }
 ]

@@ -4,8 +4,8 @@
       "$oid": "659ab5653af1ae7dd92664ad"
     },
     "name": "unknown",
-    "fa_name": "نامشخص",
-    "slug": ""
+    "fa_name": "سایر",
+    "slug": "other"
   },
   {
     "_id": {
@@ -13,7 +13,7 @@
     },
     "name": "yellow",
     "fa_name": "زرد",
-    "slug": ""
+    "slug": "yellow"
   },
   {
     "_id": {
@@ -21,23 +21,23 @@
     },
     "name": "white",
     "fa_name": "سفید",
-    "slug": ""
+    "slug": "white"
   },
   {
     "_id": {
       "$oid": "65af79214f9fd3f1b63f553d"
     },
     "name": "black",
-    "fa_name": "سیاه",
-    "slug": ""
+    "fa_name": "مشکی",
+    "slug": "black"
   },
   {
     "_id": {
       "$oid": "65af792d4f9fd3f1b63f553e"
     },
     "name": "gray",
-    "fa_name": "خاکستری",
-    "slug": ""
+    "fa_name": "نوک مدادی",
+    "slug": "pencil-tip"
   },
   {
     "_id": {
@@ -45,7 +45,7 @@
     },
     "name": "red",
     "fa_name": "قرمز",
-    "slug": ""
+    "slug": "red"
   },
   {
     "_id": {
@@ -53,7 +53,7 @@
     },
     "name": "green",
     "fa_name": "سبز",
-    "slug": ""
+    "slug": "green"
   },
   {
     "_id": {
@@ -61,7 +61,7 @@
     },
     "name": "blue",
     "fa_name": "آبی",
-    "slug": ""
+    "slug": "blue"
   },
   {
     "_id": {
@@ -69,7 +69,7 @@
     },
     "name": "silver",
     "fa_name": "نقره ای",
-    "slug": ""
+    "slug": "silver"
   },
   {
     "_id": {
@@ -77,6 +77,6 @@
     },
     "name": "brown",
     "fa_name": "قهوه ای",
-    "slug": ""
+    "slug": "brown"
   }
 ]
