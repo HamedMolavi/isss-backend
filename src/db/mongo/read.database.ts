@@ -32,8 +32,7 @@ export function readMiddleware(model: any, query?: (search: string) => FilterQue
       //get page from url
       let strPage = req.query.page as string;
       let page = !options?.forceAll && parseInt(strPage) > 0 ? parseInt(strPage) : 1;
-      let search = (req.query.search as string)
-        || options?.searchFromBody?.(req.body)
+      let search = options?.searchFromBody?.(req.body)
         || options?.searchFromParams?.(req.params)
         || options?.searchFromQuery?.(req.query) || "";
       //get perPage from url
