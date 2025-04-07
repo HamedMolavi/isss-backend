@@ -3,6 +3,9 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import localVarMiddleware from "./localVar.middleware";
 import { setupLogger } from "./logger.middleware";
+import cookieParser from "cookie-parser";
+import { authHeaderExtraction } from "./auth.middleware";
+import { sessionMiddleware } from "./session.middleware";
 
 
 const router: Router = Router();
@@ -15,6 +18,12 @@ router.use(
     credentials: true,
   })
 );
+
+router.use([
+  cookieParser(),
+  authHeaderExtraction,
+  sessionMiddleware,
+]);
 
 ///////////////////////////////////////////////////////////////////////////////// Parsing & Logger
 router.use(

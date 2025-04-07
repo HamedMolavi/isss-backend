@@ -11,7 +11,6 @@ const UserSchema: Schema<IUserDocument> = new Schema(
     phone_number: { type: String, required: true },
     last_login: { type: Date, default: Date.now },
     last_operation: { type: Object, default: {} },
-    access_level: { type: mongoose.Schema.Types.ObjectId, ref: "AccessLevel", required: true },
     role: { type: String, default: "user" },
     created_date: { type: Date, default: Date.now },
     camera_access: { type: Array<mongoose.Types.ObjectId>, ref: "Camera", default: [] }
@@ -19,7 +18,7 @@ const UserSchema: Schema<IUserDocument> = new Schema(
   {
     collection: "User",
     toJSON: {
-      transform(_doc, ret) {
+      transform(_doc: any, ret) {
         delete ret["password"];
         return ret;
       },

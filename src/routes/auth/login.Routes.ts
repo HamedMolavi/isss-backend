@@ -1,11 +1,6 @@
-import { Router, Request, Response, NextFunction } from "express";
-import { dtoValidationMiddleware } from "../../validation/dto";
-import { LoginBodyDto } from "../../validation/dto/login.dto";
-import {
-  assignPassport,
-  reLogin,
-  sendTokenToclient,
-} from "../../authentication/authorize.auth";
+import { Router } from "express";
+
+import { assignPassport, reLogin, sendTokenToclient, } from "../../authentication/authorize.auth";
 
 //router instance
 const router: Router = Router();
@@ -14,10 +9,6 @@ const router: Router = Router();
 router.post(
   "",
   reLogin,
-  dtoValidationMiddleware(LoginBodyDto, {
-    skipMissingProperties: true,
-    detailedMassage: true,
-  }),
   assignPassport,
   sendTokenToclient
 );

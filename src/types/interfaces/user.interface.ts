@@ -7,7 +7,6 @@ export interface IUser {
   username: string;
   password: string;
   phone_number: string;
-  access_level: mongoose.Types.ObjectId;
   role: string;
   created_date: Date;
   camera_access?: Array<mongoose.Types.ObjectId>;
