@@ -1,8 +1,7 @@
-import { ICar } from "../types/interfaces/car.interface";
 import { DIGITS, englishPlateDict, persianPlateDict, stringPlateToJson } from "./plate.tools";
 import { allowedPassRevert } from "./time.tools";
 
-export function carSendFunction(doc: ICar) {
+export function carSendFunction(doc: any) {
   return {
     owner: doc.owner,
     number_plate: stringPlateToJson(doc.number_plate),
