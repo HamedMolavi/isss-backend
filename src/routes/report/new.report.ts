@@ -1,25 +1,28 @@
 import { Request, Router } from "express";
-import { readByIdMiddleware, readMiddleware } from "../../db/mongo/read.database";
+import { readByIdElastic, readByIdElasticMiddleware, readElasticMiddleware } from "../../db/elastic/read.logs";
+import { readMiddleware } from "../../db/mongo/read.database";
 import Camera from "../../db/mongo/models/camera";
+import { platesToStrings } from "../../tools/car.tools";
+import { plateToQueryJSON } from "../../tools/elastic.tools";
 import Time from "../../tools/time.tools";
 import { dtoValidationMiddleware } from "../../validation/dto";
 import CarBrand, { ICarBrand } from "../../db/mongo/models/carBrand";
 import CarColor, { ICarColor } from "../../db/mongo/models/carColor";
 import { injectDataMiddleware } from "../../tools/request.tools";
+import { stringPersianToStringEnglish, stringPlateToJson } from "../../tools/plate.tools";
 import { injectAllKindOfStuff } from "../../tools/middleware.tools";
+import { SearchRequest } from "@elastic/elasticsearch/lib/api/typesWithBodyKey";
 import { ApiError } from "../../types/classes/error.class";
+import { deleteByIdElasticMiddleware, deleteElasticMiddleware } from "../../db/elastic/delete.logs";
 import { faceCols, plateCols, sendExcelMiddleware } from "../../tools/excel.tools";
-import { isValidObjectId, isObjectIdOrHexString, FilterQuery, Document, Types } from "mongoose";
-import { platesToStrings, plateToQueryJSON, stringPersianToStringEnglish, stringPlateToJson } from "../../tools/plate.tools";
-import PlateReport from "../../db/mongo/models/plateReport";
-import { IPlateReport } from "../../types/interfaces/plateReport.interface";
+import { isValidObjectId, isObjectIdOrHexString, Document, Types } from "mongoose";
+import { QueryDslQueryContainer } from "@elastic/elasticsearch/lib/api/types";
 import { ICamera } from "../../types/interfaces/camera.interface";
 
 //create router for add to routes file
 const router: Router = Router();
 const frame_index = process.env["FRAME_INDEX"] ?? "frame_log";
 const importantFields = {
-  "face": ["description", "name", "camera_name", "personnel_code"],
   "plate": ["description", "owner", "camera_name", function plate_number(input: string) { return stringPersianToStringEnglish(input) }]
 }
 // Validation //
@@ -34,100 +37,143 @@ router.use('', (req, res, next) => {
 // Delete //
 /*
 router.delete('/:index(plate)',
-  deleteElasticMiddleware(indexFunc),
+  deleteElasticMiddleware("plate_log"),
 );
 router.delete('/:index(plate)/:id',
-  deleteByIdElasticMiddleware(indexFunc, { send: sendFunction, }),
+  deleteByIdElasticMiddleware("plate_log", { send: sendFunction, }),
 );
 */
 // Search //
 router.get('/:index(plate)(/:type(excel))?/?$',
-  readMiddleware(PlateReport,
-    undefined,
-    {
-      send: sendFunction,
-      save: "esResult",
-      next: (req: any) => !!req.params["type"]
-
-    }
-  ),
+  readElasticMiddleware("plate_log", {
+    send: sendFunction,
+    searchFromReq: getSearchFunction,
+    save: "esResult",
+    next: (req) => !!req.params["type"]
+  }),
 );
 router.get('/:index(plate)/:type(excel)/?$',
   sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
 );
 router.get("/:index(plate)/:id?", // get with id
-  readByIdMiddleware(PlateReport, {
+  readByIdElasticMiddleware("plate_log", {
     send: sendFunction,
-    save: "esResult",
   }),
 );
 /////////////////////////////
 router.post("/:index(plate)(/:type(excel))?/?$", // filter with body
-  readMiddleware(PlateReport,
-    search => JSON.parse(search),
-    {
-      searchFromBody: postSearchFunction, //postSearchFunction
-      send: sendFunction,
-      save: "esResult",
-      next: (req) => !!req.params["type"]
-    }
-  )
+  readElasticMiddleware("plate_log", {
+    searchFromReq: postSearchFunction,
+    send: sendFunction,
+    save: "esResult",
+    next: (req) => !!req.params["type"]
+  })
 );
 router.post("/:index(plate)/:type(excel)/?$",
   sendExcelMiddleware({ cols: colsFunc, rows: "esResult" })
 );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-function postSearchFunction(body: any) {
+function getSearchFunction(req: Request) {
+  return {
+    track_total_hits: true,
+    query: {
+      "bool": {
+        "must": [
+          {
+            "bool": { // search if provided
+              "should": typeof req.query?.search === 'string' && !!req.query.search && typeof req.params.index === 'string' && Object.prototype.hasOwnProperty.call(importantFields, req.params.index)
+                ? (importantFields[req.params.index as keyof typeof importantFields]).map((el: string | ((input: string) => string)) => ({
+                  "regexp": {
+                    [typeof el === 'string' ? el : el.name]: { "value": ".*" + (typeof el === 'function' ? el(req.query.search as string) : req.query.search) + ".*", "case_insensitive": true }
+                  }
+                }))
+                : [],
+              "minimum_should_match": 1
+            }
+          }
+        ]
+      }
+    },
+    sort: [{ timestamp: { order: "desc" } }]
+  } as SearchRequest;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function postSearchFunction(req: Request) {
+  let score: { script?: string, min_score?: number } = {};
+  let query: QueryDslQueryContainer & { bool: { must: QueryDslQueryContainer[], must_not: QueryDslQueryContainer[], should: QueryDslQueryContainer[] } };
   //---- Prepration
+  const body = req.body;
   let timezone = body.timez ?? body.timezone;
-  const times_epoch: Array<{ gte: string, lte: string }> = body.date_start && Time.getEpochList(body.date_start, body.date_end, body.time_start, body.time_end, timezone);
+  const times_epoch: Array<{ gte: number, lte: number }> = body.date_start && Time.getEpochList(body.date_start, body.date_end, body.time_start, body.time_end, timezone);
   const cameras = body.cameras ?? [];
   const fields: { [key: string]: Array<any> } = {
     "camera_id": cameras,
+    "personnel_id": body.personnels,
     "brand": body.brands,
+    "owner": body.owner,
     "color": body.colors,
+    "human_count": body.human_count,
+    "allowed": body.allowed === undefined || body.allowed === null ? [] : Array.isArray(body.allowed) ? body.allowed : [body.allowed]
   };
-  // Make clauses
-  let query: FilterQuery<any> = {
-    $and: [ // Between fields there are ANDs. This way for each field there is a must restriction.
-      // In a field (for example cameras), between each possible value there are ORs.
-      ...Object.entries(fields).filter(([, values]) => !!values && values.length > 0).map(([field, values]) => (
-        {
-          $or: [
-            ...values.map(value => ({
-              [`${field}`]: value
-            })),
-          ]
-        })),
-      // Time restriction
-      ...(!!times_epoch && !!times_epoch.length ? [{
-        $or: times_epoch.map(time => ({ timestamp: { $gte: parseInt(time.gte), $lt: parseInt(time.lte) } }))
-      }] : []),
 
-    ],
-    // must_not: [],
-    // should: []
+  // Make clauses
+  query = {
+    bool: {
+      must: [ // Between fields there are ANDs. This way for each field there is a must restriction.
+        ...Object.entries(fields).filter(([, values]) => !!values && values.length > 0).map(([field, values]) => (
+          {
+            bool: {
+              should: [ // In a field (for example cameras), between each possible value there are ORs.
+                ...values.map(value => ({
+                  match: {
+                    [`${field}`]: value
+                  }
+                })),
+              ],
+              "minimum_should_match": 1
+            }
+          })),
+
+        ...(!!times_epoch && !!times_epoch.length ? [{
+          bool: { should: times_epoch.map(time => ({ range: { timestamp: { gte: time.gte, lte: time.lte } } })), "minimum_should_match": 1 }
+        }] : []),
+
+        ...(!!body.person_type && typeof body.person_type === 'string' ? [
+          { "match": { "person_type": body.person_type } }, { "exists": { "field": "person_type" } }
+        ] : []),
+      ],
+      must_not: [],
+      should: []
+    }
   }
   // Plate search special clauses and alter other parts of query
-  // if (body.plate_search_type === 'noplate') body.plates = [{ "first": "**", "second": "*", "third": "***", "fourth": "ایران", "fifth": "**" }];
+  if (body.plate_search_type === 'noplate') body.plates = [{ "first": "**", "second": "*", "third": "***", "fourth": "ایران", "fifth": "**" }];
   if (!!body.plates?.length) {
     let plates = platesToStrings(body.plates);
-    query.$and?.push({ plate_number: plates[0] });
-    //   let plate_search_type = body.plate_search_type ?? 'normal';
-    //   query.$and?.push(
-    //     {
-    //       "$or": plates.map((plateString) => plateToQueryJSON(plateString, plate_search_type, { originalQueryToAlter: query })).flat(),
-    //     }
-    //   );
+    let plate_search_type = body.plate_search_type ?? 'normal';
+    query?.bool?.must?.push(
+      {
+        "bool": { // each field => they have to be OR
+          "should": plates.map((plateString: string) => plateToQueryJSON(plateString, plate_search_type, { originalQueryToAlter: query })).flat(),
+          "minimum_should_match": 1
+        }
+      }
+    );
   }
-  return JSON.stringify(query);
+
+  let query_elastic = {
+    track_total_hits: true,
+    sort: [{ timestamp: { order: "desc" } }],
+    query
+  } as SearchRequest;
+  return query_elastic;
 };
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-async function sendFunction(
-  log: (Document<unknown, {}, IPlateReport> & IPlateReport & Required<{ _id: Types.ObjectId; }>),
-  req: Request): Promise<any> {
+async function sendFunction(log: any, req: Request): Promise<any> {
   try {
     let camera: (Document<unknown, {}, ICamera> & ICamera & Required<{ _id: Types.ObjectId; }>) | null = null;
     if (Object.prototype.hasOwnProperty.call(req.body['db_cameras'], log.camera_id)) {
@@ -152,6 +198,9 @@ async function sendFunction(
       Object.assign(req.body['db_brands'], { [log.brand]: brand })
     }
 
+    const frame_log = !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : {};
+    delete frame_log["_id"]
+    delete frame_log["personnel_id"]
     return {
       type: "plate",
       allowed: true,
@@ -180,6 +229,11 @@ async function sendFunction(
       bbox: log.bbox,
       inner_bbox: log.inner_bbox,
 
+      fullName: "",//personnel?.toName() ?? log.name ?? "",
+      personnel_id:"unknown",// personnel?.id ?? "unknown",
+      owner: log?.owner ?? "",
+      confidence: log?.confidence ?? "",
+      ...frame_log,
     };
   } catch (err: any) {
     console.error(err)
@@ -188,7 +242,6 @@ async function sendFunction(
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 function colsFunc(req: Request) {
   return {
     "plate": plateCols,
