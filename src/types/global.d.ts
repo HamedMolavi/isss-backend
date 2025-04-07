@@ -5,6 +5,7 @@ export { };
 declare global {
   namespace NodeJS {
     interface Process {
+      esclient: Client
     }
     interface ProcessEnv {
       HOST: string
