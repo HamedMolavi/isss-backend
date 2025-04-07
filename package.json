@@ -64,6 +64,7 @@
     "passport-local": "^1.0.0",
     "persian-date": "^1.1.0",
     "random-words-es": "^1.1.1",
-    "redis": "^4.7.0"
+    "redis": "^4.7.0",
+    "ts-node": "^10.9.2"
   }
 }

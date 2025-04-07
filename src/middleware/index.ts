@@ -6,6 +6,7 @@ import { setupLogger } from "./logger.middleware";
 import cookieParser from "cookie-parser";
 import { authHeaderExtraction } from "./auth.middleware";
 import { sessionMiddleware } from "./session.middleware";
+import passport from "passport";
 
 
 const router: Router = Router();
@@ -23,6 +24,8 @@ router.use([
   cookieParser(),
   authHeaderExtraction,
   sessionMiddleware,
+  passport.initialize(),
+  passport.session(),
 ]);
 
 ///////////////////////////////////////////////////////////////////////////////// Parsing & Logger

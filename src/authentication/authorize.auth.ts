@@ -22,7 +22,7 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 };
 
 export function sendTokenToclient(req: Request, res: Response, next: NextFunction) {
-  let token = encodeURIComponent("s:" + cookie.sign(req.sessionID, process.env["SESSION_SECRET"] as string));
+  let token = encodeURIComponent("s:" + cookie.sign(req.sessionID, "Hello Mother Fucker!"));
   if (!req.sessionID) next(new ApiError(500, "Internal Error!"));
   else {
     res.status(200).json({
