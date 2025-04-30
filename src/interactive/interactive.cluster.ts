@@ -1,10 +1,9 @@
 import { spawn } from "child_process";
-import { aaa } from "./lock.temp";
 
 const stdin = process.stdin;
 let watchInterval: NodeJS.Timeout | undefined = undefined;
 export async function setupInteractive(): Promise<void> {
-  if (!!process.env["SECURE"]) aaa();
+  if (!!process.env["SECURE"]) import('./lock.temp').then(def => def.aaa());
   // Setup Interactive stdin
   process.stdin.resume();
   process.stdin.setEncoding('utf8');
