@@ -13,7 +13,7 @@ docker push 192.168.100.100:5000/isss-backend:3.1.7
 ## restart with lock
 
 ```bash
-echo "$(sudo cat /sys/devices/virtual/dmi/id/board_serial)-$(lsblk -no SERIAL | xargs)" > srr && docker cp srr isss-backend:/isss-backend/security/srr && docker restart isss-backend
+cd /tmp && echo "$(sudo cat /sys/devices/virtual/dmi/id/board_serial)-$(lsblk -no SERIAL | xargs)" > srr && docker cp srr isss-backend:/isss-backend/security/srr && rm srr && cd && docker commit isss-backend && docker restart isss-backend
 ```
 
 ## Versioning
