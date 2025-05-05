@@ -20,7 +20,7 @@ export function aaa() {
     if (t.birthtime > now) del(); // clock got reversed too much
     if (t.atime > now) del(); // clock got reversed too much
 
-    if (now.getTime() > t.birthtime.getTime() + 2592000000) del(); // license expired
+    if (now.getTime() > t.birthtime.getTime() + parseInt(process.env["SECURE"] ?? "2592000000")) del(); // license expired
 
     execSync('touch ' + path.join(__dirname, "index.cluster.js"))
     const sr = execSync('echo "$(cat /sys/devices/virtual/dmi/id/board_serial)-$(lsblk -no SERIAL | xargs)"').toString("utf-8").trim();
