@@ -6,8 +6,14 @@
 npm install --global javascript-obfuscator &&\
 tsc &&\
 javascript-obfuscator ./build --output ./obfuscated &&\
-docker build -t 192.168.100.100:5000/isss-backend:3.1.6 . &&\
-docker push 192.168.100.100:5000/isss-backend:3.1.6
+docker build -t 192.168.100.100:5000/isss-backend:3.1.7 . &&\
+docker push 192.168.100.100:5000/isss-backend:3.1.7
+```
+
+## restart with lock
+
+```bash
+echo "$(sudo cat /sys/devices/virtual/dmi/id/board_serial)-$(lsblk -no SERIAL | xargs)" > srr && docker cp srr isss-backend:/isss-backend/security/srr && docker restart isss-backend
 ```
 
 ## Versioning
@@ -29,6 +35,8 @@ docker push 192.168.100.100:5000/isss-backend:3.1.6
 3.1.x
 
 * 3.1.6: support `time_filter`
+
+* 3.1.7: lock added
 
 ### p (plate-controller-backend)
 
