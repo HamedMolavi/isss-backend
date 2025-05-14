@@ -1,26 +1,25 @@
-import logger from "morgan";
-import { NextFunction, Request, Response } from "express";
-import rfs = require("rotating-file-stream");
-import { isAbsolute, join } from "path";
-import { randomUuid } from "../tools/utils.tools";
-import { mkdirSync, statSync } from "fs";
+import logger from 'morgan';
+import { Request, Response } from 'express';
+import rfs = require('rotating-file-stream');
+import { isAbsolute, join } from 'path';
+import { randomUuid } from '../tools/utils.tools';
+import { mkdirSync, statSync } from 'fs';
 
-const requestLogDir = 
-  !!process.env.REQUEST_LOG_DIR
-    ? !!isAbsolute(process.env.REQUEST_LOG_DIR)
-      ? process.env.REQUEST_LOG_DIR
-      : join(__dirname, process.env.REQUEST_LOG_DIR)
-    : join(__dirname, "../../logs");
+const requestLogDir = !!process.env.REQUEST_LOG_DIR
+	? !!isAbsolute(process.env.REQUEST_LOG_DIR)
+		? process.env.REQUEST_LOG_DIR
+		: join(__dirname, process.env.REQUEST_LOG_DIR)
+	: join(__dirname, '../../logs');
 // Pre Configs
-logger.token('id', function getId() { // log id
-  return randomUuid();
+logger.token('id', function getId() {
+	// log id
+	return randomUuid();
 });
 try {
-  statSync(requestLogDir); // log directory exists
+	statSync(requestLogDir); // log directory exists
 } catch (_err) {
-  mkdirSync(requestLogDir); // log directory created
-};
-
+	mkdirSync(requestLogDir); // log directory created
+}
 
 /*
 Creating new tokens
@@ -52,72 +51,67 @@ The available formats are:
 // message: res.statusMessage,
 
 export function setupLogger() {
-  const deniedLogStream = rfs.createStream('error.log', {
-    interval: '1d', // rotate daily
-    path: requestLogDir
-  });
-  const middlewares = [
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
-    logger(":id :user-agent :remote-addr :date[web] :url :method :status"), // log all
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
-    logger((tokens, req: Request, res: Response) => {
-      return !!process.env["REQUEST_LOG_FORMAT"] ? process.env["REQUEST_LOG_FORMAT"]
-        : [
-          Date.now(),
-          tokens.status(req, res),
-          tokens.method(req, res),
-          tokens.url(req, res),
-          "user id: " + req.user?._id,
-          "errors: " + JSON.stringify(req.flash("error")),
-          "headers: " + JSON.stringify(req.headers),
-          "cookies: " + JSON.stringify(req.cookies),
-          "request body: " + JSON.stringify(req.body),
-          "query: " + JSON.stringify(req.query),
-          "params: " + JSON.stringify(req.params),
-          "route: " + JSON.stringify(req.originalUrl),
-        ].join('\n\t');
-    }, {
-      skip: (_req, res) => res.statusCode < 400,
-      stream: deniedLogStream,
-    }),
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
-  ];
-  return middlewares;
+	const deniedLogStream = rfs.createStream('error.log', {
+		interval: '1d', // rotate daily
+		path: requestLogDir
+	});
+	const middlewares = [
+		///////////////////////////////////////////////////////////////////////////////////////////////////////
+		logger(':id :user-agent :remote-addr :date[web] :url :method :status'), // log all
+		///////////////////////////////////////////////////////////////////////////////////////////////////////
+		logger(
+			(tokens, req: Request, res: Response) => {
+				return !!process.env['REQUEST_LOG_FORMAT']
+					? process.env['REQUEST_LOG_FORMAT']
+					: [
+							Date.now(),
+							tokens.status(req, res),
+							tokens.method(req, res),
+							tokens.url(req, res),
+							'user id: ' + req.user?._id,
+							'errors: ' + JSON.stringify(req.flash('error')),
+							'headers: ' + JSON.stringify(req.headers),
+							'cookies: ' + JSON.stringify(req.cookies),
+							'request body: ' + JSON.stringify(req.body),
+							'query: ' + JSON.stringify(req.query),
+							'params: ' + JSON.stringify(req.params),
+							'route: ' + JSON.stringify(req.originalUrl)
+						].join('\n\t');
+			},
+			{
+				skip: (_req, res) => res.statusCode < 400,
+				stream: deniedLogStream
+			}
+		)
+		///////////////////////////////////////////////////////////////////////////////////////////////////////
+	];
+	return middlewares;
 }
-
 
 export function loggingMiddleware(req: Request, res: Response): string {
+	const reqData = {
+		url: req.url,
+		headers: req.headers
+	};
 
-  const reqData = {
-    url: req.url,
-    headers: req.headers
-  };
+	const resData: { sent?: any } = {};
 
-  const resData: {sent?: any} = {};
+	const origSend = res.send;
 
-  const origSend = res.send;
+	res.send = function (chunk?: any) {
+		// Convert arguments to array
+		const args = Array.prototype.slice.call(arguments);
 
-  res.send = function(chunk?: any) {
+		resData.sent = chunk;
 
-    // Convert arguments to array
-    const args = Array.prototype.slice.call(arguments);
-  
-    resData.sent = chunk;
-  
-    origSend.apply(this as Response, [chunk]);
-  
-    return res;
-  
-  };
-  console.log(reqData)
-  return JSON.stringify(reqData);
+		origSend.apply(this as Response, [chunk]);
 
+		return res;
+	};
+	console.log(reqData);
+	return JSON.stringify(reqData);
 }
 
-
-export function operationLog(req: Request, res: Response){
-  let result  ={}
-  
+export function operationLog(req: Request, res: Response) {
+	let result = {};
 }
-
-

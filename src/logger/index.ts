@@ -1,49 +1,57 @@
 import Transport from 'winston-transport';
-import { LEVEL } from "triple-beam";
-import winston, { config as winstonConfig, LoggerOptions } from "winston";
-import { MongooseTransport } from "./transports";
-
-
+import { LEVEL } from 'triple-beam';
+import winston, { config as winstonConfig, LoggerOptions } from 'winston';
+import { MongooseTransport } from './transports';
 
 export class Logger {
-  private static transports: Transport[]
-  private static instance: winston.Logger
-  constructor(opts: LoggerOptions & { recreate?: boolean } = { recreate: false }) {
-    if (!Logger.instance || !!opts.recreate) {
-      Logger.instance = winston.createLogger(opts);
-      Logger.transports = [opts.transports ?? Logger.transports].flat();
-    }
-    // @ts-ignore
-    return Logger.instance;
-  }
-  static init(opts: LoggerOptions & { recreate?: boolean } = { recreate: false }) {
-    if (!Logger.instance || !!opts.recreate) {
-      Logger.instance = winston.createLogger(opts);
-      Logger.transports = [opts.transports ?? Logger.transports].flat();
-    }
-    return Logger.instance;
-  }
-  static info(message: string, ...args: any[]) { return Logger.instance?.info(message, ...args); }
-  info(message: string, ...args: any[]) { return Logger.instance?.info(message, ...args); }
-  static error(message: string, ...args: any[]) { return Logger.instance?.error(message, ...args); }
-  error(message: string, ...args: any[]) { return Logger.instance?.error(message, ...args); }
-  static warn(message: string, ...args: any[]) { return Logger.instance?.warn(message, ...args); }
-  warn(message: string, ...args: any[]) { return Logger.instance?.warn(message, ...args); }
-  static debug(message: string, ...args: any[]) { return Logger.instance?.debug(message, ...args); }
-  debug(message: string, ...args: any[]) { return Logger.instance?.debug(message, ...args); }
-  static changeMongoCollectionSize(cappedSize: number) { return MongooseTransport.changeSize(cappedSize) }
-  changeMongoCollectionSize(cappedSize: number) { return MongooseTransport.changeSize(cappedSize) }
+	private static transports: Transport[];
+	private static instance: winston.Logger;
+	constructor(opts: LoggerOptions & { recreate?: boolean } = { recreate: false }) {
+		if (!Logger.instance || !!opts.recreate) {
+			Logger.instance = winston.createLogger(opts);
+			Logger.transports = [opts.transports ?? Logger.transports].flat();
+		}
+		// @ts-ignore
+		return Logger.instance;
+	}
+	static init(opts: LoggerOptions & { recreate?: boolean } = { recreate: false }) {
+		if (!Logger.instance || !!opts.recreate) {
+			Logger.instance = winston.createLogger(opts);
+			Logger.transports = [opts.transports ?? Logger.transports].flat();
+		}
+		return Logger.instance;
+	}
+	static info(message: string, ...args: any[]) {
+		return Logger.instance?.info(message, ...args);
+	}
+	info(message: string, ...args: any[]) {
+		return Logger.instance?.info(message, ...args);
+	}
+	static error(message: string, ...args: any[]) {
+		return Logger.instance?.error(message, ...args);
+	}
+	error(message: string, ...args: any[]) {
+		return Logger.instance?.error(message, ...args);
+	}
+	static warn(message: string, ...args: any[]) {
+		return Logger.instance?.warn(message, ...args);
+	}
+	warn(message: string, ...args: any[]) {
+		return Logger.instance?.warn(message, ...args);
+	}
+	static debug(message: string, ...args: any[]) {
+		return Logger.instance?.debug(message, ...args);
+	}
+	debug(message: string, ...args: any[]) {
+		return Logger.instance?.debug(message, ...args);
+	}
+	static changeMongoCollectionSize(cappedSize: number) {
+		return MongooseTransport.changeSize(cappedSize);
+	}
+	changeMongoCollectionSize(cappedSize: number) {
+		return MongooseTransport.changeSize(cappedSize);
+	}
 }
-
-
-
-
-
-
-
-
-
-
 
 // const info = {
 //   level: 'info',                 // Level of the logging message
