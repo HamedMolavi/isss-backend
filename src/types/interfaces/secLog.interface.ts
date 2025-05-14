@@ -5,5 +5,4 @@ export type ILog = {
 	message: string;
 	timestamp: Date;
 	metadata: Partial<Record<LOG_TYPE_KEYS, boolean>>;
-	hash: string;
 };

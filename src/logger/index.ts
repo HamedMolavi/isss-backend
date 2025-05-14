@@ -40,17 +40,6 @@ export class Logger {
 	}
 
 	/**
-	 * Initializes the logger with the specified options
-	 */
-	static init(opts: EnhancedLoggerOptions = {}): winston.Logger {
-		if (!Logger.instance || opts.recreate) {
-			Logger.createInstance(opts);
-		}
-
-		return Logger.instance;
-	}
-
-	/**
 	 * Creates the Winston logger instance with default and custom options
 	 */
 	private static createInstance(opts: EnhancedLoggerOptions): void {

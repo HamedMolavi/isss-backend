@@ -93,16 +93,3 @@ LogTypeSchema.post('remove', function (doc, next) {
 
 // Create the model
 export const LogType = mongoose.model('LogType', LogTypeSchema);
-
-// Initialize with default log type if none exists
-LogType.countDocuments()
-	.then((count) => {
-		if (count === 0) {
-			console.log('Initializing default log type configuration');
-			return LogType.create({
-				...DEFAULT_LOG_TYPE,
-				ts: Date.now()
-			});
-		}
-	})
-	.catch((err) => console.error('Error checking for default log type:', err));
