@@ -1,9 +1,7 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../types/classes/error.class';
-import mongoose, { Document, Types, isObjectIdOrHexString } from 'mongoose';
-import { ICamera } from '../types/interfaces/camera.interface';
-import Camera from '../db/mongo/models/camera';
-import { read } from '../db/mongo/read.database';
+import mongoose, { isObjectIdOrHexString } from 'mongoose';
+
 import AccessLevel from '../db/mongo/models/accessLevel';
 import { IAccessLevel } from '../types/interfaces/accessLevel.interface';
 
@@ -23,7 +21,7 @@ const accessCharPositions = {
 };
 
 export function userCanGetHisInfo(req: Request) {
-	let probableParamId = req.path.split('/').find((el) => isObjectIdOrHexString(el));
+	const probableParamId = req.path.split('/').find((el) => isObjectIdOrHexString(el));
 	if (
 		['GET', 'PATCH'].includes(req.method) &&
 		!!req.originalUrl.match('/api/v1/config/admin/users/') &&
@@ -89,7 +87,7 @@ export function paramIdExistsInCameraWhiteList(options?: {
 	idFromReq?: (req: Request) => string | undefined;
 }) {
 	return async function middleware(req: Request, res: Response, next: NextFunction) {
-		let id = options?._id ?? options?.idFromReq?.(req) ?? req.params.id;
+		const id = options?._id ?? options?.idFromReq?.(req) ?? req.params.id;
 		if (!id) return next();
 		const user = req.user;
 		if (user.role === 'admin' || !!user.camera_access?.map((el) => el.toString())?.includes(id))
