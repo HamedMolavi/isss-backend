@@ -1,36 +1,35 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 //define department type
 export interface IDepartment extends Document {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  is_enabled: boolean;
-  created_date: Date;
-};
-
+	_id: mongoose.Types.ObjectId;
+	name: string;
+	is_enabled: boolean;
+	created_date: Date;
+}
 
 export interface IChildrenCamera {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  type: string;
-  url: string;
-  username: string;
-  password: string;
-  ip: string;
-  is_enabled: boolean;
-  damaged: boolean;
-};
+	_id: mongoose.Types.ObjectId;
+	name: string;
+	type: string;
+	url: string;
+	username: string;
+	password: string;
+	ip: string;
+	is_enabled: boolean;
+	damaged: boolean;
+}
 
 export interface IChildrenSection {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  type: string;
-  children: IChildrenCamera[];
-};
+	_id: mongoose.Types.ObjectId;
+	name: string;
+	type: string;
+	children: IChildrenCamera[];
+}
 
 export interface IResponseJson {
-  _id: mongoose.Types.ObjectId;
-  name: string;
-  type: string;
-  children: IChildrenSection[];
-};
+	_id: mongoose.Types.ObjectId;
+	name: string;
+	type: string;
+	children: IChildrenSection[];
+}

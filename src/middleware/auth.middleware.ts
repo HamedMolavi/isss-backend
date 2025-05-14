@@ -1,10 +1,10 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from 'express';
 
 export function authHeaderExtraction(req: Request, _res: Response, next: NextFunction) {
-  if (!req.cookies?.Bearer && !!req.headers["authorization"]) {
-    let token: string | undefined = decodeURIComponent(req.headers["authorization"]?.split("Bearer ")[1]);
-    if (!!req.cookies) req.cookies["Bearer"] = token;
-    else req.cookies = { "Bearer": token };
-  }
-  return next();
-};
+	if (!req.cookies?.Bearer && !!req.headers['authorization']) {
+		let token: string | undefined = decodeURIComponent(req.headers['authorization']?.split('Bearer ')[1]);
+		if (!!req.cookies) req.cookies['Bearer'] = token;
+		else req.cookies = { Bearer: token };
+	}
+	return next();
+}

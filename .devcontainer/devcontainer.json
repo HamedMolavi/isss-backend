@@ -1,13 +1,9 @@
 {
 	"name": "Backend Dev Container",
 	"image": "192.168.100.100:5000/mcr.microsoft.com/devcontainers/typescript-node",
-	"runArgs": [
-		"--privileged"
-	],
+	"runArgs": ["--privileged"],
 	// "remoteUser": "devuser",
-	"mounts": [
-		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
-	],
+	"mounts": ["source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"],
 	"customizations": {
 		"vscode": {
 			"extensions": [
