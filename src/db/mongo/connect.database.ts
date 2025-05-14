@@ -5,16 +5,12 @@ import Camera from './models/camera';
 async function connect(dbUri: string): Promise<mongoose.Connection> {
 	//connect to the database
 	try {
-		const connection = await mongoose.connect(dbUri, {
+		await mongoose.connect(dbUri, {
 			autoIndex: true,
 			autoCreate: false,
 			bufferCommands: false // Disable buffering
 		});
 		await Camera.find();
-		await connection.connection.db.command({
-			convertToCapped: 'Log',
-			size: parseInt(process.env['LOG_COLLECTION_SIZE'] ?? '512')
-		});
 		console.log('Mongoose connection established: ' + dbUri);
 	} catch (error) {
 		console.log('Mongoose default connection error: ' + dbUri);

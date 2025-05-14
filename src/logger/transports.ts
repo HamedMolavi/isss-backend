@@ -6,14 +6,19 @@ import { ILogType } from '../types/interfaces/logType.interface';
 import { DEFAULT_LOG_TYPE, LogType } from '../db/mongo/models/logType';
 import { Log } from '../db/mongo/models/secLog';
 import { appendFileSync } from 'fs';
-import { Connection } from 'mongoose';
+import { get_user_agent } from '../tools/user_agent.utility';
 
 export class MongooseTransport extends Transport {
-	handlers: Record<LOG_TYPE_KEYS, (req: Request) => string | number | undefined> = {
+	handlers: Record<LOG_TYPE_KEYS, (req: Request) => string | number | undefined | Record<string, unknown>> = {
 		method: (req: Request) => req.method,
 		ip: (req: Request) => req.ip,
 		user: (req: Request) => req.user?.username,
-		result: (req: Request) => req.res?.statusCode
+		result: (req: Request) => req.res?.statusCode,
+		url: (req: Request) => req.url,
+		userAgent: (req: Request) => get_user_agent(req),
+		body: (req: Request) => req.body,
+		query: (req: Request) => req.query,
+		params: (req: Request) => req.params
 	};
 
 	public static logType: ILogType = DEFAULT_LOG_TYPE;
@@ -46,18 +51,31 @@ export class MongooseTransport extends Transport {
 	/**
 	 * Prepares metadata from request based on current log type settings
 	 */
-	prepareMeta(req: Request): Record<string, string | number | undefined> {
+	prepareMeta(req: Request): Record<string, string | number | boolean | object | undefined> {
 		if (!req) return {};
 
-		const meta: Record<string, string | number | undefined> = {};
+		const meta: Record<string, string | number | boolean | object | undefined> = {};
 
+		// Add basic request metadata
+		meta.timestamp = new Date();
+		meta.url = req.url;
+		meta.method = req.method;
+
+		// Add user agent info
+		const userAgentInfo = get_user_agent(req);
+		meta.userAgent = userAgentInfo;
+
+		// Add other request metadata based on logType configuration
 		for (const key of Object.keys(LOG_TYPE_KEYS) as Array<LOG_TYPE_KEYS>) {
 			if (MongooseTransport.logType[key] && this.handlers[key]) {
 				try {
-					meta[key] = this.handlers[key].call(this, req);
+					const value = this.handlers[key].call(this, req);
+					if (value !== undefined) {
+						meta[key] = value;
+					}
 				} catch (error: unknown) {
 					meta[`${key}_error`] = 'Error extracting value';
-					console.error(error);
+					console.error(`Error extracting ${key}:`, error);
 				}
 			}
 		}
@@ -72,14 +90,10 @@ export class MongooseTransport extends Transport {
 		try {
 			// Create the log document
 			const log = new Log({
-				...infoAndReq,
-				meta: infoAndReq.req ? this.prepareMeta(infoAndReq.req) : infoAndReq.meta || {},
-				timestamp: new Date()
+				...infoAndReq
 			});
-
 			// Signal that the log was processed
 			setImmediate(() => this.emit('logged', log));
-
 			// Save directly to MongoDB (hash will be generated in pre-save hook)
 			log.save().catch((err) => {
 				console.error('Error saving log to MongoDB:', err);
@@ -102,30 +116,6 @@ export class MongooseTransport extends Transport {
 			appendFileSync('fallback-logs.json', JSON.stringify(log) + '\n');
 		} catch (fallbackErr) {
 			console.error('Failed to write to fallback log file:', fallbackErr);
-		}
-	}
-
-	/**
-	 * Change the capped collection size
-	 */
-	static async changeSize(cappedSize: number): Promise<void> {
-		try {
-			const db = LogType.db as unknown as Connection;
-			const buildInfo = await db.db.admin().command({ buildInfo: 1 });
-			const isSupported = parseInt(buildInfo.version) >= 6;
-
-			if (!isSupported) {
-				throw new Error("MongoDB version doesn't support changing capped collection size");
-			}
-
-			await db.db.command({
-				collMod: Log.collection.name,
-				cappedSize
-			});
-		} catch (error) {
-			throw new Error(
-				`Failed to change capped collection size: ${error instanceof Error ? error.message : 'Unknown error'}`
-			);
 		}
 	}
 }

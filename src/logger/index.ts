@@ -2,6 +2,7 @@
 import winston, { LoggerOptions, format } from 'winston';
 import { MongooseTransport } from './transports';
 import { Request } from 'express';
+import { get_user_agent } from '../tools/user_agent.utility';
 
 /**
  * Enhanced logger options
@@ -53,7 +54,7 @@ export class Logger {
 	 * Creates the Winston logger instance with default and custom options
 	 */
 	private static createInstance(opts: EnhancedLoggerOptions): void {
-		const serviceName = opts.serviceName || 'app';
+		const serviceName = opts.serviceName || 'isss-backend';
 
 		// Default format that includes timestamps and service name
 		const defaultFormat = format.combine(
@@ -135,27 +136,38 @@ export class Logger {
 	/**
 	 * Specialized logging methods for authentication events
 	 */
-	static authEvent(userId: string, action: string, success: boolean, details: any = {}): winston.Logger {
-		return Logger.info('Authentication event', {
+	static authEvent(
+		userId: string,
+		action: string,
+		success: boolean,
+		details: any = {},
+		req: Request
+	): winston.Logger {
+		const user_agent = req ? get_user_agent(req) : { ip: 'unknown', user_agent: 'unknown' };
+
+		const meta = {
 			type: 'auth',
 			userId,
 			action,
 			success,
-			details
-		});
+			details,
+			ip: user_agent.ip,
+			userAgent: user_agent.user_agent,
+			timestamp: new Date()
+		};
+		return Logger.info('Authentication event', meta);
 	}
 
-	/**
-	 * Log a data modification event with before/after values
-	 */
 	static dataChange(
 		userId: string,
 		model: string,
 		action: string,
 		recordId: any,
 		before: any,
-		after: any
+		after: any,
+		req?: Request
 	): winston.Logger {
+		const user_agent = req ? get_user_agent(req) : { ip: 'unknown', user_agent: 'unknown' };
 		return Logger.info('Data modification', {
 			type: 'data_change',
 			userId,
@@ -163,38 +175,47 @@ export class Logger {
 			action,
 			recordId,
 			before,
-			after
+			after,
+			ip: user_agent.ip,
+			userAgent: user_agent.user_agent
 		});
 	}
 
-	/**
-	 * Log a license-related event
-	 */
-	static licenseActivity(action: string, license: any, success: boolean, details: any = {}): winston.Logger {
+	static licenseActivity(
+		action: string,
+		license: any,
+		success: boolean,
+		details: any = {},
+		req?: Request
+	): winston.Logger {
+		const user_agent = req ? get_user_agent(req) : { ip: 'unknown', user_agent: 'unknown' };
 		return Logger.info('License activity', {
 			type: 'license',
 			action,
 			license,
 			success,
-			details
+			details,
+			ip: user_agent.ip,
+			userAgent: user_agent.user_agent
 		});
 	}
 
-	/**
-	 * Log a system operation event
-	 */
 	static systemOperation(
 		component: string,
 		operation: string,
 		success: boolean,
-		details: any = {}
+		details: any = {},
+		req?: Request
 	): winston.Logger {
+		const user_agent = req ? get_user_agent(req) : { ip: 'unknown', user_agent: 'unknown' };
 		return Logger.info('System operation', {
 			type: 'system',
 			component,
 			operation,
 			success,
-			details
+			details,
+			ip: user_agent.ip,
+			userAgent: user_agent.user_agent
 		});
 	}
 
@@ -202,31 +223,33 @@ export class Logger {
 	 * Log an API request (can be used in middleware)
 	 */
 	static request(req: Request, duration?: number): winston.Logger {
+		const user_agent = get_user_agent(req);
 		const meta = {
 			type: 'request',
 			method: req.method,
-			url: req.url,
-			ip: req.ip,
+			url: req.originalUrl,
+			ip: user_agent.ip,
 			userId: req.user?.id,
 			duration,
-			userAgent: req.headers['user-agent']
+			userAgent: user_agent.user_agent,
+			headers: req.headers,
+			timestamp: new Date()
 		};
 
 		return Logger.info('API request', meta);
 	}
 
 	/**
-	 * Change MongoDB collection size
-	 */
-	static changeMongoCollectionSize(cappedSize: number): Promise<any> {
-		return MongooseTransport.changeSize(cappedSize);
-	}
-
-	/**
 	 * Instance method versions of specialized logging methods
 	 */
-	authEvent(userId: string, action: string, success: boolean, details: any = {}): winston.Logger {
-		return Logger.authEvent(userId, action, success, details);
+	authEvent(
+		userId: string,
+		action: string,
+		success: boolean,
+		details: any = {},
+		req: Request
+	): winston.Logger {
+		return Logger.authEvent(userId, action, success, details, req);
 	}
 
 	dataChange(
@@ -235,24 +258,33 @@ export class Logger {
 		action: string,
 		recordId: any,
 		before: any,
-		after: any
+		after: any,
+		req?: Request
 	): winston.Logger {
-		return Logger.dataChange(userId, model, action, recordId, before, after);
+		return Logger.dataChange(userId, model, action, recordId, before, after, req);
 	}
 
-	licenseActivity(action: string, license: any, success: boolean, details: any = {}): winston.Logger {
-		return Logger.licenseActivity(action, license, success, details);
+	licenseActivity(
+		action: string,
+		license: any,
+		success: boolean,
+		details: any = {},
+		req?: Request
+	): winston.Logger {
+		return Logger.licenseActivity(action, license, success, details, req);
 	}
 
-	systemOperation(component: string, operation: string, success: boolean, details: any = {}): winston.Logger {
-		return Logger.systemOperation(component, operation, success, details);
+	systemOperation(
+		component: string,
+		operation: string,
+		success: boolean,
+		details: any = {},
+		req?: Request
+	): winston.Logger {
+		return Logger.systemOperation(component, operation, success, details, req);
 	}
 
 	request(req: Request, duration?: number): winston.Logger {
 		return Logger.request(req, duration);
-	}
-
-	changeMongoCollectionSize(cappedSize: number): Promise<any> {
-		return Logger.changeMongoCollectionSize(cappedSize);
 	}
 }

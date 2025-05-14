@@ -12,7 +12,12 @@ export const DEFAULT_LOG_TYPE: ILogType = {
 	method: true,
 	user: true,
 	ip: true,
-	result: true
+	result: true,
+	url: true,
+	userAgent: true,
+	body: true,
+	query: true,
+	params: true
 };
 
 /**

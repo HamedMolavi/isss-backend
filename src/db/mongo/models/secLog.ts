@@ -21,12 +21,11 @@ const LogSchema: Schema<ILog> = new Schema(
 		timestamp: { type: Date, default: Date.now },
 		message: { type: String, required: true },
 		hash: { type: String },
-		meta: { type: Object, default: {} }
+		metadata: { type: Object, default: {} }
 	},
 	{
 		minimize: false,
 		collection: 'Log',
-		capped: parseInt(process.env['LOG_COLLECTION_SIZE'] ?? '512'),
 		timestamps: { createdAt: true, updatedAt: true },
 		writeConcern: { j: false }
 	}
