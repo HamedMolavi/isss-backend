@@ -49,41 +49,6 @@ export class MongooseTransport extends Transport {
 	}
 
 	/**
-	 * Prepares metadata from request based on current log type settings
-	 */
-	prepareMeta(req: Request): Record<string, string | number | boolean | object | undefined> {
-		if (!req) return {};
-
-		const meta: Record<string, string | number | boolean | object | undefined> = {};
-
-		// Add basic request metadata
-		meta.timestamp = new Date();
-		meta.url = req.url;
-		meta.method = req.method;
-
-		// Add user agent info
-		const userAgentInfo = get_user_agent(req);
-		meta.userAgent = userAgentInfo;
-
-		// Add other request metadata based on logType configuration
-		for (const key of Object.keys(LOG_TYPE_KEYS) as Array<LOG_TYPE_KEYS>) {
-			if (MongooseTransport.logType[key] && this.handlers[key]) {
-				try {
-					const value = this.handlers[key].call(this, req);
-					if (value !== undefined) {
-						meta[key] = value;
-					}
-				} catch (error: unknown) {
-					meta[`${key}_error`] = 'Error extracting value';
-					console.error(`Error extracting ${key}:`, error);
-				}
-			}
-		}
-
-		return meta;
-	}
-
-	/**
 	 * Winston transport log method implementation
 	 */
 	log(infoAndReq: ILog & { req?: Request }, callback: () => void): void {
