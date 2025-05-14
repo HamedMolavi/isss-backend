@@ -82,14 +82,5 @@ export class SQLite {
 		callback?: ((this: Statement, err: Error | null, rows: T[]) => void) | undefined
 	) {
 		return SQLite.instance?.all(sql, callback);
-		// `select hero_name, is_xman, was_snapped from hero h
-		// inner join hero_power hp on h.hero_id = hp.hero_id
-		// where hero_power = ?`, "Total Nerd", (err, rows) => {
-		//   rows.forEach((row: any) => {
-		//     console.log(row.hero_name + "\t" +
-		//       row.is_xman + "\t" +
-		//       row.was_snapped);
-		//   });
-		// }
 	}
 }

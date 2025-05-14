@@ -6,119 +6,126 @@ import { ILogType } from '../types/interfaces/logType.interface';
 import { DEFAULT_LOG_TYPE, LogType } from '../db/mongo/models/logType';
 import { Log } from '../db/mongo/models/secLog';
 import { appendFileSync } from 'fs';
-import mongoose from 'mongoose';
-import { Mutex } from 'async-mutex';
+import { Connection } from 'mongoose';
 
 export class MongooseTransport extends Transport {
-	buffer: Array<ILog>;
-	bufferLimit: number;
-	flushInterval: number;
-	interval: NodeJS.Timer;
-	handlers: Record<LOG_TYPE_KEYS, Function> = {
-		method: (req: Request) => {
-			return req.method;
-		},
-		ip: (req: Request) => {
-			return req.ip;
-		},
-		user: (req: Request) => {
-			return req.user.username;
-		},
-		result: (req: Request) => {
-			return req.res?.statusCode;
-		}
+	handlers: Record<LOG_TYPE_KEYS, (req: Request) => string | number | undefined> = {
+		method: (req: Request) => req.method,
+		ip: (req: Request) => req.ip,
+		user: (req: Request) => req.user?.username,
+		result: (req: Request) => req.res?.statusCode
 	};
-	mutex: Mutex;
+
 	public static logType: ILogType = DEFAULT_LOG_TYPE;
-	constructor(
-		options?: Transport.TransportStreamOptions & {
-			bufferLimit?: number;
-			flushInterval?: number;
-		}
-	) {
+
+	constructor(options?: Transport.TransportStreamOptions) {
 		super(options);
 		this.level = options?.level || 'info';
-		this.buffer = []; // Buffer to store log entries
-		this.bufferLimit = options?.bufferLimit || 100; // Max number of logs before flushing
-		this.flushInterval = options?.flushInterval || 1000; // Interval to flush logs (ms)
-		// Set up periodic flushing
-		this.interval = setInterval(() => this.flushBuffer(), this.flushInterval);
+
+		// Initialize log type from database
+		this.initializeLogType();
+	}
+
+	/**
+	 * Initializes the log type configuration from the database
+	 */
+	private initializeLogType(): void {
 		LogType.findOne({})
 			.sort({ ts: -1 })
-			.exec((err, doc) => {
-				if (err) {
-					console.error('Error in fetching default log type:\n', err);
-					process.exit(1);
-				} else {
-					MongooseTransport.logType = doc?.toJSON() ?? DEFAULT_LOG_TYPE;
+			.exec()
+			.then((doc) => {
+				if (doc) {
+					MongooseTransport.logType = doc.toJSON();
 				}
-			});
-		this.mutex = new Mutex();
-	}
-
-	flushBuffer() {
-		let logsToInsert: any;
-		let released = true;
-		this.mutex
-			.acquire()
-			.then((_release) => {
-				released = false;
-				if (this.buffer.length > 0) {
-					logsToInsert = this.buffer.splice(0, this.buffer.length);
-					return Log.insertMany(logsToInsert);
-				}
-			})
-			.then((docs) => {
-				// console.log(docs);
-				this.mutex.release();
-				released = true;
 			})
 			.catch((err) => {
-				if (!released) this.mutex.release();
-				console.error('Error flushing logs to MongoDB:', err);
-				appendFileSync('fallback-logs.json', JSON.stringify(logsToInsert) + '\n');
+				console.error('Error fetching log type configuration:', err);
 			});
 	}
 
-	log(infoAndReq: ILog & { req: Request }, callback: () => void) {
-		// req: Request
-		const info = new Log(infoAndReq);
-		// info.meta = this.prepareMeta(infoAndReq.req);
-		setImmediate(() => this.emit('logged', info));
-		// Add log entry to the buffer
-		this.buffer.push(info);
-		// Flush if buffer limit is reached
-		if (this.buffer.length >= this.bufferLimit) {
-			this.flushBuffer();
-		}
-		callback();
-	}
+	/**
+	 * Prepares metadata from request based on current log type settings
+	 */
+	prepareMeta(req: Request): Record<string, string | number | undefined> {
+		if (!req) return {};
 
-	prepareMeta(req: Request) {
-		let meta: Partial<Record<LOG_TYPE_KEYS, boolean>> = {};
+		const meta: Record<string, string | number | undefined> = {};
+
 		for (const key of Object.keys(LOG_TYPE_KEYS) as Array<LOG_TYPE_KEYS>) {
-			if (MongooseTransport.logType[key]) meta[key] = this.handlers[key].call(this, req);
+			if (MongooseTransport.logType[key] && this.handlers[key]) {
+				try {
+					meta[key] = this.handlers[key].call(this, req);
+				} catch (error: unknown) {
+					meta[`${key}_error`] = 'Error extracting value';
+					console.error(error);
+				}
+			}
 		}
+
 		return meta;
 	}
 
-	close() {
-		clearInterval(this.interval); // Clear the interval on transport close
-		this.flushBuffer(); // Flush remaining logs
+	/**
+	 * Winston transport log method implementation
+	 */
+	log(infoAndReq: ILog & { req?: Request }, callback: () => void): void {
+		try {
+			// Create the log document
+			const log = new Log({
+				...infoAndReq,
+				meta: infoAndReq.req ? this.prepareMeta(infoAndReq.req) : infoAndReq.meta || {},
+				timestamp: new Date()
+			});
+
+			// Signal that the log was processed
+			setImmediate(() => this.emit('logged', log));
+
+			// Save directly to MongoDB (hash will be generated in pre-save hook)
+			log.save().catch((err) => {
+				console.error('Error saving log to MongoDB:', err);
+				this.saveFallbackLog(log);
+			});
+		} catch (err) {
+			console.error('Error in log processing:', err);
+			this.saveFallbackLog(infoAndReq);
+		}
+
+		// Always call callback to prevent blocking
+		callback();
 	}
 
-	static changeSize(cappedSize: number) {
-		return mongoose.connection.db
-			.command({ buildInfo: 1 })
-			.then((res) => parseInt(res.version) >= 6)
-			.then((res) =>
-				res
-					? mongoose.connection.db.command({
-							collMod: Log.collection.name,
-							cappedSize
-						})
-					: new Error("Mongoose doesn't support changing capped collection size!")
-			)
-			.catch(console.error);
+	/**
+	 * Saves a log to fallback storage when MongoDB fails
+	 */
+	private saveFallbackLog(log: ILog & { req?: Request }): void {
+		try {
+			appendFileSync('fallback-logs.json', JSON.stringify(log) + '\n');
+		} catch (fallbackErr) {
+			console.error('Failed to write to fallback log file:', fallbackErr);
+		}
+	}
+
+	/**
+	 * Change the capped collection size
+	 */
+	static async changeSize(cappedSize: number): Promise<void> {
+		try {
+			const db = LogType.db as unknown as Connection;
+			const buildInfo = await db.db.admin().command({ buildInfo: 1 });
+			const isSupported = parseInt(buildInfo.version) >= 6;
+
+			if (!isSupported) {
+				throw new Error("MongoDB version doesn't support changing capped collection size");
+			}
+
+			await db.db.command({
+				collMod: Log.collection.name,
+				cappedSize
+			});
+		} catch (error) {
+			throw new Error(
+				`Failed to change capped collection size: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
 	}
 }

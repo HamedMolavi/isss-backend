@@ -1,138 +1,258 @@
-import Transport from 'winston-transport';
-import { LEVEL } from 'triple-beam';
-import winston, { config as winstonConfig, LoggerOptions } from 'winston';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import winston, { LoggerOptions, format } from 'winston';
 import { MongooseTransport } from './transports';
+import { Request } from 'express';
 
+/**
+ * Enhanced logger options
+ */
+interface EnhancedLoggerOptions extends LoggerOptions {
+	recreate?: boolean;
+	serviceName?: string;
+}
+
+/**
+ * Metadata interface for logging
+ */
+interface LogMetadata {
+	[key: string]: unknown;
+}
+/**
+ * Logger singleton that provides specialized logging methods
+ */
 export class Logger {
-	private static transports: Transport[];
 	private static instance: winston.Logger;
-	constructor(opts: LoggerOptions & { recreate?: boolean } = { recreate: false }) {
-		if (!Logger.instance || !!opts.recreate) {
-			Logger.instance = winston.createLogger(opts);
-			Logger.transports = [opts.transports ?? Logger.transports].flat();
+	private static initialized: boolean = false;
+
+	constructor(opts: EnhancedLoggerOptions = {}) {
+		if (!Logger.instance || opts.recreate) {
+			Logger.createInstance(opts);
 		}
-		// @ts-ignore
+	}
+
+	// Add getter to access instance
+	public static getInstance(): winston.Logger {
+		if (!Logger.instance) {
+			Logger.createInstance({});
+		}
 		return Logger.instance;
 	}
-	static init(opts: LoggerOptions & { recreate?: boolean } = { recreate: false }) {
-		if (!Logger.instance || !!opts.recreate) {
-			Logger.instance = winston.createLogger(opts);
-			Logger.transports = [opts.transports ?? Logger.transports].flat();
+
+	/**
+	 * Initializes the logger with the specified options
+	 */
+	static init(opts: EnhancedLoggerOptions = {}): winston.Logger {
+		if (!Logger.instance || opts.recreate) {
+			Logger.createInstance(opts);
 		}
+
 		return Logger.instance;
 	}
-	static info(message: string, ...args: any[]) {
-		return Logger.instance?.info(message, ...args);
+
+	/**
+	 * Creates the Winston logger instance with default and custom options
+	 */
+	private static createInstance(opts: EnhancedLoggerOptions): void {
+		const serviceName = opts.serviceName || 'app';
+
+		// Default format that includes timestamps and service name
+		const defaultFormat = format.combine(
+			format.timestamp(),
+			format.metadata({ fillExcept: ['message', 'level', 'timestamp'] }),
+			format.json()
+		);
+
+		// Create the logger with default options that can be overridden
+		Logger.instance = winston.createLogger({
+			level: process.env.LOG_LEVEL || 'info',
+			format: defaultFormat,
+			defaultMeta: { service: serviceName },
+			transports: [
+				// Default to console in development
+				new winston.transports.Console({
+					format: format.combine(format.colorize(), format.simple())
+				}),
+				// Use MongooseTransport by default
+				new MongooseTransport()
+			],
+			...opts
+		});
+
+		Logger.initialized = true;
 	}
-	info(message: string, ...args: any[]) {
-		return Logger.instance?.info(message, ...args);
+
+	/**
+	 * Ensures the logger is initialized before use
+	 */
+	private static ensureInitialized(): void {
+		if (!Logger.initialized) {
+			Logger.createInstance({});
+		}
 	}
-	static error(message: string, ...args: any[]) {
-		return Logger.instance?.error(message, ...args);
+
+	/**
+	 * Standard logging methods
+	 */
+	static info(message: string, meta?: LogMetadata): winston.Logger {
+		Logger.ensureInitialized();
+		return Logger.instance.info(message, meta);
 	}
-	error(message: string, ...args: any[]) {
-		return Logger.instance?.error(message, ...args);
+
+	static error(message: string, meta?: LogMetadata): winston.Logger {
+		Logger.ensureInitialized();
+		return Logger.instance.error(message, meta);
 	}
-	static warn(message: string, ...args: any[]) {
-		return Logger.instance?.warn(message, ...args);
+
+	static warn(message: string, meta?: LogMetadata): winston.Logger {
+		Logger.ensureInitialized();
+		return Logger.instance.warn(message, meta);
 	}
-	warn(message: string, ...args: any[]) {
-		return Logger.instance?.warn(message, ...args);
+
+	static debug(message: string, meta?: LogMetadata): winston.Logger {
+		Logger.ensureInitialized();
+		return Logger.instance.debug(message, meta);
 	}
-	static debug(message: string, ...args: any[]) {
-		return Logger.instance?.debug(message, ...args);
+
+	/**
+	 * Instance methods that delegate to the static methods
+	 */
+	info(message: string, meta?: LogMetadata): winston.Logger {
+		return Logger.info(message, meta);
 	}
-	debug(message: string, ...args: any[]) {
-		return Logger.instance?.debug(message, ...args);
+
+	error(message: string, meta?: LogMetadata): winston.Logger {
+		return Logger.error(message, meta);
 	}
-	static changeMongoCollectionSize(cappedSize: number) {
+
+	warn(message: string, meta?: LogMetadata): winston.Logger {
+		return Logger.warn(message, meta);
+	}
+
+	debug(message: string, meta?: LogMetadata): winston.Logger {
+		return Logger.debug(message, meta);
+	}
+
+	/**
+	 * Specialized logging methods for authentication events
+	 */
+	static authEvent(userId: string, action: string, success: boolean, details: any = {}): winston.Logger {
+		return Logger.info('Authentication event', {
+			type: 'auth',
+			userId,
+			action,
+			success,
+			details
+		});
+	}
+
+	/**
+	 * Log a data modification event with before/after values
+	 */
+	static dataChange(
+		userId: string,
+		model: string,
+		action: string,
+		recordId: any,
+		before: any,
+		after: any
+	): winston.Logger {
+		return Logger.info('Data modification', {
+			type: 'data_change',
+			userId,
+			model,
+			action,
+			recordId,
+			before,
+			after
+		});
+	}
+
+	/**
+	 * Log a license-related event
+	 */
+	static licenseActivity(action: string, license: any, success: boolean, details: any = {}): winston.Logger {
+		return Logger.info('License activity', {
+			type: 'license',
+			action,
+			license,
+			success,
+			details
+		});
+	}
+
+	/**
+	 * Log a system operation event
+	 */
+	static systemOperation(
+		component: string,
+		operation: string,
+		success: boolean,
+		details: any = {}
+	): winston.Logger {
+		return Logger.info('System operation', {
+			type: 'system',
+			component,
+			operation,
+			success,
+			details
+		});
+	}
+
+	/**
+	 * Log an API request (can be used in middleware)
+	 */
+	static request(req: Request, duration?: number): winston.Logger {
+		const meta = {
+			type: 'request',
+			method: req.method,
+			url: req.url,
+			ip: req.ip,
+			userId: req.user?.id,
+			duration,
+			userAgent: req.headers['user-agent']
+		};
+
+		return Logger.info('API request', meta);
+	}
+
+	/**
+	 * Change MongoDB collection size
+	 */
+	static changeMongoCollectionSize(cappedSize: number): Promise<any> {
 		return MongooseTransport.changeSize(cappedSize);
 	}
-	changeMongoCollectionSize(cappedSize: number) {
-		return MongooseTransport.changeSize(cappedSize);
+
+	/**
+	 * Instance method versions of specialized logging methods
+	 */
+	authEvent(userId: string, action: string, success: boolean, details: any = {}): winston.Logger {
+		return Logger.authEvent(userId, action, success, details);
+	}
+
+	dataChange(
+		userId: string,
+		model: string,
+		action: string,
+		recordId: any,
+		before: any,
+		after: any
+	): winston.Logger {
+		return Logger.dataChange(userId, model, action, recordId, before, after);
+	}
+
+	licenseActivity(action: string, license: any, success: boolean, details: any = {}): winston.Logger {
+		return Logger.licenseActivity(action, license, success, details);
+	}
+
+	systemOperation(component: string, operation: string, success: boolean, details: any = {}): winston.Logger {
+		return Logger.systemOperation(component, operation, success, details);
+	}
+
+	request(req: Request, duration?: number): winston.Logger {
+		return Logger.request(req, duration);
+	}
+
+	changeMongoCollectionSize(cappedSize: number): Promise<any> {
+		return Logger.changeMongoCollectionSize(cappedSize);
 	}
 }
-
-// const info = {
-//   level: 'info',                 // Level of the logging message
-//   message: 'Hey! Log something?', // Descriptive message being logged.
-//   req: {},
-// };
-// for (let index = 0; index < 10; index++) {
-//   logger.info(info)
-// }
-// await new Promise((resolve) => setTimeout(() => {
-//   resolve(1);
-// }, 2000))
-// MongooseTransport.changeSize(500);
-// setTimeout(() => {
-
-//   for (let index = 0; index < 1000; index++) {
-//     logger.info(info)
-//   }
-// }, 5000);
-
-/*
-function isLevelEnabledFunctionName(level: string) {
-  return 'is' + level.charAt(0).toUpperCase() + level.slice(1) + 'Enabled';
-}
-class Logger extends winston.Logger {
-  private static instance: winston.Logger
-
-  constructor(options: LoggerOptions = {}) {
-    options.levels = options.levels || winstonConfig.npm.levels;
-    super(options);
-    //
-    // Define prototype methods for each log level e.g.:
-    // logger.log('info', msg) implies these methods are defined:
-    // - logger.info(msg)
-    // - logger.isInfoEnabled()
-    //
-    // Remark: to support logger.child this **MUST** be a function
-    // so it'll always be called on the instance instead of a fixed
-    // place in the prototype chain.
-    //
-    // Object.keys(options.levels).forEach
-    Logger.prototype['info'] = (...args) => {
-      switch (args.length) {
-        case 1: { // Optimize the hot-path which is the single object.
-          const [msg] = args;
-          const info = msg && msg.message && msg || { message: msg };
-          info.level = info[LEVEL] = 'info';
-          if (this.defaultMeta) Object.assign(msg, this.defaultMeta);
-          this.write(info);
-          return this;
-        }
-        case 0: {// When provided nothing assume the empty string
-          this.log('info', '');
-          return this;
-        }
-        default: {
-          // Otherwise build argument list which could potentially conform to
-          // either:
-          // . v3 API: log(obj)
-          // 2. v1/v2 API: log(level, msg, ... [string interpolate], [{metadata}], [callback])
-          return this.log('info', ...args);
-        }
-      }
-    }
-    Logger.prototype['isInfoEnabled'] = function () {
-      return this.isLevelEnabled('info');
-    };
-  }
-}
-*/
-/*
-  // you may also dynamically change the log level of a transport
-  transports.console.level = 'info';
-  transports.file.level = 'info';
-  transports.mongo.level = 'info';
-*/
-/*
-  // both Logger and Transport instances are treated as objectMode streams that accept an info object.
-  logger
-    .clear()          // Remove all transports
-    .add(transports.console)     // Add console transport
-    .add(transports.file)       // Add file transport
-    .remove(transports.mongo); // Remove console transport
-*/
