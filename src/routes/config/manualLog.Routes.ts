@@ -1,15 +1,14 @@
-import { Router } from "express";
-import { dtoValidationMiddleware } from "../../validation/dto";
-import { CreatePlateLogBody } from "../../validation/dto/plateLog.dto";
-import { createLogMiddleware } from "../../db/elastic/createLog";
-import { Plate } from "../../db/elastic/model/plate";
-import { createMiddleware } from "../../db/mongo/create.database";
-import { stringifyPlate } from "../../tools/car.tools";
-import Car from "../../db/mongo/models/car";
-import { englishPlateDict } from "../../tools/plate.tools";
-import { existCheck } from "../../validation/db";
-import { injectDataMiddleware } from "../../tools/request.tools";
-
+import { Router } from 'express';
+import { dtoValidationMiddleware } from '../../validation/dto';
+import { CreatePlateLogBody } from '../../validation/dto/plateLog.dto';
+import { createLogMiddleware } from '../../db/elastic/createLog';
+import { Plate } from '../../db/elastic/model/plate';
+import { createMiddleware } from '../../db/mongo/create.database';
+import { stringifyPlate } from '../../tools/car.tools';
+import Car from '../../db/mongo/models/car';
+import { englishPlateDict } from '../../tools/plate.tools';
+import { existCheck } from '../../validation/db';
+import { injectDataMiddleware } from '../../tools/request.tools';
 
 //create router for add to server file
 const router: Router = Router();

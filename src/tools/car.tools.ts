@@ -33,5 +33,5 @@ export function platesToStrings(plates: Array<{ first: string, second: string, t
       }`;
   })
 
-  return results;
+	return results;
 }

@@ -1,87 +1,100 @@
-import { Request, Response, NextFunction, RequestHandler } from "express";
-import { ApiError } from "../types/classes/error.class";
-import mongoose, { Document, Types, isObjectIdOrHexString } from "mongoose";
-import { ICamera } from "../types/interfaces/camera.interface";
-import Camera from "../db/mongo/models/camera";
-import { read } from "../db/mongo/read.database";
-import AccessLevel from "../db/mongo/models/accessLevel";
-import { IAccessLevel } from "../types/interfaces/accessLevel.interface";
+import { Request, Response, NextFunction } from 'express';
+import { ApiError } from '../types/classes/error.class';
+import mongoose, { isObjectIdOrHexString } from 'mongoose';
 
+import AccessLevel from '../db/mongo/models/accessLevel';
+import { IAccessLevel } from '../types/interfaces/accessLevel.interface';
 
 // CRUD => Create, Read, Update, Delete
 const accessTranslation = {
-  "POST": "Create",
-  "GET": "Read",
-  "PATCH": "Update",
-  "DELETE": "Delete"
+	POST: 'Create',
+	GET: 'Read',
+	PATCH: 'Update',
+	DELETE: 'Delete'
 };
 // PGPD => POST, GET, PATCH, DELETE
 const accessCharPositions = {
-  "POST": -4, // minus for reversing
-  "GET": -3,
-  "PATCH": -2,
-  "DELETE": -1
+	POST: -4, // minus for reversing
+	GET: -3,
+	PATCH: -2,
+	DELETE: -1
 };
 
 export function userCanGetHisInfo(req: Request) {
-  let probableParamId = req.path.split('/').find((el) => isObjectIdOrHexString(el));
-  if (['GET', 'PATCH'].includes(req.method) &&
-    !!req.originalUrl.match("/api/v1/config/admin/users/") &&
-    !!probableParamId &&
-    probableParamId === req.user._id.toString()) {
-    //user can not change his "role" or "access_level"
-    req.body.role = undefined;
-    req.body.access_level = undefined;
-    return true;
-  };
-  return false; // no access
-};
+	const probableParamId = req.path.split('/').find((el) => isObjectIdOrHexString(el));
+	if (
+		['GET', 'PATCH'].includes(req.method) &&
+		!!req.originalUrl.match('/api/v1/config/admin/users/') &&
+		!!probableParamId &&
+		probableParamId === req.user._id.toString()
+	) {
+		//user can not change his "role" or "access_level"
+		req.body.role = undefined;
+		req.body.access_level = undefined;
+		return true;
+	}
+	return false; // no access
+}
 
+export function accessCheck(
+	access: keyof IAccessLevel,
+	options?: {
+		bitMapNumberFromRight?: number;
+		extraFunction?: (req: Request, userAccess: number | undefined) => boolean | Promise<boolean>;
+	}
+) {
+	/**
+	 * @access
+	 * @bitMapNumberFromRight
+	 */
+	return async function middleware(req: Request, res: Response, next: NextFunction) {
+		const user = req.user;
+		const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level));
+		const userAccess = userAccessLevel?.[access] as number | undefined;
+		const method = req.method as 'GET' | 'POST' | 'DELETE' | 'PATCH';
+		if (userAccessLevel && userAccess && hasAccess(userAccess, options?.bitMapNumberFromRight ?? method))
+			return next(); // first: check the role
+		if (!!options?.extraFunction && (await options.extraFunction(req, userAccess))) return next(); // second: check manual pass function
+		req.flash('error', `No [${access} ${accessTranslation[method]}] access!`);
+		return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
+	};
+}
 
+export function hasAccess(
+	userAccess: number,
+	methodOrNumber: 'GET' | 'POST' | 'DELETE' | 'PATCH' | number
+): boolean {
+	const binUserAccess = '0000' + (userAccess >>> 0).toString(2);
+	if (typeof methodOrNumber === 'number') return binUserAccess.at(-methodOrNumber) == '1';
+	return binUserAccess.at(accessCharPositions[methodOrNumber]) == '1';
+}
 
-export function accessCheck(access: keyof IAccessLevel, options?: { bitMapNumberFromRight?: number, extraFunction?: (req: Request, userAccess: number | undefined) => boolean | Promise<boolean> }) {
-  /**
-   * @access
-   * @bitMapNumberFromRight
-   */
-  return async function middleware(req: Request, res: Response, next: NextFunction) {
-    const user = req.user;
-    const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level));
-    const userAccess = userAccessLevel?.[access] as number | undefined;
-    const method = req.method as "GET" | "POST" | "DELETE" | "PATCH";
-    if (userAccessLevel && userAccess && hasAccess(userAccess, options?.bitMapNumberFromRight ?? method)) return next(); // first: check the role
-    if (!!options?.extraFunction && await options.extraFunction(req, userAccess)) return next(); // second: check manual pass function
-    req.flash("error", `No [${access} ${accessTranslation[method]}] access!`);
-    return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
-  };
-};
+export function roleCheck(
+	role: string,
+	options?: { extraFunction?: (req: Request, res: Response) => boolean }
+) {
+	return async function middleware(req: Request, res: Response, next: NextFunction) {
+		const user = req.user;
+		if (user.role === role) return next(); // first: check the role
+		if (!!options?.extraFunction && options.extraFunction(req, res)) return next(); // second: check manual pass function
+		req.flash('error', `No access!`);
+		return next(new ApiError(403, `No access!`));
+	};
+}
 
-
-export function hasAccess(userAccess: number, methodOrNumber: "GET" | "POST" | "DELETE" | "PATCH" | number): boolean {
-  const binUserAccess = "0000" + (userAccess >>> 0).toString(2);
-  if (typeof methodOrNumber === 'number') return binUserAccess.at(-methodOrNumber) == "1";
-  return binUserAccess.at(accessCharPositions[methodOrNumber]) == "1";
-};
-
-export function roleCheck(role: string, options?: { extraFunction?: (req: Request, res: Response) => boolean }) {
-  return async function middleware(req: Request, res: Response, next: NextFunction) {
-    const user = req.user;
-    if (user.role === role) return next(); // first: check the role
-    if (!!options?.extraFunction && options.extraFunction(req, res)) return next(); // second: check manual pass function
-    req.flash("error", `No access!`);
-    return next(new ApiError(403, `No access!`));
-  };
-};
-
-export function paramIdExistsInCameraWhiteList(options?: { _id?: string, idFromReq?: (req: Request) => string | undefined, }) {
-  return async function middleware(req: Request, res: Response, next: NextFunction) {
-    let id = options?._id ?? options?.idFromReq?.(req) ?? req.params.id;
-    if (!id) return next();
-    const user = req.user;
-    if (user.role === 'admin' || !!user.camera_access?.map(el => el.toString())?.includes(id)) return next();
-    req.flash("error", `No access to this camera ${id}!`);
-    return next(new ApiError(403, `No access to this camera ${id}!`));
-  };
+export function paramIdExistsInCameraWhiteList(options?: {
+	_id?: string;
+	idFromReq?: (req: Request) => string | undefined;
+}) {
+	return async function middleware(req: Request, res: Response, next: NextFunction) {
+		const id = options?._id ?? options?.idFromReq?.(req) ?? req.params.id;
+		if (!id) return next();
+		const user = req.user;
+		if (user.role === 'admin' || !!user.camera_access?.map((el) => el.toString())?.includes(id))
+			return next();
+		req.flash('error', `No access to this camera ${id}!`);
+		return next(new ApiError(403, `No access to this camera ${id}!`));
+	};
 }
 // export function cameraAccessCheck(camerasFieldName: string, options?: {
 //   next?: boolean,

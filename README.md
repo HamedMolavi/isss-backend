@@ -20,8 +20,8 @@ cd /tmp && echo "$(sudo cat /sys/devices/virtual/dmi/id/board_serial)-$(lsblk -n
 
 2.0.x
 
-* 2.0.0: lts
-* 2.0.1: Jimp image file routes and image dto validation changed
+- 2.0.0: lts
+- 2.0.1: Jimp image file routes and image dto validation changed
 
 3.0.x
 
@@ -75,9 +75,9 @@ server.ts
     │   │       ├ dtoValidationMiddleware(loginDto) => /validation/dto/index, /validation/dto/login.dto
     │   │       ├ assignPassport => /authentication/authorize.auth
     │   │       └ sendTokenToclient => /authentication/authorize.auth
-    │   │ 
+    │   │
     │   ├ passportGate => /authentication/authorize.auth
-    │   │   
+    │   │
     │   ├ /config/user => routes/config/userConfig.Routes
     │   │  ├ accessCheck => /authentication/accessCheck.auth
     │   │  │    └ Access.Configuration => /types/enums/access.enum
@@ -238,34 +238,34 @@ placeholder
 #### Create a Person
 
 ```ts
- /*   POST /api/v1/config/user/personnels   */
+/*   POST /api/v1/config/user/personnels   */
 interface CreatePersonnelBody {
-  first_name: string;
-  last_name: string;
-  national_code: string;
-  email?: string |  null
-  phone_number: string| null;
-  job_id?: mongoose.Types.ObjectId;
-  section_id?: mongoose.Types.ObjectId| null;
-  tracked?: boolean| null;
-  personnel_code: string| null;
-  camera_whitelist?: string[]| null;
-  department_whitelist?: string[]| null;
-  section_whitelist?: string[]| null;
-  schedule_whitelist?: string[]| null;
-  is_active: boolean| null;
-  time_start?: string;
-  date_start?: string;
-  time_end?: string;
-  date_end?: string;
-};
+	first_name: string;
+	last_name: string;
+	national_code: string;
+	email?: string | null;
+	phone_number: string | null;
+	job_id?: mongoose.Types.ObjectId;
+	section_id?: mongoose.Types.ObjectId | null;
+	tracked?: boolean | null;
+	personnel_code: string | null;
+	camera_whitelist?: string[] | null;
+	department_whitelist?: string[] | null;
+	section_whitelist?: string[] | null;
+	schedule_whitelist?: string[] | null;
+	is_active: boolean | null;
+	time_start?: string;
+	date_start?: string;
+	time_end?: string;
+	date_end?: string;
+}
 ```
 
 Exist Check is done with:  
 OR:
 
-* national_code
-* personnel_code
+- national_code
+- personnel_code
 
 Save the person. Then save its avatar:
 

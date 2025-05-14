@@ -35,7 +35,7 @@ import Camera from "../../db/mongo/models/camera";
 import { ISection } from "../../types/interfaces/section.interface";
 import { readMiddleware } from "../../db/mongo/read.database";
 
-const secret = process.env["SESSION_SECRET"];
+const secret = process.env['SESSION_SECRET'];
 //create customized redis client
 const cfs = new ImageFileSystem();
 //create customized redis client
@@ -721,3 +721,4 @@ router.post(
 );
 
 export default router;
+

@@ -22,13 +22,12 @@ export interface IPlate {
 }
 
 export interface PlateNumber {
-    first: string;
-    second: string;
-    third: string;
-    fourth: string;
-    fifth: string;
+	first: string;
+	second: string;
+	third: string;
+	fourth: string;
+	fifth: string;
 }
-
 
 export class Plate {
     plate: IPlate = {

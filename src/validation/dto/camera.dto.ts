@@ -36,47 +36,47 @@ export class CreateCameraBody {
 };
 
 export class UpdateCameraBody {
-  @IsOptional()
-  public section_id?: mongoose.Types.ObjectId;
-  @IsOptional()
-  @IsString()
-  public network?: string;
-  @IsOptional()
-  @IsString()
-  public nvr?: string;
-  @IsOptional()
-  @IsString()
-  public ip?: string;
-  @IsOptional()
-  @IsString()
-  public url?: string;
-  @IsOptional()
-  @IsString()
-  public name?: string;
-  @IsOptional()
-  @IsString()
-  public username?: string;
-  @IsOptional()
-  @IsString()
-  public password?: string;
-  @IsOptional()
-  @IsBoolean()
-  public is_enabled?: boolean;
-  @IsOptional()
-  @IsBoolean()
-  public damaged?: boolean;
-  @IsOptional()
-  @IsString()
-  public camera_type?: any; // CameraTypes
-};
+	@IsOptional()
+	public section_id?: mongoose.Types.ObjectId;
+	@IsOptional()
+	@IsString()
+	public network?: string;
+	@IsOptional()
+	@IsString()
+	public nvr?: string;
+	@IsOptional()
+	@IsString()
+	public ip?: string;
+	@IsOptional()
+	@IsString()
+	public url?: string;
+	@IsOptional()
+	@IsString()
+	public name?: string;
+	@IsOptional()
+	@IsString()
+	public username?: string;
+	@IsOptional()
+	@IsString()
+	public password?: string;
+	@IsOptional()
+	@IsBoolean()
+	public is_enabled?: boolean;
+	@IsOptional()
+	@IsBoolean()
+	public damaged?: boolean;
+	@IsOptional()
+	@IsString()
+	public camera_type?: any; // CameraTypes
+}
 
 export class CameraInfoBody {
-  @IsString()
-  public ip?: mongoose.Types.ObjectId;
-  @IsString()
-  public username?: string;
-  @IsString()
-  public password?: string;
-  @IsString()
-  public url?: string;
-};
+	@IsString()
+	public ip?: mongoose.Types.ObjectId;
+	@IsString()
+	public username?: string;
+	@IsString()
+	public password?: string;
+	@IsString()
+	public url?: string;
+}
