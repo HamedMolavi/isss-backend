@@ -1,14 +1,8 @@
-import { NextFunction, Request, RequestHandler, Response } from 'express';
-import { ApiError } from '../../types/classes/error.class';
-import { DefaultSchemaOptions, Document, FilterQuery, Model as MongooseModel, Schema } from 'mongoose';
-import deepmerge from 'deepmerge';
-type modelType = MongooseModel<
-	any,
-	{},
-	{},
-	{},
-	Schema<any, MongooseModel<any, any, any, any, any>, {}, {}, {}, {}, DefaultSchemaOptions, any>
->;
+import { NextFunction, Request, RequestHandler, Response } from "express";
+import { ApiError } from "../../types/classes/error.class";
+import { DefaultSchemaOptions, Document, FilterQuery, Model as MongooseModel, Schema } from "mongoose";
+import deepmerge from "deepmerge";
+type modelType = MongooseModel<any, {}, {}, {}, Schema<any, MongooseModel<any, any, any, any, any>, {}, {}, {}, {}, DefaultSchemaOptions, any>>;
 
 export async function read(model: any, options?: { query?: FilterQuery<any>; populate?: string }) {
 	const docs: Document[] | any = !!options?.populate
@@ -193,55 +187,47 @@ export function readByIdMiddleware(
 				}
 			}
 
-			if (!!options?.next) {
-				if (!!options.save) req.body[options.save] = doc;
-				else req.body['doc'] = doc;
-				return next();
-			}
-			//send response to client
-			return res.status(200).json({
-				success: true,
-				data: !!options?.send ? await options.send(doc, req) : doc
-			});
-		} catch (err: any) {
-			if (err.kind === 'ObjectId') return next(new ApiError(400, `id must be valid: ${req.params.id}`));
-			else return next(new ApiError(500, 'internal server error , ' + err.message));
-		}
-	};
-}
+      if (!!options?.next) {
+        if (!!options.save) req.body[options.save] = doc;
+        else req.body["doc"] = doc;
+        return next();
+      };
+      //send response to client
+      return res.status(200).json({
+        success: true,
+        data: !!options?.send ? await options.send(doc, req) : doc,
+      });
+    } catch (err: any) {
+      if (err.kind === 'ObjectId') return next(new ApiError(400, `id must be valid: ${req.params.id}`));
+      else return next(new ApiError(500, "internal server error , " + err.message));
+    }
+  }
+};
 
-export async function readById(
-	model: modelType,
-	id: string | Schema.Types.ObjectId,
-	options?: { populate?: any; forcePopulate?: string[] }
+export async function readById(model: modelType, id: string | Schema.Types.ObjectId,
+  options?: { populate?: any, forcePopulate?: string[], }
 ) {
-	let doc = await model.findById(id).exec();
+  let doc = await model.findById(id).exec();
 
-	if (!!options?.populate) {
-		const populates =
-			options.populate instanceof String
-				? options.populate.split(',').map((el) => el.trim())
-				: ((options.populate as string[])?.map((el) => el.trim()) ?? []);
-		if (!!options?.forcePopulate)
-			options.forcePopulate.forEach((p) => {
-				if (!populates.includes(p)) populates.push(p);
-			});
-		let idx = populates.length - 1;
-		while (!!populates.length && idx >= 0) {
-			const populate = populates[idx];
-			const keys = getAllKeys(doc.toObject());
-			const populatePath = keys.find(
-				(key) => key === populate || key.split('.').some((el) => el === populate)
-			);
-			if (!!populatePath) {
-				doc = await doc.populate(populatePath);
-				populates.splice(idx, 1);
-				idx = populates.length - 1;
-			} else idx--;
-		}
-	}
-	return doc;
-}
+  if (!!options?.populate) {
+    let populates = options.populate instanceof String
+      ? options.populate.split(",").map((el) => el.trim())
+      : (options.populate as string[])?.map((el) => el.trim()) ?? [];
+    if (!!options?.forcePopulate) options.forcePopulate.forEach((p) => { if (!populates.includes(p)) populates.push(p) });
+    let idx = populates.length - 1;
+    while (!!populates.length && idx >= 0) {
+      const populate = populates[idx];
+      let keys = getAllKeys(doc.toObject());
+      let populatePath = keys.find((key) => key === populate || key.split(".").some((el) => el === populate));
+      if (!!populatePath) {
+        doc = await doc.populate(populatePath);
+        populates.splice(idx, 1);
+        idx = populates.length - 1;
+      } else idx--;
+    };
+  };
+  return doc;
+};
 
 function getAllKeys(obj: { [key: string]: any }) {
 	const keys: string[] = [];

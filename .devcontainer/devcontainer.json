@@ -1,0 +1,32 @@
+{
+	"name": "Backend Dev Container",
+	"image": "192.168.100.100:5000/mcr.microsoft.com/devcontainers/typescript-node",
+	"runArgs": [
+		"--privileged"
+	],
+	// "remoteUser": "devuser",
+	"mounts": [
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode-remote.remote-containers",
+				"ms-python.python",
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode"
+			],
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "bash"
+			}
+		}
+	},
+	"forwardPorts": [],
+	"remoteEnv": {
+		"GIT_AUTHOR_NAME": "Hamed Molavi",
+		"GIT_COMMITTER_NAME": "Hamed Molavi",
+		"GIT_AUTHOR_EMAIL": "dev.molavi@gmail.com",
+		"GIT_COMMITTER_EMAIL": "dev.molavi@gmail.com"
+	},
+	"postStartCommand": "git config --global http.sslCAinfo /etc/ssl/certs/ca-certificates.crt"
+}

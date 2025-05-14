@@ -16,6 +16,7 @@ import path from 'path';
 import { existsSync } from 'fs';
 import mongoose from 'mongoose';
 import { count, Pipeline } from '../../db/mongo/count.database';
+import { count, Pipeline } from '../../db/mongo/count.database';
 
 export function dtoValidationMiddleware(
 	type: any,
@@ -171,42 +172,34 @@ export class FileOrDirExists implements ValidatorConstraintInterface {
 	}
 }
 
+
 @ValidatorConstraint({ name: 'countLicenseRestricion', async: false })
 export class CountLicenseRestricion implements ValidatorConstraintInterface {
-	async validate(
-		_p: string,
-		args: ValidationArguments & {
-			object: any;
-			constraints: [
-				{
-					model: mongoose.Model<{}, {}, {}, {}>;
-					env?: string | ((object: any) => string | Promise<string>);
-					defualtNumber?: number;
-					pipelines?: Pipeline[] | ((object: any) => Pipeline[] | Promise<Pipeline[]>);
-				}
-			];
-		}
-	) {
-		try {
-			let {
-				object,
-				constraints: [{ model, env, defualtNumber, pipelines }]
-			} = args;
-			if (typeof pipelines === 'function') pipelines = await pipelines(object);
-			const c = await count(model, { pipelines });
-			const preValue =
-				process.env[(typeof env === 'function' ? await env(object) : env) ?? 'dummy-string-hamed'];
-			let value: number;
-			try {
-				value = parseInt(preValue ?? '4');
-			} catch (error) {
-				value = defualtNumber ?? 4;
-			}
-			return c < value;
-		} catch (error) {
-			return false;
-		}
-	}
+  async validate(_p: string, args: ValidationArguments & {
+    object: any, constraints: [{
+      model: mongoose.Model<{}, {}, {}, {}>,
+      env?: string | ((object: any) => string | Promise<string>),
+      defualtNumber?: number,
+      pipelines?: Pipeline[] | ((object: any) => Pipeline[] | Promise<Pipeline[]>),
+    }]
+  }) {
+    try {
+
+      let { object, constraints: [{ model, env, defualtNumber, pipelines }] } = args
+      if (typeof pipelines === 'function') pipelines = await pipelines(object);
+      const c = await count(model, { pipelines });
+      const preValue = process.env[(typeof env === 'function' ? await env(object) : env) ?? 'dummy-string-hamed'];
+      let value: number;
+      try {
+        value = parseInt(preValue ?? "4");
+      } catch (error) {
+        value = defualtNumber ?? 4;
+      }
+      return c < value;
+    } catch (error) {
+      return false;
+    }
+  }
 
 	defaultMessage(args: ValidationArguments & { object: any }) {
 		return `License violation!`;

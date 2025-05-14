@@ -61,6 +61,7 @@ services:
       - MODELS=face,plate
       - MAX_LOAD=100
       - TZ=Asia/Tehran
+      # - SECURE=FALSE
     ports:
       - 9000:9000
     volumes:

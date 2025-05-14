@@ -6,7 +6,7 @@ WORKDIR /isss-backend
 #RUN -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:5.1.2 -i file.wavCOPY package.json .
 
 # Install curl using apt-get
-RUN apt-get update && apt-get install -y curl
+RUN apt-get update && apt-get install -y curl docker.io
 
 COPY package.json .
 COPY package-lock.json* .
@@ -27,11 +27,11 @@ WORKDIR /isss-backend
 #COPY security ./security ./
 # COPY assets ./assets ./
 COPY --from=builder /isss-backend /isss-backend
-COPY tsconfig.json ./
-COPY src ./src 
+# COPY tsconfig.json ./
+COPY obfuscated ./src
 COPY security ./security
 # RUN npm run build
 
 EXPOSE 3000
 
-CMD [ "ts-node" , "./src/server.ts" ]
+CMD [ "node" , "./src/server.js" ]

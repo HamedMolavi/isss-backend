@@ -1,3 +1,37 @@
+export const DIGITS: { [key: string]: string } = {
+  "_": "_",
+  '0': '0',
+  '1': '1',
+  '2': '2',
+  '3': '3',
+  '4': '4',
+  '5': '5',
+  '6': '6',
+  '7': '7',
+  '8': '8',
+  '9': '9',
+  '٠': '0',
+  '١': '1',
+  '٢': '2',
+  '٣': '3',
+  '٤': '4',
+  '٥': '5',
+  '٦': '6',
+  '٧': '7',
+  '٨': '8',
+  '٩': '9', // Arabic-Indic
+  '۰': '0',
+  '۱': '1',
+  '۲': '2',
+  '۳': '3',
+  '۴': '4',
+  '۵': '5',
+  '۶': '6',
+  '۷': '7',
+  '۸': '8',
+  '۹': '9' // Persian
+};
+
 export const persianPlateDict: any = {
 	U: 'ع',
 	X: 'ط',
@@ -86,40 +120,45 @@ export const englishPlateDict: any = {
 	// "تشریفات":"t"
 };
 
+// Deprecated
 export function english2Persian(plate_number: string): string {
-	let tmp = {
-		first: Number(plate_number.substr(0, 2)),
-		second: persianPlateDict[plate_number.substr(2, 1)],
-		third: Number(plate_number.substr(3, 3)),
-		fourth: 'ایران',
-		fifth: Number(plate_number.substr(6, 2))
-	};
-	let result = `(${tmp.first}${tmp.second}${tmp.third}${tmp.fourth}${tmp.fifth})`;
-	return result;
+  let tmp = {
+    first: Number(plate_number.substr(0, 2)),
+    second: persianPlateDict[plate_number.substr(2, 1)],
+    third: Number(plate_number.substr(3, 3)),
+    fourth: "ایران",
+    fifth: Number(plate_number.substr(6, 2)),
+  };
+  let result = `(${tmp.first}${tmp.second}${tmp.third}${tmp.fourth}${tmp.fifth})`
+  return result;
+};
+
+export function formatNumber(str: string, options?: { len?: number, }) {
+  let res = str.split("").map(n => {
+    switch (true) {
+      case ['*'].includes(n): return n
+      case !isNaN(parseInt(n)): return Number(n).toLocaleString("fa-IR")
+    }
+    return "_";
+  }).join('');
+  return !!res ? res : Array(options?.len).fill("_").join("");
 }
 
 export function stringPlateToJson(plate_number: string) {
-	let plateNumber1 = !!plate_number.substr(0, 2).match(new RegExp(/\*/))
-		? plate_number.substr(0, 2)
-		: Number(plate_number.substr(0, 2)).toLocaleString('fa-IR');
-	let plateNumber2 = !!plate_number.substr(2, 1).match(new RegExp(/\*/))
-		? plate_number.substr(2, 1)
-		: persianPlateDict[plate_number.substr(2, 1)];
-	let plateNumber3 = !!plate_number.substr(3, 3).match(new RegExp(/\*/))
-		? plate_number.substr(3, 3)
-		: Number(plate_number.substr(3, 3)).toLocaleString('fa-IR');
-	let plateNumber4 = !!plate_number.substr(6, 2).match(new RegExp(/\*/))
-		? plate_number.substr(6, 2)
-		: Number(plate_number.substr(6, 2)).toLocaleString('fa-IR');
-	//add plate number to json response for sort persian format in font end
-	return {
-		first: plateNumber1,
-		second: plateNumber2,
-		third: plateNumber3,
-		fourth: 'ایران',
-		fifth: plateNumber4
-	};
-}
+  if (typeof plate_number !== 'string') return "";
+  let plateNumber1 = formatNumber(plate_number.slice(0, 2), { len: 2 });
+  let plateNumber2 = !!plate_number.slice(2, 3).match(new RegExp(/\*/)) ? plate_number.slice(2, 3) : persianPlateDict[plate_number.slice(2, 3)];
+  let plateNumber3 = formatNumber(plate_number.slice(3, 6), { len: 3 });
+  let plateNumber4 = formatNumber(plate_number.slice(6, 8), { len: 2 });
+  //add plate number to json response for sort persian format in font end
+  return {
+    first: plateNumber1,
+    second: plateNumber2,
+    third: plateNumber3,
+    fourth: "ایران",
+    fifth: plateNumber4,
+  };
+};
 
 export function stringPersianToStringEnglish(plate_number: string): string {
 	if (typeof plate_number !== 'string') return '';
