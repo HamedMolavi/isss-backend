@@ -6,7 +6,7 @@ import flash from 'connect-flash';
 import passport from 'passport';
 import fileUpload from 'express-fileupload';
 import localVarMiddleware from './localVar.middleware';
-import { operationLog, setupLogger } from './logger.middleware';
+import { setupLogger } from './logger.middleware';
 import { sessionMiddleware } from './session.middleware';
 import { authHeaderExtraction } from './auth.middleware';
 

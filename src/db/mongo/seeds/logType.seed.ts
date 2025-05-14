@@ -1,37 +1,29 @@
-import { ensureDirSync, existsSync } from 'fs-extra';
 import { ILogType } from '../../../types/interfaces/logType.interface';
-import { create } from '../create.database';
-import LogType from '../models/logType';
 import { read } from '../read.database';
-import { isAbsolute, join } from 'path';
-type DefaultConfigs = {
-	[name: string]: {
-		timeDuplicationDiagnoses: number;
-		threshold: number;
-		min_people: number;
-		max_people: number;
-	};
-};
+import { DEFAULT_LOG_TYPE, LogType } from '../models/logType';
 
-export async function makeSeedLogType(): Promise<ILogType[]> {
-	let metadataPath = !!process.env.MDPATH
-		? !!isAbsolute(process.env.MDPATH)
-			? process.env.MDPATH
-			: join(__dirname, process.env.MDPATH)
-		: join(__dirname, '../../../../metadata');
-
-	ensureDirSync(metadataPath);
-	let defaultConfigs: DefaultConfigs = existsSync(join(metadataPath, 'logTypeDefaultConfigs.ts'))
-		? require(join(metadataPath, 'defaultConfigs.ts'))
-		: {};
-	let logTypes: ILogType[] = [];
-	let names = !!process.env.LOGTYPES ? process.env.LOGTYPES?.split(',').map((el) => el.trim()) : [];
-	for (const name of names) {
-		if (!(await read(LogType, { query: { name } })).length) {
-			let doc = { name, defaultConfig: defaultConfigs[name] };
-			logTypes.push(await new LogType(doc).save());
-			console.log('\t++ Seed data LogType: name=', name);
+export async function makeSeedLogType(): Promise<ILogType> {
+	try {
+		const count = await LogType.countDocuments();
+		if (count === 0) {
+			console.log('Initializing default log type configuration');
+			const logType = await new LogType({
+				...DEFAULT_LOG_TYPE,
+				ts: Date.now()
+			}).save();
+			console.log('\t++ Seed data LogType: name=default');
+			return logType;
 		}
+
+		const dLogTypes = await read(LogType, { query: { name: 'default' } });
+		if (!dLogTypes.length) {
+			const logType = await new LogType(DEFAULT_LOG_TYPE).save();
+			console.log('\t++ Seed data LogType: name=default');
+			return logType;
+		}
+		return dLogTypes[0];
+	} catch (err) {
+		console.error('Error initializing log type:', err);
+		throw err;
 	}
-	return logTypes;
 }

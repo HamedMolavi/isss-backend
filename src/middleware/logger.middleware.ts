@@ -1,5 +1,5 @@
 import logger from 'morgan';
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import rfs = require('rotating-file-stream');
 import { isAbsolute, join } from 'path';
 import { randomUuid } from '../tools/utils.tools';

@@ -18,6 +18,6 @@ export default async () => {
 	let model = await makeSeedModel();
 	let carBrand = await makeSeedCarBrand();
 	let carColor = await makeSeedCarColor();
-	let logTypes = await makeSeedLogType();
+	let logType = await makeSeedLogType();
 	let personnel = await makeSeedPersonnel();
 };
