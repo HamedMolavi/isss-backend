@@ -16,3 +16,4 @@ export type DayOfWeek = `${D6}`;
 //-------------------------------------------------------------
 export type Cron = `${TwoDigitsMinutes} ${TwoDigitsHours} * * `; //TODO: re-define cron type
 export type CronDay = `${Cron}${DayOfWeek}`;
+

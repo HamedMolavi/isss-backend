@@ -46,7 +46,7 @@ import { QueryDslQueryContainer } from "@elastic/elasticsearch/lib/api/types";
 
 //create router for add to routes file
 const router: Router = Router();
-const frame_index = process.env['FRAME_INDEX'] ?? 'frame_log';
+const frame_index = process.env["FRAME_INDEX"] ?? "frame_log";
 const importantFields = {
   face: ["description", "name", "camera_name", "personnel_code"],
   plate: [

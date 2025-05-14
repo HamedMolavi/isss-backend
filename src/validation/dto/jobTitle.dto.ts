@@ -1,12 +1,13 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional } from 'class-validator';
+import { IsEmail, IsString, IsDefined, MinLength, IsBoolean, IsOptional } from "class-validator";
+
 
 export class CreateJobTitleBody {
-	@IsString()
-	public name?: string;
-}
+  @IsString()
+  public name?: string;
+};
 
 export class UpdateJobTitleBody {
-	@IsOptional()
-	@IsString()
-	public name?: string;
-}
+  @IsOptional()
+  @IsString()
+  public name?: string;
+};

@@ -1,1 +1,1 @@
-export type KafkaClientType = 'consumer' | 'producer' | 'admin';
+export type KafkaClientType = "consumer" | "producer" | "admin";

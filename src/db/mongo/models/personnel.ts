@@ -151,5 +151,5 @@ PersonnelSchema.post(
 );
 
 // Compile model from schema
-const Personnel = mongoose.model('Personnel', PersonnelSchema);
+const Personnel = mongoose.model("Personnel", PersonnelSchema);
 export default Personnel;

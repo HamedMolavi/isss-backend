@@ -1,9 +1,6 @@
-import { IUserDocument } from './interfaces/user.interface';
+import { IUserDocument } from "./interfaces/user.interface";
 
-export {};
+export { };
 declare module 'express-session' {
-	interface SessionData {
-		user: IUserDocument;
-		ip: string;
-	}
+  interface SessionData { user: IUserDocument, ip: string }
 }

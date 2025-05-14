@@ -1,8 +1,8 @@
-import { IAccessLevel } from '../../../types/interfaces/accessLevel.interface';
-import { IUser } from '../../../types/interfaces/user.interface';
-import { create } from '../create.database';
-import User from '../models/user';
-import { read } from '../read.database';
+import { IAccessLevel } from "../../../types/interfaces/accessLevel.interface";
+import { IUser } from "../../../types/interfaces/user.interface";
+import { create } from "../create.database";
+import User from "../models/user";
+import { read } from "../read.database";
 
 export async function makeSeedUser(accessLevel: IAccessLevel): Promise<IUser | undefined> {
   if (!(await read(User, { query: { role: 'admin' } })).length) {

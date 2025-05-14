@@ -8,7 +8,7 @@ services:
   #   ports:
   #     - '6379:6379'
   #   command: redis-server --save 20 1 --loglevel warning
-  #   volumes:
+  #   volumes: 
   #     - cache:/data
   # mongo:
   #   container_name: mongo
@@ -22,7 +22,7 @@ services:
   #    container_name: redis
   #    image: ${REG}redis
   #   restart: always
-  #   volumes:
+  #   volumes: 
   #     - cache:/data
   #   ports:
   #     - 6379:6379
@@ -70,11 +70,11 @@ services:
       - ./security:/isss-backend/security
       - ./metadata:/isss-backend/metadata
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:9000/healthcheck']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+          test: ["CMD", "curl", "-f", "http://localhost:9000/healthcheck"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+          start_period: 30s
     # external_links:
     #   - mongo1
     #   - mongo2
@@ -93,6 +93,8 @@ services:
 # volumes:
 #   cache:
 #     driver: local
+
+
 
 # version: '3.7'
 # services:
