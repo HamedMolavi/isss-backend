@@ -31,6 +31,12 @@ declare global {
 			WORD_AFTER_REPLACE_STREAM: string;
 			MODELS: string;
 			LOG_COLLECTION_SIZE: string;
+			SQLITE_PATH: string;
+		}
+	}
+	namespace Express {
+		interface Response {
+			responseBody?: unknown;
 		}
 	}
 }

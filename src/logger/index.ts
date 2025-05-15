@@ -5,6 +5,97 @@ import { Request } from 'express';
 import { get_user_agent } from '../tools/user_agent.utility';
 
 /**
+ * Generates a descriptive action string based on URL path structure
+ * @param req Express request object
+ * @param statusCode HTTP response status code
+ * @returns A descriptive action string for logging
+ */
+function generateActionString(req: Request): string {
+	// Get the operation based on HTTP method
+	const operation =
+		req.method === 'POST'
+			? 'create'
+			: req.method === 'PUT'
+				? 'update'
+				: req.method === 'DELETE'
+					? 'delete'
+					: req.method === 'GET'
+						? 'read'
+						: req.method === 'PATCH'
+							? 'partial_update'
+							: 'execute';
+
+	// Extract path without query parameters
+	const url = req.originalUrl || req.url;
+	const path = url.split('?')[0];
+
+	// Split path into segments and remove empty ones
+	let segments = path.split('/').filter(Boolean);
+
+	// Remove API version prefix if present (api/v1, api/v2, etc.)
+	if (segments.length >= 2 && segments[0] === 'api' && segments[1].startsWith('v')) {
+		segments = segments.slice(2);
+	}
+
+	// Handle empty path after removing prefix
+	if (segments.length === 0) {
+		return `${operation}_root`;
+	}
+
+	// Extract resource and sub-resource
+	const resource = segments[0];
+
+	// Handle auth endpoints with special format
+	if (resource === 'auth' && segments.length > 1) {
+		return `${resource}_${segments[1]}`;
+	}
+
+	// Singularize resource name for better action naming - general rule
+	let singularResource = resource;
+	if (resource.endsWith('s')) {
+		singularResource = resource.endsWith('ies')
+			? resource.slice(0, -3) + 'y' // Handles plurals like "categories" → "category"
+			: resource.slice(0, -1); // Handles regular plurals like "users" → "user"
+	}
+
+	// Build the action string
+	let action = '';
+
+	// Add operation prefix except for auth endpoints
+	if (resource !== 'auth') {
+		action += `${operation}_`;
+	}
+
+	// Add resource name
+	action += singularResource;
+
+	// Add sub-resources if present
+	if (segments.length > 1 && !isLikelyId(segments[1])) {
+		action += `_${segments[1]}`;
+
+		// Add additional sub-resources if present
+		if (segments.length > 2 && !isLikelyId(segments[2])) {
+			action += `_${segments[2]}`;
+		}
+	}
+
+	return action;
+}
+
+/**
+ * Checks if a path segment is likely an ID rather than a resource name
+ */
+function isLikelyId(segment: string): boolean {
+	return (
+		// UUID pattern
+		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment) ||
+		// MongoDB ObjectId pattern
+		/^[0-9a-f]{24}$/i.test(segment) ||
+		// Numeric ID
+		/^\d+$/.test(segment)
+	);
+}
+/**
  * Enhanced logger options
  */
 interface EnhancedLoggerOptions extends LoggerOptions {
@@ -137,6 +228,7 @@ export class Logger {
 		const meta = {
 			type: 'auth',
 			userId,
+			username: req.user.username,
 			action,
 			success,
 			details,
@@ -184,6 +276,7 @@ export class Logger {
 			license,
 			success,
 			details,
+			userId: req?.user._id.toString(),
 			ip: user_agent.ip,
 			userAgent: user_agent.user_agent
 		});
@@ -203,6 +296,7 @@ export class Logger {
 			operation,
 			success,
 			details,
+			userId: req?.user._id.toString(),
 			ip: user_agent.ip,
 			userAgent: user_agent.user_agent
 		});
@@ -213,19 +307,36 @@ export class Logger {
 	 */
 	static request(req: Request, duration?: number): winston.Logger {
 		const user_agent = get_user_agent(req);
+		const statusCode = req.res?.statusCode || 0;
+		const success = statusCode >= 200 && statusCode < 400;
+
+		const details = {
+			statusCode,
+			...(req.method === 'POST' && { operation: 'create' }),
+			...(req.method === 'PUT' && { operation: 'update' }),
+			...(req.method === 'DELETE' && { operation: 'delete' }),
+			...(req.method === 'GET' && { operation: 'read' }),
+			...(req.method === 'PATCH' && { operation: 'partial_update' })
+		};
+
+		const action = generateActionString(req);
+
 		const meta = {
 			type: 'request',
 			method: req.method,
 			url: req.originalUrl,
 			ip: user_agent.ip,
-			userId: req.user?.id,
+			userId: req.user._id.toString(),
+			username: req.user.username,
 			duration,
+			success,
+			details,
 			userAgent: user_agent.user_agent,
 			headers: req.headers,
 			timestamp: new Date()
 		};
 
-		return Logger.info('API request', meta);
+		return Logger.info(action, meta);
 	}
 
 	/**

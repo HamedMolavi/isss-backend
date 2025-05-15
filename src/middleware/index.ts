@@ -9,6 +9,7 @@ import localVarMiddleware from './localVar.middleware';
 import { setupLogger } from './logger.middleware';
 import { sessionMiddleware } from './session.middleware';
 import { authHeaderExtraction } from './auth.middleware';
+import { errorLoggerMiddleware, routeLoggerMiddleware } from './routeLogger.middleware';
 
 const router: Router = Router();
 
@@ -47,8 +48,11 @@ router.use(
 	fileUpload(),
 	flash(),
 	setupLogger(),
-	localVarMiddleware //local variables setup
+	localVarMiddleware, //local variables setup
 	//operationLog
+	routeLoggerMiddleware(),
+	errorLoggerMiddleware()
+
 	//oggingMiddleware
 );
 
