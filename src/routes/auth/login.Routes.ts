@@ -7,12 +7,6 @@ import { Logger } from '../../logger';
 const router: Router = Router();
 const logger = new Logger();
 
-// Request logging middleware
-router.use((req: Request, _res: Response, next: NextFunction) => {
-	logger.request(req);
-	next();
-});
-
 const handleUserAuthentication = (req: Request, res: Response, next: NextFunction) => {
 	if (!req.user || !req.user._id) {
 		logger.authEvent('unknown', 'login', false, { error: 'User not found' }, req);
@@ -25,7 +19,7 @@ const handleUserAuthentication = (req: Request, res: Response, next: NextFunctio
 
 router.post(
 	'',
-	reLogin,
+	// reLogin,
 	dtoValidationMiddleware(LoginBodyDto, {
 		skipMissingProperties: true,
 		detailedMassage: true

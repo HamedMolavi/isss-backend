@@ -20,7 +20,11 @@ const LogSchema: Schema<ILog> = new Schema(
 		},
 		timestamp: { type: Date, default: Date.now },
 		message: { type: String, required: true },
-		metadata: { type: Object, default: {} }
+		metadata: { type: Object, default: {} },
+		expires_at: {
+			type: Date,
+			default: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) // 2 months from now
+		}
 	},
 	{
 		minimize: false,
@@ -34,6 +38,7 @@ const LogSchema: Schema<ILog> = new Schema(
 LogSchema.index({ timestamp: -1, level: 1 });
 LogSchema.index({ 'meta.type': 1, timestamp: -1 });
 LogSchema.index({ 'meta.userId': 1, timestamp: -1 });
+LogSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });
 
 // Pre-save hook to generate and store hash
 LogSchema.pre('save', async function (next) {

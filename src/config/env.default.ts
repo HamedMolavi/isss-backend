@@ -16,6 +16,7 @@ export type DefaultEnv = {
 	MAX_LOAD: string;
 	SIGNAL_TOPIC: string;
 	SIGNAL_KEY: string;
+	SQLITE_PATH: string;
 };
 
 const defaults: DefaultEnv = {
@@ -35,6 +36,7 @@ const defaults: DefaultEnv = {
 	KAFKA_BOOTSTRAP: 'localhost:9092',
 	MAX_LOAD: '100',
 	SIGNAL_TOPIC: 'signal',
-	SIGNAL_KEY: 'connect'
+	SIGNAL_KEY: 'connect',
+	SQLITE_PATH: './logs-verification.db'
 };
 export default defaults;
