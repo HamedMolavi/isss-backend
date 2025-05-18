@@ -19,7 +19,7 @@ const LogSchema: Schema<ILog> = new Schema(
 			}
 		},
 		timestamp: { type: Date, default: Date.now },
-		message: { type: String, required: true },
+		message: { type: String, required: true }, // Changed from message to action
 		metadata: { type: Object, default: {} },
 		expires_at: {
 			type: Date,

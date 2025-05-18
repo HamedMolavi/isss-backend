@@ -1,51 +1,70 @@
 import Transport from 'winston-transport';
 import { ILog } from '../types/interfaces/secLog.interface';
-import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
 import { Request } from 'express';
 import { ILogType } from '../types/interfaces/logType.interface';
-import { DEFAULT_LOG_TYPE, LogType } from '../db/mongo/models/logType';
+import { LogType } from '../db/mongo/models/logType';
 import { Log } from '../db/mongo/models/secLog';
 import { appendFileSync } from 'fs';
-import { get_user_agent } from '../tools/user_agent.utility';
+import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
 
 export class MongooseTransport extends Transport {
-	handlers: Record<LOG_TYPE_KEYS, (req: Request) => string | number | undefined | Record<string, unknown>> = {
-		method: (req: Request) => req.method,
-		ip: (req: Request) => req.ip,
-		user: (req: Request) => req.user?.username,
-		result: (req: Request) => req.res?.statusCode,
-		url: (req: Request) => req.url,
-		userAgent: (req: Request) => get_user_agent(req),
-		body: (req: Request) => req.body,
-		query: (req: Request) => req.query,
-		params: (req: Request) => req.params
-	};
-
-	public static logType: ILogType = DEFAULT_LOG_TYPE;
+	private static _logType: ILogType | null = null;
 
 	constructor(options?: Transport.TransportStreamOptions) {
 		super(options);
 		this.level = options?.level || 'info';
+		this.loadLogType();
+	}
 
-		// Initialize log type from database
-		this.initializeLogType();
+	public static async updateLogType(logType: ILogType) {
+		MongooseTransport._logType = logType;
+	}
+
+	public static get logType(): ILogType | null {
+		if (!MongooseTransport._logType) {
+			console.warn('LogType configuration is not loaded. Using default logging behavior.');
+		}
+		return MongooseTransport._logType;
+	}
+
+	private async loadLogType(): Promise<void> {
+		try {
+			const doc = await LogType.findOne({ name: 'default' }).sort({ ts: -1 });
+			if (!doc) {
+				console.warn('No default LogType configuration found in database');
+				return;
+			}
+			MongooseTransport._logType = doc.toJSON();
+			console.info('LogType configuration loaded successfully');
+		} catch (err) {
+			console.error('Error loading log type configuration:', err);
+			throw new Error('Failed to load logging configuration');
+		}
 	}
 
 	/**
-	 * Initializes the log type configuration from the database
+	 * Filters metadata based on enabled fields in logType
 	 */
-	private initializeLogType(): void {
-		LogType.findOne({})
-			.sort({ ts: -1 })
-			.exec()
-			.then((doc) => {
-				if (doc) {
-					MongooseTransport.logType = doc.toJSON();
-				}
-			})
-			.catch((err) => {
-				console.error('Error fetching log type configuration:', err);
-			});
+	private filterMetadata(
+		metadata: Partial<Record<keyof ILogType, unknown>>
+	): Partial<Record<keyof ILogType, unknown>> {
+		const logType = MongooseTransport.logType;
+		const filtered: Partial<Record<keyof ILogType, unknown>> = {};
+
+		// Ensure we have valid metadata and logType
+		if (!metadata || !logType) {
+			console.warn('Invalid metadata or logType configuration');
+			return {};
+		}
+
+		// Filter based on logType configuration
+		for (const [key, value] of Object.entries(metadata)) {
+			if (key in LOG_TYPE_KEYS && key in logType && logType[key as keyof ILogType] === true) {
+				filtered[key as keyof ILogType] = value;
+			}
+		}
+
+		return filtered;
 	}
 
 	/**
@@ -53,10 +72,17 @@ export class MongooseTransport extends Transport {
 	 */
 	log(infoAndReq: ILog & { req?: Request }, callback: () => void): void {
 		try {
-			// Create the log document
+			// Filter metadata based on logType configuration
+			const filteredMetadata = this.filterMetadata(infoAndReq.metadata || {});
+
+			// Create the log document with filtered metadata
 			const log = new Log({
-				...infoAndReq
+				level: infoAndReq.level,
+				timestamp: infoAndReq.timestamp,
+				message: infoAndReq.message,
+				metadata: filteredMetadata
 			});
+
 			// Signal that the log was processed
 			setImmediate(() => this.emit('logged', log));
 			// Save directly to MongoDB (hash will be generated in pre-save hook)
