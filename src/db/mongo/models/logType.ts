@@ -1,24 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 import { ILogType } from '../../../types/interfaces/logType.interface';
 import { MongooseTransport } from '../../../logger/transports';
-
-/**
- * Default log type configuration
- */
-export const DEFAULT_LOG_TYPE: ILogType = {
-	name: 'default',
-	system: true,
-	ts: 0,
-	method: true,
-	user: true,
-	ip: true,
-	result: true,
-	url: true,
-	userAgent: true,
-	body: true,
-	query: true,
-	params: true
-};
+import { LOG_TYPE_KEYS } from '../../../types/enums/logType.enum';
 
 /**
  * Schema for LogType collection
@@ -37,11 +20,24 @@ const LogTypeSchema: Schema<ILogType> = new mongoose.Schema(
 			}
 		},
 		system: { type: Boolean, default: false },
-		ts: { type: Number, default: Date.now, index: true },
-		method: { type: Boolean, default: true },
-		user: { type: Boolean, default: true },
-		ip: { type: Boolean, default: true },
-		result: { type: Boolean, default: true }
+		ts: { type: Number, default: Date.now }, // Timestamp field to track last modification
+		[LOG_TYPE_KEYS.username]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.userid]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.success]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.ip]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.userAgent]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.action]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.method]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.url]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.duration]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.details]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.headers]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.timestamp]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.model]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.recordId]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.component]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.operation]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.license]: { type: Boolean, default: true }
 	},
 	{
 		collection: 'LogType',
@@ -49,21 +45,10 @@ const LogTypeSchema: Schema<ILogType> = new mongoose.Schema(
 	}
 );
 
-// Ensure ts field is updated on modifications
-LogTypeSchema.pre('save', function (next) {
-	if (this.isNew || this.isModified()) {
-		this.ts = Date.now();
-	}
-	next();
-});
-
 // Post-save hook with improved error handling
 LogTypeSchema.post('save', function (doc, next) {
 	try {
-		// Update MongooseTransport with the latest log type
-		if (!MongooseTransport.logType || MongooseTransport.logType.ts < doc.ts) {
-			MongooseTransport.logType = doc.toJSON();
-		}
+		MongooseTransport.updateLogType(doc.toJSON());
 		next();
 	} catch (error) {
 		console.error('Error in LogType post-save hook:', error);
@@ -74,16 +59,14 @@ LogTypeSchema.post('save', function (doc, next) {
 // Post-remove hook with improved error handling
 LogTypeSchema.post('remove', function (doc, next) {
 	try {
-		// Reset to default if the current log type was deleted
-		if (MongooseTransport.logType && MongooseTransport.logType.ts === doc.ts) {
-			// Find the next most recent log type or use default
-			LogType.findOne({})
-				.sort({ ts: -1 })
-				.then((latestLogType) => {
-					MongooseTransport.logType = latestLogType?.toJSON() || DEFAULT_LOG_TYPE;
-				})
-				.catch((err) => console.error('Error finding latest log type:', err));
-		}
+		LogType.findOne({})
+			.sort({ ts: -1 })
+			.then((latestLogType) => {
+				if (latestLogType) {
+					MongooseTransport.updateLogType(latestLogType.toJSON());
+				}
+			})
+			.catch((err) => console.error('Error finding latest log type:', err));
 		next();
 	} catch (error) {
 		console.error('Error in LogType post-remove hook:', error);
@@ -93,3 +76,26 @@ LogTypeSchema.post('remove', function (doc, next) {
 
 // Create the model
 export const LogType = mongoose.model('LogType', LogTypeSchema);
+
+export const DEFAULT_LOG_TYPE: ILogType = {
+	name: 'default',
+	system: true,
+	ts: Date.now(),
+	username: true,
+	userid: true,
+	success: true,
+	ip: true,
+	userAgent: true,
+	action: true,
+	method: true,
+	url: true,
+	duration: true,
+	details: true,
+	headers: true,
+	timestamp: true,
+	model: true,
+	recordId: true,
+	component: true,
+	operation: true,
+	license: true
+};

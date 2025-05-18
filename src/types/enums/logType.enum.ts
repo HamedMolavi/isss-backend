@@ -1,11 +1,19 @@
 export enum LOG_TYPE_KEYS {
-	method = 'method',
-	user = 'user',
+	username = 'username',
+	userid = 'userid',
+	success = 'success',
 	ip = 'ip',
-	result = 'result',
-	url = 'url',
 	userAgent = 'userAgent',
-	body = 'body',
-	query = 'query',
-	params = 'params'
+	action = 'action',
+	method = 'method',
+	url = 'url',
+	duration = 'duration',
+	details = 'details',
+	headers = 'headers',
+	timestamp = 'timestamp',
+	model = 'model',
+	recordId = 'recordId',
+	component = 'component',
+	operation = 'operation',
+	license = 'license'
 }
