@@ -101,6 +101,7 @@ function isLikelyId(segment: string): boolean {
 interface EnhancedLoggerOptions extends LoggerOptions {
 	recreate?: boolean;
 	serviceName?: string;
+	disableMetadataFilter?: boolean;
 }
 
 /**
@@ -154,7 +155,7 @@ export class Logger {
 					format: format.combine(format.colorize(), format.simple())
 				}),
 				// Use MongooseTransport by default
-				new MongooseTransport()
+				new MongooseTransport({ disableFilter: opts.disableMetadataFilter })
 			],
 			...opts
 		});
@@ -282,23 +283,19 @@ export class Logger {
 		});
 	}
 
-	static systemOperation(
-		component: string,
-		operation: string,
-		success: boolean,
-		details: any = {},
-		req?: Request
-	): winston.Logger {
+	static systemOperation(message: string, meta?: LogMetadata, req?: Request): winston.Logger {
+		Logger.ensureInitialized();
 		const user_agent = req ? get_user_agent(req) : { ip: 'unknown', user_agent: 'unknown' };
-		return Logger.info('System operation', {
+
+		return Logger.instance.info(message, {
 			type: 'system',
-			component,
-			operation,
-			success,
-			details,
-			userId: req?.user._id.toString(),
+			_disableFilter: true,
 			ip: user_agent.ip,
-			userAgent: user_agent.user_agent
+			userAgent: user_agent.user_agent,
+			userId: req?.user?._id?.toString(),
+			username: req?.user?.username,
+			timestamp: new Date(),
+			...meta
 		});
 	}
 
@@ -374,14 +371,8 @@ export class Logger {
 		return Logger.licenseActivity(action, license, success, details, req);
 	}
 
-	systemOperation(
-		component: string,
-		operation: string,
-		success: boolean,
-		details: any = {},
-		req?: Request
-	): winston.Logger {
-		return Logger.systemOperation(component, operation, success, details, req);
+	systemOperation(message: string, meta?: LogMetadata): winston.Logger {
+		return Logger.systemOperation(message, meta);
 	}
 
 	request(req: Request, duration?: number): winston.Logger {
