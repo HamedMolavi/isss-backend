@@ -16,29 +16,16 @@ export class MongooseTransport extends Transport {
 		this.loadLogType();
 	}
 
-	public static async updateLogType(logType: ILogType) {
-		MongooseTransport._logType = logType;
-	}
-
-	public static get logType(): ILogType | null {
-		if (!MongooseTransport._logType) {
-			console.warn('LogType configuration is not loaded. Using default logging behavior.');
-		}
-		return MongooseTransport._logType;
-	}
-
 	private async loadLogType(): Promise<void> {
 		try {
-			const doc = await LogType.findOne({ name: 'default' }).sort({ ts: -1 });
+			const doc = await LogType.findOne({ name: 'default' }).sort({ ts: -1 }).exec();
 			if (!doc) {
 				console.warn('No default LogType configuration found in database');
 				return;
 			}
 			MongooseTransport._logType = doc.toJSON();
-			console.info('LogType configuration loaded successfully');
 		} catch (err) {
 			console.error('Error loading log type configuration:', err);
-			throw new Error('Failed to load logging configuration');
 		}
 	}
 
@@ -48,7 +35,7 @@ export class MongooseTransport extends Transport {
 	private filterMetadata(
 		metadata: Partial<Record<keyof ILogType, unknown>>
 	): Partial<Record<keyof ILogType, unknown>> {
-		const logType = MongooseTransport.logType;
+		const logType = MongooseTransport._logType;
 		const filtered: Partial<Record<keyof ILogType, unknown>> = {};
 
 		// Ensure we have valid metadata and logType

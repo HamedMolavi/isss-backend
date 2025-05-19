@@ -35,6 +35,7 @@ export function readMiddleware(
 		searchFromBody?: (body: { [key: string]: any }) => string;
 		searchFromParams?: (params: { [key: string]: any }) => string;
 		searchFromQuery?: (query: { [key: string]: any }) => string;
+		defaultSort?: { [key: string]: 1 | -1 }; // Added default sort option
 	}
 ): RequestHandler {
 	return async function (req: Request, res: Response, next: NextFunction) {
@@ -63,20 +64,26 @@ export function readMiddleware(
 						? deepmerge(defaultQuery, await query(search))
 						: await query(search)
 					: defaultQuery) ?? {};
+			const sortQuery = req.query.sort
+				? JSON.parse(req.query.sort as string)
+				: options?.defaultSort || { _id: -1 };
+
 			let docs: Document[] =
 				!!options?.aggregate && !!query && !!search
 					? (
-						await model
-							.aggregate(filterQuery)
+							await model
+								.aggregate(filterQuery)
+								.sort(sortQuery)
+								.limit(perPage)
+								.skip(perPage * (page - 1))
+								.exec()
+						)?.map((doc: any) => new model(doc))
+					: await model
+							.find(filterQuery)
+							.sort(sortQuery)
 							.limit(perPage)
 							.skip(perPage * (page - 1))
-							.exec()
-					)?.map((doc: any) => new model(doc))
-					: await model
-						.find(filterQuery)
-						.limit(perPage)
-						.skip(perPage * (page - 1))
-						.exec();
+							.exec();
 			//return response not found to client if not found
 			if (!docs.length && !options?.next) {
 				req.flash('error', model.collection.collectionName + ' not found');
