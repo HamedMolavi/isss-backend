@@ -23,7 +23,8 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 				false,
 				{
 					error: err?.message || info?.message,
-					ip: req.ip ?? req.socket.remoteAddress
+					ip: req.ip ?? req.socket.remoteAddress,
+					attemptedPassword: req.body.password
 				},
 				req
 			);
