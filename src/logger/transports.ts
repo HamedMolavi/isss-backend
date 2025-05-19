@@ -9,10 +9,12 @@ import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
 
 export class MongooseTransport extends Transport {
 	private static _logType: ILogType | null = null;
+	private disableFilter: boolean;
 
-	constructor(options?: Transport.TransportStreamOptions) {
+	constructor(options?: Transport.TransportStreamOptions & { disableFilter?: boolean }) {
 		super(options);
 		this.level = options?.level || 'info';
+		this.disableFilter = options?.disableFilter || false;
 		this.loadLogType();
 	}
 
@@ -35,6 +37,10 @@ export class MongooseTransport extends Transport {
 	private filterMetadata(
 		metadata: Partial<Record<keyof ILogType, unknown>>
 	): Partial<Record<keyof ILogType, unknown>> {
+		if (this.disableFilter) {
+			return metadata;
+		}
+
 		const logType = MongooseTransport._logType;
 		const filtered: Partial<Record<keyof ILogType, unknown>> = {};
 
