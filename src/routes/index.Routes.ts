@@ -6,6 +6,9 @@ import login from './auth/login.Routes';
 import downloadVideo from './report/videoDownload.Routes';
 import report from './report/report.Routes';
 import newReport from './report/new.report';
+import log from './log/log.Routes';
+import logType from './log/logType.Routes';
+
 import similarity from './report/similarity.Routes';
 import systemRoutes from './system/index.Routes';
 import schedulesreport from './report/schedulesReport.Routes';
@@ -48,6 +51,8 @@ router.use('/reportDepartmets', reportDepartments);
 router.use('/schedulesreport', schedulesreport);
 router.use('/downloadVideo', downloadVideo);
 router.use('/system', accessCheck('system'), systemRoutes);
+router.use('/log', log);
+router.use('/logtype', logType);
 
 /*
  */

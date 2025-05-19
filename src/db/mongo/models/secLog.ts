@@ -19,7 +19,7 @@ const LogSchema: Schema<ILog> = new Schema(
 			}
 		},
 		timestamp: { type: Date, default: Date.now },
-		message: { type: String, required: true }, // Changed from message to action
+		message: { type: String, required: true },
 		metadata: { type: Object, default: {} },
 		expires_at: {
 			type: Date,
@@ -29,7 +29,7 @@ const LogSchema: Schema<ILog> = new Schema(
 	{
 		minimize: false,
 		collection: 'Log',
-		timestamps: { createdAt: true, updatedAt: true },
+		timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 		writeConcern: { j: false }
 	}
 );

@@ -1,6 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import { ILogType } from '../../../types/interfaces/logType.interface';
-import { MongooseTransport } from '../../../logger/transports';
+
 import { LOG_TYPE_KEYS } from '../../../types/enums/logType.enum';
 
 /**
@@ -44,35 +44,6 @@ const LogTypeSchema: Schema<ILogType> = new mongoose.Schema(
 		timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 	}
 );
-
-// Post-save hook with improved error handling
-LogTypeSchema.post('save', function (doc, next) {
-	try {
-		MongooseTransport.updateLogType(doc.toJSON());
-		next();
-	} catch (error) {
-		console.error('Error in LogType post-save hook:', error);
-		next(error instanceof Error ? error : new Error(String(error)));
-	}
-});
-
-// Post-remove hook with improved error handling
-LogTypeSchema.post('remove', function (doc, next) {
-	try {
-		LogType.findOne({})
-			.sort({ ts: -1 })
-			.then((latestLogType) => {
-				if (latestLogType) {
-					MongooseTransport.updateLogType(latestLogType.toJSON());
-				}
-			})
-			.catch((err) => console.error('Error finding latest log type:', err));
-		next();
-	} catch (error) {
-		console.error('Error in LogType post-remove hook:', error);
-		next(error instanceof Error ? error : new Error(String(error)));
-	}
-});
 
 // Create the model
 export const LogType = mongoose.model('LogType', LogTypeSchema);
