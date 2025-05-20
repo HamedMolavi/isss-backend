@@ -167,13 +167,17 @@ export function stringPlateToJson(plate_number: string) {
 	};
 }
 
-export function stringPersianToStringEnglish(plate_number: string): string {
+export function stringPersianToStringEnglish(plate_number: string, options?: { forceValidation?: boolean }): string {
 	if (typeof plate_number !== 'string') return '';
 	else {
 		const plateArray = plate_number.split('');
 		for (const [indx, letter] of plateArray.entries()) {
 			if (Object.prototype.hasOwnProperty.call(englishPlateDict, letter)) {
 				plateArray[indx] = englishPlateDict[letter];
+			} else if (Object.prototype.hasOwnProperty.call(DIGITS, letter)) {
+				plateArray[indx] = DIGITS[letter];
+			} else if (!Object.prototype.hasOwnProperty.call(persianPlateDict, letter) && options?.forceValidation) {
+				return ''
 			}
 		}
 		return plateArray.join('');
@@ -186,6 +190,9 @@ export function stringEnglishToStringPersian(plate_number: string): string {
 		for (const [indx, letter] of plateArray.entries()) {
 			if (Object.prototype.hasOwnProperty.call(persianPlateDict, letter)) {
 				plateArray[indx] = persianPlateDict[letter];
+			}
+			if (Object.prototype.hasOwnProperty.call(DIGITS, letter)) {
+				plateArray[indx] = DIGITS[letter];
 			}
 		}
 		return plateArray.join('');
