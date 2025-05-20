@@ -1,37 +1,38 @@
+###################################################################### Stage 1: Build and obfuscate
 FROM node:18.16.0-slim as builder
+
+WORKDIR /app
+
+# Install required tools
+RUN npm install -g typescript@5.1.6 javascript-obfuscator@4.1.1
+
+# Copy source code
+COPY . .
+
+# Compile TypeScript
+RUN tsc
+
+# Obfuscate compiled JavaScript
+RUN javascript-obfuscator ./build --output ./obfuscated
+
+###################################################################### Stage 2: Runtime only (lighter image)
+FROM node:18.16.0-alpine as runtime
+
 WORKDIR /isss-backend
-#COPY --from=mwader/static-ffmpeg:5.1.2 /ffmpeg /usr/local/bin/
-#COPY --from=mwader/static-ffmpeg:5.1.2 /ffprobe /usr/local/bin/
-#RUN -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:5.1.2 -i file.wav file.mp3
-#RUN -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:5.1.2 -i file.wavCOPY package.json .
 
-# Install curl using apt-get
-RUN apt-get update && apt-get install -y curl docker.io
+RUN apk update && apk add --no-cache make gcc g++ python3
+    # && rm -rf /var/lib/apt/lists/*
 
-COPY package.json .
-COPY package-lock.json* .
-# RUN yarn install
-# RUN yarn global add typescript ts-node 
+# Install dependencies
+COPY package*.json ./
 RUN npm install
-RUN npm install -g typescript ts-node 
-# RUN echo http://repository.fit.cvut.cz/mirrors/alpine/v3.8/main > /etc/apk/repositories; \
-#     echo http://repository.fit.cvut.cz/mirrors/alpine/v3.8/community >> /etc/apk/repositories
-# RUN echo -e "http://nl.alpinelinux.org/alpine/v3.16/main\nhttp://nl.alpinelinux.org/alpine/v3.16/community" > /etc/apk/repositories
-# RUN apk update
-# RUN apk add
-# RUN apk add ffmpeg
 
-FROM builder
-WORKDIR /isss-backend
-#COPY logs ./logs ./
-#COPY security ./security ./
-# COPY assets ./assets ./
-COPY --from=builder /isss-backend /isss-backend
-# COPY tsconfig.json ./
-COPY obfuscated ./src
-COPY security ./security
-# RUN npm run build
+# Copy obfuscated code
+COPY --from=builder /app/obfuscated ./src
+
+# Copy any other necessary files
+COPY --from=builder /app/security ./security
 
 EXPOSE 3000
 
-CMD [ "node" , "./src/server.js" ]
+CMD [ "node", "./src/server.js" ]
