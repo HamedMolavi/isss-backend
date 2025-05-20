@@ -201,7 +201,7 @@ export function readByIdMiddleware(
 			//send response to client
 			return res.status(200).json({
 				success: true,
-				data: !!options?.send ? await options.send(doc, req) : doc
+				data: !!options?.send ? await options.send(doc, req) : await doc.toJSON()
 			});
 		} catch (err: any) {
 			if (err.kind === 'ObjectId') return next(new ApiError(400, `id must be valid: ${req.params.id}`));
