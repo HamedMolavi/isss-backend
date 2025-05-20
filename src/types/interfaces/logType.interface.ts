@@ -21,4 +21,5 @@ export interface ILogType {
 	ts: number;
 	name: string;
 	system: boolean;
+	isActive: boolean;
 }

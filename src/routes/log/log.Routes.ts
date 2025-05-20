@@ -30,7 +30,7 @@ router.get(
 		},
 		{
 			populate: true,
-			defaultSort: { createdAt: -1 }
+			defaultSort: { created_at: -1 }
 		}
 	)
 );

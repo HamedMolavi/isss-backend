@@ -20,9 +20,10 @@ export class MongooseTransport extends Transport {
 
 	private async loadLogType(): Promise<void> {
 		try {
-			const doc = await LogType.findOne({ name: 'default' }).sort({ ts: -1 }).exec();
+			const doc = await LogType.findOne({ isActive: true }).sort({ ts: -1 }).exec();
+
 			if (!doc) {
-				console.warn('No default LogType configuration found in database');
+				console.warn('No active LogType configuration found in database');
 				return;
 			}
 			MongooseTransport._logType = doc.toJSON();
