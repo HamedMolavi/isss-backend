@@ -38,6 +38,8 @@ const LogSchema: Schema<ILog> = new Schema(
 LogSchema.index({ timestamp: -1, level: 1 });
 LogSchema.index({ 'meta.type': 1, timestamp: -1 });
 LogSchema.index({ 'meta.userId': 1, timestamp: -1 });
+LogSchema.index({ message: 1 }); // Add index for message field
+
 LogSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });
 
 // Pre-save hook to generate and store hash

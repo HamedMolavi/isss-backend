@@ -20,6 +20,7 @@ const LogTypeSchema: Schema<ILogType> = new mongoose.Schema(
 			}
 		},
 		system: { type: Boolean, default: false },
+		isActive: { type: Boolean, default: true },
 		ts: { type: Number, default: Date.now }, // Timestamp field to track last modification
 		[LOG_TYPE_KEYS.username]: { type: Boolean, default: true },
 		[LOG_TYPE_KEYS.userid]: { type: Boolean, default: true },
@@ -45,12 +46,49 @@ const LogTypeSchema: Schema<ILogType> = new mongoose.Schema(
 	}
 );
 
+// Add compound index for isActive and ts
+LogTypeSchema.index({ isActive: 1, ts: -1 });
+
+// Pre-save hook to ensure only one active LogType
+LogTypeSchema.pre('save', async function (next) {
+	if (this.isActive) {
+		// Deactivate all other LogTypes
+		await mongoose
+			.model('LogType')
+			.updateMany({ _id: { $ne: this._id }, isActive: true }, { $set: { isActive: false } });
+	}
+	next();
+});
+
+// Pre-delete hook to prevent deleting active LogType
+LogTypeSchema.pre('deleteOne', { document: true, query: false }, async function (next) {
+	if (this.isActive) {
+		throw new Error('Cannot delete active LogType');
+	}
+	next();
+});
+
+// Pre-update hook to ensure only one active LogType
+LogTypeSchema.pre(['updateOne', 'findOneAndUpdate'], async function (next) {
+	const update = this.getUpdate() as { $set?: { isActive?: boolean } };
+	const docToUpdate = await this.model.findOne(this.getQuery());
+
+	if (update?.$set?.isActive === true) {
+		// Deactivate all other LogTypes
+		await mongoose
+			.model('LogType')
+			.updateMany({ _id: { $ne: docToUpdate._id }, isActive: true }, { $set: { isActive: false } });
+	}
+	next();
+});
+
 // Create the model
 export const LogType = mongoose.model('LogType', LogTypeSchema);
 
 export const DEFAULT_LOG_TYPE: ILogType = {
 	name: 'default',
 	system: true,
+	isActive: true,
 	ts: Date.now(),
 	username: true,
 	userid: true,
