@@ -91,7 +91,7 @@ export async function unifiedSendFunction(log: any & { _id: string }, req: Reque
 					{ timeZone: req.query?.timez?.toString() ?? 'Asia/Tehran' }
 				)
 			: '',
-		timestamp: !!log?.timestamp ?? '',
+		timestamp: !!log?.timestamp,
 		plate_number: !!log.plate_number ? stringPlateToJson(log.plate_number) : '',
 		owner: car?.owner?.toName() ?? '',
 		color: color?.name ?? '',
