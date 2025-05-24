@@ -58,7 +58,8 @@ export function routeLoggerMiddleware(
 					duration,
 					errorResponse: responseBody,
 					requestBody: originalBody,
-					username: req.user?.username
+					username: req?.user?.username ?? '',
+					action: `${req.method.toLowerCase()}_${req.path.split('/')[1] || 'root'}`
 				});
 			}
 
@@ -75,7 +76,8 @@ export function routeLoggerMiddleware(
 					headers: originalHeaders,
 					statusCode: res.statusCode,
 					responseBody: responseBody,
-					username: req.user?.username
+					username: req.user?.username,
+					action: `${req.method.toLowerCase()}_${req.path.split('/')[1] || 'root'}`
 				});
 			}
 
@@ -101,7 +103,8 @@ export function errorLoggerMiddleware() {
 				stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined
 			},
 			userId: req.user?.id,
-			username: req.user?.username
+			username: req.user?.username,
+			action: `${req.method.toLowerCase()}_${req.path.split('/')[1] || 'root'}_error`
 		});
 
 		next(err);
