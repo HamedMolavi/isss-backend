@@ -24,7 +24,8 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 				{
 					error: err?.message || info?.message,
 					ip: req.ip ?? req.socket.remoteAddress,
-					attemptedPassword: req.body.password
+					attemptedPassword: req.body.password,
+					action: 'auth_login_failed'
 				},
 				req
 			);
@@ -39,7 +40,8 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 					false,
 					{
 						error: err.message,
-						ip: req.ip ?? req.socket.remoteAddress
+						ip: req.ip ?? req.socket.remoteAddress,
+						action: 'auth_login_error'
 					},
 					req
 				);
