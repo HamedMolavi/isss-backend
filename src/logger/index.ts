@@ -116,6 +116,8 @@ interface LogMetadata {
 export class Logger {
 	private static instance: winston.Logger;
 	private static initialized: boolean = false;
+	private static lastLog: { message: string; meta: any; timestamp: number } | null = null;
+	private static readonly DEDUP_WINDOW_MS = 1000; // 1 second window for deduplication
 
 	constructor(opts: EnhancedLoggerOptions = {}) {
 		if (!Logger.instance || opts.recreate) {
@@ -173,26 +175,108 @@ export class Logger {
 	}
 
 	/**
-	 * Standard logging methods
+	 * Formats a log message consistently
+	 */
+	private static formatMessage(message: string, meta?: LogMetadata): { action: string; message: string } {
+		// Extract action from metadata if available
+		const action = (meta?.action || meta?.type || 'system') as string;
+
+		// If message already contains action prefix, remove it
+		let cleanMessage = message;
+		if (message.includes(' - ')) {
+			cleanMessage = message.split(' - ')[1];
+		}
+
+		return {
+			action,
+			message: cleanMessage
+		};
+	}
+
+	/**
+	 * Checks if a log is a duplicate within the deduplication window
+	 */
+	private static isDuplicate(message: string, meta?: LogMetadata): boolean {
+		if (!Logger.lastLog) return false;
+
+		const now = Date.now();
+		if (now - Logger.lastLog.timestamp > Logger.DEDUP_WINDOW_MS) {
+			return false;
+		}
+
+		// Compare message and metadata
+		return Logger.lastLog.message === message && JSON.stringify(Logger.lastLog.meta) === JSON.stringify(meta);
+	}
+
+	/**
+	 * Standard logging methods with deduplication
 	 */
 	static info(message: string, meta?: LogMetadata): winston.Logger {
 		Logger.ensureInitialized();
-		return Logger.instance.info(message, meta);
+		const { action, message: cleanMessage } = Logger.formatMessage(message, meta);
+
+		if (Logger.isDuplicate(cleanMessage, meta)) {
+			return Logger.instance;
+		}
+
+		Logger.lastLog = {
+			message: cleanMessage,
+			meta,
+			timestamp: Date.now()
+		};
+
+		return Logger.instance.info(cleanMessage, { ...meta, action });
 	}
 
 	static error(message: string, meta?: LogMetadata): winston.Logger {
 		Logger.ensureInitialized();
-		return Logger.instance.error(message, meta);
+		const { action, message: cleanMessage } = Logger.formatMessage(message, meta);
+
+		if (Logger.isDuplicate(cleanMessage, meta)) {
+			return Logger.instance;
+		}
+
+		Logger.lastLog = {
+			message: cleanMessage,
+			meta,
+			timestamp: Date.now()
+		};
+
+		return Logger.instance.error(cleanMessage, { ...meta, action });
 	}
 
 	static warn(message: string, meta?: LogMetadata): winston.Logger {
 		Logger.ensureInitialized();
-		return Logger.instance.warn(message, meta);
+		const { action, message: cleanMessage } = Logger.formatMessage(message, meta);
+
+		if (Logger.isDuplicate(cleanMessage, meta)) {
+			return Logger.instance;
+		}
+
+		Logger.lastLog = {
+			message: cleanMessage,
+			meta,
+			timestamp: Date.now()
+		};
+
+		return Logger.instance.warn(cleanMessage, { ...meta, action });
 	}
 
 	static debug(message: string, meta?: LogMetadata): winston.Logger {
 		Logger.ensureInitialized();
-		return Logger.instance.debug(message, meta);
+		const { action, message: cleanMessage } = Logger.formatMessage(message, meta);
+
+		if (Logger.isDuplicate(cleanMessage, meta)) {
+			return Logger.instance;
+		}
+
+		Logger.lastLog = {
+			message: cleanMessage,
+			meta,
+			timestamp: Date.now()
+		};
+
+		return Logger.instance.debug(cleanMessage, { ...meta, action });
 	}
 
 	/**
@@ -225,19 +309,20 @@ export class Logger {
 		req: Request
 	): winston.Logger {
 		const user_agent = req ? get_user_agent(req) : { ip: 'unknown', user_agent: 'unknown' };
-
+		console.log(req.user);
 		const meta = {
 			type: 'auth',
-			userId,
-			username: req.user.username,
 			action,
+			userId,
+			username: req?.user?.username || 'unknown',
 			success,
 			details,
 			ip: user_agent.ip,
 			userAgent: user_agent.user_agent,
-			timestamp: new Date()
+			timestamp: new Date(),
+			_disableFilter: true // Important security event
 		};
-		return Logger.info('Authentication event', meta);
+		return Logger.info(`Authentication ${success ? 'succeeded' : 'failed'}`, meta);
 	}
 
 	static dataChange(
@@ -252,14 +337,16 @@ export class Logger {
 		const user_agent = req ? get_user_agent(req) : { ip: 'unknown', user_agent: 'unknown' };
 		return Logger.info('Data modification', {
 			type: 'data_change',
+			action,
 			userId,
 			model,
-			action,
 			recordId,
 			before,
 			after,
 			ip: user_agent.ip,
-			userAgent: user_agent.user_agent
+			userAgent: user_agent.user_agent,
+			timestamp: new Date(),
+			_disableFilter: true // Important data change event
 		});
 	}
 
@@ -279,7 +366,9 @@ export class Logger {
 			details,
 			userId: req?.user._id.toString(),
 			ip: user_agent.ip,
-			userAgent: user_agent.user_agent
+			userAgent: user_agent.user_agent,
+			timestamp: new Date(),
+			_disableFilter: true // Important license event
 		});
 	}
 
@@ -289,7 +378,8 @@ export class Logger {
 
 		return Logger.instance.info(message, {
 			type: 'system',
-			_disableFilter: true,
+			action: meta?.action || 'system_operation',
+			_disableFilter: true, // System operations should always be logged
 			ip: user_agent.ip,
 			userAgent: user_agent.user_agent,
 			userId: req?.user?._id?.toString(),
@@ -320,17 +410,19 @@ export class Logger {
 
 		const meta = {
 			type: 'request',
+			action,
 			method: req.method,
 			url: req.originalUrl,
 			ip: user_agent.ip,
-			userId: req.user._id.toString(),
-			username: req.user.username,
+			userId: req?.user?._id.toString() ?? 'unknown',
+			username: req?.user?.username ?? 'unknown',
 			duration,
 			success,
 			details,
 			userAgent: user_agent.user_agent,
 			headers: req.headers,
-			timestamp: new Date()
+			timestamp: new Date(),
+			_disableFilter: true // All requests should be logged
 		};
 
 		return Logger.info(action, meta);
