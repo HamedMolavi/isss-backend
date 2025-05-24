@@ -66,6 +66,12 @@ export class MongooseTransport extends Transport {
 	 */
 	log(infoAndReq: ILog & { req?: Request }, callback: () => void): void {
 		try {
+			// Extract action from metadata or use default
+			const action =
+				infoAndReq.metadata?.action ||
+				infoAndReq.action ||
+				(infoAndReq.metadata?.type ? `${infoAndReq.metadata.type}_operation` : 'system_operation');
+
 			// Filter metadata based on logType configuration
 			const filteredMetadata = this.filterMetadata(infoAndReq.metadata || {});
 
@@ -74,7 +80,11 @@ export class MongooseTransport extends Transport {
 				level: infoAndReq.level,
 				timestamp: infoAndReq.timestamp,
 				message: infoAndReq.message,
-				metadata: filteredMetadata
+				action, // Ensure action is always set
+				metadata: {
+					...filteredMetadata,
+					action // Include action in metadata as well
+				}
 			});
 
 			// Signal that the log was processed

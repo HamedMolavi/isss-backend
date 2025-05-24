@@ -4,6 +4,7 @@ export type ILog = {
 	level: string;
 	timestamp?: Date;
 	message: string;
+	action: string;
 	metadata?: Record<string, LOG_TYPE_KEYS>;
 	expires_at?: Date;
 };
