@@ -9,11 +9,28 @@ const logger = new Logger();
 
 const handleUserAuthentication = (req: Request, res: Response, next: NextFunction) => {
 	if (!req.user || !req.user._id) {
-		logger.authEvent('unknown', 'login', false, { error: 'User not found' }, req);
+		logger.authEvent(
+			'unknown',
+			'login',
+			false,
+			{
+				error: 'User not found',
+				action: 'auth_login_failed'
+			},
+			req
+		);
 		return res.status(401).json({ message: 'Authentication failed' });
 	}
 
-	logger.authEvent(req.user._id.toString(), 'login', true, {}, req);
+	logger.authEvent(
+		req.user._id.toString(),
+		'login',
+		true,
+		{
+			action: 'auth_login_success'
+		},
+		req
+	);
 	next();
 };
 

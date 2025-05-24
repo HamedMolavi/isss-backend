@@ -58,7 +58,7 @@ router.get('/group/messages', async (req, res) => {
 		const messageGroups = await Log.aggregate([
 			{
 				$group: {
-					_id: '$message'
+					_id: '$action'
 				}
 			}
 		]);
