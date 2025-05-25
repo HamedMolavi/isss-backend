@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { SessionManager } from '../services/session.service';
+import { AuthLogger } from '../logger/auth.logger';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
 
@@ -30,6 +31,10 @@ export const terminateSession = async (req: Request, res: Response) => {
 		});
 	}
 
+	// Get session info before terminating for logging
+	const sessions = await sessionManager.getAllSessions();
+	const targetSession = sessions.find((s) => s.session_id === sessionId);
+
 	const result = await sessionManager.terminateSessionById(sessionId).catch(() => false);
 
 	if (!result) {
@@ -38,6 +43,9 @@ export const terminateSession = async (req: Request, res: Response) => {
 			msg: 'Session not found or could not be terminated'
 		});
 	}
+
+	// Log session termination by admin
+	AuthLogger.sessionTerminated(req, sessionId, targetSession?.user?._id);
 
 	req.flash('info', 'Session terminated successfully.');
 	return ApiRes(res, {
