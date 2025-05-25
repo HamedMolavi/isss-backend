@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { dtoValidationMiddleware } from '../../validation/dto';
 import { LoginBodyDto } from '../../validation/dto/login.dto';
 import { assignPassport, sendTokenToclient } from '../../authentication/authorize.auth';
-import * as AuthController from '../../controllers/auth.controller';
+import { preventConcurrentSessions } from '../../middleware/concurrent-sessions.middleware';
 
 const LoginRouter: Router = Router();
 
@@ -15,8 +15,8 @@ LoginRouter.post(
 		skipMissingProperties: true,
 		detailedMassage: true
 	}),
+	preventConcurrentSessions(), // Prevent concurrent sessions
 	assignPassport,
-	AuthController.handleUserAuthentication,
 	sendTokenToclient
 );
 
