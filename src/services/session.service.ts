@@ -140,6 +140,9 @@ export class SessionManager {
 					resolve(false);
 					return;
 				}
+
+				// Session terminated successfully - logging handled by caller if needed
+
 				resolve(true);
 			});
 		});
@@ -181,6 +184,7 @@ export class SessionManager {
 		if (!req.session?.id) {
 			return false;
 		}
+
 		return this.terminateSessionById(req.session.id);
 	}
 
@@ -193,5 +197,47 @@ export class SessionManager {
 	async getUserSessions(userId: string): Promise<SessionWithUserData[]> {
 		const allSessions = await this.getAllSessions();
 		return allSessions.filter((session) => session.user?._id === userId);
+	}
+
+	/**
+	 * Check if user has an active session
+	 *
+	 * @param userId - The ID of the user to check
+	 * @returns Promise<SessionWithUserData | null> Active session if exists, null otherwise
+	 */
+	async getActiveUserSession(userId: string): Promise<SessionWithUserData | null> {
+		const userSessions = await this.getUserSessions(userId);
+		return userSessions.length > 0 ? userSessions[0] : null;
+	}
+
+	/**
+	 * Terminate all sessions for a specific user except the current one
+	 *
+	 * @param userId - The ID of the user
+	 * @param currentSessionId - Optional current session ID to preserve
+	 * @returns Promise<boolean> True if sessions were terminated successfully
+	 */
+	async terminateUserSessions(userId: string, currentSessionId?: string): Promise<boolean> {
+		try {
+			const userSessions = await this.getUserSessions(userId);
+			const sessionsToTerminate = userSessions.filter((session) => session.session_id !== currentSessionId);
+
+			const destroyPromises = sessionsToTerminate.map((session) =>
+				this.terminateSessionById(session.session_id)
+			);
+
+			await Promise.all(destroyPromises);
+			return true;
+		} catch (error) {
+			Logger.error('Failed to terminate user sessions', {
+				type: 'session',
+				action: 'terminate_user_sessions',
+				details: {
+					userId,
+					error: error instanceof Error ? error.message : 'Unknown error'
+				}
+			});
+			return false;
+		}
 	}
 }
