@@ -4,18 +4,19 @@ import { existCheck } from '../../validation/db';
 import { createMiddleware } from '../../db/mongo/create.database';
 import { readByIdMiddleware, readMiddleware } from '../../db/mongo/read.database';
 import { updateByIdMiddleware } from '../../db/mongo/update.database';
-import { deleteByIdMiddleware } from '../../db/mongo/delete.database';
+
 import { DoNotAllowOnDefault } from '../../tools/request.tools';
 import { CreateLogTypeBody } from '../../validation/dto/logType.dto';
 import { LogType } from '../../db/mongo/models/logType';
 import { LOG_TYPE_KEYS } from '../../types/enums/logType.enum';
 
-//create router for add to routes file
-const router: Router = Router();
+const LogTypeRouter: Router = Router();
 
-//add route for register new LogType
-router.post(
-	'',
+const route_prefix = '';
+
+// Add route for register new LogType
+LogTypeRouter.post(
+	`${route_prefix}`,
 	dtoValidationMiddleware(CreateLogTypeBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
@@ -25,18 +26,16 @@ router.post(
 	createMiddleware(['name', ...Object.keys(LOG_TYPE_KEYS)], LogType)
 );
 
-router.get('', readMiddleware(LogType));
+LogTypeRouter.get(`${route_prefix}`, readMiddleware(LogType));
 
-router.get('/:id', readByIdMiddleware(LogType));
+LogTypeRouter.get(`${route_prefix}/:id`, readByIdMiddleware(LogType));
 
-router.patch(
-	'/:id',
+LogTypeRouter.patch(
+	`${route_prefix}/:id`,
 	DoNotAllowOnDefault(LogType, { name: 'default' }),
 	updateByIdMiddleware(LogType, {
 		ignore: ['name']
 	})
 );
 
-// router.delete('/:id', DoNotAllowOnDefault(LogType, { name: 'default' }), deleteByIdMiddleware(LogType));
-
-export default router;
+export default LogTypeRouter;

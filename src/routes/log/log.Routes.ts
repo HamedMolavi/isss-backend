@@ -1,14 +1,15 @@
-import { Log } from '../../db/mongo/models/secLog';
 import { Router } from 'express';
+import { Log } from '../../db/mongo/models/secLog';
 import { readByIdMiddleware, readMiddleware } from '../../db/mongo/read.database';
-import { checkLogStatus } from '../../tools/logMonitor.tools';
+import * as LogController from '../../controllers/log.controller';
 
-//create router for add to server file
-const router: Router = Router();
+const LogRouter: Router = Router();
 
-//route for get log list with message search and sorting
-router.get(
-	'',
+const route_prefix = '';
+
+// Route for get log list with message search and sorting
+LogRouter.get(
+	`${route_prefix}`,
 	readMiddleware(
 		Log,
 		(search) => {
@@ -35,45 +36,13 @@ router.get(
 	)
 );
 
-//route for get car_brand by id from DB
-router.get('/:id', readByIdMiddleware(Log));
+// Route for get log by id from DB
+LogRouter.get(`${route_prefix}/:id`, readByIdMiddleware(Log));
 
-//route for checking log status
-router.get('/monitor/status', async (req, res) => {
-	try {
-		const stats = await checkLogStatus(req);
-		res.status(200).json({
-			message: 'Log status check completed',
-			data: stats
-		});
-	} catch (error) {
-		console.error('Error checking log status:', error);
-		res.status(500).json({ error: 'Failed to check log status' });
-	}
-});
+// Route for checking log status
+LogRouter.get(`${route_prefix}/monitor/status`, LogController.getMonitorStatus);
 
-//route for getting logs grouped by messages
-router.get('/group/messages', async (req, res) => {
-	try {
-		const messageGroups = await Log.aggregate([
-			{
-				$group: {
-					_id: '$action'
-				}
-			}
-		]);
+// Route for getting logs grouped by messages
+LogRouter.get(`${route_prefix}/group/messages`, LogController.getGroupedMessages);
 
-		res.status(200).json({
-			success: true,
-			data: messageGroups
-		});
-	} catch (error: unknown) {
-		const err = error as Error;
-		res.status(500).json({
-			success: false,
-			error: err.message
-		});
-	}
-});
-
-export default router;
+export default LogRouter;

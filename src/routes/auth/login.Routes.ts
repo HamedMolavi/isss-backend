@@ -1,49 +1,23 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import { dtoValidationMiddleware } from '../../validation/dto';
 import { LoginBodyDto } from '../../validation/dto/login.dto';
-import { assignPassport, reLogin, sendTokenToclient } from '../../authentication/authorize.auth';
-import { Logger } from '../../logger';
+import { assignPassport, sendTokenToclient } from '../../authentication/authorize.auth';
+import * as AuthController from '../../controllers/auth.controller';
 
-const router: Router = Router();
-const logger = new Logger();
+const LoginRouter: Router = Router();
 
-const handleUserAuthentication = (req: Request, res: Response, next: NextFunction) => {
-	if (!req.user || !req.user._id) {
-		logger.authEvent(
-			'unknown',
-			'login',
-			false,
-			{
-				error: 'User not found',
-				action: 'auth_login_failed'
-			},
-			req
-		);
-		return res.status(401).json({ message: 'Authentication failed' });
-	}
+const route_prefix = '';
 
-	logger.authEvent(
-		req.user._id.toString(),
-		'login',
-		true,
-		{
-			action: 'auth_login_success'
-		},
-		req
-	);
-	next();
-};
-
-router.post(
-	'',
-	// reLogin,
+// Login route
+LoginRouter.post(
+	`${route_prefix}`,
 	dtoValidationMiddleware(LoginBodyDto, {
 		skipMissingProperties: true,
 		detailedMassage: true
 	}),
 	assignPassport,
-	handleUserAuthentication,
+	AuthController.handleUserAuthentication,
 	sendTokenToclient
 );
 
-export default router;
+export default LoginRouter;
