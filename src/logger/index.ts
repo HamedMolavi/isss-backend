@@ -3,98 +3,8 @@ import winston, { LoggerOptions, format } from 'winston';
 import { MongooseTransport } from './transports';
 import { Request } from 'express';
 import { get_user_agent } from '../tools/user_agent.utility';
+import { generateActionString } from '../tools/url.utility';
 
-/**
- * Generates a descriptive action string based on URL path structure
- * @param req Express request object
- * @param statusCode HTTP response status code
- * @returns A descriptive action string for logging
- */
-function generateActionString(req: Request): string {
-	// Get the operation based on HTTP method
-	const operation =
-		req.method === 'POST'
-			? 'create'
-			: req.method === 'PUT'
-				? 'update'
-				: req.method === 'DELETE'
-					? 'delete'
-					: req.method === 'GET'
-						? 'read'
-						: req.method === 'PATCH'
-							? 'partial_update'
-							: 'execute';
-
-	// Extract path without query parameters
-	const url = req.originalUrl || req.url;
-	const path = url.split('?')[0];
-
-	// Split path into segments and remove empty ones
-	let segments = path.split('/').filter(Boolean);
-
-	// Remove API version prefix if present (api/v1, api/v2, etc.)
-	if (segments.length >= 2 && segments[0] === 'api' && segments[1].startsWith('v')) {
-		segments = segments.slice(2);
-	}
-
-	// Handle empty path after removing prefix
-	if (segments.length === 0) {
-		return `${operation}_root`;
-	}
-
-	// Extract resource and sub-resource
-	const resource = segments[0];
-
-	// Handle auth endpoints with special format
-	if (resource === 'auth' && segments.length > 1) {
-		return `${resource}_${segments[1]}`;
-	}
-
-	// Singularize resource name for better action naming - general rule
-	let singularResource = resource;
-	if (resource.endsWith('s')) {
-		singularResource = resource.endsWith('ies')
-			? resource.slice(0, -3) + 'y' // Handles plurals like "categories" → "category"
-			: resource.slice(0, -1); // Handles regular plurals like "users" → "user"
-	}
-
-	// Build the action string
-	let action = '';
-
-	// Add operation prefix except for auth endpoints
-	if (resource !== 'auth') {
-		action += `${operation}_`;
-	}
-
-	// Add resource name
-	action += singularResource;
-
-	// Add sub-resources if present
-	if (segments.length > 1 && !isLikelyId(segments[1])) {
-		action += `_${segments[1]}`;
-
-		// Add additional sub-resources if present
-		if (segments.length > 2 && !isLikelyId(segments[2])) {
-			action += `_${segments[2]}`;
-		}
-	}
-
-	return action;
-}
-
-/**
- * Checks if a path segment is likely an ID rather than a resource name
- */
-function isLikelyId(segment: string): boolean {
-	return (
-		// UUID pattern
-		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment) ||
-		// MongoDB ObjectId pattern
-		/^[0-9a-f]{24}$/i.test(segment) ||
-		// Numeric ID
-		/^\d+$/.test(segment)
-	);
-}
 /**
  * Enhanced logger options
  */
@@ -116,8 +26,6 @@ interface LogMetadata {
 export class Logger {
 	private static instance: winston.Logger;
 	private static initialized: boolean = false;
-	private static lastLog: { message: string; meta: any; timestamp: number } | null = null;
-	private static readonly DEDUP_WINDOW_MS = 1000; // 1 second window for deduplication
 
 	constructor(opts: EnhancedLoggerOptions = {}) {
 		if (!Logger.instance || opts.recreate) {
@@ -181,7 +89,7 @@ export class Logger {
 		// Extract action from metadata if available
 		const action = (meta?.action || meta?.type || 'system') as string;
 
-		// If message already contains action prefix, remove it
+		// Clean message format
 		let cleanMessage = message;
 		if (message.includes(' - ')) {
 			cleanMessage = message.split(' - ')[1];
@@ -194,88 +102,29 @@ export class Logger {
 	}
 
 	/**
-	 * Checks if a log is a duplicate within the deduplication window
-	 */
-	private static isDuplicate(message: string, meta?: LogMetadata): boolean {
-		if (!Logger.lastLog) return false;
-
-		const now = Date.now();
-		if (now - Logger.lastLog.timestamp > Logger.DEDUP_WINDOW_MS) {
-			return false;
-		}
-
-		// Compare message and metadata
-		return Logger.lastLog.message === message && JSON.stringify(Logger.lastLog.meta) === JSON.stringify(meta);
-	}
-
-	/**
-	 * Standard logging methods with deduplication
+	 * Standard logging methods
 	 */
 	static info(message: string, meta?: LogMetadata): winston.Logger {
 		Logger.ensureInitialized();
 		const { action, message: cleanMessage } = Logger.formatMessage(message, meta);
-
-		if (Logger.isDuplicate(cleanMessage, meta)) {
-			return Logger.instance;
-		}
-
-		Logger.lastLog = {
-			message: cleanMessage,
-			meta,
-			timestamp: Date.now()
-		};
-
 		return Logger.instance.info(cleanMessage, { ...meta, action });
 	}
 
 	static error(message: string, meta?: LogMetadata): winston.Logger {
 		Logger.ensureInitialized();
 		const { action, message: cleanMessage } = Logger.formatMessage(message, meta);
-
-		if (Logger.isDuplicate(cleanMessage, meta)) {
-			return Logger.instance;
-		}
-
-		Logger.lastLog = {
-			message: cleanMessage,
-			meta,
-			timestamp: Date.now()
-		};
-
 		return Logger.instance.error(cleanMessage, { ...meta, action });
 	}
 
 	static warn(message: string, meta?: LogMetadata): winston.Logger {
 		Logger.ensureInitialized();
 		const { action, message: cleanMessage } = Logger.formatMessage(message, meta);
-
-		if (Logger.isDuplicate(cleanMessage, meta)) {
-			return Logger.instance;
-		}
-
-		Logger.lastLog = {
-			message: cleanMessage,
-			meta,
-			timestamp: Date.now()
-		};
-
 		return Logger.instance.warn(cleanMessage, { ...meta, action });
 	}
 
 	static debug(message: string, meta?: LogMetadata): winston.Logger {
 		Logger.ensureInitialized();
 		const { action, message: cleanMessage } = Logger.formatMessage(message, meta);
-
-		if (Logger.isDuplicate(cleanMessage, meta)) {
-			return Logger.instance;
-		}
-
-		Logger.lastLog = {
-			message: cleanMessage,
-			meta,
-			timestamp: Date.now()
-		};
-
 		return Logger.instance.debug(cleanMessage, { ...meta, action });
 	}
 
@@ -296,33 +145,6 @@ export class Logger {
 
 	debug(message: string, meta?: LogMetadata): winston.Logger {
 		return Logger.debug(message, meta);
-	}
-
-	/**
-	 * Specialized logging methods for authentication events
-	 */
-	static authEvent(
-		userId: string,
-		action: string,
-		success: boolean,
-		details: any = {},
-		req: Request
-	): winston.Logger {
-		const user_agent = req ? get_user_agent(req) : { ip: 'unknown', user_agent: 'unknown' };
-		console.log(req.user);
-		const meta = {
-			type: 'auth',
-			action,
-			userId,
-			username: req?.user?.username || 'unknown',
-			success,
-			details,
-			ip: user_agent.ip,
-			userAgent: user_agent.user_agent,
-			timestamp: new Date(),
-			_disableFilter: true // Important security event
-		};
-		return Logger.info(`Authentication ${success ? 'succeeded' : 'failed'}`, meta);
 	}
 
 	static dataChange(
@@ -431,15 +253,6 @@ export class Logger {
 	/**
 	 * Instance method versions of specialized logging methods
 	 */
-	authEvent(
-		userId: string,
-		action: string,
-		success: boolean,
-		details: any = {},
-		req: Request
-	): winston.Logger {
-		return Logger.authEvent(userId, action, success, details, req);
-	}
 
 	dataChange(
 		userId: string,
