@@ -2,7 +2,20 @@ import { Request, Response, NextFunction } from 'express';
 import { Logger } from '../logger';
 
 /**
+ * Routes that have custom logging - these will be skipped by the route logger
+ */
+const CUSTOM_LOGGED_ROUTES = [
+	'/api/v1/auth/login',
+	'/api/v1/config/admin/users',
+	'/api/v1/config/users',
+	'/api/v1/config/admin/accessLevels',
+	'/api/v1/config/access-levels',
+	'/api/v1/sessions'
+];
+
+/**
  * Middleware that logs all incoming requests and their responses
+ * Skips routes that have custom logging to avoid duplication
  */
 export function routeLoggerMiddleware(
 	options: {
@@ -20,6 +33,12 @@ export function routeLoggerMiddleware(
 	return (req: Request, res: Response, next: NextFunction) => {
 		// Skip logging for excluded paths
 		if (skipPaths.some((pattern) => pattern.test(req.path))) {
+			return next();
+		}
+
+		// Skip logging for routes that have custom logging
+		const currentRoute = req.originalUrl || req.path;
+		if (CUSTOM_LOGGED_ROUTES.some((route) => currentRoute.startsWith(route))) {
 			return next();
 		}
 
