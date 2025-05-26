@@ -18,12 +18,18 @@ export enum AuthEventType {
  * Simplified authentication logger that works with LogType filtering
  */
 export class AuthLogger {
-	private static extractRequestInfo(req: Request) {
+	private static createBaseLogData(req: Request, action: string, success: boolean) {
 		return {
+			type: 'auth',
+			action,
+			success,
+			userid: req.user?._id?.toString(),
+			username: req.user?.username,
 			ip: req.ip ?? req.socket.remoteAddress ?? 'unknown',
 			userAgent: req.get('User-Agent') ?? 'unknown',
 			method: req.method,
-			url: req.originalUrl || req.url
+			url: req.originalUrl || req.url,
+			timestamp: new Date()
 		};
 	}
 
@@ -31,19 +37,8 @@ export class AuthLogger {
 	 * Log successful login
 	 */
 	static loginSuccess(req: Request, sessionInfo?: { isRemembered?: boolean; maxAge?: number }): void {
-		const requestInfo = this.extractRequestInfo(req);
-
 		Logger.info('User login successful', {
-			type: 'auth',
-			action: AuthEventType.LOGIN_SUCCESS,
-			success: true,
-			userid: req.user?._id?.toString(),
-			username: req.user?.username,
-			ip: requestInfo.ip,
-			userAgent: requestInfo.userAgent,
-			method: requestInfo.method,
-			url: requestInfo.url,
-			timestamp: new Date(),
+			...this.createBaseLogData(req, AuthEventType.LOGIN_SUCCESS, true),
 			details: {
 				sessionId: req.sessionID,
 				sessionInfo
@@ -59,17 +54,8 @@ export class AuthLogger {
 		error?: string,
 		attemptedCredentials?: { username?: string; password?: string }
 	): void {
-		const requestInfo = this.extractRequestInfo(req);
-
 		Logger.warn('User login failed', {
-			type: 'auth',
-			action: AuthEventType.LOGIN_FAILED,
-			success: false,
-			ip: requestInfo.ip,
-			userAgent: requestInfo.userAgent,
-			method: requestInfo.method,
-			url: requestInfo.url,
-			timestamp: new Date(),
+			...this.createBaseLogData(req, AuthEventType.LOGIN_FAILED, false),
 			details: {
 				error,
 				attemptedCredentials
@@ -81,19 +67,9 @@ export class AuthLogger {
 	 * Log login error (system error during authentication)
 	 */
 	static loginError(req: Request, error: string, userId?: string): void {
-		const requestInfo = this.extractRequestInfo(req);
-
 		Logger.error('Authentication system error', {
-			type: 'auth',
-			action: AuthEventType.LOGIN_ERROR,
-			success: false,
-			userid: userId,
-			username: req.user?.username,
-			ip: requestInfo.ip,
-			userAgent: requestInfo.userAgent,
-			method: requestInfo.method,
-			url: requestInfo.url,
-			timestamp: new Date(),
+			...this.createBaseLogData(req, AuthEventType.LOGIN_ERROR, false),
+			userid: userId, // Override with specific userId if provided
 			details: {
 				error
 			}
@@ -104,17 +80,8 @@ export class AuthLogger {
 	 * Log unauthorized access attempt
 	 */
 	static unauthorizedAccess(req: Request, reason?: string): void {
-		const requestInfo = this.extractRequestInfo(req);
-
 		Logger.warn('Unauthorized access attempt', {
-			type: 'auth',
-			action: AuthEventType.UNAUTHORIZED_ACCESS,
-			success: false,
-			ip: requestInfo.ip,
-			userAgent: requestInfo.userAgent,
-			method: requestInfo.method,
-			url: requestInfo.url,
-			timestamp: new Date(),
+			...this.createBaseLogData(req, AuthEventType.UNAUTHORIZED_ACCESS, false),
 			details: {
 				error: reason || 'No valid session'
 			}
@@ -125,19 +92,8 @@ export class AuthLogger {
 	 * Log user logout
 	 */
 	static logout(req: Request): void {
-		const requestInfo = this.extractRequestInfo(req);
-
 		Logger.info('User logout', {
-			type: 'auth',
-			action: AuthEventType.LOGOUT,
-			success: true,
-			userid: req.user?._id?.toString(),
-			username: req.user?.username,
-			ip: requestInfo.ip,
-			userAgent: requestInfo.userAgent,
-			method: requestInfo.method,
-			url: requestInfo.url,
-			timestamp: new Date(),
+			...this.createBaseLogData(req, AuthEventType.LOGOUT, true),
 			details: {
 				sessionId: req.sessionID
 			}
@@ -164,19 +120,8 @@ export class AuthLogger {
 	 * Log session termination by admin
 	 */
 	static sessionTerminated(req: Request, terminatedSessionId: string, terminatedUserId?: string): void {
-		const requestInfo = this.extractRequestInfo(req);
-
 		Logger.info('Session terminated by admin', {
-			type: 'auth',
-			action: 'session_terminated',
-			success: true,
-			userid: req.user?._id?.toString(),
-			username: req.user?.username,
-			ip: requestInfo.ip,
-			userAgent: requestInfo.userAgent,
-			method: requestInfo.method,
-			url: requestInfo.url,
-			timestamp: new Date(),
+			...this.createBaseLogData(req, 'session_terminated', true),
 			details: {
 				terminatedSessionId,
 				terminatedUserId
@@ -194,20 +139,9 @@ export class AuthLogger {
 		success: boolean = true,
 		additionalContext?: Record<string, unknown>
 	): void {
-		const requestInfo = this.extractRequestInfo(req);
-
 		const logMethod = success ? Logger.info : Logger.warn;
 		logMethod(message, {
-			type: 'auth',
-			action: eventType,
-			success,
-			userid: req.user?._id?.toString(),
-			username: req.user?.username,
-			ip: requestInfo.ip,
-			userAgent: requestInfo.userAgent,
-			method: requestInfo.method,
-			url: requestInfo.url,
-			timestamp: new Date(),
+			...this.createBaseLogData(req, eventType, success),
 			details: additionalContext
 		});
 	}
