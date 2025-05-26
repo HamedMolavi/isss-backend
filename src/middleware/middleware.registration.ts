@@ -10,9 +10,13 @@ import { setupLogger } from './logger.middleware';
 import { sessionMiddleware } from './session.middleware';
 import { authHeaderExtraction } from './auth.middleware';
 import { errorLoggerMiddleware, routeLoggerMiddleware } from './routeLogger.middleware';
+import { registerSecurityMiddleware } from './security.middleware';
 import { BaseConfig } from '../config/base.config';
 
 export function RegisterMiddleware(app: Application) {
+	// Register security middleware
+	registerSecurityMiddleware(app);
+
 	///////////////////////////////////////////////////////////////////////////////// Credentials and authentication
 
 	// CORS - Cross-Origin Resource Sharing configuration
