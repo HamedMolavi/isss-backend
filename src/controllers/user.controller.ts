@@ -3,6 +3,7 @@ import User from '../db/mongo/models/user';
 import { Types } from 'mongoose';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
+import { UserLogger } from '../logger/user.logger';
 
 /**
  * Create a new user
@@ -18,13 +19,25 @@ export const create = async (req: Request, res: Response) => {
 	}
 
 	const doc = new User(payload);
-	const result = await doc.save().catch(() => null);
+	const result = await doc.save().catch((err) => {
+		UserLogger.userCreateFailed(req, err.message, payload);
+		return null;
+	});
 
 	if (!result) {
 		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to create user'
 		});
 	}
+
+	// Log successful user creation with role assignment
+	UserLogger.userCreated(req, {
+		_id: result._id.toString(),
+		username: result.username,
+		role: result.role,
+		access_level: result.access_level.toString()
+	});
 
 	req.flash('info', `User added.`);
 	return ApiRes(res, {
@@ -82,21 +95,88 @@ export const updateById = async (req: Request, res: Response) => {
 	const id = req.params.id;
 	const payload = req.body;
 
-	// Handle camera_access conversion
-	if (payload.camera_access) {
-		payload.camera_access = payload.camera_access.map((str: string) => new Types.ObjectId(str));
-	}
-
-	const user = await User.findByIdAndUpdate(id, payload, { new: true })
+	// Get the current user for logging changes
+	const currentUser = await User.findById(id)
 		.exec()
 		.catch(() => null);
-
-	if (!user) {
+	if (!currentUser) {
 		req.flash('error', 'User not found');
 		return ApiRes(res, {
 			status: HttpStatus.NOT_FOUND,
 			msg: 'User not found'
 		});
+	}
+
+	// Handle camera_access conversion
+	if (payload.camera_access) {
+		payload.camera_access = payload.camera_access.map((str: string) => new Types.ObjectId(str));
+	}
+
+	// Track changes for logging
+	const changes: Record<string, { old: unknown; new: unknown }> = {};
+	const updatedFields: string[] = [];
+
+	Object.keys(payload).forEach((key) => {
+		if (payload[key] !== undefined && payload[key] !== currentUser[key as keyof typeof currentUser]) {
+			changes[key] = {
+				old: currentUser[key as keyof typeof currentUser],
+				new: payload[key]
+			};
+			updatedFields.push(key);
+		}
+	});
+
+	const user = await User.findByIdAndUpdate(id, payload, { new: true })
+		.exec()
+		.catch((err) => {
+			UserLogger.roleAssignmentFailed(req, id, err.message, payload.role);
+			return null;
+		});
+
+	if (!user) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to update user'
+		});
+	}
+
+	// Log role assignment if role was changed
+	if (payload.role && payload.role !== currentUser.role) {
+		UserLogger.roleAssigned(
+			req,
+			{
+				_id: user._id.toString(),
+				username: user.username
+			},
+			currentUser.role,
+			payload.role
+		);
+	}
+
+	// Log access level assignment if access_level was changed
+	if (payload.access_level && payload.access_level !== currentUser.access_level?.toString()) {
+		UserLogger.accessLevelAssigned(
+			req,
+			{
+				_id: user._id.toString(),
+				username: user.username
+			},
+			currentUser.access_level?.toString() || 'none',
+			payload.access_level.toString()
+		);
+	}
+
+	// Log general user update
+	if (updatedFields.length > 0) {
+		UserLogger.userUpdated(
+			req,
+			{
+				_id: user._id.toString(),
+				username: user.username
+			},
+			updatedFields,
+			changes
+		);
 	}
 
 	req.flash('info', 'User updated.');
@@ -111,17 +191,36 @@ export const updateById = async (req: Request, res: Response) => {
  */
 export const deleteById = async (req: Request, res: Response) => {
 	const id = req.params.id;
-	const user = await User.findByIdAndDelete(id)
+
+	// Get user before deletion for logging
+	const userToDelete = await User.findById(id)
 		.exec()
 		.catch(() => null);
-
-	if (!user) {
+	if (!userToDelete) {
 		req.flash('error', 'User not found');
 		return ApiRes(res, {
 			status: HttpStatus.NOT_FOUND,
 			msg: 'User not found'
 		});
 	}
+
+	const user = await User.findByIdAndDelete(id)
+		.exec()
+		.catch(() => null);
+
+	if (!user) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to delete user'
+		});
+	}
+
+	// Log successful user deletion
+	UserLogger.userDeleted(req, {
+		_id: user._id.toString(),
+		username: user.username,
+		role: user.role
+	});
 
 	return ApiRes(res, {
 		status: HttpStatus.NO_CONTENT,
