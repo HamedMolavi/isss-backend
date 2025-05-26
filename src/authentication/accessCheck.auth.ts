@@ -4,6 +4,7 @@ import mongoose, { isObjectIdOrHexString } from 'mongoose';
 
 import AccessLevel from '../db/mongo/models/accessLevel';
 import { IAccessLevel } from '../types/interfaces/accessLevel.interface';
+import { UserLogger } from '../logger/user.logger';
 
 // CRUD => Create, Read, Update, Delete
 const accessTranslation = {
@@ -52,9 +53,33 @@ export function accessCheck(
 		const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level));
 		const userAccess = userAccessLevel?.[access] as number | undefined;
 		const method = req.method as 'GET' | 'POST' | 'DELETE' | 'PATCH';
-		if (userAccessLevel && userAccess && hasAccess(userAccess, options?.bitMapNumberFromRight ?? method))
+
+		if (userAccessLevel && userAccess && hasAccess(userAccess, options?.bitMapNumberFromRight ?? method)) {
+			// Log successful permission check
+			UserLogger.permissionCheckSuccess(req, access, req.originalUrl, accessTranslation[method]);
 			return next(); // first: check the role
-		if (!!options?.extraFunction && (await options.extraFunction(req, userAccess))) return next(); // second: check manual pass function
+		}
+
+		if (!!options?.extraFunction && (await options.extraFunction(req, userAccess))) {
+			// Log successful permission check via extra function
+			UserLogger.permissionCheckSuccess(
+				req,
+				access,
+				req.originalUrl,
+				`${accessTranslation[method]} (via extra function)`
+			);
+			return next(); // second: check manual pass function
+		}
+
+		// Log failed permission check
+		UserLogger.permissionCheckFailed(
+			req,
+			access,
+			req.originalUrl,
+			accessTranslation[method],
+			'Insufficient access level'
+		);
+
 		req.flash('error', `No [${access} ${accessTranslation[method]}] access!`);
 		return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
 	};
