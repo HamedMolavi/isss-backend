@@ -1,5 +1,7 @@
 import { Request } from 'express';
 import { Logger } from '.';
+import { LogType } from '../db/mongo/models/logType';
+import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
 
 /**
  * User management event types
@@ -79,22 +81,29 @@ export class UserLogger {
 	/**
 	 * Log successful role assignment
 	 */
-	static roleAssigned(
+	static async roleAssigned(
 		req: Request,
 		targetUser: { _id: string; username: string },
 		oldRole: string,
 		newRole: string
-	): void {
-		Logger.info('User role assigned successfully', {
-			...this.createBaseLogData(req, UserEventType.ROLE_ASSIGNED, true),
-			details: {
-				targetUserId: targetUser._id,
-				targetUsername: targetUser.username,
-				previousRole: oldRole,
-				newRole: newRole,
-				assignedBy: req.user?.username
+	): Promise<void> {
+		try {
+			const logType = await LogType.findOne({ isActive: true }).sort({ ts: -1 }).exec();
+			if (logType?.[LOG_TYPE_KEYS.successEvents] === true) {
+				Logger.info('User role assigned successfully', {
+					...this.createBaseLogData(req, UserEventType.ROLE_ASSIGNED, true),
+					details: {
+						targetUserId: targetUser._id,
+						targetUsername: targetUser.username,
+						previousRole: oldRole,
+						newRole: newRole,
+						assignedBy: req.user?.username
+					}
+				});
 			}
-		});
+		} catch (error) {
+			console.error('Error checking log type configuration for role assignment:', error);
+		}
 	}
 
 	/**
@@ -120,37 +129,56 @@ export class UserLogger {
 	/**
 	 * Log successful access level assignment
 	 */
-	static accessLevelAssigned(
+	static async accessLevelAssigned(
 		req: Request,
 		targetUser: { _id: string; username: string },
 		oldAccessLevel: string,
 		newAccessLevel: string
-	): void {
-		Logger.info('User access level assigned successfully', {
-			...this.createBaseLogData(req, UserEventType.ACCESS_LEVEL_ASSIGNED, true),
-			details: {
-				targetUserId: targetUser._id,
-				targetUsername: targetUser.username,
-				previousAccessLevel: oldAccessLevel,
-				newAccessLevel: newAccessLevel,
-				assignedBy: req.user?.username
+	): Promise<void> {
+		try {
+			const logType = await LogType.findOne({ isActive: true }).sort({ ts: -1 }).exec();
+			if (logType?.[LOG_TYPE_KEYS.successEvents] === true) {
+				Logger.info('User access level assigned successfully', {
+					...this.createBaseLogData(req, UserEventType.ACCESS_LEVEL_ASSIGNED, true),
+					details: {
+						targetUserId: targetUser._id,
+						targetUsername: targetUser.username,
+						previousAccessLevel: oldAccessLevel,
+						newAccessLevel: newAccessLevel,
+						assignedBy: req.user?.username
+					}
+				});
 			}
-		});
+		} catch (error) {
+			console.error('Error checking log type configuration for access level assignment:', error);
+		}
 	}
 
 	/**
 	 * Log successful permission check
 	 */
-	static permissionCheckSuccess(req: Request, permission: string, resource: string, action: string): void {
-		Logger.info('Permission check passed', {
-			...this.createBaseLogData(req, UserEventType.PERMISSION_CHECK_SUCCESS, true, 'permission_check'),
-			details: {
-				permission,
-				resource,
-				requestedAction: action,
-				userRole: req.user?.role
+	static async permissionCheckSuccess(
+		req: Request,
+		permission: string,
+		resource: string,
+		action: string
+	): Promise<void> {
+		try {
+			const logType = await LogType.findOne({ isActive: true }).sort({ ts: -1 }).exec();
+			if (logType?.[LOG_TYPE_KEYS.successEvents] === true) {
+				Logger.info('Permission check passed', {
+					...this.createBaseLogData(req, UserEventType.PERMISSION_CHECK_SUCCESS, true, 'permission_check'),
+					details: {
+						permission,
+						resource,
+						requestedAction: action,
+						userRole: req.user?.role
+					}
+				});
 			}
-		});
+		} catch (error) {
+			console.error('Error checking log type configuration for permission check:', error);
+		}
 	}
 
 	/**
