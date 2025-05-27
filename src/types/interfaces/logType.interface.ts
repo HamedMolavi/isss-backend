@@ -18,6 +18,7 @@ export interface ILogType {
 	[LOG_TYPE_KEYS.component]: boolean;
 	[LOG_TYPE_KEYS.operation]: boolean;
 	[LOG_TYPE_KEYS.license]: boolean;
+	[LOG_TYPE_KEYS.successEvents]: boolean;
 	ts: number;
 	name: string;
 	system: boolean;

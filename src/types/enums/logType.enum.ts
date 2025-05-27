@@ -15,5 +15,6 @@ export enum LOG_TYPE_KEYS {
 	recordId = 'recordId',
 	component = 'component',
 	operation = 'operation',
-	license = 'license'
+	license = 'license',
+	successEvents = 'successEvents'
 }
