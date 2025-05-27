@@ -10,7 +10,14 @@ const CUSTOM_LOGGED_ROUTES = [
 	'/api/v1/config/users',
 	'/api/v1/config/admin/accessLevels',
 	'/api/v1/config/access-levels',
-	'/api/v1/sessions'
+	'/api/v1/sessions',
+	'/api/v1/logs/monitor/status',
+	// Data import/export routes with custom logging
+	'/api/v1/config/file/batch', // Batch imports
+	'/api/v1/config/snapshot', // Snapshot capture
+	'/api/v1/config/file/upload', // File uploads
+	'/api/v1/report/videoDownload', // Video downloads
+	'/api/v1/report' // Excel exports and backup routes
 ];
 
 /**
