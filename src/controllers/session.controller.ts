@@ -108,3 +108,48 @@ export const getCurrentUserSessions = async (req: Request, res: Response) => {
 		data: sessions
 	});
 };
+
+/**
+ * Terminate all sessions for a specific user by user ID
+ */
+export const terminateUserSessions = async (req: Request, res: Response) => {
+	const userId = req.params.userId;
+
+	if (!userId) {
+		return ApiRes(res, {
+			status: HttpStatus.BAD_REQUEST,
+			msg: 'User ID is required'
+		});
+	}
+
+	// Get user sessions before terminating for logging
+	const userSessions = await sessionManager.getUserSessions(userId).catch(() => []);
+
+	if (userSessions.length === 0) {
+		return ApiRes(res, {
+			status: HttpStatus.NOT_FOUND,
+			msg: 'No active sessions found for this user'
+		});
+	}
+
+	const result = await sessionManager.terminateUserSessions(userId).catch(() => false);
+
+	if (!result) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to terminate user sessions'
+		});
+	}
+
+	// Log session terminations by admin
+	userSessions.forEach((session) => {
+		AuthLogger.sessionTerminated(req, session.session_id, userId);
+	});
+
+	req.flash('info', `All sessions for user ${userId} terminated successfully.`);
+	return ApiRes(res, {
+		status: HttpStatus.OK,
+		msg: `Terminated ${userSessions.length} session(s) for user`,
+		data: { terminatedSessions: userSessions.length }
+	});
+};
