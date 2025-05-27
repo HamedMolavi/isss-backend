@@ -38,7 +38,8 @@ const LogTypeSchema: Schema<ILogType> = new mongoose.Schema(
 		[LOG_TYPE_KEYS.recordId]: { type: Boolean, default: true },
 		[LOG_TYPE_KEYS.component]: { type: Boolean, default: true },
 		[LOG_TYPE_KEYS.operation]: { type: Boolean, default: true },
-		[LOG_TYPE_KEYS.license]: { type: Boolean, default: true }
+		[LOG_TYPE_KEYS.license]: { type: Boolean, default: true },
+		[LOG_TYPE_KEYS.successEvents]: { type: Boolean, default: true }
 	},
 	{
 		collection: 'LogType',
@@ -106,5 +107,6 @@ export const DEFAULT_LOG_TYPE: ILogType = {
 	recordId: true,
 	component: true,
 	operation: true,
-	license: true
+	license: true,
+	successEvents: true
 };
