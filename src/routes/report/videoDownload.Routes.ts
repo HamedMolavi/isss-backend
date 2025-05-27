@@ -4,6 +4,7 @@ import path from 'path';
 import { ApiError } from '../../types/classes/error.class';
 import { getPathFromIdTime } from '../../tools/getPathFromIdTiem';
 import { Access } from '../../types/enums/access.enum';
+import { DataImportExportLogger } from '../../logger/data-input-output.logger';
 var ffmpeg = require('fluent-ffmpeg');
 //get user role from enviroment variable
 const const_role = process.env.const_role || 'user';
@@ -56,7 +57,12 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 			let read_stream = fs.createReadStream(newVideoPath);
 			read_stream.pipe(res);
 		}
+
+		// Log successful video download
+		DataImportExportLogger.videoDownloaded(req, dataVideo, true);
 	} catch (error: any) {
+		// Log failed video download
+		DataImportExportLogger.videoDownloaded(req, req.params.id || 'unknown', false, error.message);
 		return next(new ApiError(500, 'internal server error' + error.message));
 	}
 });
