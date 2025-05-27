@@ -4,10 +4,8 @@ import {
 	readByIdElasticMiddleware,
 	readElasticMiddleware
 } from '../../db/elastic/read.logs';
-import { readMiddleware } from '../../db/mongo/read.database';
 import Camera from '../../db/mongo/models/camera';
 import Personnel from '../../db/mongo/models/personnel';
-import Car from '../../db/mongo/models/car';
 import Time from '../../tools/time.tools';
 import { dtoValidationMiddleware } from '../../validation/dto';
 import {
@@ -18,21 +16,19 @@ import {
 } from '../../validation/dto/report.dto';
 import CarBrand from '../../db/mongo/models/carBrand';
 import CarColor from '../../db/mongo/models/carColor';
-import { injectDataMiddleware } from '../../tools/request.tools';
 import { stringPersianToStringEnglish, stringPlateToJson } from '../../tools/plate.tools';
-import { injectAllKindOfStuff } from '../../tools/middleware.tools';
 import { platesToStrings } from '../../tools/car.tools';
 import { SearchRequest } from '@elastic/elasticsearch/lib/api/typesWithBodyKey';
 import { ApiError } from '../../types/classes/error.class';
-import User from '../../db/mongo/models/user';
 import { deleteByIdElasticMiddleware, deleteElasticMiddleware } from '../../db/elastic/delete.logs';
 import { faceCols, plateCols, sendExcelMiddleware } from '../../tools/excel.tools';
-import { isValidObjectId, isObjectIdOrHexString } from 'mongoose';
+import { isValidObjectId } from 'mongoose';
 import Section from '../../db/mongo/models/section';
 import Department from '../../db/mongo/models/department';
 import PersonImage from '../../db/mongo/models/personImage';
 import { plateToQueryJSON } from '../../tools/elastic.tools';
 import { QueryDslQueryContainer } from '@elastic/elasticsearch/lib/api/types';
+import { DataImportExportLogger } from '../../logger/data-input-output.logger';
 
 //create router for add to routes file
 const router: Router = Router();
@@ -119,7 +115,22 @@ router.get(
 );
 router.get(
 	'/:index(plate|search|face)/:type(excel)/?$',
-	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' })
+	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' }),
+	async (req, res, next) => {
+		try {
+			const recordCount = Array.isArray(req.body.esResult) ? req.body.esResult.length : 0;
+			await DataImportExportLogger.excelExported(req, req.params.index, recordCount, true);
+		} catch (error) {
+			await DataImportExportLogger.excelExported(
+				req,
+				req.params.index,
+				0,
+				false,
+				error instanceof Error ? error.message : 'Unknown error'
+			);
+		}
+		next();
+	}
 );
 router.get(
 	'/:index(plate|search|face|sabotage|human|objectdetection)/:id?/:type(excel)?', // get with id
@@ -131,7 +142,24 @@ router.get(
 );
 router.get(
 	'/:index(plate|search|face)/:id?/:type(excel)?',
-	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' })
+	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' }),
+	async (req, res, next) => {
+		if (req.params.type === 'excel') {
+			try {
+				const recordCount = Array.isArray(req.body.esResult) ? req.body.esResult.length : 0;
+				await DataImportExportLogger.excelExported(req, req.params.index, recordCount, true);
+			} catch (error) {
+				await DataImportExportLogger.excelExported(
+					req,
+					req.params.index,
+					0,
+					false,
+					error instanceof Error ? error.message : 'Unknown error'
+				);
+			}
+		}
+		next();
+	}
 );
 
 router.post(
@@ -145,7 +173,22 @@ router.post(
 );
 router.post(
 	'/:index(plate|search|face)/:type(excel)/?$',
-	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' })
+	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' }),
+	async (req, res, next) => {
+		try {
+			const recordCount = Array.isArray(req.body.esResult) ? req.body.esResult.length : 0;
+			await DataImportExportLogger.excelExported(req, req.params.index, recordCount, true);
+		} catch (error) {
+			await DataImportExportLogger.excelExported(
+				req,
+				req.params.index,
+				0,
+				false,
+				error instanceof Error ? error.message : 'Unknown error'
+			);
+		}
+		next();
+	}
 );
 
 router.post(
@@ -156,7 +199,22 @@ router.post(
 		save: 'esResult',
 		next: true
 	}),
-	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' })
+	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' }),
+	async (req, res, next) => {
+		try {
+			const recordCount = Array.isArray(req.body.esResult) ? req.body.esResult.length : 0;
+			await DataImportExportLogger.backupExported(req, req.params.index, recordCount, true);
+		} catch (error) {
+			await DataImportExportLogger.backupExported(
+				req,
+				req.params.index,
+				0,
+				false,
+				error instanceof Error ? error.message : 'Unknown error'
+			);
+		}
+		next();
+	}
 );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
