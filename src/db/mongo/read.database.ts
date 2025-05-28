@@ -14,9 +14,9 @@ export async function read(model: any, options?: { query?: FilterQuery<any>; pop
 	let docs: Document[] | any = !!options?.populate
 		? await model.find(!!options?.query ? options?.query : {}).exec()
 		: await model
-				.find(!!options?.query ? options?.query : {})
-				.populate(options?.populate)
-				.exec();
+			.find(!!options?.query ? options?.query : {})
+			.populate(options?.populate)
+			.exec();
 	return docs;
 }
 
@@ -66,17 +66,17 @@ export function readMiddleware(
 			let docs: Document[] =
 				!!options?.aggregate && !!query && !!search
 					? (
-							await model
-								.aggregate(filterQuery)
-								.limit(perPage)
-								.skip(perPage * (page - 1))
-								.exec()
-						)?.map((doc: any) => new model(doc))
-					: await model
-							.find(filterQuery)
+						await model
+							.aggregate(filterQuery)
 							.limit(perPage)
 							.skip(perPage * (page - 1))
-							.exec();
+							.exec()
+					)?.map((doc: any) => new model(doc))
+					: await model
+						.find(filterQuery)
+						.limit(perPage)
+						.skip(perPage * (page - 1))
+						.exec();
 			//return response not found to client if not found
 			if (!docs.length && !options?.next) {
 				req.flash('error', model.collection.collectionName + ' not found');
@@ -85,9 +85,9 @@ export function readMiddleware(
 			const total =
 				!!options?.aggregate && !!query && !!search
 					? await model
-							.aggregate(filterQuery?.concat({ $count: 'documentCount' }))
-							.exec()
-							.then((r: any) => r[0]['documentCount'])
+						.aggregate(filterQuery?.concat({ $count: 'documentCount' }))
+						.exec()
+						.then((r: any) => r[0]['documentCount'])
 					: await model.countDocuments(filterQuery).exec();
 			// (!!query && !!search)
 			//   ? await model.countDocuments(!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)).exec()
@@ -129,6 +129,15 @@ export function readMiddleware(
 				else req.body['docs'] = data;
 				return next();
 			}
+			data = await Promise.all(
+				(await Promise.all(data.map(async el => await el?.toJSON?.() ?? el)))
+					.map(async el => {
+						for (const [key, val] of Object.entries(el)) {
+							el[key] = (await (val as any)?.toJSON?.() ?? val)
+						}
+						return el;
+					})
+			);
 			//return response to client
 			return res.status(200).json({
 				success: true,
