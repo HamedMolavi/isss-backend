@@ -30,6 +30,8 @@ cd /tmp && echo "$(sudo cat /sys/devices/virtual/dmi/id/board_serial)-$(lsblk -n
 
 - 3.1.8: readById debug
 
+- 3.1.9: added sync data toJSON to readMiddleware
+
 ### p (plate-controller-backend)
 
 p.2.x
