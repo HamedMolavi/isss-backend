@@ -14,9 +14,9 @@ export async function read(model: any, options?: { query?: FilterQuery<any>; pop
 	let docs: Document[] | any = !!options?.populate
 		? await model.find(!!options?.query ? options?.query : {}).exec()
 		: await model
-			.find(!!options?.query ? options?.query : {})
-			.populate(options?.populate)
-			.exec();
+				.find(!!options?.query ? options?.query : {})
+				.populate(options?.populate)
+				.exec();
 	return docs;
 }
 
@@ -85,9 +85,9 @@ export function readMiddleware(
 			const total =
 				!!options?.aggregate && !!query && !!search
 					? await model
-						.aggregate(filterQuery?.concat({ $count: 'documentCount' }))
-						.exec()
-						.then((r: any) => r[0]['documentCount'])
+							.aggregate(filterQuery?.concat({ $count: 'documentCount' }))
+							.exec()
+							.then((r: any) => r[0]['documentCount'])
 					: await model.countDocuments(filterQuery).exec();
 			// (!!query && !!search)
 			//   ? await model.countDocuments(!!defaultQuery ? deepmerge(defaultQuery, await query(search)) : await query(search)).exec()
@@ -99,9 +99,17 @@ export function readMiddleware(
 			) {
 				let populates: string[] = [];
 
-				if (req.query.populate instanceof String)
-					req.query.populate.split(',').map((el) => populates.push(el.trim()));
-				else (req.query.populate as string[])?.map((el) => populates.push(el.trim()));
+				// Handle req.query.populate properly - it can be string or string[]
+				if (req.query.populate) {
+					if (typeof req.query.populate === 'string') {
+						req.query.populate.split(',').forEach((el) => populates.push(el.trim()));
+					} else if (Array.isArray(req.query.populate)) {
+						(req.query.populate as string[]).forEach((el) => {
+							if (typeof el === 'string') populates.push(el.trim());
+						});
+					}
+				}
+
 				if (!!options?.forcePopulate)
 					options.forcePopulate.forEach((p) => {
 						if (!populates.includes(p)) populates.push(p);
@@ -130,13 +138,12 @@ export function readMiddleware(
 				return next();
 			}
 			data = await Promise.all(
-				(await Promise.all(data.map(async el => await el?.toJSON?.() ?? el)))
-					.map(async el => {
-						for (const [key, val] of Object.entries(el)) {
-							el[key] = (await (val as any)?.toJSON?.() ?? val)
-						}
-						return el;
-					})
+				(await Promise.all(data.map(async (el) => (await el?.toJSON?.()) ?? el))).map(async (el) => {
+					for (const [key, val] of Object.entries(el)) {
+						el[key] = (await (val as any)?.toJSON?.()) ?? val;
+					}
+					return el;
+				})
 			);
 			//return response to client
 			return res.status(200).json({
@@ -179,10 +186,18 @@ export function readByIdMiddleware(
 			}
 
 			if (!!options?.populate && (!!req.query.populate || !!options?.forcePopulate?.length)) {
-				let populates =
-					req.query.populate instanceof String
-						? req.query.populate.split(',').map((el) => el.trim())
-						: ((req.query.populate as string[])?.map((el) => el.trim()) ?? []);
+				// Handle req.query.populate properly - it can be string or string[]
+				let populates: string[] = [];
+				if (req.query.populate) {
+					if (typeof req.query.populate === 'string') {
+						req.query.populate.split(',').forEach((el) => populates.push(el.trim()));
+					} else if (Array.isArray(req.query.populate)) {
+						(req.query.populate as string[]).forEach((el) => {
+							if (typeof el === 'string') populates.push(el.trim());
+						});
+					}
+				}
+
 				if (!!options?.forcePopulate)
 					options.forcePopulate.forEach((p) => {
 						if (!populates.includes(p)) populates.push(p);
