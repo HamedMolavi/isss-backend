@@ -9,7 +9,7 @@ const sessionManager = new SessionManager();
  * Middleware to limit concurrent sessions per user
  * Allows up to 3 active sessions per user, rejects if limit exceeded
  */
-export function preventConcurrentSessions(maxSessions: number = 3) {
+export function preventConcurrentSessions(maxSessions: number = 5) {
 	return async (req: Request, res: Response, next: NextFunction) => {
 		// Only apply to login requests
 		if (req.method !== 'POST' || !req.body.username) {
