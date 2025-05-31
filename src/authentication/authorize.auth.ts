@@ -8,6 +8,10 @@ export function passportGate(req: Request, _res: Response, next: NextFunction) {
 	//TODO: check ip too
 	// const ip = req.ip ?? req.socket.remoteAddress;
 	// || ip !== req.session.ip
+	// Skip authentication for login route
+	if (req.path === '/auth/login' || req.path.endsWith('/auth/login')) {
+		return next();
+	}
 	if (!req.user) {
 		AuthLogger.unauthorizedAccess(req, 'No authenticated user');
 		return next(new ApiError(401, 'Unauthorized'));
