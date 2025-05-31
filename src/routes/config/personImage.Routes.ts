@@ -29,7 +29,7 @@ router.get(
 				const imageFilesRead = fs.readFiles(pathRead, files);
 				return {
 					_id: person.id,
-					person_id: person,
+					person_id: await person.toJSON(),
 					images: imageFilesRead ?? []
 				};
 			} else return undefined;
