@@ -25,27 +25,34 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 			return next(new ApiError(401, 'Invalid credentials'));
 		}
 
-		req.session.save((err: Error) => {
+		req.logIn(user, (err) => {
 			if (err) {
 				AuthLogger.loginError(req, err.message, user._id?.toString());
 				return next(err);
 			}
 
-			// Configure session based on user role and remember preference
-			if (req.user.role !== 'admin') {
-				const maxAge = req.body.is_remember ? 31536000000 : 28800000;
-				req.session.cookie.maxAge = maxAge;
-			}
-			req.session.ip = req.ip ?? req.socket.remoteAddress;
+			req.session.save((err: Error) => {
+				if (err) {
+					AuthLogger.loginError(req, err.message, user._id?.toString());
+					return next(err);
+				}
 
-			// Log successful authentication
-			const sessionInfo = {
-				isRemembered: req.body.is_remember || false,
-				maxAge: req.session.cookie.maxAge
-			};
-			AuthLogger.loginSuccess(req, sessionInfo);
+				// Configure session based on user role and remember preference
+				if (req.user.role !== 'admin') {
+					const maxAge = req.body.is_remember ? 31536000000 : 28800000;
+					req.session.cookie.maxAge = maxAge;
+				}
+				req.session.ip = req.ip ?? req.socket.remoteAddress;
 
-			next();
+				// Log successful authentication
+				const sessionInfo = {
+					isRemembered: req.body.is_remember || false,
+					maxAge: req.session.cookie.maxAge
+				};
+				AuthLogger.loginSuccess(req, sessionInfo);
+
+				next();
+			});
 		});
 	})(req, res, next);
 }
