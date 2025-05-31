@@ -63,7 +63,6 @@ type PersonType = (typeof specialTypes)[number] | 'normal';
 
 const personnelDefaultQueryFunction = (bodyQueryParams: { type?: string }) => {
 	const result: { person_type: PersonType } = { person_type: 'normal' };
-	console.log(bodyQueryParams);
 	if (bodyQueryParams.type && typeof bodyQueryParams.type === 'string') {
 		const type = specialTypes.find((st) => st === bodyQueryParams.type!.toLowerCase());
 		if (type) {
