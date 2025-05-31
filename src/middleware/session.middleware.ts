@@ -18,9 +18,12 @@ export const sessionMiddleware = session({
 	resave: false,
 	rolling: true,
 	saveUninitialized: false,
+	proxy: process.env.NODE_ENV === 'production', // Trust the reverse proxy when in production
 	cookie: {
 		maxAge: SESSION_CONFIG.TIMEOUT,
 		httpOnly: true,
-		secure: process.env.NODE_ENV === 'production'
+		secure: process.env.NODE_ENV === 'production',
+		sameSite: 'lax',
+		path: '/'
 	}
 });
