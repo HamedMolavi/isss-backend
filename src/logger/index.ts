@@ -214,10 +214,16 @@ export class Logger {
 	/**
 	 * Log an API request (can be used in middleware)
 	 */
-	static request(req: Request, duration?: number): winston.Logger {
+	static request(
+		req: Request,
+		duration?: number,
+		success?: boolean,
+		errorResponse?: unknown,
+		requestBody?: unknown
+	): winston.Logger {
 		const user_agent = get_user_agent(req);
 		const statusCode = req.res?.statusCode || 0;
-		const success = statusCode >= 200 && statusCode < 400;
+		const requestSuccess = success !== undefined ? success : statusCode >= 200 && statusCode < 400;
 
 		const details = {
 			statusCode,
@@ -225,7 +231,10 @@ export class Logger {
 			...(req.method === 'PUT' && { operation: 'update' }),
 			...(req.method === 'DELETE' && { operation: 'delete' }),
 			...(req.method === 'GET' && { operation: 'read' }),
-			...(req.method === 'PATCH' && { operation: 'partial_update' })
+			...(req.method === 'PATCH' && { operation: 'partial_update' }),
+			// Add error-specific details when request failed
+			...(!requestSuccess && errorResponse ? { errorResponse } : {}),
+			...(!requestSuccess && requestBody ? { requestBody } : {})
 		};
 
 		const action = generateActionString(req);
@@ -239,7 +248,7 @@ export class Logger {
 			userId: req?.user?._id.toString() ?? 'unknown',
 			username: req?.user?.username ?? 'unknown',
 			duration,
-			success,
+			success: requestSuccess,
 			details,
 			userAgent: user_agent.user_agent,
 			headers: req.headers,
@@ -247,7 +256,8 @@ export class Logger {
 			_disableFilter: true // All requests should be logged
 		};
 
-		return Logger.info(action, meta);
+		// Use Logger.error for failed requests, Logger.info for successful ones
+		return requestSuccess ? Logger.info(action, meta) : Logger.error(action, meta);
 	}
 
 	/**
@@ -280,7 +290,13 @@ export class Logger {
 		return Logger.systemOperation(message, meta);
 	}
 
-	request(req: Request, duration?: number): winston.Logger {
-		return Logger.request(req, duration);
+	request(
+		req: Request,
+		duration?: number,
+		success?: boolean,
+		errorResponse?: unknown,
+		requestBody?: unknown
+	): winston.Logger {
+		return Logger.request(req, duration, success, errorResponse, requestBody);
 	}
 }
