@@ -201,7 +201,7 @@ export function registerSecurityMiddleware(app: Application) {
 	);
 
 	// General rate limiting
-	app.use(generalRateLimit);
+	// app.use(generalRateLimit);
 
 	// XSS Protection
 	app.use(xssProtection);
