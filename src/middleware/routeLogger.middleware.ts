@@ -62,9 +62,10 @@ export function routeLoggerMiddleware(
 		// Override end method to intercept and log response
 		res.end = function (chunk: unknown, encoding?: BufferEncoding | (() => void), cb?: () => void): Response {
 			const duration = Date.now() - startTime;
+			const isSuccess = res.statusCode >= 200 && res.statusCode < 400;
 
 			// Store response body if request failed
-			if (res.statusCode >= 400 && chunk) {
+			if (!isSuccess && chunk) {
 				try {
 					// Convert Buffer to string if needed
 					const stringChunk = Buffer.isBuffer(chunk) ? chunk.toString('utf-8') : chunk;
@@ -75,25 +76,13 @@ export function routeLoggerMiddleware(
 					responseBody = Buffer.isBuffer(chunk) ? chunk.toString('utf-8') : String(chunk);
 					res['responseBody'] = responseBody;
 				}
-
-				// Log error response
-				Logger.error('Request failed', {
-					path: req.originalUrl,
-					method: req.method,
-					statusCode: res.statusCode,
-					duration,
-					errorResponse: responseBody,
-					requestBody: originalBody,
-					username: req?.user?.username ?? '',
-					action: `${req.method.toLowerCase()}_${req.path.split('/')[1] || 'root'}`
-				});
 			}
 
 			// Attach response to request for logger access
 			req.res = res;
 
-			// Log the request and its completion
-			Logger.request(req, duration);
+			// Log the request with success status and error details if failed
+			Logger.request(req, duration, isSuccess, responseBody, originalBody);
 
 			if (logBody) {
 				Logger.debug('Request details', {
