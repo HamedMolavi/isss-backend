@@ -1,8 +1,11 @@
 import { Request } from 'express';
 import session from 'express-session';
 import { Logger } from '../logger';
+import { AuthLogger } from '../logger/auth.logger';
 import redisStore from '../db/redis/store.database';
 import User from '../db/mongo/models/user';
+import { RedisClientType } from 'redis';
+import { connectSubscriber } from '../db/redis/connect.database';
 
 /**
  * Interface representing a session with user information
@@ -50,12 +53,20 @@ interface SessionWithUserData {
 	lastAccess?: number;
 }
 
+interface ExtendedSessionData extends session.SessionData {
+	passport?: {
+		user: string;
+	};
+	lastAccess?: number;
+}
+
 /**
  * SessionManager class for handling session operations
  * Manages user sessions stored in Redis with MongoDB user data
  */
 export class SessionManager {
 	private store: session.Store;
+	private subscriber: RedisClientType | null = null;
 
 	constructor() {
 		const store = redisStore();
@@ -63,6 +74,71 @@ export class SessionManager {
 			throw new Error('Failed to initialize Redis store');
 		}
 		this.store = store;
+		this.setupExpirationMonitoring();
+	}
+
+	/**
+	 * Set up Redis keyspace notifications for session expiration monitoring
+	 */
+	private async setupExpirationMonitoring() {
+		try {
+			this.subscriber = await connectSubscriber(process.env['REDIS_URL'] || '');
+
+			this.subscriber.on('error', (err) => {
+				console.log('Redis subscription error', err);
+			});
+
+			await this.subscriber.subscribe('__keyevent@0__:expired', async (sessionId) => {
+				try {
+					const session = await this.getSessionById(sessionId);
+					const userId = session?.user?._id;
+
+					AuthLogger.sessionExpired(sessionId, userId);
+
+					console.log('Session expiration handled', sessionId, userId);
+				} catch (error) {
+					console.log('Error handling expired session', error);
+				}
+			});
+		} catch (error) {
+			console.log('Failed to initialize session expiration monitoring', error);
+		}
+	}
+
+	/**
+	 * Get session by ID
+	 */
+	private async getSessionById(sessionId: string): Promise<SessionWithUserData | null> {
+		return new Promise((resolve) => {
+			this.store.get(sessionId, async (err, sessionData) => {
+				if (err || !sessionData) {
+					resolve(null);
+					return;
+				}
+
+				const extendedSession = sessionData as ExtendedSessionData;
+				let userData;
+
+				if (extendedSession.passport?.user) {
+					const user = await User.findById(extendedSession.passport.user);
+					if (user) {
+						userData = {
+							_id: user._id.toString(),
+							username: user.username,
+							phone_number: user.phone_number,
+							role: user.role,
+							last_login: user.last_login
+						};
+					}
+				}
+
+				resolve({
+					session_id: sessionId,
+					user: userData,
+					lastAccess: extendedSession.lastAccess
+				});
+			});
+		});
 	}
 
 	/**
