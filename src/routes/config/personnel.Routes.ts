@@ -1,4 +1,4 @@
-import { Router, Request } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { requestForGetPersonnel } from '../../db/elastic/connect.database';
 import Camera from '../../db/mongo/models/camera';
 import { ImageFileSystem } from '../../tools/kafkaFile.tools';
@@ -14,6 +14,7 @@ import { deleteByIdMiddleware } from '../../db/mongo/delete.database';
 import mongoose from 'mongoose';
 import Time, { allowedPassConvert, allowedPassRevert } from '../../tools/time.tools';
 import { DoNotAllowOnDefault, injectDataMiddleware } from '../../tools/request.tools';
+import { PersonnelLogger } from '../../logger/personnel.logger';
 
 const fs = new ImageFileSystem();
 const router: Router = Router();
@@ -72,6 +73,109 @@ const personnelDefaultQueryFunction = (bodyQueryParams: { type?: string }) => {
 	return result;
 };
 
+// Success handlers for personnel operations
+const handlePersonnelSuccess = {
+	create: (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const doc = res.locals.doc;
+			if (doc) {
+				PersonnelLogger.personnelCreated(req, {
+					_id: doc._id.toString(),
+					name: `${doc.first_name} ${doc.last_name}`,
+					role: doc.person_type
+				});
+			}
+			next();
+		} catch (error) {
+			next(error);
+		}
+	},
+
+	update: (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const doc = res.locals.doc;
+			if (doc) {
+				PersonnelLogger.personnelUpdated(
+					req,
+					{
+						_id: doc._id.toString(),
+						name: `${doc.first_name} ${doc.last_name}`
+					},
+					Object.keys(req.body)
+				);
+			}
+			next();
+		} catch (error) {
+			next(error);
+		}
+	},
+
+	delete: (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const doc = res.locals.doc;
+			if (doc) {
+				PersonnelLogger.personnelDeleted(req, {
+					_id: doc._id.toString(),
+					name: `${doc.first_name} ${doc.last_name}`,
+					role: doc.person_type
+				});
+			}
+			next();
+		} catch (error) {
+			next(error);
+		}
+	}
+};
+
+// Error handlers for personnel operations
+const handlePersonnelError = {
+	create: (err: Error, req: Request, res: Response, next: NextFunction) => {
+		try {
+			const doc = res.locals.doc;
+			PersonnelLogger.personnelCreateFailed(
+				req,
+				err.message,
+				doc
+					? {
+							_id: doc._id.toString(),
+							name: `${doc.first_name} ${doc.last_name}`
+						}
+					: undefined
+			);
+			next(err);
+		} catch (error) {
+			next(error);
+		}
+	},
+
+	update: (err: Error, req: Request, res: Response, next: NextFunction) => {
+		try {
+			const errorDetails = {
+				error: err.message,
+				targetId: req.params.id,
+				attemptedChanges: req.body
+			};
+			PersonnelLogger.personnelCreateFailed(req, 'Personnel update failed', errorDetails);
+			next(err);
+		} catch (error) {
+			next(error);
+		}
+	},
+
+	delete: (err: Error, req: Request, res: Response, next: NextFunction) => {
+		try {
+			const errorDetails = {
+				error: err.message,
+				targetId: req.params.id
+			};
+			PersonnelLogger.personnelCreateFailed(req, 'Personnel deletion failed', errorDetails);
+			next(err);
+		} catch (error) {
+			next(error);
+		}
+	}
+};
+
 router.post(
 	'',
 	dtoValidationMiddleware(CreatePersonnelBody, {
@@ -97,7 +201,9 @@ router.post(
 		Personnel,
 		{ next: true, save: 'doc' }
 	),
-	fs.uploadAvatarMiddleware('avatar_str', 'doc._id', { fileName: 'avatar', resultPropertyName: 'doc' })
+	handlePersonnelSuccess.create,
+	fs.uploadAvatarMiddleware('avatar_str', 'doc._id', { fileName: 'avatar', resultPropertyName: 'doc' }),
+	handlePersonnelError.create
 );
 
 router.get(
@@ -144,14 +250,18 @@ router.patch(
 			}
 		}
 	}),
-	fs.uploadAvatarMiddleware('avatar_str', 'doc._id', { fileName: 'avatar', resultPropertyName: 'doc' })
+	handlePersonnelSuccess.update,
+	fs.uploadAvatarMiddleware('avatar_str', 'doc._id', { fileName: 'avatar', resultPropertyName: 'doc' }),
+	handlePersonnelError.update
 );
 
 router.delete(
 	'/:id',
 	DoNotAllowOnDefault(Personnel, { first_name: 'Global' }),
 	deleteByIdMiddleware(Personnel, { next: true, save: 'doc' }),
-	fs.deleteDirectoryMiddleware(['doc', '_id'], { force: true, send: 'doc' })
+	handlePersonnelSuccess.delete,
+	fs.deleteDirectoryMiddleware(['doc', '_id'], { force: true, send: 'doc' }),
+	handlePersonnelError.delete
 );
 
 async function personnelSendFunction(
