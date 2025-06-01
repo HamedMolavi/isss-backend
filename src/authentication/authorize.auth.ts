@@ -6,11 +6,6 @@ import cookie from 'cookie-signature';
 import { AuthLogger } from '../logger/auth.logger';
 
 export function passportGate(req: Request, res: Response, next: NextFunction) {
-	// Skip authentication for login route
-	if (req.path === '/auth/login' || req.path.endsWith('/auth/login')) {
-		return next();
-	}
-
 	if (!req.user) {
 		AuthLogger.unauthorizedAccess(req, 'No authenticated user');
 		return ApiRes(res, {
