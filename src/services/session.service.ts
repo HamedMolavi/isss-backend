@@ -9,13 +9,23 @@ import User from '../db/mongo/models/user';
  * Extends express-session's Session type to include our custom properties
  *
  * @property passport - Contains the user ID stored by Passport.js
- * @property lastAccess - Timestamp of the last session access
+ * @property ip - Client's IP address
+ * @property userAgent - Browser/client information
+ * @property loginTime - When the user logged in
+ * @property lastActivity - Last session activity timestamp
+ * @property userId - Database user identifier
+ * @property isRemembered - Whether "remember me" was selected
  */
 interface SessionWithUser extends session.Session {
 	passport?: {
 		user: string; // User ID stored by Passport.js
 	};
-	lastAccess?: number;
+	ip?: string;
+	userAgent?: string;
+	loginTime?: Date;
+	lastActivity?: Date;
+	userId?: string;
+	isRemembered?: boolean;
 }
 
 /**
@@ -36,7 +46,11 @@ interface RequestWithSession extends Omit<Request, 'session'> {
  *
  * @property session_id - Unique identifier for the session
  * @property user - Formatted user data (if session has an associated user)
- * @property lastAccess - Timestamp of the last session access
+ * @property ip - Client's IP address
+ * @property userAgent - Browser/client information
+ * @property loginTime - When the user logged in
+ * @property lastActivity - Last session activity timestamp
+ * @property isRemembered - Whether "remember me" was selected
  */
 interface SessionWithUserData {
 	session_id: string;
@@ -47,7 +61,11 @@ interface SessionWithUserData {
 		role: string;
 		last_login: Date;
 	};
-	lastAccess?: number;
+	ip?: string;
+	userAgent?: string;
+	loginTime?: Date;
+	lastActivity?: Date;
+	isRemembered?: boolean;
 }
 
 /**
@@ -93,8 +111,10 @@ export class SessionManager {
 						const sessionWithUser = session as unknown as SessionWithUser;
 						let userData;
 
-						if (sessionWithUser.passport?.user) {
-							const user = await User.findById(sessionWithUser.passport.user);
+						// Try to get user data from userId first, then fallback to passport.user
+						const userId = sessionWithUser.userId || sessionWithUser.passport?.user;
+						if (userId) {
+							const user = await User.findById(userId);
 							if (user) {
 								userData = {
 									_id: user._id.toString(),
@@ -109,7 +129,11 @@ export class SessionManager {
 						return {
 							session_id: sessionWithUser.id,
 							user: userData,
-							lastAccess: sessionWithUser.lastAccess
+							ip: sessionWithUser.ip,
+							userAgent: sessionWithUser.userAgent,
+							loginTime: sessionWithUser.loginTime,
+							lastActivity: sessionWithUser.lastActivity,
+							isRemembered: sessionWithUser.isRemembered
 						};
 					})
 				);
@@ -140,8 +164,6 @@ export class SessionManager {
 					resolve(false);
 					return;
 				}
-
-				// Session terminated successfully - logging handled by caller if needed
 
 				resolve(true);
 			});
