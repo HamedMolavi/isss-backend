@@ -32,6 +32,10 @@ cd /tmp && echo "$(sudo cat /sys/devices/virtual/dmi/id/board_serial)-$(lsblk -n
 
 - 3.1.9: added sync data toJSON to readMiddleware
 
+- 3.1.10: guest table debug
+
+- 3.1.11: plate search on person data, rtl_plate_number in batch plate insert
+
 ### p (plate-controller-backend)
 
 p.2.x
