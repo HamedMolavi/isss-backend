@@ -1,11 +1,11 @@
 import RedisStore from 'connect-redis';
-import session, { Store } from 'express-session';
-import { createClient, RedisClientType } from 'redis';
+import { Store } from 'express-session';
+import { createClient } from 'redis';
 
 export default function redisStore(): Store | undefined {
 	try {
 		// Initialize client.
-		let redisClient = createClient({ url: process.env['REDIS_URL'] });
+		const redisClient = createClient({ url: process.env['REDIS_URL'] });
 		redisClient.connect();
 
 		// Initialize store.
