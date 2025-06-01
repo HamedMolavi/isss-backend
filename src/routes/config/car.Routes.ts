@@ -58,10 +58,34 @@ router.get(
 	'',
 	readMiddleware(
 		Car,
-		(search) => {
-			return { number_plate: { $regex: search, $options: 'i' } };
-		},
-		{ populate: true, send: carSendFunction }
+		(search) => [
+			{
+				$lookup: {
+					from: 'Personnel',
+					localField: 'owner',
+					foreignField: '_id',
+					as: 'owner_info'
+				}
+			},
+			{ $unwind: '$owner_info' },
+			{
+				$match: {
+					$or: [
+						{ number_plate: { $regex: search, $options: 'i' } },
+						{ 'owner_info.first_name': { $regex: search, $options: 'i' } },
+						{ 'owner_info.last_name': { $regex: search, $options: 'i' } },
+						{ 'owner_info.national_code': { $regex: search, $options: 'i' } },
+						{ 'owner_info.personnel_code': { $regex: search, $options: 'i' } }
+					]
+				}
+			},
+			{
+				$project: {
+					owner_info: 0 // remove lookup field to return only Car fields
+				}
+			}
+		],
+		{ populate: true, send: carSendFunction, aggregate: true }
 	)
 );
 
