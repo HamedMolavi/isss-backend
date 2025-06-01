@@ -3,6 +3,7 @@ import { BaseConfig } from '../config/base.config';
 
 // Auth routes
 import LoginRouter from './auth/login.Routes';
+import LogoutRouter from './auth/logout.routes';
 
 // Config routes
 import UserConfigRouter from './config/userConfig.Routes';
@@ -67,6 +68,9 @@ export function RegisterRoutes(app: Application) {
 
 	// Apply authentication middleware for all routes below
 	app.use(routePrefix, passportGate);
+
+	// Auth routes
+	app.use(`${routePrefix}/auth/logout`, LogoutRouter);
 
 	// Config routes - User
 	app.use(`${routePrefix}/config/user`, UserConfigRouter);
