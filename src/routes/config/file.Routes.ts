@@ -73,7 +73,10 @@ router.post('/batch/plate', async (req, res) => {
 				brand: any,
 				first_name: string | undefined, last_name: string | undefined;
 			if (
-				(!!map["plate_number"] && (plate_number = row.getCell(map["plate_number"]).value?.toString()))
+				(
+					(!!map["plate_number"] && (plate_number = row.getCell(map["plate_number"]).value?.toString())) ||
+					(!!map["rtl_plate_number"] && (plate_number = row.getCell(map["rtl_plate_number"]).value?.toString().split('').reverse().join('')))
+				)
 				// || ["first", "second", "third", "fifth"].every(el => !!map[el])
 			) {
 				plate_number = !!map["fifth"] ? plate_number + (row.getCell(map["fifth"]).value ?? "").toString() : plate_number;
@@ -121,8 +124,11 @@ router.post('/batch/plate', async (req, res) => {
 			success: true,
 			data: result
 		})
-	} catch (err: any) {
-		res.status(500).json({ error: 'Failed to read Excel file', details: err.message });
+	} catch (err: unknown) {
+		res.status(500).json(
+			err instanceof Error ? { error: 'Failed to read Excel file', details: err.message, stack:err.stack }
+			: { error: 'Failed to read Excel file'}
+		);
 	}
 });
 
