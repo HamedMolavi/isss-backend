@@ -5,7 +5,7 @@ import { AuthLogger } from '../logger/auth.logger';
 import redisStore from '../db/redis/store.database';
 import User from '../db/mongo/models/user';
 import { RedisClientType } from 'redis';
-import { connectSubscriber } from '../db/redis/connect.database';
+import { connectSubscriber, connect } from '../db/redis/connect.database';
 
 /**
  * Interface representing a session with user information
@@ -69,12 +69,6 @@ interface SessionWithUserData {
 	loginTime?: Date;
 	lastActivity?: Date;
 	isRemembered?: boolean;
-}
-
-interface ExtendedSessionData extends session.SessionData {
-	passport?: {
-		user: string;
-	};
 	lastAccess?: number;
 }
 
@@ -83,80 +77,191 @@ interface ExtendedSessionData extends session.SessionData {
  * Manages user sessions stored in Redis with MongoDB user data
  */
 export class SessionManager {
+	private static instance: SessionManager | null = null;
+	private static initializationPromise: Promise<SessionManager> | null = null;
+
 	private store: session.Store;
 	private subscriber: RedisClientType | null = null;
+	private redisClient: RedisClientType | null = null;
+	private isInitialized: boolean = false;
 
-	constructor() {
+	private constructor() {
 		const store = redisStore();
 		if (!store) {
 			throw new Error('Failed to initialize Redis store');
 		}
 		this.store = store;
-		this.setupExpirationMonitoring();
+	}
+
+	/**
+	 * Get the singleton instance of SessionManager
+	 * Ensures only one instance exists and is properly initialized
+	 */
+	public static async getInstance(): Promise<SessionManager> {
+		if (SessionManager.instance && SessionManager.instance.isInitialized) {
+			return SessionManager.instance;
+		}
+
+		// If initialization is already in progress, wait for it
+		if (SessionManager.initializationPromise) {
+			return SessionManager.initializationPromise;
+		}
+
+		// Start initialization
+		SessionManager.initializationPromise = SessionManager.initialize();
+		return SessionManager.initializationPromise;
+	}
+
+	/**
+	 * Initialize the SessionManager singleton
+	 */
+	private static async initialize(): Promise<SessionManager> {
+		if (!SessionManager.instance) {
+			SessionManager.instance = new SessionManager();
+		}
+
+		if (!SessionManager.instance.isInitialized) {
+			await SessionManager.instance.setupExpirationMonitoring();
+			SessionManager.instance.isInitialized = true;
+		}
+
+		return SessionManager.instance;
 	}
 
 	/**
 	 * Set up Redis keyspace notifications for session expiration monitoring
 	 */
 	private async setupExpirationMonitoring() {
+		if (this.subscriber) {
+			return; // Already set up
+		}
+
 		try {
 			this.subscriber = await connectSubscriber(process.env['REDIS_URL'] || '');
+			this.redisClient = await connect(process.env['REDIS_URL'] || '');
 
 			this.subscriber.on('error', (err) => {
-				console.log('Redis subscription error', err);
+				console.error('Redis subscription error:', err);
 			});
 
-			await this.subscriber.subscribe('__keyevent@0__:expired', async (sessionId) => {
-				try {
-					const session = await this.getSessionById(sessionId);
-					const userId = session?.user?._id;
+			// Subscribe to session expiration events
+			await this.subscriber.subscribe('__keyevent@0__:expired', this.handleSessionExpired.bind(this));
+			await this.subscriber.subscribe('__keyevent@0__:expire', this.handleSessionExpiring.bind(this));
 
-					AuthLogger.sessionExpired(sessionId, userId);
-
-					console.log('Session expiration handled', sessionId, userId);
-				} catch (error) {
-					console.log('Error handling expired session', error);
-				}
-			});
+			// console.log('Session expiration monitoring initialized');
 		} catch (error) {
-			console.log('Failed to initialize session expiration monitoring', error);
+			console.error('Failed to initialize session expiration monitoring:', error);
+			throw error;
 		}
 	}
 
 	/**
-	 * Get session by ID
+	 * Handle session expiration event
 	 */
-	private async getSessionById(sessionId: string): Promise<SessionWithUserData | null> {
-		return new Promise((resolve) => {
-			this.store.get(sessionId, async (err, sessionData) => {
-				if (err || !sessionData) {
-					resolve(null);
-					return;
-				}
+	private async handleSessionExpired(sessionId: string) {
+		try {
+			const cleanSessionId = this.cleanSessionId(sessionId);
+			const userInfo = await this.getUserInfoFromBackup(cleanSessionId);
 
-				const extendedSession = sessionData as ExtendedSessionData;
-				let userData;
-
-				if (extendedSession.passport?.user) {
-					const user = await User.findById(extendedSession.passport.user);
-					if (user) {
-						userData = {
-							_id: user._id.toString(),
-							username: user.username,
-							phone_number: user.phone_number,
-							role: user.role,
-							last_login: user.last_login
-						};
-					}
-				}
-
-				resolve({
-					session_id: sessionId,
-					user: userData,
-					lastAccess: extendedSession.lastAccess
+			if (userInfo) {
+				AuthLogger.sessionExpired(cleanSessionId, userInfo.userId, {
+					username: userInfo.username,
+					role: userInfo.role,
+					// Get additional session data from Redis
+					ip: await this.redisClient?.hGet(`session:${cleanSessionId}`, 'ip'),
+					userAgent: await this.redisClient?.hGet(`session:${cleanSessionId}`, 'userAgent'),
+					loginTime: await this.redisClient
+						?.hGet(`session:${cleanSessionId}`, 'loginTime')
+						?.then((t) => (t ? new Date(t) : undefined)),
+					lastActivity: await this.redisClient
+						?.hGet(`session:${cleanSessionId}`, 'lastActivity')
+						?.then((t) => (t ? new Date(t) : undefined)),
+					isRemembered: await this.redisClient
+						?.hGet(`session:${cleanSessionId}`, 'isRemembered')
+						?.then((v) => v === 'true')
 				});
-			});
-		});
+				await this.cleanupUserInfoBackup(cleanSessionId);
+			}
+		} catch (error) {
+			console.error('Error handling expired session:', error);
+		}
+	}
+
+	/**
+	 * Handle session expiring event (store user info before expiration)
+	 */
+	private async handleSessionExpiring(sessionId: string) {
+		try {
+			const cleanSessionId = this.cleanSessionId(sessionId);
+			const session = await this.findSessionById(cleanSessionId);
+
+			if (session?.user?._id) {
+				// Store user info in Redis hash for additional session data
+				await this.redisClient?.hSet(`session:${cleanSessionId}`, {
+					ip: session.ip || '',
+					userAgent: session.userAgent || '',
+					loginTime: session.loginTime ? new Date(session.loginTime).toDateString() : '',
+					lastActivity: session.lastActivity ? new Date(session.lastActivity).toDateString() : '',
+					isRemembered: session.isRemembered?.toString() || 'false'
+				});
+
+				// Set expiration for the session hash
+				await this.redisClient?.expire(`session:${cleanSessionId}`, 360);
+
+				await this.backupUserInfo(cleanSessionId, {
+					userId: session.user._id,
+					username: session.user.username,
+					role: session.user.role
+				});
+			}
+		} catch (error) {
+			console.error('Error storing user info for expiring session:', error);
+		}
+	}
+
+	/**
+	 * Clean session ID by removing prefixes
+	 */
+	private cleanSessionId(sessionId: string): string {
+		return sessionId.replace('Bearer ', '');
+	}
+
+	/**
+	 * Find session by ID from all active sessions
+	 */
+	private async findSessionById(sessionId: string): Promise<SessionWithUserData | null> {
+		const allSessions = await this.getAllSessions();
+		return allSessions.find((s) => s.session_id === sessionId) || null;
+	}
+
+	/**
+	 * Backup user info before session expires
+	 */
+	private async backupUserInfo(
+		sessionId: string,
+		userInfo: { userId: string; username: string; role: string }
+	) {
+		const userInfoKey = `user_info:${sessionId}`;
+		await this.redisClient?.set(userInfoKey, JSON.stringify(userInfo), { EX: 360 });
+	}
+
+	/**
+	 * Get user info from backup
+	 */
+	private async getUserInfoFromBackup(
+		sessionId: string
+	): Promise<{ userId: string; username: string; role: string } | null> {
+		const userInfoKey = `user_info:${sessionId}`;
+		const userInfo = await this.redisClient?.get(userInfoKey);
+		return userInfo ? JSON.parse(userInfo) : null;
+	}
+
+	/**
+	 * Clean up user info backup
+	 */
+	private async cleanupUserInfoBackup(sessionId: string) {
+		const userInfoKey = `user_info:${sessionId}`;
+		await this.redisClient?.del(userInfoKey);
 	}
 
 	/**
@@ -339,3 +444,6 @@ export class SessionManager {
 		}
 	}
 }
+
+// Export a function to get the singleton instance
+export const getSessionManager = () => SessionManager.getInstance();
