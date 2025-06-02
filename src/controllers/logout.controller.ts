@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
-import { SessionManager } from '../services/session.service';
+import { getSessionManager } from '../services/session.service';
 import { AuthLogger } from '../logger/auth.logger';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
-
-const sessionManager = new SessionManager();
 
 /**
  * Logout the current user
@@ -26,6 +24,8 @@ export const logout = async (req: Request, res: Response) => {
 
 	try {
 		// Terminate the session using SessionManager
+		const sessionManager = await getSessionManager();
+
 		const terminated = await sessionManager.terminateSessionById(sessionId);
 
 		if (!terminated) {
