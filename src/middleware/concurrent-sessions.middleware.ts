@@ -1,9 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { SessionManager } from '../services/session.service';
+import { getSessionManager } from '../services/session.service';
 import { AuthLogger } from '../logger/auth.logger';
 import { ApiError } from '../types/classes/error.class';
-
-const sessionManager = new SessionManager();
 
 /**
  * Middleware to limit concurrent sessions per user
@@ -18,6 +16,8 @@ export function preventConcurrentSessions(maxSessions: number = 5) {
 
 		try {
 			// Check how many sessions user currently has
+			const sessionManager = await getSessionManager();
+
 			const allSessions = await sessionManager.getAllSessions();
 			const userSessions = allSessions.filter((session) => session.user?.username === req.body.username);
 
