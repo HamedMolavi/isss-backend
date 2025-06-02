@@ -103,7 +103,19 @@ export class AuthLogger {
 	/**
 	 * Log session expiration
 	 */
-	static sessionExpired(sessionId: string, userId?: string): void {
+	static sessionExpired(
+		sessionId: string,
+		userId?: string,
+		sessionData?: {
+			username?: string;
+			role?: string;
+			ip?: string;
+			userAgent?: string;
+			loginTime?: Date;
+			lastActivity?: Date;
+			isRemembered?: boolean;
+		}
+	): void {
 		Logger.info('Session expired', {
 			type: 'auth',
 			action: AuthEventType.SESSION_EXPIRED,
@@ -111,7 +123,18 @@ export class AuthLogger {
 			userid: userId,
 			timestamp: new Date(),
 			details: {
-				sessionId
+				sessionId,
+				username: sessionData?.username,
+				role: sessionData?.role,
+				ip: sessionData?.ip,
+				userAgent: sessionData?.userAgent,
+				loginTime: sessionData?.loginTime,
+				lastActivity: sessionData?.lastActivity,
+				isRemembered: sessionData?.isRemembered,
+				duration:
+					sessionData?.loginTime && sessionData?.lastActivity
+						? (sessionData.lastActivity.getTime() - sessionData.loginTime.getTime()) / 1000
+						: undefined
 			}
 		});
 	}
