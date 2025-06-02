@@ -1,15 +1,17 @@
 import { Request, Response } from 'express';
-import { SessionManager } from '../services/session.service';
+
 import { AuthLogger } from '../logger/auth.logger';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
-
-const sessionManager = new SessionManager();
+import { getSessionManager } from '../services/session.service';
 
 /**
  * Get all active sessions
  */
+
 export const getAllSessions = async (req: Request, res: Response) => {
+	const sessionManager = await getSessionManager();
+
 	const sessions = await sessionManager.getAllSessions().catch(() => null);
 
 	return ApiRes(res, {
@@ -30,6 +32,7 @@ export const terminateSession = async (req: Request, res: Response) => {
 			msg: 'Session ID is required'
 		});
 	}
+	const sessionManager = await getSessionManager();
 
 	// Get session info before terminating for logging
 	const sessions = await sessionManager.getAllSessions();
@@ -59,6 +62,8 @@ export const terminateSession = async (req: Request, res: Response) => {
  */
 export const terminateAllSessions = async (req: Request, res: Response) => {
 	const currentSessionId = req.sessionID;
+	const sessionManager = await getSessionManager();
+
 	const result = await sessionManager.terminateAllSessions(currentSessionId).catch(() => false);
 
 	if (!result) {
@@ -87,6 +92,7 @@ export const getUserSessions = async (req: Request, res: Response) => {
 			msg: 'User ID is required'
 		});
 	}
+	const sessionManager = await getSessionManager();
 
 	const sessions = await sessionManager.getUserSessions(userId).catch(() => null);
 
@@ -101,6 +107,8 @@ export const getUserSessions = async (req: Request, res: Response) => {
  */
 export const getCurrentUserSessions = async (req: Request, res: Response) => {
 	const userId = req.user._id.toString();
+	const sessionManager = await getSessionManager();
+
 	const sessions = await sessionManager.getUserSessions(userId).catch(() => null);
 
 	return ApiRes(res, {
@@ -123,6 +131,8 @@ export const terminateUserSessions = async (req: Request, res: Response) => {
 	}
 
 	// Get user sessions before terminating for logging
+	const sessionManager = await getSessionManager();
+
 	const userSessions = await sessionManager.getUserSessions(userId).catch(() => []);
 
 	if (userSessions.length === 0) {
