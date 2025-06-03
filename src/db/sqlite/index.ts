@@ -8,9 +8,9 @@ export class SQLite {
 	}
 
 	static init(path: string, opts?: { recreate?: boolean }) {
-		if (!SQLite.instance || !!opts?.recreate) {
+		if (!SQLite.instance || opts?.recreate) {
 			if (!isAbsolute(path)) path = join(process.cwd(), path);
-			SQLite.instance = new Database(path, OPEN_READWRITE | OPEN_CREATE, (err: any) => {
+			SQLite.instance = new Database(path, OPEN_READWRITE | OPEN_CREATE, (err: Error | null) => {
 				if (err) {
 					console.log('Getting error ' + err);
 					process.exit(1);
@@ -26,7 +26,7 @@ export class SQLite {
 		return SQLite.instance?.exec(
 			`CREATE TABLE IF NOT EXISTS ${table} (_id TEXT PRIMARY KEY NOT NULL, hash TEXT NOT NULL);`,
 			(err) => {
-				if (!!err) {
+				if (err) {
 					console.error(err);
 					process.exit(1);
 				}
@@ -60,7 +60,7 @@ export class SQLite {
 				for (let i = 0; i < values.length; i++) res[i].push(`'${values[i]}'`);
 				return res;
 			},
-			Object.values(data)[0].map((_) => [] as Array<string>)
+			Object.values(data)[0].map(() => [] as Array<string>)
 		);
 		const listOfValues = listOfListOfValues.map((listOfValues) => '(' + listOfValues.join(', ') + ')');
 
@@ -79,8 +79,66 @@ export class SQLite {
 
 	static runQuery<T>(
 		sql: string,
+		params?: (string | number | boolean | null)[],
 		callback?: ((this: Statement, err: Error | null, rows: T[]) => void) | undefined
 	) {
-		return SQLite.instance?.all(sql, callback);
+		if (params && callback) {
+			return SQLite.instance?.all(sql, params, callback);
+		} else if (callback) {
+			return SQLite.instance?.all(sql, callback);
+		} else {
+			return SQLite.instance?.all(sql, params);
+		}
+	}
+
+	/**
+	 * Delete records from a table based on conditions
+	 */
+	static delete(table: string, conditions: { [key: string]: string | string[] }): Promise<number> {
+		return new Promise((resolve, reject) => {
+			if (!SQLite.instance) {
+				console.warn('Not affected: database is not initialized yet!');
+				return resolve(0);
+			}
+
+			// Build WHERE clause
+			const whereConditions = Object.entries(conditions).map(([key, value]) => {
+				if (Array.isArray(value)) {
+					const placeholders = value.map(() => '?').join(', ');
+					return `${key} IN (${placeholders})`;
+				} else {
+					return `${key} = ?`;
+				}
+			});
+
+			const whereClause = whereConditions.join(' AND ');
+			const query = `DELETE FROM ${table} WHERE ${whereClause};`;
+
+			// Flatten values for parameter binding
+			const values = Object.values(conditions).flat();
+
+			SQLite.instance.run(
+				query,
+				values,
+				function (this: RunResult, err: { errno: number; code: string; message: string } | undefined) {
+					if (err) {
+						console.error(err.errno, 'Error executing delete query:', err.message);
+						reject(new Error(`SQLite delete error: ${err.message}`));
+					} else {
+						resolve(this.changes || 0);
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Delete specific records by IDs
+	 */
+	static deleteByIds(table: string, ids: string[]): Promise<number> {
+		if (ids.length === 0) {
+			return Promise.resolve(0);
+		}
+		return this.delete(table, { _id: ids });
 	}
 }
