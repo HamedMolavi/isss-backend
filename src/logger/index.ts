@@ -300,3 +300,8 @@ export class Logger {
 		return Logger.request(req, duration, success, errorResponse, requestBody);
 	}
 }
+
+// Export service loggers
+export { BackupLogger, BackupEventType } from './backup.logger';
+export { BackupSchedulerLogger, BackupSchedulerEventType } from './backupScheduler.logger';
+export { LogIntegrityLogger, LogIntegrityEventType } from './logIntegrity.logger';
