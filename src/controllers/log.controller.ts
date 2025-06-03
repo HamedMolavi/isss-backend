@@ -25,10 +25,10 @@ export const getMonitorStatus = async (req: Request, res: Response) => {
 };
 
 /**
- * Get logs grouped by messages
+ * Get logs grouped by actions
  */
-export const getGroupedMessages = async (req: Request, res: Response) => {
-	const messageGroups = await Log.aggregate([
+export const getGroupedActions = async (req: Request, res: Response) => {
+	const actionGroups = await Log.aggregate([
 		{
 			$group: {
 				_id: '$action'
@@ -37,7 +37,7 @@ export const getGroupedMessages = async (req: Request, res: Response) => {
 	]).catch(() => null);
 
 	return ApiRes(res, {
-		status: messageGroups ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR,
-		data: messageGroups
+		status: actionGroups ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR,
+		data: actionGroups
 	});
 };
