@@ -44,6 +44,7 @@ import TrackReportRouter from './report/trackReport.Routes';
 // Log routes
 import LogRouter from './log/log.Routes';
 import LogTypeRouter from './log/logType.Routes';
+import LogBackupRouter from './log/logBackup.routes';
 
 // Session routes
 import SessionRouter from './config/session.Routes';
@@ -120,6 +121,7 @@ export function RegisterRoutes(app: Application) {
 	// Log routes
 	app.use(`${routePrefix}/logs`, LogRouter);
 	app.use(`${routePrefix}/log-types`, LogTypeRouter);
+	app.use(`${routePrefix}/logs`, LogBackupRouter);
 
 	// Session routes
 	app.use(`${routePrefix}/sessions`, SessionRouter);

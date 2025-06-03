@@ -2,10 +2,14 @@ import { Router } from 'express';
 import { Log } from '../../db/mongo/models/secLog';
 import { readByIdMiddleware, readMiddleware } from '../../db/mongo/read.database';
 import * as LogController from '../../controllers/log.controller';
+import LogIntegrityRouter from './logIntegrity.routes';
 
 const LogRouter: Router = Router();
 
 const route_prefix = '';
+
+// Include integrity routes
+LogRouter.use(LogIntegrityRouter);
 
 // Route for get log list with message search and sorting
 LogRouter.get(
@@ -25,7 +29,8 @@ LogRouter.get(
 					{ 'metadata.username': searchRegex },
 					{ 'metadata.userid': searchRegex },
 					{ 'metadata.ip': searchRegex },
-					...(isBoolean ? [{ 'metadata.success': search.toLowerCase() === 'true' }] : [])
+					...(isBoolean ? [{ 'metadata.success': search.toLowerCase() === 'true' }] : []),
+					{ action: searchRegex }
 				]
 			};
 		},
@@ -37,12 +42,12 @@ LogRouter.get(
 );
 
 // Route for get log by id from DB
-LogRouter.get(`${route_prefix}/:id`, readByIdMiddleware(Log));
+LogRouter.get(`${route_prefix}/:id/info`, readByIdMiddleware(Log));
 
 // Route for checking log status
 LogRouter.get(`${route_prefix}/monitor/status`, LogController.getMonitorStatus);
 
-// Route for getting logs grouped by messages
-LogRouter.get(`${route_prefix}/group/messages`, LogController.getGroupedMessages);
+// Route for getting logs grouped by actions
+LogRouter.get(`${route_prefix}/group/actions`, LogController.getGroupedActions);
 
 export default LogRouter;
