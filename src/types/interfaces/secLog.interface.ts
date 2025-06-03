@@ -1,10 +1,8 @@
-import { LOG_TYPE_KEYS } from '../enums/logType.enum';
-
 export type ILog = {
 	level: string;
 	timestamp?: Date;
 	message: string;
 	action: string;
-	metadata?: Record<string, LOG_TYPE_KEYS>;
+	metadata?: Record<string, unknown>;
 	expires_at?: Date;
 };

@@ -21,6 +21,7 @@ const LogTypeSchema: Schema<ILogType> = new mongoose.Schema(
 		},
 		system: { type: Boolean, default: false },
 		isActive: { type: Boolean, default: true },
+		isAutoBackup: { type: Boolean, default: false },
 		ts: { type: Number, default: Date.now }, // Timestamp field to track last modification
 		[LOG_TYPE_KEYS.username]: { type: Boolean, default: true },
 		[LOG_TYPE_KEYS.userid]: { type: Boolean, default: true },
@@ -90,6 +91,7 @@ export const DEFAULT_LOG_TYPE: ILogType = {
 	name: 'default',
 	system: true,
 	isActive: true,
+	isAutoBackup: false,
 	ts: Date.now(),
 	username: true,
 	userid: true,

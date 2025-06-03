@@ -23,4 +23,5 @@ export interface ILogType {
 	name: string;
 	system: boolean;
 	isActive: boolean;
+	isAutoBackup: boolean;
 }

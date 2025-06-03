@@ -1,8 +1,13 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema, Model } from 'mongoose';
 import { ILog } from '../../../types/interfaces/secLog.interface';
 import { JSON_hash } from '../../../tools/utils.tools';
 import { SQLite } from '../../sqlite';
 import { CallbackError } from 'mongoose';
+
+// Interface for static methods
+interface ILogModel extends Model<ILog> {
+	verifyIntegrity(logId: string): Promise<boolean>;
+}
 
 // Valid log levels for validation
 const LOG_LEVELS = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
@@ -24,7 +29,10 @@ const LogSchema: Schema<ILog> = new Schema(
 		metadata: { type: Object, default: {} },
 		expires_at: {
 			type: Date,
-			default: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) // 2 months from now
+			default: () => {
+				const ttlDays = process.env.LOG_TTL_DAYS ? parseInt(process.env.LOG_TTL_DAYS) : 30;
+				return new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+			}
 		}
 	},
 	{
@@ -47,13 +55,30 @@ LogSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });
 // Pre-save hook to generate and store hash
 LogSchema.pre('save', async function (next) {
 	try {
-		const hashedDoc = JSON_hash(this.toObject());
+		// Ensure we have an _id (for new documents)
+		if (!this._id) {
+			this._id = new mongoose.Types.ObjectId();
+		}
+
+		// Create a normalized object with only the essential log fields
+		const logData = {
+			_id: this._id.toString(), // Include _id for consistency
+			level: this.level,
+			timestamp: this.timestamp,
+			message: this.message,
+			action: this.action,
+			metadata: this.metadata,
+			expires_at: this.expires_at
+		};
+
+		const hashedDoc = JSON_hash(logData);
 		if (!hashedDoc) {
 			return next(new Error('Failed to generate hash for document'));
 		}
 
 		// Store hash in SQLite
 		await SQLite.insert('Hash', { _id: this._id.toString(), hash: hashedDoc.hash });
+
 		next();
 	} catch (error) {
 		console.error('Error in pre-save hook:', error);
@@ -74,15 +99,27 @@ LogSchema.statics.verifyIntegrity = async function (logId: string): Promise<bool
 		return new Promise((resolve) => {
 			SQLite.runQuery<{ hash: string }>(
 				`SELECT hash FROM Hash WHERE _id = ?`,
+				[logId],
 				function (err: Error | null, rows: Array<{ hash: string }>) {
 					if (err || !rows || !rows.length) {
-						console.error('Hash verification failed:', err || 'No hash found');
+						console.error('Hash verification failed:', err || 'No hash found for log:', logId);
 						return resolve(false);
 					}
 
-					// Calculate new hash from current document
+					// Create a normalized object with the same structure as during save
+					const logData = {
+						_id: logId, // Include _id for consistency
+						level: log.level,
+						timestamp: log.timestamp,
+						message: log.message,
+						action: log.action,
+						metadata: log.metadata,
+						expires_at: log.expires_at
+					};
+
+					// Calculate new hash from normalized document
 					const storedHash = rows[0].hash;
-					const hashedDoc = JSON_hash(log);
+					const hashedDoc = JSON_hash(logData);
 					const calculatedHash = hashedDoc?.hash;
 
 					resolve(storedHash === calculatedHash);
@@ -95,4 +132,4 @@ LogSchema.statics.verifyIntegrity = async function (logId: string): Promise<bool
 	}
 };
 
-export const Log = mongoose.model('Log', LogSchema);
+export const Log = mongoose.model<ILog, ILogModel>('Log', LogSchema);
