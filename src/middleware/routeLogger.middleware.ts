@@ -12,6 +12,18 @@ const CUSTOM_LOGGED_ROUTES = [
 	'/api/v1/config/access-levels',
 	'/api/v1/sessions',
 	'/api/v1/logs/monitor/status',
+	'/api/v1/logs/integrity/status',
+	'/api/v1/logs/integrity/verify',
+	'/api/v1/logs/integrity/check',
+	'/api/v1/logs/backup/status',
+	'/api/v1/logs/backup/config',
+	'/api/v1/logs/backup/files',
+	'/api/v1/logs/backup/manual',
+	'/api/v1/logs/backup/compressed',
+	'/api/v1/logs/backup/download',
+	'/api/v1/logs/backup/cleanup',
+	'/api/v1/logs/backup/auto',
+	'/api/v1/logs/backup/restore',
 	// Data import/export routes with custom logging
 	'/api/v1/config/file/batch', // Batch imports
 	'/api/v1/config/snapshot', // Snapshot capture

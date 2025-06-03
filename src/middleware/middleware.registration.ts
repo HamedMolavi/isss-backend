@@ -12,6 +12,7 @@ import { authHeaderExtraction } from './auth.middleware';
 import { errorLoggerMiddleware, routeLoggerMiddleware } from './routeLogger.middleware';
 import { registerSecurityMiddleware } from './security.middleware';
 import { BaseConfig } from '../config/base.config';
+import { verifyLogIntegrityMiddleware } from './logIntegrity.middleware';
 
 export function RegisterMiddleware(app: Application) {
 	// Register security middleware
@@ -73,6 +74,9 @@ export function RegisterMiddleware(app: Application) {
 
 	// Route Logger - Log all incoming requests and responses
 	app.use(routeLoggerMiddleware());
+
+	// Log Integrity Verification - Verify log integrity for GET requests
+	app.use(verifyLogIntegrityMiddleware);
 
 	// Error Logger - Log application errors
 	app.use(errorLoggerMiddleware());
