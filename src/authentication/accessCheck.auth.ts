@@ -22,6 +22,11 @@ const accessCharPositions = {
 };
 
 export function userCanGetHisInfo(req: Request) {
+	// Check if user is authenticated
+	if (!req.user) {
+		return false;
+	}
+
 	const probableParamId = req.path.split('/').find((el) => isObjectIdOrHexString(el));
 	if (
 		['GET', 'PATCH'].includes(req.method) &&
@@ -50,6 +55,25 @@ export function accessCheck(
 	 */
 	return async function middleware(req: Request, res: Response, next: NextFunction) {
 		const user = req.user;
+
+		// Check if user is authenticated
+		if (!user) {
+			UserLogger.permissionCheckFailed(req, access, req.originalUrl, req.method, 'User not authenticated');
+			return next(new ApiError(401, 'Authentication required'));
+		}
+
+		// Check if user has access_level
+		if (!user.access_level) {
+			UserLogger.permissionCheckFailed(
+				req,
+				access,
+				req.originalUrl,
+				req.method,
+				'User has no access level assigned'
+			);
+			return next(new ApiError(403, 'Access level not assigned'));
+		}
+
 		const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level));
 		const userAccess = userAccessLevel?.[access] as number | undefined;
 		const method = req.method as 'GET' | 'POST' | 'DELETE' | 'PATCH';
@@ -100,6 +124,19 @@ export function roleCheck(
 ) {
 	return async function middleware(req: Request, res: Response, next: NextFunction) {
 		const user = req.user;
+
+		// Check if user is authenticated
+		if (!user) {
+			req.flash('error', `Authentication required!`);
+			return next(new ApiError(401, `Authentication required!`));
+		}
+
+		// Check if user has role property
+		if (!user.role) {
+			req.flash('error', `User role not assigned!`);
+			return next(new ApiError(403, `User role not assigned!`));
+		}
+
 		if (user.role === role) return next(); // first: check the role
 		if (!!options?.extraFunction && options.extraFunction(req, res)) return next(); // second: check manual pass function
 		req.flash('error', `No access!`);
@@ -114,7 +151,21 @@ export function paramIdExistsInCameraWhiteList(options?: {
 	return async function middleware(req: Request, res: Response, next: NextFunction) {
 		const id = options?._id ?? options?.idFromReq?.(req) ?? req.params.id;
 		if (!id) return next();
+
 		const user = req.user;
+
+		// Check if user is authenticated
+		if (!user) {
+			req.flash('error', `Authentication required!`);
+			return next(new ApiError(401, `Authentication required!`));
+		}
+
+		// Check if user has role property
+		if (!user.role) {
+			req.flash('error', `User role not assigned!`);
+			return next(new ApiError(403, `User role not assigned!`));
+		}
+
 		if (user.role === 'admin' || !!user.camera_access?.map((el) => el.toString())?.includes(id))
 			return next();
 		req.flash('error', `No access to this camera ${id}!`);
