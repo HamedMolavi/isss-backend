@@ -18,7 +18,9 @@ export enum UserEventType {
 	ACCESS_LEVEL_ASSIGNED = 'access_level_assigned',
 	ACCESS_LEVEL_ASSIGNMENT_FAILED = 'access_level_assignment_failed',
 	PERMISSION_CHECK_SUCCESS = 'permission_check_success',
-	PERMISSION_CHECK_FAILED = 'permission_check_failed'
+	PERMISSION_CHECK_FAILED = 'permission_check_failed',
+	PASSWORD_UPDATED = 'password_updated',
+	PASSWORD_UPDATE_FAILED = 'password_update_failed'
 }
 
 /**
@@ -235,6 +237,34 @@ export class UserLogger {
 				deletedUsername: deletedUser.username,
 				deletedUserRole: deletedUser.role,
 				deletedBy: req.user?.username
+			}
+		});
+	}
+
+	/**
+	 * Log successful password update
+	 */
+	static userPasswordUpdated(req: Request, targetUser: { _id: string; username: string }): void {
+		Logger.info('User password updated successfully', {
+			...this.createBaseLogData(req, UserEventType.PASSWORD_UPDATED, true, 'security'),
+			details: {
+				targetUserId: targetUser._id,
+				targetUsername: targetUser.username,
+				updatedBy: req.user?.username
+			}
+		});
+	}
+
+	/**
+	 * Log failed password update
+	 */
+	static userPasswordUpdateFailed(req: Request, targetUserId: string, error: string): void {
+		Logger.error('User password update failed', {
+			...this.createBaseLogData(req, UserEventType.PASSWORD_UPDATE_FAILED, false, 'security'),
+			details: {
+				targetUserId,
+				error,
+				attemptedBy: req.user?.username
 			}
 		});
 	}
