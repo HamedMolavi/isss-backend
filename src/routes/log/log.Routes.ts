@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { Log } from '../../db/mongo/models/secLog';
 import { readByIdMiddleware, readMiddleware } from '../../db/mongo/read.database';
 import * as LogController from '../../controllers/log.controller';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 import LogIntegrityRouter from './logIntegrity.routes';
 
 const LogRouter: Router = Router();
@@ -14,6 +15,7 @@ LogRouter.use(LogIntegrityRouter);
 // Route for get log list with message search and sorting
 LogRouter.get(
 	`${route_prefix}`,
+	accessCheck('logs'),
 	readMiddleware(
 		Log,
 		(search) => {
@@ -42,12 +44,12 @@ LogRouter.get(
 );
 
 // Route for get log by id from DB
-LogRouter.get(`${route_prefix}/:id/info`, readByIdMiddleware(Log));
+LogRouter.get(`${route_prefix}/:id/info`, accessCheck('logs'), readByIdMiddleware(Log));
 
 // Route for checking log status
-LogRouter.get(`${route_prefix}/monitor/status`, LogController.getMonitorStatus);
+LogRouter.get(`${route_prefix}/monitor/status`, accessCheck('systemLog'), LogController.getMonitorStatus);
 
 // Route for getting logs grouped by actions
-LogRouter.get(`${route_prefix}/group/actions`, LogController.getGroupedActions);
+LogRouter.get(`${route_prefix}/group/actions`, accessCheck('logs'), LogController.getGroupedActions);
 
 export default LogRouter;
