@@ -55,6 +55,33 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 				});
 			}
 
+			// Configure session based on user role and remember preference
+			if (req.user.role !== 'admin') {
+				const maxAge = req.body.is_remember ? 31536000000 : 28800000;
+				req.session.cookie.maxAge = maxAge;
+			}
+
+			// Store essential session data
+			const currentTime = new Date();
+			req.session.ip = req.ip ?? req.socket.remoteAddress;
+			req.session.userAgent = req.get('User-Agent');
+			req.session.loginTime = currentTime;
+			req.session.lastActivity = currentTime;
+			req.session.userId = user._id?.toString();
+			req.session.isRemembered = req.body.is_remember || false;
+
+			// Log successful authentication
+			const sessionInfo = {
+				isRemembered: req.body.is_remember || false,
+				maxAge: req.session.cookie.maxAge,
+				ip: req.session.ip,
+				userAgent: req.session.userAgent,
+				userId: user._id?.toString(),
+				loginTime: currentTime
+			};
+
+			AuthLogger.loginSuccess(req, sessionInfo);
+
 			req.session.save((err: Error) => {
 				if (err) {
 					AuthLogger.loginError(req, err.message, user._id?.toString());
@@ -63,33 +90,6 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 						msg: 'Session save error'
 					});
 				}
-
-				// Configure session based on user role and remember preference
-				if (req.user.role !== 'admin') {
-					const maxAge = req.body.is_remember ? 31536000000 : 28800000;
-					req.session.cookie.maxAge = maxAge;
-				}
-
-				// Store essential session data
-				const currentTime = new Date();
-				req.session.ip = req.ip ?? req.socket.remoteAddress;
-				req.session.userAgent = req.get('User-Agent');
-				req.session.loginTime = currentTime;
-				req.session.lastActivity = currentTime;
-				req.session.userId = user._id?.toString();
-				req.session.isRemembered = req.body.is_remember || false;
-
-				// Log successful authentication
-				const sessionInfo = {
-					isRemembered: req.body.is_remember || false,
-					maxAge: req.session.cookie.maxAge,
-					ip: req.session.ip,
-					userAgent: req.session.userAgent,
-					userId: user._id?.toString(),
-					loginTime: currentTime
-				};
-
-				AuthLogger.loginSuccess(req, sessionInfo);
 
 				next();
 			});
