@@ -7,28 +7,29 @@ import { Logger } from '../logger';
  * This middleware runs hash verification for the last 1000 logs in background
  */
 export const verifyLogIntegrityMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+	// Only process GET requests
 	if (req.method !== 'GET') {
-		next();
+		return next();
 	}
 
 	// Check if this is a log reading operation
 	const pathSegments = req.path.split('/');
-	const isLogReadOperation = pathSegments.some(
-		(segment) => segment.includes('log') || segment.includes('logs')
-	);
+	const isLogReadOperation =
+		pathSegments.some((segment) => segment.includes('log') || segment.includes('logs')) ||
+		req.path.includes('/log') ||
+		req.path.includes('/logs');
 
+	// Only run on log-related routes
 	if (!isLogReadOperation) {
-		next();
+		return next();
 	}
 
-	// Always let the request continue immediately
+	// Always let the request continue immediately for log routes
 	next();
 
-	// Run integrity verification in background (non-blocking)
+	// Run integrity verification in background (non-blocking) only for log operations
 	setImmediate(async () => {
 		try {
-			// Only run verification for GET requests to log endpoints
-
 			// Get verification count from query parameter or default to 1000
 			const verificationCount = parseInt(req.query.verifyCount as string) || 1000;
 
