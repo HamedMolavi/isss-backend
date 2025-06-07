@@ -50,7 +50,7 @@ CameraSchema.post('save', balanceNewCamera);
 CameraSchema.post(
 	['remove', 'deleteOne', 'deleteMany', 'findOneAndDelete', 'findOneAndRemove'],
 	async (doc) => {
-		let model_cameras = await ModelToCamera.find({ camera_id: doc._id }).exec();
+		const model_cameras = await ModelToCamera.find({ camera_id: doc._id }).exec();
 		let models = await Model.find({}).exec();
 		let users = await User.find({}).exec();
 		let personnel = await Personnel.find({}).exec();
@@ -76,13 +76,13 @@ CameraSchema.post(
 		).exec();
 		// delete camera access of each user
 		for (const user of users) {
-			let oldCA = user.camera_access;
+			const oldCA = user.camera_access;
 			user.camera_access = oldCA?.filter((camera_id) => camera_id.toString() != doc._id.toString());
 			await user.save();
 		}
 		// delete camera whitelist of each personnel
 		for (const person of personnel) {
-			let oldCW = person.camera_whitelist;
+			const oldCW = person.camera_whitelist;
 			person.camera_whitelist = oldCW?.filter((camera_id) => camera_id.toString() != doc._id.toString());
 			await person.save();
 		}
