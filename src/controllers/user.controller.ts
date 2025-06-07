@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
 import { UserLogger } from '../logger/user.logger';
+import { getSessionManager } from '../services/session.service';
 
 /**
  * Create a new user
@@ -229,58 +230,90 @@ export const deleteById = async (req: Request, res: Response) => {
 };
 
 /**
- * Update user password (temporary route - should be removed)
+ * Update user password
  */
 export const updatePassword = async (req: Request, res: Response) => {
 	const user = req.user;
 	if (!user) {
 		return ApiRes(res, {
 			status: HttpStatus.UNAUTHORIZED,
-			msg: 'Login first!'
+			msg: 'Authentication required'
 		});
 	}
 
-	if (!req?.body?.current_password) {
+	// Check if new password is same as current password
+	if (req.body.current_password === req.body.new_password) {
 		return ApiRes(res, {
 			status: HttpStatus.BAD_REQUEST,
-			msg: 'current password is required'
-		});
-	}
-
-	if (!req?.body?.new_password) {
-		return ApiRes(res, {
-			status: HttpStatus.BAD_REQUEST,
-			msg: 'new password is required!'
+			msg: 'New password must be different from current password'
 		});
 	}
 
 	const userInfo = await User.findById(user?._id)
 		.exec()
-		.catch(() => null);
+		.catch((err) => {
+			UserLogger.userPasswordUpdateFailed(req, user._id.toString(), err.message);
+			return null;
+		});
+
 	if (!userInfo) {
 		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to retrieve user information'
 		});
 	}
 
-	const isMatch = userInfo?.checkPassword(req?.body?.current_password);
+	// Verify current password
+	const isMatch = await userInfo.checkPassword(req.body.current_password);
 	if (!isMatch) {
+		UserLogger.userPasswordUpdateFailed(req, user._id.toString(), 'Invalid current password');
 		return ApiRes(res, {
 			status: HttpStatus.BAD_REQUEST,
-			msg: 'password is not correct'
+			msg: 'Current password is incorrect'
 		});
 	}
 
+	// Update password
 	const updateResult = await User.updateOne(
 		{ _id: user._id },
 		{ $set: { password: req.body.new_password } },
-		{ new: true, overwrite: true }
+		{ new: true }
 	)
 		.exec()
-		.catch(() => null);
+		.catch((err) => {
+			UserLogger.userPasswordUpdateFailed(req, user._id.toString(), err.message);
+			return null;
+		});
+
+	if (!updateResult || updateResult.modifiedCount === 0) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to update password'
+		});
+	}
+
+	// Log successful password update
+	UserLogger.userPasswordUpdated(req, {
+		_id: user._id.toString(),
+		username: userInfo.username
+	});
+
+	// Terminate all other user sessions except current one
+	try {
+		const sessionManager = await getSessionManager();
+		await sessionManager.terminateUserSessions(user._id.toString(), req.sessionID);
+	} catch (error) {
+		// Log error but don't fail the password update
+		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		UserLogger.userPasswordUpdateFailed(
+			req,
+			user._id.toString(),
+			`Failed to terminate sessions: ${errorMessage}`
+		);
+	}
 
 	return ApiRes(res, {
-		status: updateResult ? HttpStatus.CREATED : HttpStatus.INTERNAL_SERVER_ERROR,
-		data: updateResult ? user : undefined
+		status: HttpStatus.OK,
+		msg: 'Password updated successfully. All other sessions have been terminated.'
 	});
 };
