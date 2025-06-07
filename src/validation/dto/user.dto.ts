@@ -38,3 +38,10 @@ export class UpdateUserBody {
 	@IsOptional()
 	public camera_access?: Schema.Types.ObjectId[];
 }
+
+export class UpdatePasswordBody {
+	@IsString()
+	public current_password?: string;
+	@IsString()
+	public new_password?: string;
+}
