@@ -1,15 +1,4 @@
-import {
-	IsEmail,
-	IsString,
-	IsDefined,
-	MinLength,
-	IsBoolean,
-	IsOptional,
-	IsArray,
-	IsNumber,
-	IsObject
-} from 'class-validator';
-import mongoose from 'mongoose';
+import { IsString, IsOptional, IsObject } from 'class-validator';
 
 export class CreateAccessLevelBody {
 	@IsString()
@@ -50,4 +39,7 @@ export class CreateAccessLevelBody {
 	@IsOptional()
 	@IsObject()
 	public systemLog?: { create: boolean; read: boolean; update: boolean; delete: boolean };
+	@IsOptional()
+	@IsObject()
+	public logs?: { create: boolean; read: boolean; update: boolean; delete: boolean };
 }

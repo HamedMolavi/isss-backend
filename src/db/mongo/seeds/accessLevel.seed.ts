@@ -21,6 +21,7 @@ export async function makeSeedAccessLevel(): Promise<IAccessLevel> {
 			typeName: 15,
 			system: 15,
 			systemLog: 15,
+			logs: 2,
 			product: 15,
 			report: 15
 		});
@@ -28,7 +29,7 @@ export async function makeSeedAccessLevel(): Promise<IAccessLevel> {
 	}
 	const defaultLevels = await read(AccessLevel, { query: { name: 'default' } });
 	if (!defaultLevels.length) {
-		const accessLevels: IAccessLevel[] = await create(AccessLevel, {
+		await create(AccessLevel, {
 			name: 'default',
 			camera: 0,
 			car: 0,
@@ -43,6 +44,7 @@ export async function makeSeedAccessLevel(): Promise<IAccessLevel> {
 			typeName: 0,
 			system: 0,
 			systemLog: 0,
+			logs: 0,
 			product: 0,
 			report: 0
 		});
