@@ -168,6 +168,15 @@ export const getById = async (req: Request, res: Response) => {
 export const getWhitelistPersonnel = async (req: Request, res: Response) => {
 	try {
 		const cameraId = req.params.id;
+
+		// Validate cameraId is a valid ObjectId
+		if (!mongoose.Types.ObjectId.isValid(cameraId)) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Invalid camera ID'
+			});
+		}
+
 		const page = parseInt(req.query.page as string) > 0 ? parseInt(req.query.page as string) : 1;
 		const perPage =
 			(req.query.perPage as string)?.toLowerCase() === 'all'
@@ -177,16 +186,22 @@ export const getWhitelistPersonnel = async (req: Request, res: Response) => {
 					: 10;
 
 		const skip = (page - 1) * perPage;
-		const personnel = await Personnel.find({
-			camera_whitelist: { $in: [new mongoose.Types.ObjectId(cameraId)] }
+
+		// Convert string to ObjectId
+		const objectId = new mongoose.Types.ObjectId(cameraId);
+
+		const personnelDocs = await Personnel.find({
+			camera_whitelist: { $in: [objectId] }
 		})
-			.populate('section_id')
 			.skip(skip)
 			.limit(perPage)
 			.exec();
 
+		// Convert personnel documents to JSON properly
+		const personnel = await Promise.all(personnelDocs.map(async (person) => await person.toJSON()));
+
 		const total = await Personnel.countDocuments({
-			camera_whitelist: { $in: [new mongoose.Types.ObjectId(cameraId)] }
+			camera_whitelist: { $in: [objectId] }
 		});
 
 		return ApiRes(res, {
@@ -201,7 +216,8 @@ export const getWhitelistPersonnel = async (req: Request, res: Response) => {
 				}
 			}
 		});
-	} catch {
+	} catch (error) {
+		console.error('Error fetching personnel whitelist:', error);
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,
 			msg: 'Failed to fetch personnel whitelist'
@@ -215,6 +231,15 @@ export const getWhitelistPersonnel = async (req: Request, res: Response) => {
 export const getWhitelistCars = async (req: Request, res: Response) => {
 	try {
 		const cameraId = req.params.id;
+
+		// Validate cameraId is a valid ObjectId
+		if (!mongoose.Types.ObjectId.isValid(cameraId)) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Invalid camera ID'
+			});
+		}
+
 		const page = parseInt(req.query.page as string) > 0 ? parseInt(req.query.page as string) : 1;
 		const perPage =
 			(req.query.perPage as string)?.toLowerCase() === 'all'
@@ -224,16 +249,22 @@ export const getWhitelistCars = async (req: Request, res: Response) => {
 					: 10;
 
 		const skip = (page - 1) * perPage;
-		const cars = await Car.find({
-			camera_whitelist: { $in: [new mongoose.Types.ObjectId(cameraId)] }
+
+		// Convert string to ObjectId
+		const objectId = new mongoose.Types.ObjectId(cameraId);
+
+		const carDocs = await Car.find({
+			camera_whitelist: { $in: [objectId] }
 		})
-			.populate('section_id')
 			.skip(skip)
 			.limit(perPage)
 			.exec();
 
+		// Convert car documents to JSON
+		const cars = carDocs.map((car) => car.toJSON());
+
 		const total = await Car.countDocuments({
-			camera_whitelist: { $in: [new mongoose.Types.ObjectId(cameraId)] }
+			camera_whitelist: { $in: [objectId] }
 		});
 
 		return ApiRes(res, {
@@ -248,7 +279,8 @@ export const getWhitelistCars = async (req: Request, res: Response) => {
 				}
 			}
 		});
-	} catch {
+	} catch (error) {
+		console.error('Error fetching cars whitelist:', error);
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,
 			msg: 'Failed to fetch cars whitelist'
@@ -262,6 +294,15 @@ export const getWhitelistCars = async (req: Request, res: Response) => {
 export const getWhitelist = async (req: Request, res: Response) => {
 	try {
 		const cameraId = req.params.id;
+
+		// Validate cameraId is a valid ObjectId
+		if (!mongoose.Types.ObjectId.isValid(cameraId)) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Invalid camera ID'
+			});
+		}
+
 		const page = parseInt(req.query.page as string) > 0 ? parseInt(req.query.page as string) : 1;
 		const perPage =
 			(req.query.perPage as string)?.toLowerCase() === 'all'
@@ -270,17 +311,22 @@ export const getWhitelist = async (req: Request, res: Response) => {
 					? parseInt(req.query.perPage as string)
 					: 10;
 
-		const [personnel, cars] = await Promise.all([
+		// Convert string to ObjectId
+		const objectId = new mongoose.Types.ObjectId(cameraId);
+
+		const [personnelDocs, carDocs] = await Promise.all([
 			Personnel.find({
-				camera_whitelist: { $in: [new mongoose.Types.ObjectId(cameraId)] }
-			})
-				.populate('section_id')
-				.exec(),
+				camera_whitelist: { $in: [objectId] }
+			}).exec(),
 			Car.find({
-				camera_whitelist: { $in: [new mongoose.Types.ObjectId(cameraId)] }
-			})
-				.populate('section_id')
-				.exec()
+				camera_whitelist: { $in: [objectId] }
+			}).exec()
+		]);
+
+		// Convert documents to JSON properly
+		const [personnel, cars] = await Promise.all([
+			Promise.all(personnelDocs.map(async (person) => await person.toJSON())),
+			Promise.all(carDocs.map((car) => car.toJSON()))
 		]);
 
 		const data = [personnel, cars];
@@ -292,12 +338,13 @@ export const getWhitelist = async (req: Request, res: Response) => {
 				pagination: {
 					page,
 					perPage,
-					total: data.length,
-					pages: Math.ceil(data.length / perPage)
+					total: personnel.length + cars.length,
+					pages: Math.ceil((personnel.length + cars.length) / perPage)
 				}
 			}
 		});
-	} catch {
+	} catch (error) {
+		console.error('Error fetching whitelist:', error);
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,
 			msg: 'Failed to fetch whitelist'
@@ -311,6 +358,15 @@ export const getWhitelist = async (req: Request, res: Response) => {
 export const getSchedules = async (req: Request, res: Response) => {
 	try {
 		const cameraId = req.params.id;
+
+		// Validate cameraId is a valid ObjectId
+		if (!mongoose.Types.ObjectId.isValid(cameraId)) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Invalid camera ID'
+			});
+		}
+
 		const page = parseInt(req.query.page as string) > 0 ? parseInt(req.query.page as string) : 1;
 		const perPage =
 			(req.query.perPage as string)?.toLowerCase() === 'all'
@@ -319,8 +375,11 @@ export const getSchedules = async (req: Request, res: Response) => {
 					? parseInt(req.query.perPage as string)
 					: 10;
 
+		// Convert string to ObjectId
+		const objectId = new mongoose.Types.ObjectId(cameraId);
+
 		const m2cs = await ModelToCamera.find({
-			camera_id: new mongoose.Types.ObjectId(cameraId)
+			camera_id: objectId
 		}).exec();
 
 		const modelCameraIds = m2cs.map((m2c) => m2c._id);
@@ -350,7 +409,8 @@ export const getSchedules = async (req: Request, res: Response) => {
 				}
 			}
 		});
-	} catch {
+	} catch (error) {
+		console.error('Error fetching schedules:', error);
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,
 			msg: 'Failed to fetch schedules'
@@ -407,8 +467,7 @@ export const deleteById = async (req: Request, res: Response) => {
 		}
 
 		return ApiRes(res, {
-			status: HttpStatus.NO_CONTENT,
-			data: camera
+			status: HttpStatus.NO_CONTENT
 		});
 	} catch {
 		return ApiRes(res, {
