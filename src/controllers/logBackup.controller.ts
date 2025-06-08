@@ -3,6 +3,7 @@ import { LogBackupService } from '../services/logBackup.service';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
 import { BackupLogger } from '../logger/backup.logger';
+import { DataImportExportLogger } from '../logger/data-input-output.logger';
 
 /**
  * Check TTL status and backup requirements
@@ -59,6 +60,9 @@ export const createManualBackup = async (req: Request, res: Response) => {
 
 		await BackupLogger.backupCreated(backupPath, stats, req);
 
+		// Log backup export
+		await DataImportExportLogger.backupExported(req, 'manual_backup', stats.totalLogs || 0, true);
+
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: 'Backup created successfully',
@@ -77,6 +81,9 @@ export const createManualBackup = async (req: Request, res: Response) => {
 		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
 		BackupLogger.backupCreateFailed(errorMessage, req);
+
+		// Log failed backup export
+		await DataImportExportLogger.backupExported(req, 'manual_backup', 0, false, errorMessage);
 
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -107,6 +114,9 @@ export const createCompressedBackup = async (req: Request, res: Response) => {
 
 		await BackupLogger.compressedBackupCreated(backupPath, stats, req);
 
+		// Log compressed backup export
+		await DataImportExportLogger.backupExported(req, 'compressed_backup', stats.totalLogs || 0, true);
+
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: 'Compressed backup created successfully',
@@ -126,6 +136,9 @@ export const createCompressedBackup = async (req: Request, res: Response) => {
 		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
 		BackupLogger.compressedBackupFailed(errorMessage, req);
+
+		// Log failed compressed backup export
+		await DataImportExportLogger.backupExported(req, 'compressed_backup', 0, false, errorMessage);
 
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -205,6 +218,9 @@ export const performTTLCleanup = async (req: Request, res: Response) => {
 
 		await BackupLogger.ttlBackupCompleted(backupPath, stats, deletedCount, req);
 
+		// Log TTL backup export
+		await DataImportExportLogger.backupExported(req, 'ttl_cleanup_backup', stats.totalLogs || 0, true);
+
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: 'TTL cleanup completed successfully',
@@ -225,6 +241,9 @@ export const performTTLCleanup = async (req: Request, res: Response) => {
 		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
 		BackupLogger.ttlBackupFailed(error instanceof Error ? error.message : 'Unknown error', req);
+
+		// Log failed TTL backup export
+		await DataImportExportLogger.backupExported(req, 'ttl_cleanup_backup', 0, false, errorMessage);
 
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -373,6 +392,14 @@ export const restoreFromBackup = async (req: Request, res: Response) => {
 
 		await BackupLogger.backupRestored(backupPath, result, req);
 
+		// Log backup import
+		await DataImportExportLogger.batchPersonnelImported(
+			req,
+			result.totalRestored || 0,
+			result.duplicatesSkipped || 0,
+			true
+		);
+
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: 'Backup restored successfully',
@@ -392,6 +419,9 @@ export const restoreFromBackup = async (req: Request, res: Response) => {
 			error instanceof Error ? error.message : 'Unknown error',
 			req
 		);
+
+		// Log failed backup import
+		await DataImportExportLogger.batchPersonnelImported(req, 0, 0, false, errorMessage);
 
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,
