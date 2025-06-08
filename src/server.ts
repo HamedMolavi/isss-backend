@@ -1,9 +1,14 @@
 //import this file to correct global and modular types
 import {} from './types/index';
 //initial file .env
-require('./config/env.config')['default'](); //sync
+import envConfig from './config/env.config';
 //process error handling
-require('./error/process.handler')['default'](); //sync
+import processHandler from './error/process.handler';
+
+// Initialize configurations
+envConfig(); //sync
+processHandler(); //sync
+
 //imports
 import http from 'http';
 import https from 'https';
@@ -12,42 +17,76 @@ import setup from './setups/index';
 import { run } from './interactive/index.cluster';
 
 async function main() {
-	setup().then((_) => {
+	setup().then(() => {
 		const { OPTIONS, PORT_HTTPS, PORT_HTTP, HOST } = process.env;
+
+		// Server instances for potential cleanup
+		let httpsServer: https.Server | null = null;
+		let httpServer: http.Server | null = null;
+
 		//                             SETUP YOUR SERVERS
 		////////////////////////////////////////////////////////////////////////////
-		// run https server on port PORT_HTTPS
-		const httpsServer = https
-			.createServer(JSON.parse(OPTIONS as string), app)
-			.listen(PORT_HTTPS, () => {
-				console.log(`Server is running on https://${HOST}:${PORT_HTTPS}`);
-			})
-			.on('error', errorHandler);
 
-		// run http server on port PORT_HTTP
-		const httpServer = http
+		// Setup HTTPS server with proper error handling
+		if (OPTIONS) {
+			try {
+				const httpsOptions = JSON.parse(OPTIONS as string);
+				httpsServer = https
+					.createServer(httpsOptions, app)
+					.listen(PORT_HTTPS, () => {
+						console.log(`HTTPS Server is running on https://${HOST}:${PORT_HTTPS}`);
+					})
+					.on('error', (error) => errorHandler(error, 'HTTPS'));
+			} catch (error) {
+				console.error('Failed to start HTTPS server:', error);
+				console.log('Continuing with HTTP server only...');
+			}
+		} else {
+			console.warn('SSL OPTIONS not found. HTTPS server will not be started.');
+		}
+
+		// Setup HTTP server
+		httpServer = http
 			.createServer(app)
 			.listen(PORT_HTTP, () => {
-				console.log(`Server is running on http://${HOST}:${PORT_HTTP}`);
+				console.log(`HTTP Server is running on http://${HOST}:${PORT_HTTP}`);
 			})
-			.on('error', errorHandler);
+			.on('error', (error) => errorHandler(error, 'HTTP'));
 		////////////////////////////////////////////////////////////////////////////
 
-		function errorHandler(error: { syscall: string; code: string }) {
-			if (error.syscall !== 'listen') throw error; // handeling only listen errors
-			const bind = typeof PORT_HTTPS === 'string' ? 'Pipe ' + PORT_HTTPS : 'Port ' + PORT_HTTPS;
-			switch (
-				error.code // handle errors properly
-			) {
+		function errorHandler(error: Error & { syscall?: string; code?: string }, serverType: string) {
+			if (error.syscall && error.syscall !== 'listen') throw error; // handling only listen errors
+
+			const port = serverType === 'HTTPS' ? PORT_HTTPS : PORT_HTTP;
+			const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
+
+			switch (error.code) {
 				case 'EACCES':
-					console.error(bind + ' requires elevated privileges');
+					console.error(`${serverType} Server - ${bind} requires elevated privileges`);
+					break;
 				case 'EADDRINUSE':
-					console.error(bind + ' is already in use');
+					console.error(`${serverType} Server - ${bind} is already in use`);
+					break;
 				default:
-					console.error(error);
+					console.error(`${serverType} Server error:`, error);
+					break;
 			}
 			process.exit(1);
 		}
+
+		// Graceful shutdown handler
+		process.on('SIGTERM', () => {
+			console.log('SIGTERM received. Shutting down gracefully...');
+			if (httpsServer) httpsServer.close();
+			if (httpServer) httpServer.close();
+		});
+
+		process.on('SIGINT', () => {
+			console.log('SIGINT received. Shutting down gracefully...');
+			if (httpsServer) httpsServer.close();
+			if (httpServer) httpServer.close();
+		});
 	});
 }
+
 run(main);
