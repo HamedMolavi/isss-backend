@@ -180,6 +180,20 @@ export const updateById = async (req: Request, res: Response) => {
 		);
 	}
 
+	// Terminate all user sessions except current one if username was changed
+	if (payload.username && payload.username !== currentUser.username) {
+		try {
+			const sessionManager = await getSessionManager();
+			await sessionManager.terminateUserSessions(user._id.toString(), req.sessionID);
+		} catch (error) {
+			// Log error but don't fail the user update
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			console.error(
+				`Failed to terminate sessions for user ${user._id} after username update: ${errorMessage}`
+			);
+		}
+	}
+
 	req.flash('info', 'User updated.');
 	return ApiRes(res, {
 		status: HttpStatus.OK,
@@ -222,6 +236,16 @@ export const deleteById = async (req: Request, res: Response) => {
 		username: user.username,
 		role: user.role
 	});
+
+	// Terminate all user sessions since user is being deleted
+	try {
+		const sessionManager = await getSessionManager();
+		await sessionManager.terminateUserSessions(user._id.toString());
+	} catch (error) {
+		// Log error but don't fail the user deletion
+		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		console.error(`Failed to terminate sessions for deleted user ${user._id}: ${errorMessage}`);
+	}
 
 	return ApiRes(res, {
 		status: HttpStatus.NO_CONTENT,
