@@ -133,7 +133,8 @@ PersonnelSchema.methods.toJSON = async function () {
 			have_avatar === true
 				? BASE_URL + '/config/user/files/download/' + this._id
 				: BASE_URL + '/config/user/files/download/default',
-		avatar
+		avatar,
+		person_type: this.person_type
 	};
 };
 

@@ -15,6 +15,8 @@ import mongoose from 'mongoose';
 import Time, { allowedPassConvert, allowedPassRevert } from '../../tools/time.tools';
 import { DoNotAllowOnDefault, injectDataMiddleware } from '../../tools/request.tools';
 import { PersonnelLogger } from '../../logger/personnel.logger';
+import { ApiRes } from '../../utils/api.response';
+import { HttpStatus } from '../../types/http_status';
 
 const fs = new ImageFileSystem();
 const router: Router = Router();
@@ -75,25 +77,69 @@ const personnelDefaultQueryFunction = (bodyQueryParams: { type?: string }) => {
 
 // Success handlers for personnel operations
 const handlePersonnelSuccess = {
-	create: (req: Request, res: Response, next: NextFunction) => {
+	create: async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const doc = res.locals.doc;
+			const doc = req.body['doc'];
+			console.log('Debug - doc from req.body:', doc);
+			console.log('Debug - req.body keys:', Object.keys(req.body));
+
 			if (doc) {
+				// Log personnel creation
 				PersonnelLogger.personnelCreated(req, {
 					_id: doc._id.toString(),
 					name: `${doc.first_name} ${doc.last_name}`,
 					role: doc.person_type
 				});
+
+				// Try different serialization methods
+				console.log('Debug - doc.toJSON():', doc.toJSON ? await doc.toJSON() : 'No toJSON method');
+				console.log('Debug - JSON.parse(JSON.stringify(doc)):', JSON.parse(JSON.stringify(doc)));
+				console.log('Debug - Object.keys(doc):', Object.keys(doc));
+
+				// Convert Mongoose document to JSON - try multiple approaches
+				let docData;
+				if (doc.toJSON && typeof doc.toJSON === 'function') {
+					docData = await doc.toJSON();
+					console.log('Debug - Using toJSON(), result:', docData);
+				} else {
+					docData = JSON.parse(JSON.stringify(doc));
+					console.log('Debug - Using JSON.parse(JSON.stringify()), result:', docData);
+				}
+
+				console.log('Debug - Final docData before ApiRes:', docData);
+
+				return ApiRes(res, {
+					status: HttpStatus.CREATED,
+					msg: 'Personnel created successfully',
+					data: docData
+				});
+			} else {
+				console.log('Debug - No doc found in req.body');
+				return ApiRes(res, {
+					status: HttpStatus.INTERNAL_SERVER_ERROR,
+					msg: 'Personnel creation failed - no document returned'
+				});
 			}
-			next();
 		} catch (error) {
-			next(error);
+			console.error('Error in personnel creation success handler:', error);
+			// Still send response even if logging fails
+			const doc = req.body['doc'];
+			if (doc) {
+				const docData = JSON.parse(JSON.stringify(doc));
+				return ApiRes(res, {
+					status: HttpStatus.CREATED,
+					msg: 'Personnel created successfully',
+					data: docData
+				});
+			} else {
+				next(error);
+			}
 		}
 	},
 
-	update: (req: Request, res: Response, next: NextFunction) => {
+	update: async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const doc = res.locals.doc;
+			const doc = req.body['doc'];
 			if (doc) {
 				PersonnelLogger.personnelUpdated(
 					req,
@@ -103,35 +149,85 @@ const handlePersonnelSuccess = {
 					},
 					Object.keys(req.body)
 				);
+
+				// Convert Mongoose document to JSON
+				const docData = doc.toJSON ? await doc.toJSON() : JSON.parse(JSON.stringify(doc));
+
+				return ApiRes(res, {
+					status: HttpStatus.OK,
+					msg: 'Personnel updated successfully',
+					data: docData
+				});
+			} else {
+				return ApiRes(res, {
+					status: HttpStatus.INTERNAL_SERVER_ERROR,
+					msg: 'Personnel update failed - no document returned'
+				});
 			}
-			next();
 		} catch (error) {
-			next(error);
+			console.error('Error in personnel update success handler:', error);
+			// Still send response even if logging fails
+			const doc = req.body['doc'];
+			if (doc) {
+				const docData = JSON.parse(JSON.stringify(doc));
+				return ApiRes(res, {
+					status: HttpStatus.OK,
+					msg: 'Personnel updated successfully',
+					data: docData
+				});
+			} else {
+				next(error);
+			}
 		}
 	},
 
-	delete: (req: Request, res: Response, next: NextFunction) => {
+	delete: async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const doc = res.locals.doc;
+			const doc = req.body['doc'];
 			if (doc) {
 				PersonnelLogger.personnelDeleted(req, {
 					_id: doc._id.toString(),
 					name: `${doc.first_name} ${doc.last_name}`,
 					role: doc.person_type
 				});
+
+				// Convert Mongoose document to JSON
+				const docData = doc.toJSON ? await doc.toJSON() : JSON.parse(JSON.stringify(doc));
+
+				return ApiRes(res, {
+					status: HttpStatus.OK,
+					msg: 'Personnel deleted successfully',
+					data: docData
+				});
+			} else {
+				return ApiRes(res, {
+					status: HttpStatus.INTERNAL_SERVER_ERROR,
+					msg: 'Personnel deletion failed - no document returned'
+				});
 			}
-			next();
 		} catch (error) {
-			next(error);
+			console.error('Error in personnel deletion success handler:', error);
+			// Still send response even if logging fails
+			const doc = req.body['doc'];
+			if (doc) {
+				const docData = JSON.parse(JSON.stringify(doc));
+				return ApiRes(res, {
+					status: HttpStatus.OK,
+					msg: 'Personnel deleted successfully',
+					data: docData
+				});
+			} else {
+				next(error);
+			}
 		}
 	}
 };
 
 // Error handlers for personnel operations
 const handlePersonnelError = {
-	create: (err: Error, req: Request, res: Response, next: NextFunction) => {
+	create: (err: Error, req: Request, res: Response) => {
 		try {
-			const doc = res.locals.doc;
+			const doc = req.body['doc'];
 			PersonnelLogger.personnelCreateFailed(
 				req,
 				err.message,
@@ -142,37 +238,52 @@ const handlePersonnelError = {
 						}
 					: undefined
 			);
-			next(err);
-		} catch (error) {
-			next(error);
+		} catch (logError) {
+			console.error('Error logging personnel creation failure:', logError);
 		}
+
+		return ApiRes(res, {
+			status: HttpStatus.BAD_REQUEST,
+			msg: 'Personnel creation failed',
+			data: { error: err.message }
+		});
 	},
 
-	update: (err: Error, req: Request, res: Response, next: NextFunction) => {
+	update: (err: Error, req: Request, res: Response) => {
 		try {
 			const errorDetails = {
 				error: err.message,
 				targetId: req.params.id,
 				attemptedChanges: req.body
 			};
-			PersonnelLogger.personnelCreateFailed(req, 'Personnel update failed', errorDetails);
-			next(err);
-		} catch (error) {
-			next(error);
+			PersonnelLogger.personnelCreateFailed(req, `Personnel update failed: ${err.message}`, errorDetails);
+		} catch (logError) {
+			console.error('Error logging personnel update failure:', logError);
 		}
+
+		return ApiRes(res, {
+			status: HttpStatus.BAD_REQUEST,
+			msg: 'Personnel update failed',
+			data: { error: err.message }
+		});
 	},
 
-	delete: (err: Error, req: Request, res: Response, next: NextFunction) => {
+	delete: (err: Error, req: Request, res: Response) => {
 		try {
 			const errorDetails = {
 				error: err.message,
 				targetId: req.params.id
 			};
-			PersonnelLogger.personnelCreateFailed(req, 'Personnel deletion failed', errorDetails);
-			next(err);
-		} catch (error) {
-			next(error);
+			PersonnelLogger.personnelCreateFailed(req, `Personnel deletion failed: ${err.message}`, errorDetails);
+		} catch (logError) {
+			console.error('Error logging personnel deletion failure:', logError);
 		}
+
+		return ApiRes(res, {
+			status: HttpStatus.BAD_REQUEST,
+			msg: 'Personnel deletion failed',
+			data: { error: err.message }
+		});
 	}
 };
 
