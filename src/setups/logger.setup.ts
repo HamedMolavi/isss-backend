@@ -83,6 +83,9 @@ export async function setupLogger(options?: LoggerSetupOptions): Promise<Logger>
 	try {
 		SQLite.init(config.sqlitePath!);
 		SQLite.createTable('Hash');
+
+		// Create UserHash table for username integrity checking
+		SQLite.createUserHashTable();
 	} catch (error) {
 		console.error('Failed to initialize SQLite database:', error);
 		Logger.systemOperation('Failed to initialize SQLite database', {
