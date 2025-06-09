@@ -21,7 +21,8 @@ const AccessLevelSchema: Schema<IAccessLevel> = new Schema(
 		logs: { type: Number, default: 2, min: 0, max: 15 },
 		system: { type: Number, default: 0, min: 0, max: 15 },
 		report: { type: Number, default: 0, min: 0, max: 15 },
-		product: { type: Number, default: 0, min: 0, max: 15 }
+		product: { type: Number, default: 0, min: 0, max: 15 },
+		dataImportExport: { type: Number, default: 0, min: 0, max: 15 }
 	},
 	{
 		collection: 'AccessLevel'

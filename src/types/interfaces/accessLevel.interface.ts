@@ -16,7 +16,9 @@ export const accessList = [
 	'systemLog',
 	'logs',
 	'system',
-	'report'
+	'report',
+	'product',
+	'dataImportExport'
 ];
 export interface IAccessLevel extends Document {
 	_id: mongoose.Types.ObjectId;
@@ -37,4 +39,5 @@ export interface IAccessLevel extends Document {
 	system: number;
 	report: number;
 	product: number;
+	dataImportExport: number;
 }

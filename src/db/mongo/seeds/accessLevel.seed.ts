@@ -23,7 +23,8 @@ export async function makeSeedAccessLevel(): Promise<IAccessLevel> {
 			systemLog: 15,
 			logs: 2,
 			product: 15,
-			report: 15
+			report: 15,
+			dataImportExport: 15
 		});
 		console.log('\t++ Seed data access level: name=admin');
 	}
@@ -46,7 +47,8 @@ export async function makeSeedAccessLevel(): Promise<IAccessLevel> {
 			systemLog: 0,
 			logs: 0,
 			product: 0,
-			report: 0
+			report: 0,
+			dataImportExport: 0
 		});
 		console.log('\t++ Seed data access level: name=default');
 	}
