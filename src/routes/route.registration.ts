@@ -14,6 +14,7 @@ import TestEmailRouter from './config/testEmailSend.Routes';
 import TestSMSRouter from './config/testSMS.Routes';
 import UserRouter from './config/user.Routes';
 import UserAccessLevelRouter from './config/userAccessLevel.Routes';
+import UserIntegrityRouter from './config/userIntegrity.Routes';
 import CarColorRouter from './config/carColor.Routes';
 import DepartementRouter from './config/departement.Routes';
 import DepartmentFileRouter from './config/departmentFile.Routes';
@@ -84,6 +85,7 @@ export function RegisterRoutes(app: Application) {
 	app.use(`${routePrefix}/config/test-sms`, TestSMSRouter);
 	app.use(`${routePrefix}/config/users`, UserRouter);
 	app.use(`${routePrefix}/config/user-access-levels`, UserAccessLevelRouter);
+	app.use(`${routePrefix}/config/user-integrity`, UserIntegrityRouter);
 	app.use(`${routePrefix}/config/car-colors`, CarColorRouter);
 	app.use(`${routePrefix}/config/departements`, DepartementRouter);
 	app.use(`${routePrefix}/config/department-files`, DepartmentFileRouter);
