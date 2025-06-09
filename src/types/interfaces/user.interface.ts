@@ -28,6 +28,7 @@ export interface IUserModel extends Model<IUserDocument> {
 	checkPassword: (password: string) => Promise<boolean>;
 	generateAuthSession: (is_remember: boolean) => any;
 	toAuthJSON: (is_remember: boolean) => any;
+	verifyUsernameIntegrity: (userId: string) => Promise<boolean>;
 }
 
 // export interface PasswordRequirements extends Requirements{
