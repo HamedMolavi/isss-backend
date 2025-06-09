@@ -34,6 +34,24 @@ export class SQLite {
 		);
 	}
 
+	/**
+	 * Create UserHash table for username integrity checking
+	 */
+	static createUserHashTable() {
+		if (!SQLite.instance) console.warn('Not affected: database is not initialized yet!');
+		return SQLite.instance?.exec(
+			`CREATE TABLE IF NOT EXISTS UserHash (_id TEXT PRIMARY KEY NOT NULL, hash TEXT NOT NULL);`,
+			(err) => {
+				if (err) {
+					console.error('Failed to create UserHash table:', err);
+					process.exit(1);
+				} else {
+					console.log('UserHash table created successfully');
+				}
+			}
+		);
+	}
+
 	static insert(table: string, data: { [key: string]: string }) {
 		if (!SQLite.instance) console.warn('Not affected: database is not initialized yet!');
 		let query = '';
