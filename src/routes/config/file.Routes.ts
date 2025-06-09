@@ -34,6 +34,7 @@ import Car from '../../db/mongo/models/car';
 import { stringPersianToStringEnglish } from '../../tools/plate.tools';
 import { UploadedFile } from 'express-fileupload';
 import { DataImportExportLogger } from '../../logger/data-input-output.logger';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 const secret = process.env['SESSION_SECRET'];
 //create customized redis client
@@ -56,7 +57,7 @@ router.get('/download/:fileName', cfs.downloadAvatarMiddleware('fileName'));
 //create api for get list file upload
 router.get('/list', cfs.listMiddleware());
 
-router.post('/batch/plate', async (req, res) => {
+router.post('/batch/plate', accessCheck('dataImportExport'), async (req, res) => {
 	if (!req.files?.['file']) return res.status(400).json({ error: 'No file uploaded' });
 	try {
 		const result: any[] = [];
@@ -176,6 +177,7 @@ router.post('/batch/plate', async (req, res) => {
 
 router.post(
 	'/batch',
+	accessCheck('dataImportExport'),
 	dtoValidationMiddleware(AddBatchPersonnel, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,

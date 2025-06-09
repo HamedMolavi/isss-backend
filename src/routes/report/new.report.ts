@@ -29,6 +29,7 @@ import PersonImage from '../../db/mongo/models/personImage';
 import { plateToQueryJSON } from '../../tools/elastic.tools';
 import { QueryDslQueryContainer } from '@elastic/elasticsearch/lib/api/types';
 import { DataImportExportLogger } from '../../logger/data-input-output.logger';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to routes file
 const router: Router = Router();
@@ -115,6 +116,7 @@ router.get(
 );
 router.get(
 	'/:index(plate|search|face)/:type(excel)/?$',
+	accessCheck('dataImportExport'),
 	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' }),
 	async (req, res, next) => {
 		try {
@@ -142,6 +144,7 @@ router.get(
 );
 router.get(
 	'/:index(plate|search|face)/:id?/:type(excel)?',
+	accessCheck('dataImportExport'),
 	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' }),
 	async (req, res, next) => {
 		if (req.params.type === 'excel') {
@@ -173,6 +176,7 @@ router.post(
 );
 router.post(
 	'/:index(plate|search|face)/:type(excel)/?$',
+	accessCheck('dataImportExport'),
 	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' }),
 	async (req, res, next) => {
 		try {
@@ -193,6 +197,7 @@ router.post(
 
 router.post(
 	'/:index(plate|face)/backup', // backup & delete true
+	accessCheck('dataImportExport'),
 	deleteElasticMiddleware(indexFunc, {
 		sendDocsInsteadOfDeleteResult: true,
 		send: sendFunction,
