@@ -29,7 +29,17 @@ export function setUpPassport() {
 			//for authentication user with username and password
 			function auth(username: string, password: string, done: Function) {
 				User.findOne({ username: username }) // find user by username
-					.then(async (user) => (user ? ((await user.checkPassword(password)) ? user : null) : null)) // examine the password
+					.then(async (user) => {
+						// Check if user exists and password is correct
+						if (!user || !(await user.checkPassword(password))) {
+							return null;
+						}
+						// Check if user is active
+						if (!user.is_active) {
+							return null;
+						}
+						return user;
+					})
 					.then(async (user) => {
 						if (!!user)
 							await User.updateOne(

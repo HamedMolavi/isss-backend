@@ -14,6 +14,15 @@ export function passportGate(req: Request, res: Response, next: NextFunction) {
 		});
 	}
 
+	// Check if user is active
+	if (req.user.is_active === false) {
+		AuthLogger.unauthorizedAccess(req, 'User account is deactivated');
+		return ApiRes(res, {
+			status: HttpStatus.FORBIDDEN,
+			msg: 'Account deactivated'
+		});
+	}
+
 	// Update last activity time
 	if (req.session.lastActivity) {
 		req.session.lastActivity = new Date();
