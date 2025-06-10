@@ -32,4 +32,7 @@ SessionRouter.delete(
 // User access: Get current user's own sessions
 SessionRouter.get(`${route_prefix}/me`, SessionController.getCurrentUserSessions);
 
+// User access: Get current user's login attempts
+SessionRouter.get(`${route_prefix}/attempts`, SessionController.getCurrentUserLoginAttempts);
+
 export default SessionRouter;

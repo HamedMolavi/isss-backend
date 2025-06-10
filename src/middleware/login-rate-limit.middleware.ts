@@ -10,7 +10,9 @@ const CONFIG = {
 	MAX_ATTEMPTS: 5,
 	BLOCK_DURATION_MINUTES: 30,
 	WINDOW_MINUTES: 15,
-	REDIS_PREFIX: 'login_attempts:'
+	REDIS_PREFIX: 'login_attempts:',
+	ATTEMPTS_HISTORY_PREFIX: 'login_history:',
+	HISTORY_RETENTION_DAYS: 7
 };
 
 /**
@@ -74,19 +76,37 @@ export class LoginRateLimiter {
 
 			const { username, ip } = req.loginRateLimit;
 			const key = this.getKey(username);
+			const historyKey = `${CONFIG.ATTEMPTS_HISTORY_PREFIX}${username}`;
 			const isSuccess = !!req.user;
+			const now = Date.now();
 
 			try {
 				const client = await this.getRedisClient();
 
+				// Create attempt record
+				const attemptRecord = {
+					timestamp: now,
+					ip: ip,
+					success: isSuccess,
+					userAgent: req.get('User-Agent') || 'unknown'
+				};
+
+				// Store individual attempt in history list
+				await client.lPush(historyKey, JSON.stringify(attemptRecord));
+
+				// Set expiration for history (7 days)
+				await client.expire(historyKey, CONFIG.HISTORY_RETENTION_DAYS * 24 * 60 * 60);
+
+				// Trim history to keep only last 1000 attempts (prevent unlimited growth)
+				await client.lTrim(historyKey, 0, 999);
+
 				if (isSuccess) {
-					// Clear attempts on successful login
+					// Clear rate limit attempts on successful login but keep history
 					await client.del(key);
 					AuthLogger.loginSuccess(req);
 				} else {
 					// Increment failed attempts
 					const attempts = await client.hIncrBy(key, 'attempts', 1);
-					const now = Date.now();
 
 					// Set first attempt time if not exists
 					const firstAttempt = await client.hGet(key, 'firstAttempt');
@@ -148,11 +168,34 @@ export class LoginRateLimiter {
 		blockedUntil?: Date;
 		firstAttempt?: Date;
 		lastAttempt?: Date;
+		allAttempts: Array<{
+			timestamp: Date;
+			ip: string;
+			success: boolean;
+			userAgent: string;
+		}>;
 	}> {
 		try {
 			const client = await this.getRedisClient();
 			const key = this.getKey(username);
+			const historyKey = `${CONFIG.ATTEMPTS_HISTORY_PREFIX}${username}`;
+
+			// Get current rate limit data
 			const data = await client.hGetAll(key);
+
+			// Get all attempt history
+			const historyData = await client.lRange(historyKey, 0, -1);
+			const allAttempts = historyData
+				.map((item) => {
+					const attempt = JSON.parse(item);
+					return {
+						timestamp: new Date(attempt.timestamp),
+						ip: attempt.ip,
+						success: attempt.success,
+						userAgent: attempt.userAgent
+					};
+				})
+				.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Sort by newest first
 
 			const isBlocked = data.blockedUntil && Date.now() < parseInt(data.blockedUntil);
 
@@ -162,11 +205,12 @@ export class LoginRateLimiter {
 				latestIP: data.latestIP,
 				blockedUntil: data.blockedUntil ? new Date(parseInt(data.blockedUntil)) : undefined,
 				firstAttempt: data.firstAttempt ? new Date(parseInt(data.firstAttempt)) : undefined,
-				lastAttempt: data.lastAttempt ? new Date(parseInt(data.lastAttempt)) : undefined
+				lastAttempt: data.lastAttempt ? new Date(parseInt(data.lastAttempt)) : undefined,
+				allAttempts: allAttempts
 			};
 		} catch (error) {
 			console.error('Get user info error:', error);
-			return { attempts: 0, isBlocked: false };
+			return { attempts: 0, isBlocked: false, allAttempts: [] };
 		}
 	}
 }

@@ -4,6 +4,7 @@ import { AuthLogger } from '../logger/auth.logger';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
 import { getSessionManager } from '../services/session.service';
+import { LoginRateLimiter } from '../middleware/login-rate-limit.middleware';
 
 /**
  * Get all active sessions
@@ -162,4 +163,45 @@ export const terminateUserSessions = async (req: Request, res: Response) => {
 		msg: `Terminated ${userSessions.length} session(s) for user`,
 		data: { terminatedSessions: userSessions.length }
 	});
+};
+
+/**
+ * Get login attempts for the current user
+ */
+export const getCurrentUserLoginAttempts = async (req: Request, res: Response) => {
+	const username = req.user.username;
+
+	if (!username) {
+		return ApiRes(res, {
+			status: HttpStatus.BAD_REQUEST,
+			msg: 'Username not found in session'
+		});
+	}
+
+	try {
+		const loginInfo = await LoginRateLimiter.getUserInfo(username.toLowerCase().trim());
+
+		return ApiRes(res, {
+			status: HttpStatus.OK,
+			data: {
+				username: username,
+				summary: {
+					attempts: loginInfo.attempts,
+					isBlocked: loginInfo.isBlocked,
+					latestIP: loginInfo.latestIP,
+					blockedUntil: loginInfo.blockedUntil,
+					firstAttempt: loginInfo.firstAttempt,
+					lastAttempt: loginInfo.lastAttempt
+				},
+				allAttempts: loginInfo.allAttempts,
+				totalRecords: loginInfo.allAttempts.length
+			}
+		});
+	} catch (error) {
+		console.error('Error retrieving current user login attempts:', error);
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to retrieve login attempts information'
+		});
+	}
 };
