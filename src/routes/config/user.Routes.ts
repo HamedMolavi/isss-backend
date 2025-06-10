@@ -6,14 +6,17 @@ import { CreateUserBody, UpdateUserBody, UpdatePasswordBody } from '../../valida
 import { existCheck } from '../../validation/db';
 import { passwordValidator } from '../../validation/password';
 import { passportGate } from '../../authentication/authorize.auth';
+import { accessCheck, userCanGetHisInfo } from '../../authentication/accessCheck.auth';
 import * as UserController from '../../controllers/user.controller';
 
 const UserRouter: Router = Router();
 
 const route_prefix = '';
 
+// Create user - requires user access level
 UserRouter.post(
 	`${route_prefix}`,
+	accessCheck('user'),
 	dtoValidationMiddleware(CreateUserBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
@@ -28,9 +31,15 @@ UserRouter.post(
 	UserController.create
 );
 
-UserRouter.get(`${route_prefix}`, UserController.getAll);
+// Get all users - requires user access level
+UserRouter.get(`${route_prefix}`, accessCheck('user'), UserController.getAll);
 
-UserRouter.get(`${route_prefix}/:id`, UserController.getById);
+// Get user by ID - requires user access level with extra function for self-access
+UserRouter.get(
+	`${route_prefix}/:id`,
+	accessCheck('user', { extraFunction: userCanGetHisInfo }),
+	UserController.getById
+);
 
 UserRouter.patch(
 	`${route_prefix}/password`,
@@ -44,8 +53,10 @@ UserRouter.patch(
 	UserController.updatePassword
 );
 
+// Update user - requires user access level with extra function for self-update
 UserRouter.patch(
 	`${route_prefix}/:id`,
+	accessCheck('user', { extraFunction: userCanGetHisInfo }),
 	dtoValidationMiddleware(UpdateUserBody, {
 		skipMissingProperties: true,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
@@ -59,6 +70,11 @@ UserRouter.patch(
 	UserController.updateById
 );
 
-UserRouter.delete(`${route_prefix}/:id`, UserController.deleteById);
+// Delete user - requires user access level
+UserRouter.delete(`${route_prefix}/:id`, accessCheck('user'), UserController.deleteById);
+
+// User activation/deactivation routes - requires user access level
+UserRouter.patch(`${route_prefix}/:id/activate`, accessCheck('user'), UserController.activateUser);
+UserRouter.patch(`${route_prefix}/:id/deactivate`, accessCheck('user'), UserController.deactivateUser);
 
 export default UserRouter;
