@@ -17,7 +17,8 @@ const UserSchema: Schema<IUserDocument> = new Schema(
 		access_level: { type: mongoose.Schema.Types.ObjectId, ref: 'AccessLevel', required: true },
 		role: { type: String, default: 'user' },
 		created_date: { type: Date, default: Date.now },
-		camera_access: { type: Array<mongoose.Types.ObjectId>, ref: 'Camera', default: [] }
+		camera_access: { type: Array<mongoose.Types.ObjectId>, ref: 'Camera', default: [] },
+		is_active: { type: Boolean, default: true }
 	},
 	{
 		collection: 'User',

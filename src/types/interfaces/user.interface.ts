@@ -13,6 +13,7 @@ export interface IUser {
 	camera_access?: Array<mongoose.Types.ObjectId>;
 	last_login: Date;
 	last_operation: object;
+	is_active: boolean;
 }
 
 export interface IUserDocument extends IUser, Document {
