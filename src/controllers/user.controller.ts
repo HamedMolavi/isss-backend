@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import User from '../db/mongo/models/user';
-import { Types } from 'mongoose';
+import { Types, FilterQuery } from 'mongoose';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
 import { UserLogger } from '../logger/user.logger';
 import { getSessionManager } from '../services/session.service';
+import { IUserDocument } from '../types/interfaces/user.interface';
 
 /**
  * Create a new user
@@ -52,7 +53,20 @@ export const create = async (req: Request, res: Response) => {
  */
 export const getAll = async (req: Request, res: Response) => {
 	const search = (req.query.search as string) || '';
-	const query = search ? { username: { $regex: search, $options: 'i' } } : {};
+	const includeInactive = req.query.includeInactive === 'true';
+
+	// Build base query
+	const query: FilterQuery<IUserDocument> = {};
+
+	// Add search filter if provided
+	if (search) {
+		query.username = { $regex: search, $options: 'i' };
+	}
+
+	// Show active users by default, include inactive if requested
+	if (!includeInactive) {
+		query.is_active = true;
+	}
 
 	const users = await User.find(query)
 		.populate('access_level')
@@ -339,5 +353,147 @@ export const updatePassword = async (req: Request, res: Response) => {
 	return ApiRes(res, {
 		status: HttpStatus.OK,
 		msg: 'Password updated successfully. All other sessions have been terminated.'
+	});
+};
+
+/**
+ * Activate user by ID
+ */
+export const activateUser = async (req: Request, res: Response) => {
+	const id = req.params.id;
+
+	// Check if user exists
+	const existingUser = await User.findById(id)
+		.exec()
+		.catch(() => null);
+	if (!existingUser) {
+		req.flash('error', 'User not found');
+		return ApiRes(res, {
+			status: HttpStatus.NOT_FOUND,
+			msg: 'User not found'
+		});
+	}
+
+	// Check if user is already active
+	if (existingUser.is_active) {
+		return ApiRes(res, {
+			status: HttpStatus.BAD_REQUEST,
+			msg: 'User is already active'
+		});
+	}
+
+	// Activate user
+	const user = await User.findByIdAndUpdate(id, { is_active: true }, { new: true })
+		.exec()
+		.catch((err) => {
+			console.error('Failed to activate user:', err.message);
+			return null;
+		});
+
+	if (!user) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to activate user'
+		});
+	}
+
+	// Log user activation
+	UserLogger.userUpdated(
+		req,
+		{
+			_id: user._id.toString(),
+			username: user.username
+		},
+		['is_active'],
+		{
+			is_active: { old: false, new: true }
+		}
+	);
+
+	req.flash('info', 'User activated successfully.');
+	return ApiRes(res, {
+		status: HttpStatus.OK,
+		data: user.toJSON(),
+		msg: 'User activated successfully'
+	});
+};
+
+/**
+ * Deactivate user by ID
+ */
+export const deactivateUser = async (req: Request, res: Response) => {
+	const id = req.params.id;
+
+	// Prevent self-deactivation
+	if (req.user?._id.toString() === id) {
+		return ApiRes(res, {
+			status: HttpStatus.BAD_REQUEST,
+			msg: 'You cannot deactivate your own account'
+		});
+	}
+
+	// Check if user exists
+	const existingUser = await User.findById(id)
+		.exec()
+		.catch(() => null);
+	if (!existingUser) {
+		req.flash('error', 'User not found');
+		return ApiRes(res, {
+			status: HttpStatus.NOT_FOUND,
+			msg: 'User not found'
+		});
+	}
+
+	// Check if user is already inactive
+	if (!existingUser.is_active) {
+		return ApiRes(res, {
+			status: HttpStatus.BAD_REQUEST,
+			msg: 'User is already inactive'
+		});
+	}
+
+	// Deactivate user
+	const user = await User.findByIdAndUpdate(id, { is_active: false }, { new: true })
+		.exec()
+		.catch((err) => {
+			console.error('Failed to deactivate user:', err.message);
+			return null;
+		});
+
+	if (!user) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to deactivate user'
+		});
+	}
+
+	// Log user deactivation
+	UserLogger.userUpdated(
+		req,
+		{
+			_id: user._id.toString(),
+			username: user.username
+		},
+		['is_active'],
+		{
+			is_active: { old: true, new: false }
+		}
+	);
+
+	// Terminate all user sessions since user is being deactivated
+	try {
+		const sessionManager = await getSessionManager();
+		await sessionManager.terminateUserSessions(user._id.toString());
+	} catch (error) {
+		// Log error but don't fail the deactivation
+		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		console.error(`Failed to terminate sessions for deactivated user ${user._id}: ${errorMessage}`);
+	}
+
+	req.flash('info', 'User deactivated successfully.');
+	return ApiRes(res, {
+		status: HttpStatus.OK,
+		data: user.toJSON(),
+		msg: 'User deactivated successfully'
 	});
 };
