@@ -52,7 +52,7 @@ CameraSchema.post(
 	async (doc) => {
 		const model_cameras = await ModelToCamera.find({ camera_id: doc._id }).exec();
 		let models = await Model.find({}).exec();
-		let users = await User.find({}).exec();
+		let users = await User.find({ is_active: true }).exec();
 		let personnel = await Personnel.find({}).exec();
 		users = users.filter((user) =>
 			user.camera_access?.map((camera_id) => camera_id.toString()).includes(doc._id.toString())

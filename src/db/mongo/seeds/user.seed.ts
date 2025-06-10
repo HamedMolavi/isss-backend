@@ -16,7 +16,8 @@ export async function makeSeedUser(accessLevel: IAccessLevel): Promise<IUser | u
 			access_level: accessLevel._id,
 			phone_number: '09330379999',
 			role: 'admin',
-			camera_access: []
+			camera_access: [],
+			is_active: true
 		});
 		console.log('\t++ Seed data user: username=test, password=123');
 		return users[0];
