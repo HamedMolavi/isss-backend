@@ -1,4 +1,4 @@
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsOptional, IsString, IsBoolean } from 'class-validator';
 import { Schema } from 'mongoose';
 
 export class CreateUserBody {
@@ -16,6 +16,9 @@ export class CreateUserBody {
 	@IsArray()
 	@IsOptional()
 	public camera_access?: Schema.Types.ObjectId[];
+	@IsBoolean()
+	@IsOptional()
+	public is_active?: boolean;
 }
 
 export class UpdateUserBody {
@@ -37,6 +40,9 @@ export class UpdateUserBody {
 	@IsArray()
 	@IsOptional()
 	public camera_access?: Schema.Types.ObjectId[];
+	@IsBoolean()
+	@IsOptional()
+	public is_active?: boolean;
 }
 
 export class UpdatePasswordBody {
