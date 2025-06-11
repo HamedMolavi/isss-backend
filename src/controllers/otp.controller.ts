@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import OTPService from '../authentication/otp';
+import OTPService from '../services/otp.service';
 import User from '../db/mongo/models/user';
 import { IUserDocument } from '../types/interfaces/user.interface';
 import { AuthLogger, AuthEventType } from '../logger/auth.logger';

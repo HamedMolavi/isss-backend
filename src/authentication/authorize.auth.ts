@@ -4,7 +4,7 @@ import { HttpStatus } from '../types/http_status';
 import passport from 'passport';
 import cookie from 'cookie-signature';
 import { AuthLogger } from '../logger/auth.logger';
-import OTPService from './otp';
+import OTPService from '../services/otp.service';
 import User from '../db/mongo/models/user';
 
 export function passportGate(req: Request, res: Response, next: NextFunction) {
