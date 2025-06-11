@@ -18,13 +18,18 @@ const UserSchema: Schema<IUserDocument> = new Schema(
 		role: { type: String, default: 'user' },
 		created_date: { type: Date, default: Date.now },
 		camera_access: { type: Array<mongoose.Types.ObjectId>, ref: 'Camera', default: [] },
-		is_active: { type: Boolean, default: true }
+		is_active: { type: Boolean, default: true },
+		otp_secret: { type: String, select: false },
+		otp_auth_url: { type: String, select: false },
+		otp_enabled: { type: Boolean, default: false }
 	},
 	{
 		collection: 'User',
 		toJSON: {
 			transform(_doc, ret) {
 				delete ret['password'];
+				delete ret['otp_secret'];
+				delete ret['otp_auth_url'];
 				return ret;
 			}
 		}
