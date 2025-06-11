@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { getSessionManager } from '../services/session.service';
 import { AuthLogger } from '../logger/auth.logger';
-import { ApiError } from '../types/classes/error.class';
+import { ApiRes } from '../utils/api.response';
+import { HttpStatus } from '../types/http_status';
 
 /**
  * Middleware to limit concurrent sessions per user
@@ -27,12 +28,10 @@ export function preventConcurrentSessions(maxSessions: number = 5) {
 					username: req.body.username
 				});
 
-				return next(
-					new ApiError(
-						409,
-						`Maximum ${maxSessions} sessions allowed. Please logout from another device first.`
-					)
-				);
+				return ApiRes(res, {
+					status: HttpStatus.FORBIDDEN,
+					msg: `Maximum ${maxSessions} sessions allowed. Please logout from another device first.`
+				});
 			}
 
 			// User has less than max sessions, continue with login

@@ -1,5 +1,6 @@
 import { Request } from 'express';
 import { Logger } from '.';
+import { get_user_agent } from '../tools/user_agent.utility';
 
 /**
  * Authentication event types
@@ -19,14 +20,15 @@ export enum AuthEventType {
  */
 export class AuthLogger {
 	private static createBaseLogData(req: Request, action: string, success: boolean) {
+		const user_agent = get_user_agent(req);
 		return {
 			type: 'auth',
 			action,
 			success,
 			userid: req.user?._id?.toString(),
 			username: req.user?.username,
-			ip: req.ip ?? req.socket.remoteAddress ?? 'unknown',
-			userAgent: req.get('User-Agent') ?? 'unknown',
+			ip: user_agent.ip,
+			userAgent: user_agent.user_agent,
 			method: req.method,
 			url: req.originalUrl || req.url,
 			timestamp: new Date()
