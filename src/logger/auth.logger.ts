@@ -15,7 +15,12 @@ export enum AuthEventType {
 	UNAUTHORIZED_ACCESS = 'unauthorized_access',
 	OTP_GENERATED = 'otp_generated',
 	OTP_ENABLED = 'otp_enabled',
-	OTP_DISABLED = 'otp_disabled'
+	OTP_DISABLED = 'otp_disabled',
+	IP_RESTRICTION_ENABLED = 'ip_restriction_enabled',
+	IP_RESTRICTION_DISABLED = 'ip_restriction_disabled',
+	IP_ADDED = 'ip_added',
+	IP_REMOVED = 'ip_removed',
+	IP_ACCESS_DENIED = 'ip_access_denied'
 }
 
 /**
@@ -171,6 +176,69 @@ export class AuthLogger {
 		logMethod(message, {
 			...this.createBaseLogData(req, eventType, success),
 			details: additionalContext
+		});
+	}
+
+	/**
+	 * Log IP restriction enabled
+	 */
+	static ipRestrictionEnabled(req: Request): void {
+		Logger.info('IP restriction enabled', {
+			...this.createBaseLogData(req, AuthEventType.IP_RESTRICTION_ENABLED, true),
+			details: {
+				ip: get_user_agent(req).ip
+			}
+		});
+	}
+
+	/**
+	 * Log IP restriction disabled
+	 */
+	static ipRestrictionDisabled(req: Request): void {
+		Logger.info('IP restriction disabled', {
+			...this.createBaseLogData(req, AuthEventType.IP_RESTRICTION_DISABLED, true),
+			details: {
+				ip: get_user_agent(req).ip
+			}
+		});
+	}
+
+	/**
+	 * Log IP added to allowed list
+	 */
+	static ipAdded(req: Request, addedIP: string): void {
+		Logger.info('IP added to allowed list', {
+			...this.createBaseLogData(req, AuthEventType.IP_ADDED, true),
+			details: {
+				addedIP,
+				currentIP: get_user_agent(req).ip
+			}
+		});
+	}
+
+	/**
+	 * Log IP removed from allowed list
+	 */
+	static ipRemoved(req: Request, removedIP: string): void {
+		Logger.info('IP removed from allowed list', {
+			...this.createBaseLogData(req, AuthEventType.IP_REMOVED, true),
+			details: {
+				removedIP,
+				currentIP: get_user_agent(req).ip
+			}
+		});
+	}
+
+	/**
+	 * Log IP access denied
+	 */
+	static ipAccessDenied(req: Request, attemptedIP: string): void {
+		Logger.warn('IP access denied', {
+			...this.createBaseLogData(req, AuthEventType.IP_ACCESS_DENIED, false),
+			details: {
+				attemptedIP,
+				allowedIPs: req.user?.allowed_ips || []
+			}
 		});
 	}
 }
