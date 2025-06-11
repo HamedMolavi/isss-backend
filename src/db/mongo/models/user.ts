@@ -21,7 +21,9 @@ const UserSchema: Schema<IUserDocument> = new Schema(
 		is_active: { type: Boolean, default: true },
 		otp_secret: { type: String, select: false },
 		otp_auth_url: { type: String, select: false },
-		otp_enabled: { type: Boolean, default: false }
+		otp_enabled: { type: Boolean, default: false },
+		ip_restricted: { type: Boolean, default: false },
+		allowed_ips: { type: [String], default: [] }
 	},
 	{
 		collection: 'User',
