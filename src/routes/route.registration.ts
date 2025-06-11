@@ -4,6 +4,7 @@ import { BaseConfig } from '../config/base.config';
 // Auth routes
 import LoginRouter from './auth/login.Routes';
 import LogoutRouter from './auth/logout.routes';
+import OtpRouter from './auth/otp.routes';
 
 // Config routes
 import UserConfigRouter from './config/userConfig.Routes';
@@ -73,6 +74,7 @@ export function RegisterRoutes(app: Application) {
 
 	// Auth routes
 	app.use(`${routePrefix}/auth/logout`, LogoutRouter);
+	app.use(`${routePrefix}/auth/otp`, OtpRouter);
 
 	// Config routes - User
 	app.use(`${routePrefix}/config/user`, UserConfigRouter);
