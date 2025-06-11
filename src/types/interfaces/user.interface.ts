@@ -14,21 +14,35 @@ export interface IUser {
 	last_login: Date;
 	last_operation: object;
 	is_active: boolean;
+	otp_secret?: string;
+	otp_auth_url?: string;
+	otp_enabled?: boolean;
+}
+
+export interface IAuthUserJSON {
+	_id: mongoose.Types.ObjectId;
+	username: string;
+	role: string;
+}
+
+export interface IAuthSession {
+	user: IAuthUserJSON;
+	token: string;
 }
 
 export interface IUserDocument extends IUser, Document {
 	_id: mongoose.Types.ObjectId;
 	setPassword: (password: string, username: string) => string;
 	checkPassword: (password: string) => Promise<boolean>;
-	generateAuthSession: (is_remember: boolean) => any;
-	toAuthJSON: (is_remember: boolean) => any;
+	generateAuthSession: (is_remember: boolean) => IAuthSession;
+	toAuthJSON: (is_remember: boolean) => IAuthUserJSON;
 }
 
 export interface IUserModel extends Model<IUserDocument> {
 	setPassword: (password: string, username: string) => string;
 	checkPassword: (password: string) => Promise<boolean>;
-	generateAuthSession: (is_remember: boolean) => any;
-	toAuthJSON: (is_remember: boolean) => any;
+	generateAuthSession: (is_remember: boolean) => IAuthSession;
+	toAuthJSON: (is_remember: boolean) => IAuthUserJSON;
 	verifyUsernameIntegrity: (userId: string) => Promise<boolean>;
 }
 
