@@ -12,7 +12,10 @@ export enum AuthEventType {
 	LOGIN_ERROR = 'login_error',
 	LOGOUT = 'logout',
 	SESSION_EXPIRED = 'session_expired',
-	UNAUTHORIZED_ACCESS = 'unauthorized_access'
+	UNAUTHORIZED_ACCESS = 'unauthorized_access',
+	OTP_GENERATED = 'otp_generated',
+	OTP_ENABLED = 'otp_enabled',
+	OTP_DISABLED = 'otp_disabled'
 }
 
 /**
