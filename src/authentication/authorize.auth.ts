@@ -4,6 +4,8 @@ import { HttpStatus } from '../types/http_status';
 import passport from 'passport';
 import cookie from 'cookie-signature';
 import { AuthLogger } from '../logger/auth.logger';
+import OTPService from './otp';
+import User from '../db/mongo/models/user';
 
 export function passportGate(req: Request, res: Response, next: NextFunction) {
 	if (!req.user) {
@@ -43,7 +45,7 @@ export function passportGate(req: Request, res: Response, next: NextFunction) {
 }
 
 export function assignPassport(req: Request, res: Response, next: NextFunction) {
-	passport.authenticate('login', (err, user, info) => {
+	passport.authenticate('login', async (err, user, info) => {
 		if (err || !user) {
 			AuthLogger.loginFailed(req, err?.message || info?.message, {
 				username: req.body.username,
@@ -53,6 +55,39 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 				status: HttpStatus.UNAUTHORIZED,
 				msg: 'Invalid credentials'
 			});
+		}
+
+		// --- OTP Verification Step ---
+		if (user.otp_enabled) {
+			const { otp_token } = req.body;
+
+			if (!otp_token) {
+				// OTP is required but not provided. Signal to the frontend.
+				return ApiRes(res, {
+					status: HttpStatus.OK,
+					data: { otp_required: true }
+				});
+			}
+
+			const userWithSecret = await User.findById(user._id).select('+otp_secret');
+
+			if (!userWithSecret || !userWithSecret.otp_secret) {
+				AuthLogger.loginError(req, 'OTP is enabled but secret is missing.', user._id?.toString());
+				return ApiRes(res, {
+					status: HttpStatus.UNAUTHORIZED,
+					msg: 'Invalid credentials'
+				});
+			}
+
+			const isValid = OTPService.verifyToken(userWithSecret.otp_secret, otp_token);
+
+			if (!isValid) {
+				AuthLogger.loginFailed(req, 'Invalid OTP token', { username: req.body.username });
+				return ApiRes(res, {
+					status: HttpStatus.UNAUTHORIZED,
+					msg: 'Invalid credentials'
+				});
+			}
 		}
 
 		req.logIn(user, (err) => {
