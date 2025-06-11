@@ -5,6 +5,7 @@ import { BaseConfig } from '../config/base.config';
 import LoginRouter from './auth/login.Routes';
 import LogoutRouter from './auth/logout.routes';
 import OtpRouter from './auth/otp.routes';
+import IPRestrictionRouter from './auth/ipRestriction.Routes';
 
 // Config routes
 import UserConfigRouter from './config/userConfig.Routes';
@@ -75,6 +76,7 @@ export function RegisterRoutes(app: Application) {
 	// Auth routes
 	app.use(`${routePrefix}/auth/logout`, LogoutRouter);
 	app.use(`${routePrefix}/auth/otp`, OtpRouter);
+	app.use(`${routePrefix}/auth/ip-restriction`, IPRestrictionRouter);
 
 	// Config routes - User
 	app.use(`${routePrefix}/config/user`, UserConfigRouter);
