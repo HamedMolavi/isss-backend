@@ -17,6 +17,8 @@ export interface IUser {
 	otp_secret?: string;
 	otp_auth_url?: string;
 	otp_enabled?: boolean;
+	ip_restricted?: boolean;
+	allowed_ips?: string[];
 }
 
 export interface IAuthUserJSON {
