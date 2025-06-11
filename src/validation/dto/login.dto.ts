@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsDefined, MinLength, IsBoolean } from 'class-validator';
+import { IsString, IsDefined, IsBoolean, IsOptional } from 'class-validator';
 
 export class LoginBodyDto {
 	@IsString()
@@ -9,6 +9,11 @@ export class LoginBodyDto {
 	@IsDefined({ message: 'password is needed' })
 	public password?: string;
 
-	//@IsString()
-	public is_remember?: string | boolean;
+	@IsOptional()
+	@IsBoolean()
+	is_remember?: boolean;
+
+	@IsOptional()
+	@IsString()
+	otp_token?: string;
 }
