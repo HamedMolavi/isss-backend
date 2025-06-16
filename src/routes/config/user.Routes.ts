@@ -6,7 +6,7 @@ import { CreateUserBody, UpdateUserBody, UpdatePasswordBody } from '../../valida
 import { existCheck } from '../../validation/db';
 import { passwordValidator } from '../../validation/password';
 import { passportGate } from '../../authentication/authorize.auth';
-import { accessCheck, userCanGetHisInfo } from '../../authentication/accessCheck.auth';
+import { accessCheck, userCanGetHisInfo, roleCheck } from '../../authentication/accessCheck.auth';
 import * as UserController from '../../controllers/user.controller';
 
 const UserRouter: Router = Router();
@@ -76,5 +76,18 @@ UserRouter.delete(`${route_prefix}/:id`, accessCheck('user'), UserController.del
 // User activation/deactivation routes - requires user access level
 UserRouter.patch(`${route_prefix}/:id/activate`, accessCheck('user'), UserController.activateUser);
 UserRouter.patch(`${route_prefix}/:id/deactivate`, accessCheck('user'), UserController.deactivateUser);
+
+// Reset user password - requires admin role
+UserRouter.patch(
+	`${route_prefix}/:id/reset-password`,
+	roleCheck('admin'),
+	dtoValidationMiddleware(UpdatePasswordBody, {
+		skipMissingProperties: false,
+		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
+		info: 'Please provide new password'
+	}),
+	passwordValidator(UserPasswordRequirements, 'new_password'),
+	UserController.resetUserPassword
+);
 
 export default UserRouter;

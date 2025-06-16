@@ -497,3 +497,63 @@ export const deactivateUser = async (req: Request, res: Response) => {
 		msg: 'User deactivated successfully'
 	});
 };
+
+/**
+ * Reset user password by admin
+ */
+export const resetUserPassword = async (req: Request, res: Response) => {
+	const userId = req.params.id;
+	const newPassword = req.body.new_password;
+
+	// Get user before password reset for logging
+	const userToReset = await User.findById(userId)
+		.exec()
+		.catch(() => null);
+	if (!userToReset) {
+		req.flash('error', 'User not found');
+		return ApiRes(res, {
+			status: HttpStatus.NOT_FOUND,
+			msg: 'User not found'
+		});
+	}
+
+	// Update password
+	const updateResult = await User.updateOne(
+		{ _id: userId },
+		{ $set: { password: newPassword } },
+		{ new: true }
+	)
+		.exec()
+		.catch((err) => {
+			UserLogger.userPasswordUpdateFailed(req, userId, err.message);
+			return null;
+		});
+
+	if (!updateResult || updateResult.modifiedCount === 0) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to reset password'
+		});
+	}
+
+	// Log successful password reset
+	UserLogger.userPasswordUpdated(req, {
+		_id: userId,
+		username: userToReset.username
+	});
+
+	// Terminate all user sessions since password was reset
+	try {
+		const sessionManager = await getSessionManager();
+		await sessionManager.terminateUserSessions(userId);
+	} catch (error) {
+		// Log error but don't fail the password reset
+		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		UserLogger.userPasswordUpdateFailed(req, userId, `Failed to terminate sessions: ${errorMessage}`);
+	}
+
+	return ApiRes(res, {
+		status: HttpStatus.OK,
+		msg: 'Password reset successfully. All user sessions have been terminated.'
+	});
+};
