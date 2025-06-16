@@ -26,15 +26,29 @@ export function preventConcurrentSessions() {
 			const allSessions = await sessionManager.getAllSessions();
 			const userSessions = allSessions.filter((session) => session.user?.username === req.body.username);
 
-			if (userSessions.length >= maxSessions) {
-				// User has reached maximum session limit - reject new login
-				AuthLogger.loginFailed(req, `User has reached maximum session limit (${maxSessions})`, {
-					username: req.body.username
-				});
+			if (userSessions && userSessions.length >= maxSessions) {
+				// User has reached maximum session limit - terminate all existing sessions
+				try {
+					const userId = userSessions[0]?.user?._id;
+					if (!userId) {
+						return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR });
+					}
+
+					await sessionManager.terminateUserSessions(userId);
+
+					AuthLogger.loginFailed(req, `Terminated existing sessions due to maximum limit (${maxSessions})`, {
+						username: req.body.username
+					});
+				} catch (error) {
+					const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+					AuthLogger.loginFailed(req, `Failed to terminate sessions: ${errorMessage}`, {
+						username: req.body.username
+					});
+				}
 
 				return ApiRes(res, {
 					status: HttpStatus.FORBIDDEN,
-					msg: `Maximum ${maxSessions} sessions allowed. Please logout from another device first.`
+					msg: `Maximum ${maxSessions} sessions allowed. Please Try Again.`
 				});
 			}
 
