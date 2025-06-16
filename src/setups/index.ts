@@ -7,6 +7,7 @@ import { SignalConsumer } from '../tools/systemSignal.tools';
 import { setupLogger } from './logger.setup';
 import { BackupSchedulerService } from '../services/backupScheduler.service';
 import { LogIntegrityService } from '../services/logIntegrity.service';
+import { initializeSecurityConfig } from '../config/security.config';
 
 export default async function setup() {
 	await setupInteractive();
@@ -17,6 +18,10 @@ export default async function setup() {
 		sqlite: process.env['SQLITE_PATH']
 	});
 	process.esclient = dbResults['elastic'];
+
+	// Initialize security configuration after database connection
+	await initializeSecurityConfig();
+
 	await seedSetup();
 	setUpPassport();
 	await initBalancer();

@@ -58,6 +58,7 @@ import SystemRouter from './system/index.Routes';
 // Middleware imports
 import { passportGate } from '../authentication/authorize.auth';
 import { accessCheck, hasAccess } from '../authentication/accessCheck.auth';
+import SecurityConfigRouter from './config/securityConfig.Routes';
 
 export function RegisterRoutes(app: Application) {
 	const routePrefix = BaseConfig.API_PREFIX;
@@ -81,6 +82,7 @@ export function RegisterRoutes(app: Application) {
 	// Config routes - User
 	app.use(`${routePrefix}/config/user`, UserConfigRouter);
 	app.use(`${routePrefix}/config/admin`, AdminConfigRouter);
+	app.use(`${routePrefix}/config/security`, SecurityConfigRouter);
 
 	// Config routes - General
 	app.use(`${routePrefix}/config/files`, FileRouter);

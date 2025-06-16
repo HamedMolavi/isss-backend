@@ -10,6 +10,7 @@ import archiver from 'archiver';
 import { Client as FtpClient } from 'basic-ftp';
 import { SQLite } from '../db/sqlite';
 import AdmZip from 'adm-zip';
+import { SecurityConfigDefault } from '../config/security.config';
 
 const pipelineAsync = promisify(pipeline);
 
@@ -636,7 +637,7 @@ export class LogBackupService {
 			}
 
 			// Default TTL is 60 days, can be configured
-			const ttlDays = process.env.LOG_TTL_DAYS ? parseInt(process.env.LOG_TTL_DAYS) : 60;
+			const ttlDays = SecurityConfigDefault.LOG_BACKUP.TTL_DAYS;
 
 			const config: BackupConfig = {
 				ttlDays,

@@ -1,6 +1,7 @@
 import { LogBackupService } from './logBackup.service';
 import { Logger } from '../logger';
 import { BackupSchedulerLogger } from '../logger/backupScheduler.logger';
+import { SecurityConfigDefault } from '../config/security.config';
 
 export class BackupSchedulerService {
 	private static instance: BackupSchedulerService;
@@ -37,10 +38,7 @@ export class BackupSchedulerService {
 			}
 
 			// Check daily instead of hourly (configurable via environment)
-			const checkIntervalHours = process.env.BACKUP_CHECK_INTERVAL_HOURS
-				? parseInt(process.env.BACKUP_CHECK_INTERVAL_HOURS)
-				: 24;
-			const checkInterval = checkIntervalHours * 60 * 60 * 1000; // Convert to milliseconds
+			const checkInterval = SecurityConfigDefault.LOG_BACKUP.CHECK_INTERVAL_MS;
 
 			this.intervalId = setInterval(async () => {
 				try {
@@ -56,7 +54,7 @@ export class BackupSchedulerService {
 			this.isRunning = true;
 
 			// Use BackupSchedulerLogger for successful start
-			await BackupSchedulerLogger.schedulerStarted(checkIntervalHours, config.isAutoBackup);
+			await BackupSchedulerLogger.schedulerStarted(checkInterval / 1000, config.isAutoBackup);
 
 			// Perform initial check
 			await this.performScheduledCheck();
