@@ -30,7 +30,8 @@ const CUSTOM_LOGGED_ROUTES = [
 	'/api/v1/config/file/upload', // File uploads
 	'/api/v1/report/videoDownload', // Video downloads
 	'/api/v1/report', // Excel exports and backup routes
-	'/api/v1/config/personnel' // Personnel management routes
+	'/api/v1/config/personnel', // Personnel management routes
+	'/api/v1/config/security'
 ];
 
 /**

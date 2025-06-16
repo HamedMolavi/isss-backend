@@ -3,12 +3,16 @@ import { getSessionManager } from '../services/session.service';
 import { AuthLogger } from '../logger/auth.logger';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
+import { SecurityConfigDefault } from '../config/security.config';
 
 /**
  * Middleware to limit concurrent sessions per user
  * Allows up to 3 active sessions per user, rejects if limit exceeded
  */
-export function preventConcurrentSessions(maxSessions: number = 5) {
+
+const maxSessions: number = SecurityConfigDefault.MAX_CONCURRENT_SESSIONS;
+
+export function preventConcurrentSessions() {
 	return async (req: Request, res: Response, next: NextFunction) => {
 		// Only apply to login requests
 		if (req.method !== 'POST' || !req.body.username) {

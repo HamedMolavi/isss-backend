@@ -1,29 +1,23 @@
 import session from 'express-session';
 import redisStore from '../db/redis/store.database';
-
-/**
- * Session configuration
- */
-const SESSION_CONFIG = {
-	TIMEOUT: 30 * 60 * 1000 // 30 minutes
-};
+import { SecurityConfigDefault } from '../config/security.config';
 
 /**
  * Express session configuration
  */
 export const sessionMiddleware = session({
 	store: redisStore(),
-	name: 'Bearer',
+	name: SecurityConfigDefault.SESSION.NAME,
 	secret: process.env['SESSION_SECRET'],
 	resave: false,
 	rolling: true,
 	saveUninitialized: false,
 	proxy: process.env.NODE_ENV === 'production', // Trust the reverse proxy when in production
 	cookie: {
-		maxAge: SESSION_CONFIG.TIMEOUT,
-		httpOnly: true,
-		secure: process.env.NODE_ENV === 'production',
-		sameSite: 'lax',
-		path: '/'
+		maxAge: SecurityConfigDefault.SESSION.TIMEOUT,
+		httpOnly: SecurityConfigDefault.SESSION.COOKIE.HTTP_ONLY,
+		secure: SecurityConfigDefault.SESSION.COOKIE.SECURE,
+		sameSite: SecurityConfigDefault.SESSION.COOKIE.SAME_SITE,
+		path: SecurityConfigDefault.SESSION.COOKIE.PATH
 	}
 });

@@ -47,23 +47,25 @@ const createRateLimit = (windowMs: number, max: number, message: string, limitTy
 	});
 };
 
-import { SecurityConfig } from '../config/security.config';
+import { SecurityConfigDefault } from '../config/security.config';
 
-// General rate limiting
-export const generalRateLimit = createRateLimit(
-	SecurityConfig.RATE_LIMIT_WINDOW,
-	SecurityConfig.RATE_LIMIT_MAX,
-	'Too many requests from this IP, please try again later.',
-	'general'
-);
+// Function to get general rate limiter (lazy initialization)
+export const getGeneralRateLimit = () =>
+	createRateLimit(
+		SecurityConfigDefault.RATE_LIMIT_WINDOW,
+		SecurityConfigDefault.RATE_LIMIT_MAX,
+		'Too many requests from this IP, please try again later.',
+		'general'
+	);
 
-// Auth rate limiting
-export const authRateLimit = createRateLimit(
-	SecurityConfig.RATE_LIMIT_WINDOW,
-	SecurityConfig.AUTH_RATE_LIMIT_MAX,
-	'Too many authentication attempts, please try again later.',
-	'authentication'
-);
+// Function to get auth rate limiter (lazy initialization)
+export const getAuthRateLimit = () =>
+	createRateLimit(
+		SecurityConfigDefault.RATE_LIMIT_WINDOW,
+		SecurityConfigDefault.AUTH_RATE_LIMIT_MAX,
+		'Too many authentication attempts, please try again later.',
+		'authentication'
+	);
 
 // XSS Protection middleware
 export const xssProtection = (req: Request, res: Response, next: NextFunction) => {
@@ -176,7 +178,7 @@ export function registerSecurityMiddleware(app: Application) {
 			contentSecurityPolicy: false, // CSP disabled
 			crossOriginEmbedderPolicy: false, // Disable for API usage
 			hsts: {
-				maxAge: SecurityConfig.HSTS_MAX_AGE,
+				maxAge: SecurityConfigDefault.HSTS_MAX_AGE,
 				includeSubDomains: true,
 				preload: true
 			}
@@ -186,7 +188,7 @@ export function registerSecurityMiddleware(app: Application) {
 	// MongoDB sanitization - Remove prohibited characters
 	app.use(
 		mongoSanitize({
-			replaceWith: SecurityConfig.MONGO_SANITIZE_REPLACE,
+			replaceWith: SecurityConfigDefault.MONGO_SANITIZE_REPLACE,
 			onSanitize: ({ req, key }) => {
 				SecurityLogger.mongodbSanitization(req, key);
 			}
@@ -228,4 +230,4 @@ export function registerSecurityMiddleware(app: Application) {
 }
 
 // Export specific rate limiters for use in routes
-export { authRateLimit as authLimiter };
+export { getAuthRateLimit as authLimiter };
