@@ -6,6 +6,7 @@ import { Logger } from '../logger';
  */
 const CUSTOM_LOGGED_ROUTES = [
 	'/api/v1/auth/login',
+	'/api/v1/auth/logout',
 	'/api/v1/config/admin/users',
 	'/api/v1/config/users',
 	'/api/v1/config/admin/accessLevels',
