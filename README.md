@@ -35,6 +35,8 @@ cd /tmp && echo "$(sudo cat /sys/devices/virtual/dmi/id/board_serial)-$(lsblk -n
 - 3.1.10: guest table debug
 
 - 3.1.11: plate search on person data, rtl_plate_number in batch plate insert
+  
+- 3.1.12: fix seed of personnel , return direction in report 
 
 ### p (plate-controller-backend)
 
