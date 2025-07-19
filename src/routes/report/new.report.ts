@@ -114,6 +114,8 @@ router.get(
 		next: (req) => !!req.params['type']
 	})
 );
+
+// Export Excel
 router.get(
 	'/:index(plate|search|face)/:type(excel)/?$',
 	accessCheck('dataImportExport'),
