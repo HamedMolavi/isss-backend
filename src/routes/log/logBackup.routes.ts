@@ -11,6 +11,7 @@ import {
 	restoreFromBackup,
 	listBackupFiles
 } from '../../controllers/logBackup.controller';
+import { fileUploadSecurityValidation } from '../../middleware/batch-security-validation.middleware';
 
 const LogBackupRouter: Router = Router();
 
@@ -41,6 +42,11 @@ LogBackupRouter.post(`${route_prefix}/cleanup`, accessCheck('systemLog'), perfor
 LogBackupRouter.post(`${route_prefix}/auto`, accessCheck('systemLog'), triggerAutoBackup);
 
 // Restore logs from backup file
-LogBackupRouter.post(`${route_prefix}/restore`, accessCheck('systemLog'), restoreFromBackup);
+LogBackupRouter.post(
+	`${route_prefix}/restore`,
+	accessCheck('systemLog'),
+	fileUploadSecurityValidation,
+	restoreFromBackup
+);
 
 export default LogBackupRouter;
