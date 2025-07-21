@@ -14,9 +14,35 @@ The `hamed/feature/logging-system` branch introduces a comprehensive logging inf
 
 ## Commit Summary
 
-**Total Commits**: 1,279 commits (as of latest update)
-**Files Changed**: 114+ files (88+ modified, 26+ added, 0 deleted)
+**Total Commits**: 1,283 commits (as of latest update)
+**Files Changed**: 118+ files (91+ modified, 27+ added, 0 deleted)
 **Branch Status**: Ready for merge - all changes committed and pushed
+
+### Latest Security Validation Middleware (4 commits - December 2024)
+1. **`c597724`** - feat: add audit logging for data export operations
+   - Implement comprehensive logging for Excel exports and backup operations
+   - Add DataImportExportLogger calls for all report export types
+   - Track export record counts, success/failure status, and errors
+   - Support audit requirements and security monitoring
+
+2. **`ea76179`** - security: integrate security validation for file operations
+   - Add comprehensive security middleware to file handling routes
+   - Apply batchRateLimit and batchSecurityValidation to batch operations
+   - Add fileUploadSecurityValidation to all file upload endpoints
+   - Protect against path traversal and malicious file uploads
+
+3. **`8d96768`** - security: add file validation to backup restore endpoint
+   - Apply fileUploadSecurityValidation middleware to backup restore route
+   - Ensure uploaded backup files are properly validated for security
+   - Maintain security consistency across all file upload operations
+
+4. **`1debd0d`** - feat: add batch operations security middleware
+   - Add comprehensive security validation middleware for batch processing and file uploads
+   - Path traversal and directory escape protection with pattern detection
+   - MIME type validation using magic bytes detection
+   - Rate limiting for batch operations (3 req/5min)
+   - File size limits and content validation
+   - Security logging and user authentication checks
 
 ### Latest Security Configuration System (3 commits - December 2024)
 1. **`3b6742a`** - feat: add security configuration system with models, controllers, and routes
@@ -83,7 +109,17 @@ The `hamed/feature/logging-system` branch introduces a comprehensive logging inf
 - **Type Safety**: Comprehensive TypeScript interfaces
 - **Route Integration**: Dedicated API endpoints for configuration management
 
-### 2. IP Restriction System
+### 2. Batch Operations Security Validation Middleware (Latest Addition)
+- **Comprehensive File Upload Protection**: Multi-layer security validation for all file operations
+- **Path Traversal Prevention**: Advanced pattern detection and directory escape protection
+- **MIME Type Validation**: Magic bytes detection for accurate file type verification
+- **Rate Limiting**: Specialized batch operation rate limiting (3 requests per 5 minutes)
+- **File Content Validation**: Size limits and content security checks for images and Excel files
+- **Malicious Input Detection**: Real-time detection and blocking of suspicious patterns
+- **Audit Logging**: Comprehensive security event logging for compliance and monitoring
+- **User Authentication**: Enhanced permission checks for batch and file upload operations
+
+### 3. IP Restriction System
 - **IP Management**: Add/remove allowed IPs for users
 - **Access Control**: Restrict access based on IP addresses
 - **Login Protection**: IP validation during login process
@@ -91,7 +127,7 @@ The `hamed/feature/logging-system` branch introduces a comprehensive logging inf
 - **Comprehensive Logging**: All IP-related actions are logged
 - **User Interface**: Status endpoint for IP restriction information
 
-### 3. Comprehensive Logging System
+### 4. Comprehensive Logging System
 - **Core Logger**: Winston-based logging with custom transports
 - **Specialized Loggers**: Auth, Backup, Personnel, User, Security, Data I/O
 - **MongoDB Transport**: Custom transport for storing logs in MongoDB
@@ -99,7 +135,7 @@ The `hamed/feature/logging-system` branch introduces a comprehensive logging inf
 - **Log Deduplication**: Prevents duplicate logs within 1-second windows
 - **TTL Support**: Automatic log expiration (configurable, default 30 days)
 
-### 4. Security Enhancement Suite
+### 5. Security Enhancement Suite
 - **Security Middleware**: Helmet, XSS protection, input sanitization
 - **Rate Limiting**: General and authentication-specific rate limiting
 - **MongoDB Sanitization**: NoSQL injection prevention
@@ -107,25 +143,25 @@ The `hamed/feature/logging-system` branch introduces a comprehensive logging inf
 - **Input Validation**: Malicious pattern detection and blocking
 - **Login Rate Limiting**: Failed login attempt tracking and blocking
 
-### 5. Session Management System
+### 6. Session Management System
 - **Concurrent Session Control**: Configurable session limits per user
 - **Session Termination**: Force logout on user updates/deletions
 - **Redis Integration**: Enhanced session storage and management
 - **Session Expiration Logging**: Detailed session lifecycle tracking
 
-### 6. Data Integrity System
+### 7. Data Integrity System
 - **Log Integrity Verification**: SHA-256 hash verification for all logs
 - **User Integrity Monitoring**: Username change detection and logging
 - **Real-time Monitoring**: Background integrity checks
 - **Backup Integrity**: Backup operation logging and verification
 
-### 7. Enhanced Authentication & Authorization
+### 8. Enhanced Authentication & Authorization
 - **Improved Auth Flow**: Streamlined login/logout processes
 - **Access Control**: Enhanced permission checking with logging
 - **Password Security**: Secure password updates with session termination
 - **User Management**: Comprehensive user operation logging
 
-### 8. User Activation/Deactivation Management System
+### 9. User Activation/Deactivation Management System
 - **User Status Control**: Complete user activation/deactivation functionality
 - **Authentication Protection**: Inactive users blocked from login and all protected routes
 - **Soft Delete Pattern**: Preserve user data while preventing access
@@ -135,13 +171,13 @@ The `hamed/feature/logging-system` branch introduces a comprehensive logging inf
 - **Data Integrity**: Consistent relationships with active users only
 - **Audit Trail**: Comprehensive logging of all activation/deactivation events
 
-### 9. API Architecture Improvements
+### 10. API Architecture Improvements
 - **Controller Pattern**: Separation of concerns with dedicated controllers
 - **Centralized Route Registration**: Organized route management system
 - **Standardized API Responses**: Consistent response structure
 - **Enhanced Error Handling**: Comprehensive error logging and reporting
 
-### 10. OTP (One-Time Password) Authentication
+### 11. OTP (One-Time Password) Authentication
 - **OTP Generation**: Users can generate a unique OTP secret and QR code to set up two-factor authentication.
 - **OTP Enable/Disable**: Secure endpoints to enable and disable OTP for an account, requiring password verification to disable.
 - **Login Integration**: OTP validation is seamlessly integrated into the login flow for enhanced security.
@@ -163,7 +199,8 @@ The `hamed/feature/logging-system` branch introduces a comprehensive logging inf
 - `userIntegrity.controller.ts` - User integrity checks
 - `otp.controller.ts` - OTP management
 
-### Middleware (9 new)
+### Middleware (10 new)
+- `batch-security-validation.middleware.ts` - Comprehensive batch operations security validation (Latest)
 - `concurrent-sessions.middleware.ts` - Session limit enforcement
 - `ip-restriction.middleware.ts` - IP-based access control
 - `logIntegrity.middleware.ts` - Real-time integrity monitoring
