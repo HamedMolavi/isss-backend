@@ -80,33 +80,15 @@ const handlePersonnelSuccess = {
 	create: async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const doc = req.body['doc'];
-			console.log('Debug - doc from req.body:', doc);
-			console.log('Debug - req.body keys:', Object.keys(req.body));
 
 			if (doc) {
-				// Log personnel creation
 				PersonnelLogger.personnelCreated(req, {
 					_id: doc._id.toString(),
 					name: `${doc.first_name} ${doc.last_name}`,
 					role: doc.person_type
 				});
 
-				// Try different serialization methods
-				console.log('Debug - doc.toJSON():', doc.toJSON ? await doc.toJSON() : 'No toJSON method');
-				console.log('Debug - JSON.parse(JSON.stringify(doc)):', JSON.parse(JSON.stringify(doc)));
-				console.log('Debug - Object.keys(doc):', Object.keys(doc));
-
-				// Convert Mongoose document to JSON - try multiple approaches
-				let docData;
-				if (doc.toJSON && typeof doc.toJSON === 'function') {
-					docData = await doc.toJSON();
-					console.log('Debug - Using toJSON(), result:', docData);
-				} else {
-					docData = JSON.parse(JSON.stringify(doc));
-					console.log('Debug - Using JSON.parse(JSON.stringify()), result:', docData);
-				}
-
-				console.log('Debug - Final docData before ApiRes:', docData);
+				const docData = doc.toJSON ? await doc.toJSON() : JSON.parse(JSON.stringify(doc));
 
 				return ApiRes(res, {
 					status: HttpStatus.CREATED,
@@ -114,7 +96,6 @@ const handlePersonnelSuccess = {
 					data: docData
 				});
 			} else {
-				console.log('Debug - No doc found in req.body');
 				return ApiRes(res, {
 					status: HttpStatus.INTERNAL_SERVER_ERROR,
 					msg: 'Personnel creation failed - no document returned'
