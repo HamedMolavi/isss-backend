@@ -72,6 +72,17 @@ export class AddHostilePerson {
 	@IsBoolean()
 	@IsOptional()
 	public alert?: boolean;
+	@IsString()
+	@IsOptional()
+	public first_name?: string;
+
+	@IsString()
+	@IsOptional()
+	public last_name?: string;
+
+	@IsString()
+	@IsOptional()
+	public national_code?: string;
 }
 
 export class AddBatchPersonnel {
