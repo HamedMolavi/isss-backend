@@ -38,6 +38,8 @@ cd /tmp && echo "$(sudo cat /sys/devices/virtual/dmi/id/board_serial)-$(lsblk -n
   
 - 3.1.12: fix seed of personnel , return direction in report 
 
+- 3.1.13: use first name , last name and national code for create hostile personnel 
+
 ### p (plate-controller-backend)
 
 p.2.x
