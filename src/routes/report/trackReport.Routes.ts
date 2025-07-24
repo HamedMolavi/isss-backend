@@ -1,16 +1,14 @@
-import { NextFunction, Router, Request, Response } from 'express';
+import { Router } from 'express';
 import { dtoValidationMiddleware } from '../../validation/dto';
-import { readMiddleware, readByIdMiddleware } from '../../db/mongo/read.database';
-import mongoose, { Document, FilterQuery, Model, Types } from 'mongoose';
+import { readMiddleware } from '../../db/mongo/read.database';
+import { FilterQuery } from 'mongoose';
 import Track from '../../db/mongo/models/track';
 import { ReadTrackBody } from '../../validation/dto/track.dto';
 import Time from '../../tools/time.tools';
-import { ITrackLog } from '../../types/interfaces/track.interface';
-import { ApiError } from '../../types/classes/error.class';
 import Camera from '../../db/mongo/models/camera';
-import { range } from '../../tools/utils.tools';
 import { cumulativeSendFunction, daySendFunction } from '../../tools/track.tools';
 import { sendDataMiddleware } from '../../tools/middleware.tools';
+import { ITrackLog } from '../../types/interfaces/track.interface';
 
 //create router for add to server
 const router: Router = Router();
@@ -44,31 +42,41 @@ function searchFromBody(
 	}
 ) {
 	const uid = body.personnel_id ?? body.number_plate;
-	let start = !!body.date_start
+
+	const start = body.date_start
 		? Math.floor(
 				new Date(body.date_start + Time.getUtcOffset('Asia/Tehran').toString().replace('+', ' ')).getTime() /
 					86400000
 			)
 		: 19794;
-	let end = !!body.date_end
+
+	const end = body.date_end
 		? Math.floor(
 				new Date(body.date_end + Time.getUtcOffset('Asia/Tehran').toString().replace('+', ' ')).getTime() /
 					86400000
 			)
 		: 20000;
+
 	body['day_start'] = start;
 	body['day_end'] = end;
 	return JSON.stringify({ uid, start, end });
 }
-function searchFunction(search: string): FilterQuery<any> {
+function searchFunction(search: string): FilterQuery<ITrackLog> {
 	const searchJson = JSON.parse(search);
-	return {
+	const query: FilterQuery<ITrackLog> = {
 		uid: searchJson?.uid,
 		day: {
 			$gte: searchJson?.start,
 			$lt: searchJson?.end
 		}
 	};
+	if (searchJson?.time) {
+		query['time'] = searchJson.time;
+	}
+	if (searchJson?.hour) {
+		query['hour'] = searchJson.hour;
+	}
+	return query;
 }
 
 export default router;
