@@ -38,7 +38,9 @@ cd /tmp && echo "$(sudo cat /sys/devices/virtual/dmi/id/board_serial)-$(lsblk -n
   
 - 3.1.12: fix seed of personnel , return direction in report 
 
-- 3.1.13: use first name , last name and national code for create hostile personnel 
+- 3.1.13: use first name , last name and national code for create hostile personnel
+
+- 3.1.14: Track Report Routes Enhancement add support for hour i date too 
 
 ### p (plate-controller-backend)
 
