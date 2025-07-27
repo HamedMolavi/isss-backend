@@ -27,7 +27,7 @@ export const generateOtp = async (req: Request, res: Response, next: NextFunctio
 export const enableOtp = async (req: Request, res: Response, next: NextFunction) => {
 	try {
 		const { token } = req.body;
-		const user = await User.findById((req.user as IUserDocument)._id);
+		const user = await User.findByIdWithOTP((req.user as IUserDocument)._id.toString());
 
 		if (!user || !user.otp_secret) {
 			return ApiRes(res, {

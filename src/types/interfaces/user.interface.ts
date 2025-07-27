@@ -47,6 +47,7 @@ export interface IUserModel extends Model<IUserDocument> {
 	generateAuthSession: (is_remember: boolean) => IAuthSession;
 	toAuthJSON: (is_remember: boolean) => IAuthUserJSON;
 	verifyUsernameIntegrity: (userId: string) => Promise<boolean>;
+	findByIdWithOTP: (userId: string) => Promise<IUserDocument | null>;
 }
 
 // export interface PasswordRequirements extends Requirements{

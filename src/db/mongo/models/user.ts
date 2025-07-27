@@ -182,6 +182,11 @@ UserSchema.statics.verifyUsernameIntegrity = async function (userId: string): Pr
 	}
 };
 
+// Static method to find user with OTP secret included
+UserSchema.statics.findByIdWithOTP = function (userId: string) {
+	return this.findById(userId).select('+otp_secret +otp_auth_url');
+};
+
 // Compile model from schema
 const User = mongoose.model<IUserDocument, IUserModel>('User', UserSchema);
 export default User;
