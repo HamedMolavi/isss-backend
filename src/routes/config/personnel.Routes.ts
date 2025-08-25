@@ -98,7 +98,6 @@ router.post(
 		Personnel,
 		{ next: true, save: 'doc' }
 	),
-	fs.uploadAvatarMiddleware('avatar_str', 'doc._id', { fileName: 'avatar', resultPropertyName: 'doc' }),
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const personnelData = await personnelSendFunction(req.body.doc, req);
