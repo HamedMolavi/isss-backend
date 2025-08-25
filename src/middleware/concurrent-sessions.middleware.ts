@@ -3,14 +3,12 @@ import { getSessionManager } from '../services/session.service';
 import { AuthLogger } from '../logger/auth.logger';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
-import { SecurityConfigDefault } from '../config/security.config';
+import { getSecurityConfig } from '../config/security.config';
 
 /**
  * Middleware to limit concurrent sessions per user
- * Allows up to 3 active sessions per user, rejects if limit exceeded
+ * Gets the max sessions limit dynamically from the current security configuration
  */
-
-const maxSessions: number = SecurityConfigDefault.MAX_CONCURRENT_SESSIONS;
 
 export function preventConcurrentSessions() {
 	return async (req: Request, res: Response, next: NextFunction) => {
@@ -20,6 +18,10 @@ export function preventConcurrentSessions() {
 		}
 
 		try {
+			// Get the current max sessions limit from the database configuration
+			const securityConfig = await getSecurityConfig();
+			const maxSessions = securityConfig.MAX_CONCURRENT_SESSIONS;
+
 			// Check how many sessions user currently has
 			const sessionManager = await getSessionManager();
 

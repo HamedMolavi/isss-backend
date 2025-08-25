@@ -71,7 +71,7 @@ export const updateMaxConcurrentSessions = async (req: Request, res: Response, n
 
 		const config = await SecurityConfig.findOneAndUpdate(
 			{},
-			{ maxConcurrentSessions },
+			{ maxConcurrentSessions: maxConcurrentSessions },
 			{ new: true, upsert: true }
 		);
 

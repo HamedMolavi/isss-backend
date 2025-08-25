@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { connect } from '../db/redis/connect.database';
 import { AuthLogger } from '../logger/auth.logger';
 import { ApiRes } from '../utils/api.response';
-import { SecurityConfigDefault } from '../config/security.config';
+import { getSecurityConfig } from '../config/security.config';
 
 /**
  * Simple Login Rate Limiter
@@ -12,8 +12,9 @@ export class LoginRateLimiter {
 		return await connect(process.env['REDIS_URL']);
 	}
 
-	private static getKey(username: string): string {
-		return `${SecurityConfigDefault.LOGIN_RATE_LIMIT.REDIS_PREFIX}${username}`;
+	private static async getKey(username: string): Promise<string> {
+		const config = await getSecurityConfig();
+		return `${config.LOGIN_RATE_LIMIT.REDIS_PREFIX}${username}`;
 	}
 
 	/**
@@ -27,7 +28,7 @@ export class LoginRateLimiter {
 
 			const username = req.body.username.toLowerCase().trim();
 			const ip = req.ip || 'unknown';
-			const key = this.getKey(username);
+			const key = await this.getKey(username);
 
 			try {
 				const client = await this.getRedisClient();
@@ -64,8 +65,9 @@ export class LoginRateLimiter {
 			}
 
 			const { username, ip } = req.loginRateLimit;
-			const key = this.getKey(username);
-			const historyKey = `${SecurityConfigDefault.LOGIN_RATE_LIMIT.ATTEMPTS_HISTORY_PREFIX}${username}`;
+			const config = await getSecurityConfig();
+			const key = await this.getKey(username);
+			const historyKey = `${config.LOGIN_RATE_LIMIT.ATTEMPTS_HISTORY_PREFIX}${username}`;
 			const isSuccess = !!req.user;
 			const now = Date.now();
 
@@ -84,10 +86,7 @@ export class LoginRateLimiter {
 				await client.lPush(historyKey, JSON.stringify(attemptRecord));
 
 				// Set expiration for history (7 days)
-				await client.expire(
-					historyKey,
-					SecurityConfigDefault.LOGIN_RATE_LIMIT.HISTORY_RETENTION_DAYS * 24 * 60 * 60
-				);
+				await client.expire(historyKey, config.LOGIN_RATE_LIMIT.HISTORY_RETENTION_DAYS * 24 * 60 * 60);
 
 				// Trim history to keep only last 1000 attempts (prevent unlimited growth)
 				await client.lTrim(historyKey, 0, 999);
@@ -111,9 +110,8 @@ export class LoginRateLimiter {
 					await client.hSet(key, 'lastAttempt', now.toString());
 
 					// Check if should block
-					if (attempts >= SecurityConfigDefault.LOGIN_RATE_LIMIT.MAX_ATTEMPTS) {
-						const blockUntil =
-							now + SecurityConfigDefault.LOGIN_RATE_LIMIT.BLOCK_DURATION_MINUTES * 60 * 1000;
+					if (attempts >= config.LOGIN_RATE_LIMIT.MAX_ATTEMPTS) {
+						const blockUntil = now + config.LOGIN_RATE_LIMIT.BLOCK_DURATION_MINUTES * 60 * 1000;
 						await client.hSet(key, 'blockedUntil', blockUntil.toString());
 
 						AuthLogger.loginFailed(req, `User blocked after ${attempts} failed attempts from ${ip}`, {
@@ -122,7 +120,7 @@ export class LoginRateLimiter {
 					} else {
 						AuthLogger.loginFailed(
 							req,
-							`Failed login attempt ${attempts}/${SecurityConfigDefault.LOGIN_RATE_LIMIT.MAX_ATTEMPTS} from ${ip}`,
+							`Failed login attempt ${attempts}/${config.LOGIN_RATE_LIMIT.MAX_ATTEMPTS} from ${ip}`,
 							{ username }
 						);
 					}
@@ -130,8 +128,7 @@ export class LoginRateLimiter {
 					// Set expiration for cleanup
 					await client.expire(
 						key,
-						SecurityConfigDefault.LOGIN_RATE_LIMIT.BLOCK_DURATION_MINUTES * 60 +
-							SecurityConfigDefault.LOGIN_RATE_LIMIT.WINDOW_MINUTES * 60
+						config.LOGIN_RATE_LIMIT.BLOCK_DURATION_MINUTES * 60 + config.LOGIN_RATE_LIMIT.WINDOW_MINUTES * 60
 					);
 				}
 			} catch (error) {
@@ -148,7 +145,7 @@ export class LoginRateLimiter {
 	static async resetUser(username: string): Promise<void> {
 		try {
 			const client = await this.getRedisClient();
-			const key = this.getKey(username);
+			const key = await this.getKey(username);
 			await client.del(key);
 		} catch (error) {
 			console.error('Reset rate limit error:', error);
@@ -174,8 +171,9 @@ export class LoginRateLimiter {
 	}> {
 		try {
 			const client = await this.getRedisClient();
-			const key = this.getKey(username);
-			const historyKey = `${SecurityConfigDefault.LOGIN_RATE_LIMIT.ATTEMPTS_HISTORY_PREFIX}${username}`;
+			const config = await getSecurityConfig();
+			const key = await this.getKey(username);
+			const historyKey = `${config.LOGIN_RATE_LIMIT.ATTEMPTS_HISTORY_PREFIX}${username}`;
 
 			// Get current rate limit data
 			const data = await client.hGetAll(key);

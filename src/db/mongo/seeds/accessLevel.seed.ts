@@ -21,7 +21,7 @@ export async function makeSeedAccessLevel(): Promise<IAccessLevel> {
 			typeName: 15,
 			system: 15,
 			systemLog: 15,
-			logs: 2,
+			logs: 1,
 			product: 15,
 			report: 15,
 			dataImportExport: 15

@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import hpp from 'hpp';
 import xss from 'xss';
 import { SecurityLogger } from '../logger/security.logger';
+import { getSecurityConfig } from '../config/security.config';
 
 /**
  * Security Middleware Configuration
@@ -47,25 +48,27 @@ const createRateLimit = (windowMs: number, max: number, message: string, limitTy
 	});
 };
 
-import { SecurityConfigDefault } from '../config/security.config';
-
 // Function to get general rate limiter (lazy initialization)
-export const getGeneralRateLimit = () =>
-	createRateLimit(
-		SecurityConfigDefault.RATE_LIMIT_WINDOW,
-		SecurityConfigDefault.RATE_LIMIT_MAX,
+export const getGeneralRateLimit = async () => {
+	const config = await getSecurityConfig();
+	return createRateLimit(
+		config.RATE_LIMIT_WINDOW,
+		config.RATE_LIMIT_MAX,
 		'Too many requests from this IP, please try again later.',
 		'general'
 	);
+};
 
 // Function to get auth rate limiter (lazy initialization)
-export const getAuthRateLimit = () =>
-	createRateLimit(
-		SecurityConfigDefault.RATE_LIMIT_WINDOW,
-		SecurityConfigDefault.AUTH_RATE_LIMIT_MAX,
+export const getAuthRateLimit = async () => {
+	const config = await getSecurityConfig();
+	return createRateLimit(
+		config.RATE_LIMIT_WINDOW,
+		config.AUTH_RATE_LIMIT_MAX,
 		'Too many authentication attempts, please try again later.',
 		'authentication'
 	);
+};
 
 // XSS Protection middleware
 export const xssProtection = (req: Request, res: Response, next: NextFunction) => {
@@ -171,14 +174,17 @@ export const inputValidation = (req: Request, res: Response, next: NextFunction)
 /**
  * Register all security middleware
  */
-export function registerSecurityMiddleware(app: Application) {
+export async function registerSecurityMiddleware(app: Application) {
+	// Get security configuration from database
+	const config = await getSecurityConfig();
+
 	// Helmet - Security headers
 	app.use(
 		helmet({
 			contentSecurityPolicy: false, // CSP disabled
 			crossOriginEmbedderPolicy: false, // Disable for API usage
 			hsts: {
-				maxAge: SecurityConfigDefault.HSTS_MAX_AGE,
+				maxAge: config.HSTS_MAX_AGE,
 				includeSubDomains: true,
 				preload: true
 			}
@@ -188,7 +194,7 @@ export function registerSecurityMiddleware(app: Application) {
 	// MongoDB sanitization - Remove prohibited characters
 	app.use(
 		mongoSanitize({
-			replaceWith: SecurityConfigDefault.MONGO_SANITIZE_REPLACE,
+			replaceWith: config.MONGO_SANITIZE_REPLACE,
 			onSanitize: ({ req, key }) => {
 				SecurityLogger.mongodbSanitization(req, key);
 			}

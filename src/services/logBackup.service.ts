@@ -10,7 +10,7 @@ import archiver from 'archiver';
 import { Client as FtpClient } from 'basic-ftp';
 import { SQLite } from '../db/sqlite';
 import AdmZip from 'adm-zip';
-import { SecurityConfigDefault } from '../config/security.config';
+import { getSecurityConfig } from '../config/security.config';
 
 const pipelineAsync = promisify(pipeline);
 
@@ -636,8 +636,9 @@ export class LogBackupService {
 				throw new Error('No active LogType configuration found');
 			}
 
-			// Default TTL is 60 days, can be configured
-			const ttlDays = SecurityConfigDefault.LOG_BACKUP.TTL_DAYS;
+			// Get TTL days from security configuration in database
+			const securityConfig = await getSecurityConfig();
+			const ttlDays = securityConfig.LOG_BACKUP.TTL_DAYS;
 
 			const config: BackupConfig = {
 				ttlDays,

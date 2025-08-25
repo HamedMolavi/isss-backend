@@ -135,4 +135,4 @@ async function initializeSecurityConfig(): Promise<void> {
 }
 
 // Export the configuration and initialization function
-export { SecurityConfigDefault, initializeSecurityConfig };
+export { SecurityConfigDefault, initializeSecurityConfig, getSecurityConfig };

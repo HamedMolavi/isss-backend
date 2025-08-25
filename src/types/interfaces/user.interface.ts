@@ -1,6 +1,6 @@
 import mongoose, { Document, Model } from 'mongoose';
 import { Requirements } from './password.interface';
-import { SecurityConfigDefault } from '../../config/security.config';
+import { getSecurityConfig } from '../../config/security.config';
 
 //create user type
 export interface IUser {
@@ -54,4 +54,17 @@ export interface IUserModel extends Model<IUserDocument> {
 //   [re: /[0-9]/,
 //   label: "Includes number"]
 // }
-export const UserPasswordRequirements: Requirements = SecurityConfigDefault.PASSWORD.REQUIREMENTS;
+
+// Function to get password requirements from database configuration
+export const getUserPasswordRequirements = async (): Promise<Requirements> => {
+	const config = await getSecurityConfig();
+	return config.PASSWORD.REQUIREMENTS;
+};
+
+// Fallback constant for compatibility (will be deprecated)
+export const UserPasswordRequirements: Requirements = [
+	{ re: /[0-9]/, label: 'Includes number' },
+	{ re: /[a-z]/, label: 'Includes lowercase letter' },
+	{ re: /[A-Z]/, label: 'Includes uppercase letter' },
+	{ re: /[$&+,:;=?@#|'<>.^*()%!-]/, label: 'Includes special symbol' }
+];
