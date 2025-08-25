@@ -1,4 +1,4 @@
-import { Router, Request } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { requestForGetPersonnel } from '../../db/elastic/connect.database';
 import Camera from '../../db/mongo/models/camera';
 import { ImageFileSystem } from '../../tools/kafkaFile.tools';
@@ -14,6 +14,7 @@ import { deleteByIdMiddleware } from '../../db/mongo/delete.database';
 import mongoose from 'mongoose';
 import Time, { allowedPassConvert, allowedPassRevert } from '../../tools/time.tools';
 import { DoNotAllowOnDefault, injectDataMiddleware } from '../../tools/request.tools';
+import { ApiError } from '../../types/classes/error.class';
 
 const fs = new ImageFileSystem();
 const router: Router = Router();
@@ -97,7 +98,19 @@ router.post(
 		Personnel,
 		{ next: true, save: 'doc' }
 	),
-	fs.uploadAvatarMiddleware('avatar_str', 'doc._id', { fileName: 'avatar', resultPropertyName: 'doc' })
+	fs.uploadAvatarMiddleware('avatar_str', 'doc._id', { fileName: 'avatar', resultPropertyName: 'doc' }),
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const personnelData = await personnelSendFunction(req.body.doc, req);
+			return res.status(201).json({
+				success: true,
+				data: personnelData
+			});
+		} catch (error: unknown) {
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+			return next(new ApiError(500, 'Internal server error: ' + errorMessage));
+		}
+	}
 );
 
 router.get(
