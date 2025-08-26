@@ -33,7 +33,7 @@ export class BackupSchedulerService {
 			const config = await backupService.getBackupConfig();
 
 			if (!config.isAutoBackup) {
-				Logger.info('Automatic backup is disabled, scheduler not started');
+				// Logger.info('Automatic backup is disabled, scheduler not started');
 				return;
 			}
 

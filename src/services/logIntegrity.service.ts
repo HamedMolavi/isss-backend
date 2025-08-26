@@ -33,7 +33,7 @@ export class LogIntegrityService {
 	private readonly INTEGRITY_TOPIC = process.env['LOG_INTEGRITY_TOPIC'] || 'log-integrity-alerts';
 	private lastVerificationTime: Date | null = null;
 	private triggerActive: boolean = false;
-	private serviceActive: boolean = false;
+	private serviceActive: boolean = true;
 
 	constructor() {
 		// Initialize Kafka producer for integrity alerts
@@ -54,11 +54,11 @@ export class LogIntegrityService {
 			.then(() => {
 				this.serviceActive = true;
 				// Log service startup
-				LogIntegrityLogger.serviceStarted({
-					serviceActive: this.serviceActive,
-					kafkaTopic: this.INTEGRITY_TOPIC,
-					triggerActive: this.triggerActive
-				});
+				// LogIntegrityLogger.serviceStarted({
+				// 	serviceActive: this.serviceActive,
+				// 	kafkaTopic: this.INTEGRITY_TOPIC,
+				// 	triggerActive: this.triggerActive
+				// });
 			})
 			.catch(() => {
 				this.serviceActive = false;
@@ -328,7 +328,7 @@ export class LogIntegrityService {
 			});
 
 			// Use LogIntegrityLogger for trigger setup
-			LogIntegrityLogger.modificationTriggerSetup();
+			// await LogIntegrityLogger.modificationTriggerSetup();
 
 			this.triggerActive = true;
 		} catch (error) {
