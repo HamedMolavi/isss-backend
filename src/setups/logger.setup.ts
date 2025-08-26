@@ -211,29 +211,29 @@ export async function setupLogger(options?: LoggerSetupOptions): Promise<Logger>
 	});
 
 	// Log successful initialization
-	Logger.systemOperation('Logging system initialized', {
-		type: 'logger_setup',
-		action: LOGGER_SETUP_ACTIONS.INIT,
-		details: {
-			environment: config.environment,
-			serviceName: config.serviceName,
-			logLevel: config.logLevel,
-			transports: {
-				console: config.consoleLogging,
-				file: config.fileLogging,
-				mongo: config.mongoLogging
-			},
-			config: {
-				format: config.format,
-				includeMetadata: config.includeMetadata,
-				includeTimestamp: config.includeTimestamp,
-				includeStack: config.includeStack,
-				maxFileSize: config.maxFileSize,
-				maxFiles: config.maxFiles,
-				retentionDays: config.retentionDays
-			}
-		}
-	});
+	// Logger.systemOperation('Logging system initialized', {
+	// 	type: 'logger_setup',
+	// 	action: LOGGER_SETUP_ACTIONS.INIT,
+	// 	details: {
+	// 		environment: config.environment,
+	// 		serviceName: config.serviceName,
+	// 		logLevel: config.logLevel,
+	// 		transports: {
+	// 			console: config.consoleLogging,
+	// 			file: config.fileLogging,
+	// 			mongo: config.mongoLogging
+	// 		},
+	// 		config: {
+	// 			format: config.format,
+	// 			includeMetadata: config.includeMetadata,
+	// 			includeTimestamp: config.includeTimestamp,
+	// 			includeStack: config.includeStack,
+	// 			maxFileSize: config.maxFileSize,
+	// 			maxFiles: config.maxFiles,
+	// 			retentionDays: config.retentionDays
+	// 		}
+	// 	}
+	// });
 
 	return logger;
 }

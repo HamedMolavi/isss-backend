@@ -52,31 +52,31 @@ export class LogIntegrityLogger {
 	/**
 	 * Log service startup
 	 */
-	static async serviceStarted(
-		serviceStatus: {
-			serviceActive: boolean;
-			kafkaTopic: string;
-			triggerActive: boolean;
-		},
-		req?: Request
-	): Promise<void> {
-		try {
-			const logType = await LogType.findOne({ isActive: true }).sort({ ts: -1 }).exec();
-			if (logType?.[LOG_TYPE_KEYS.successEvents] === true || !req) {
-				Logger.info('Log integrity service started', {
-					...this.createBaseLogData(LogIntegrityEventType.SERVICE_STARTED, true, req),
-					details: {
-						serviceActive: serviceStatus.serviceActive,
-						kafkaTopic: serviceStatus.kafkaTopic,
-						triggerActive: serviceStatus.triggerActive,
-						operation: 'service_startup'
-					}
-				});
-			}
-		} catch (error) {
-			console.error('Error logging service start:', error);
-		}
-	}
+	// static async serviceStarted(
+	// 	serviceStatus: {
+	// 		serviceActive: boolean;
+	// 		kafkaTopic: string;
+	// 		triggerActive: boolean;
+	// 	},
+	// 	req?: Request
+	// ): Promise<void> {
+	// 	try {
+	// 		const logType = await LogType.findOne({ isActive: true }).sort({ ts: -1 }).exec();
+	// 		if (logType?.[LOG_TYPE_KEYS.successEvents] === true || !req) {
+	// 			Logger.info('Log integrity service started', {
+	// 				...this.createBaseLogData(LogIntegrityEventType.SERVICE_STARTED, true, req),
+	// 				details: {
+	// 					serviceActive: serviceStatus.serviceActive,
+	// 					kafkaTopic: serviceStatus.kafkaTopic,
+	// 					triggerActive: serviceStatus.triggerActive,
+	// 					operation: 'service_startup'
+	// 				}
+	// 			});
+	// 		}
+	// 	} catch (error) {
+	// 		console.error('Error logging service start:', error);
+	// 	}
+	// }
 
 	/**
 	 * Log service stop
@@ -219,24 +219,24 @@ export class LogIntegrityLogger {
 	/**
 	 * Log modification trigger setup
 	 */
-	static async modificationTriggerSetup(req?: Request): Promise<void> {
-		try {
-			const logType = await LogType.findOne({ isActive: true }).sort({ ts: -1 }).exec();
-			if (logType?.[LOG_TYPE_KEYS.successEvents] === true || !req) {
-				Logger.info('Log modification trigger setup completed', {
-					...this.createBaseLogData(LogIntegrityEventType.MODIFICATION_TRIGGER_SETUP, true, req),
-					details: {
-						operation: 'trigger_setup',
-						triggerType: 'mongodb_change_stream',
-						monitoredOperations: ['update', 'replace', 'delete'],
-						triggerActive: true
-					}
-				});
-			}
-		} catch (error) {
-			console.error('Error logging modification trigger setup:', error);
-		}
-	}
+	// static async modificationTriggerSetup(req?: Request): Promise<void> {
+	// 	try {
+	// 		const logType = await LogType.findOne({ isActive: true }).sort({ ts: -1 }).exec();
+	// 		if (logType?.[LOG_TYPE_KEYS.successEvents] === true || !req) {
+	// 			Logger.info('Log modification trigger setup completed', {
+	// 				...this.createBaseLogData(LogIntegrityEventType.MODIFICATION_TRIGGER_SETUP, true, req),
+	// 				details: {
+	// 					operation: 'trigger_setup',
+	// 					triggerType: 'mongodb_change_stream',
+	// 					monitoredOperations: ['update', 'replace', 'delete'],
+	// 					triggerActive: true
+	// 				}
+	// 			});
+	// 		}
+	// 	} catch (error) {
+	// 		console.error('Error logging modification trigger setup:', error);
+	// 	}
+	// }
 
 	/**
 	 * Log modification trigger setup failure
