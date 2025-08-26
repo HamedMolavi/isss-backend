@@ -736,4 +736,38 @@ export class LogBackupService {
 			throw error;
 		}
 	}
+
+	/**
+	 * Set auto backup status (enable/disable)
+	 */
+	public async setAutoBackupStatus(isEnabled: boolean): Promise<void> {
+		try {
+			const { LogType } = await import('../db/mongo/models/logType');
+
+			const logType = await LogType.findOne({ isActive: true });
+
+			if (!logType) {
+				throw new Error('No active LogType configuration found');
+			}
+
+			await LogType.updateOne({ isActive: true }, { $set: { isAutoBackup: isEnabled } });
+
+			// Log the status change
+			if (isEnabled) {
+				await BackupLogger.autoBackupStarted(await this.getBackupConfig());
+			} else {
+				await BackupLogger.autoBackupCompleted(
+					{
+						totalLogs: 0,
+						backupSize: 0
+					},
+					0,
+					false
+				);
+			}
+		} catch (error) {
+			BackupLogger.backupCreateFailed(error instanceof Error ? error.message : 'Unknown error');
+			throw error;
+		}
+	}
 }

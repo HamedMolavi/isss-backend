@@ -468,3 +468,83 @@ export const listBackupFiles = async (req: Request, res: Response) => {
 		});
 	}
 };
+
+/**
+ * Enable auto backup
+ */
+export const enableAutoBackup = async (req: Request, res: Response) => {
+	try {
+		const backupService = LogBackupService.getInstance();
+		await backupService.setAutoBackupStatus(true);
+
+		const config = await backupService.getBackupConfig();
+
+		await BackupLogger.autoBackupStarted(config, req);
+
+		return ApiRes(res, {
+			status: HttpStatus.OK,
+			msg: 'Auto backup enabled successfully',
+			data: {
+				isAutoBackup: true,
+				backupConfig: {
+					ttlDays: config.ttlDays,
+					backupIntervalDays: config.backupIntervalDays,
+					hasFtpConfig: !!config.ftpConfig
+				}
+			}
+		});
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+		BackupLogger.autoBackupFailed(error instanceof Error ? error.message : 'Unknown error', req);
+
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: errorMessage || 'Failed to enable auto backup'
+		});
+	}
+};
+
+/**
+ * Disable auto backup
+ */
+export const disableAutoBackup = async (req: Request, res: Response) => {
+	try {
+		const backupService = LogBackupService.getInstance();
+		await backupService.setAutoBackupStatus(false);
+
+		const config = await backupService.getBackupConfig();
+
+		await BackupLogger.autoBackupCompleted(
+			{
+				totalLogs: 0,
+				backupSize: 0
+			},
+			0,
+			false,
+			req
+		);
+
+		return ApiRes(res, {
+			status: HttpStatus.OK,
+			msg: 'Auto backup disabled successfully',
+			data: {
+				isAutoBackup: false,
+				backupConfig: {
+					ttlDays: config.ttlDays,
+					backupIntervalDays: config.backupIntervalDays,
+					hasFtpConfig: !!config.ftpConfig
+				}
+			}
+		});
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+		BackupLogger.autoBackupFailed(error instanceof Error ? error.message : 'Unknown error', req);
+
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: errorMessage || 'Failed to disable auto backup'
+		});
+	}
+};

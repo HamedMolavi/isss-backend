@@ -9,7 +9,9 @@ import {
 	getBackupConfig,
 	triggerAutoBackup,
 	restoreFromBackup,
-	listBackupFiles
+	listBackupFiles,
+	enableAutoBackup,
+	disableAutoBackup
 } from '../../controllers/logBackup.controller';
 import { fileUploadSecurityValidation } from '../../middleware/batch-security-validation.middleware';
 
@@ -40,6 +42,12 @@ LogBackupRouter.post(`${route_prefix}/cleanup`, accessCheck('systemLog'), perfor
 
 // Trigger automatic backup manually
 LogBackupRouter.post(`${route_prefix}/auto`, accessCheck('systemLog'), triggerAutoBackup);
+
+// Enable auto backup
+LogBackupRouter.post(`${route_prefix}/auto/enable`, accessCheck('systemLog'), enableAutoBackup);
+
+// Disable auto backup
+LogBackupRouter.post(`${route_prefix}/auto/disable`, accessCheck('systemLog'), disableAutoBackup);
 
 // Restore logs from backup file
 LogBackupRouter.post(
