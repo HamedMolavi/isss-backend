@@ -5,6 +5,7 @@ import { ApiRes } from '../../utils/api.response';
 import { HttpStatus } from '../../types/http_status';
 import { dtoValidationMiddleware } from '../../validation/dto';
 import { IPAddressDto } from '../../validation/dto/ip-restriction.dto';
+import { formatToIPv4 } from '../../tools/util.tools';
 
 const IPRestrictionRouter: Router = Router();
 
@@ -14,10 +15,20 @@ const route_prefix = '';
 IPRestrictionRouter.post(`${route_prefix}/add`, dtoValidationMiddleware(IPAddressDto), async (req, res) => {
 	try {
 		const { ip } = req.body;
-		const success = await IPRestrictionService.addAllowedIP(req.user, ip);
+
+		// Format and validate IP to IPv4
+		const formattedIP = formatToIPv4(ip);
+		if (!formattedIP) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Invalid IP address'
+			});
+		}
+
+		const success = await IPRestrictionService.addAllowedIP(req.user, formattedIP);
 
 		if (success) {
-			AuthLogger.ipAdded(req, ip);
+			AuthLogger.ipAdded(req, formattedIP);
 			return ApiRes(res, {
 				status: HttpStatus.OK,
 				msg: 'IP added successfully'
@@ -44,10 +55,20 @@ IPRestrictionRouter.delete(
 	async (req, res) => {
 		try {
 			const { ip } = req.body;
-			const success = await IPRestrictionService.removeAllowedIP(req.user, ip);
+
+			// Format and validate IP to IPv4
+			const formattedIP = formatToIPv4(ip);
+			if (!formattedIP) {
+				return ApiRes(res, {
+					status: HttpStatus.BAD_REQUEST,
+					msg: 'Invalid IP address'
+				});
+			}
+
+			const success = await IPRestrictionService.removeAllowedIP(req.user, formattedIP);
 
 			if (success) {
-				AuthLogger.ipRemoved(req, ip);
+				AuthLogger.ipRemoved(req, formattedIP);
 				return ApiRes(res, {
 					status: HttpStatus.OK,
 					msg: 'IP removed successfully'

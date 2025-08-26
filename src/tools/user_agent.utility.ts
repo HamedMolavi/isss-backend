@@ -7,7 +7,7 @@ import { parse } from 'platform';
  */
 export const get_user_agent = (req: Request) => {
 	const info = parse(req.headers['user-agent']);
-	const remoteAddress = req.ip || req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'N/A';
+	const remoteAddress = req.headers['x-real-ip'] || req.ip || req.headers['x-forwarded-for'] || 'N/A';
 
 	return {
 		ip: remoteAddress,

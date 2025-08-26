@@ -111,7 +111,13 @@ class IPRestrictionService {
 	 */
 	static getClientIP(req: Request): string {
 		const user_agent = get_user_agent(req);
-		return user_agent?.ip as string;
+		const ip = user_agent?.ip as string;
+		// Only return IPv4 format (e.g., 1.1.1.1)
+		const ipv4Regex = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+		if (ip && ipv4Regex.test(ip)) {
+			return ip;
+		}
+		return '';
 	}
 }
 
