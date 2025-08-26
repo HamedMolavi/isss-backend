@@ -154,10 +154,38 @@ UserSchema.statics.verifyUsernameIntegrity = async function (userId: string): Pr
 			SQLite.runQuery<{ hash: string }>(
 				`SELECT hash FROM UserHash WHERE _id = ?`,
 				[userId],
-				function (err: Error | null, rows: Array<{ hash: string }>) {
+				async function (err: Error | null, rows: Array<{ hash: string }>) {
 					if (err || !rows || !rows.length) {
-						console.error('Username hash verification failed:', err || 'No hash found for user:', userId);
-						return resolve(false);
+						// Create a normalized object with the same structure as during save
+						const usernameData = {
+							_id: userId,
+							username: user.username,
+							created_date: user.created_date
+						};
+
+						// Calculate new hash from normalized document
+						const hashedDoc = JSON_hash(usernameData);
+						const calculatedHash = hashedDoc?.hash;
+
+						if (calculatedHash) {
+							// Insert the hash into SQLite
+							SQLite.runQuery(
+								`INSERT INTO UserHash (_id, hash) VALUES (?, ?)`,
+								[userId, calculatedHash],
+								function (insertErr: Error | null) {
+									if (insertErr) {
+										console.error('Failed to insert hash into SQLite:', insertErr);
+										return resolve(false);
+									}
+									console.log('Successfully created hash for user in SQLite:', userId);
+									resolve(true);
+								}
+							);
+						} else {
+							console.error('Failed to calculate hash for user:', userId);
+							resolve(false);
+						}
+						return;
 					}
 
 					// Create a normalized object with the same structure as during save
