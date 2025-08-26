@@ -73,6 +73,29 @@ interface SessionWithUserData {
 }
 
 /**
+ * Interface for filtered session data for public API responses
+ * Contains only safe, non-sensitive session information
+ *
+ * @property session_id - Only the Bearer token part (e.g., 'Bearer Wk8nfsVj6Pw7rMut6dC0mXv08VGzqpnk')
+ * @property user - Basic user information without sensitive data
+ * @property ip - Client's IP address
+ * @property userAgent - Browser/client information
+ * @property loginTime - When the user logged in
+ * @property lastActivity - Last session activity timestamp
+ */
+interface FilteredSessionData {
+	session_id: string;
+	user?: {
+		username: string;
+		role: string;
+	};
+	ip?: string;
+	userAgent?: string;
+	loginTime?: Date;
+	lastActivity?: Date;
+}
+
+/**
  * SessionManager class for handling session operations
  * Manages user sessions stored in Redis with MongoDB user data
  */
@@ -325,6 +348,42 @@ export class SessionManager {
 	}
 
 	/**
+	 * Retrieves filtered session data for public API responses
+	 * Returns only safe, non-sensitive information suitable for client consumption
+	 * Only returns sessions that have meaningful data (not undefined values)
+	 *
+	 * @returns Promise<FilteredSessionData[]> Array of filtered session data
+	 */
+	async getFilteredSessions(): Promise<FilteredSessionData[]> {
+		const allSessions = await this.getAllSessions();
+
+		// Filter out sessions that don't have meaningful data
+		const validSessions = allSessions.filter((session) => {
+			// Check if session has at least some meaningful data
+			return session.user || session.ip || session.userAgent || session.loginTime || session.lastActivity;
+		});
+
+		return validSessions.map((session) => {
+			// Format session ID to show only the Bearer token format
+			const sessionId = session.session_id ? `Bearer ${session.session_id}` : '';
+
+			return {
+				session_id: sessionId,
+				user: session.user
+					? {
+							username: session.user.username,
+							role: session.user.role
+						}
+					: undefined,
+				ip: session.ip,
+				userAgent: session.userAgent,
+				loginTime: session.loginTime,
+				lastActivity: session.lastActivity
+			};
+		});
+	}
+
+	/**
 	 * Terminates a specific session by its ID
 	 *
 	 * @param sessionId - The ID of the session to terminate
@@ -447,3 +506,6 @@ export class SessionManager {
 
 // Export a function to get the singleton instance
 export const getSessionManager = () => SessionManager.getInstance();
+
+// Export types for external use
+export type { SessionWithUserData, FilteredSessionData };

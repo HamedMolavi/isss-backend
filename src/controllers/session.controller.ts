@@ -13,7 +13,7 @@ import { LoginRateLimiter } from '../middleware/login-rate-limit.middleware';
 export const getAllSessions = async (req: Request, res: Response) => {
 	const sessionManager = await getSessionManager();
 
-	const sessions = await sessionManager.getAllSessions().catch(() => null);
+	const sessions = await sessionManager.getFilteredSessions().catch(() => null);
 
 	return ApiRes(res, {
 		status: sessions ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR,
