@@ -2,6 +2,7 @@ import { Request } from 'express';
 import { IUserDocument } from '../types/interfaces/user.interface';
 import User from '../db/mongo/models/user';
 import { get_user_agent } from '../tools/user_agent.utility';
+import { formatToIPv4 } from '../tools/util.tools';
 
 class IPRestrictionService {
 	/**
@@ -111,10 +112,10 @@ class IPRestrictionService {
 	 */
 	static getClientIP(req: Request): string {
 		const user_agent = get_user_agent(req);
-		const ip = user_agent?.ip as string;
-		// Only return IPv4 format (e.g., 1.1.1.1)
-		const ipv4Regex = /^(?:\d{1,3}\.){3}\d{1,3}$/;
-		if (ip && ipv4Regex.test(ip)) {
+
+		let ip = user_agent?.ip as string;
+		ip = formatToIPv4(ip) || '';
+		if (ip) {
 			return ip;
 		}
 		return '';
