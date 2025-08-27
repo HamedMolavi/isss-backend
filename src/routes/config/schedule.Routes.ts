@@ -54,7 +54,8 @@ router.post(
 			'description',
 			'users_alert',
 			'sms',
-			'alert'
+			'alert',
+			'state'
 		],
 		Schedule
 	)

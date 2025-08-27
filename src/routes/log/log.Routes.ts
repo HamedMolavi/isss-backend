@@ -21,24 +21,59 @@ LogRouter.get(
 		(search) => {
 			if (!search) return {};
 
-			const searchRegex = { $regex: search, $options: 'i' };
+			// Escape special regex characters to prevent regex issues
+			const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			const searchRegex = { $regex: escapeRegex(search), $options: 'i' };
 			const isBoolean = search.toLowerCase() === 'true' || search.toLowerCase() === 'false';
 
 			return {
 				$or: [
-					{ error: searchRegex },
 					{ message: searchRegex },
 					{ 'metadata.username': searchRegex },
 					{ 'metadata.userid': searchRegex },
 					{ 'metadata.ip': searchRegex },
+					{ 'metadata.type': searchRegex },
 					...(isBoolean ? [{ 'metadata.success': search.toLowerCase() === 'true' }] : []),
-					{ action: searchRegex }
+					{ level: searchRegex }
 				]
 			};
 		},
 		{
 			populate: true,
-			defaultSort: { created_at: -1 }
+			defaultSort: { created_at: -1 },
+			defaultQuery: (queryParams) => {
+				const query = {} as {
+					action?: string;
+					level?: string;
+					created_at?: {
+						$gte?: Date;
+						$lte?: Date;
+					};
+				};
+
+				// Filter by action if provided
+				if (queryParams.action) {
+					query.action = queryParams.action;
+				}
+
+				// Filter by level if provided
+				if (queryParams.level) {
+					query.level = queryParams.level;
+				}
+
+				// Filter by date range if provided
+				if (queryParams.startDate || queryParams.endDate) {
+					query.created_at = {};
+					if (queryParams.startDate) {
+						query.created_at.$gte = new Date(queryParams.startDate);
+					}
+					if (queryParams.endDate) {
+						query.created_at.$lte = new Date(queryParams.endDate);
+					}
+				}
+
+				return query;
+			}
 		}
 	)
 );

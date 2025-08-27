@@ -6,6 +6,7 @@ import cookie from 'cookie-signature';
 import { AuthLogger } from '../logger/auth.logger';
 import OTPService from '../services/otp.service';
 import User from '../db/mongo/models/user';
+import { formatToIPv4 } from '../tools/util.tools';
 
 export function passportGate(req: Request, res: Response, next: NextFunction) {
 	if (!req.user) {
@@ -107,7 +108,18 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 
 			// Store essential session data
 			const currentTime = new Date();
-			req.session.ip = req.ip ?? req.socket.remoteAddress;
+			const remoteAddress =
+				(req.headers['x-real-ip'] as string) ||
+				req.ip ||
+				(Array.isArray(req.headers['x-forwarded-for'])
+					? req.headers['x-forwarded-for'][0]
+					: typeof req.headers['x-forwarded-for'] === 'string'
+						? req.headers['x-forwarded-for']
+						: undefined) ||
+				'N/A';
+			let ip = remoteAddress as string;
+			ip = formatToIPv4(ip) || '';
+			req.session.ip = ip;
 			req.session.userAgent = req.get('User-Agent');
 			req.session.loginTime = currentTime;
 			req.session.lastActivity = currentTime;
