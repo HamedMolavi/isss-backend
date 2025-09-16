@@ -1,5 +1,5 @@
 ###################################################################### Stage 1: Build and obfuscate
-FROM node:18.16.0-slim as builder
+FROM node:22.11.0-slim as builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN tsc
 RUN javascript-obfuscator ./build --output ./obfuscated
 
 ###################################################################### Stage 2: Runtime only (lighter image)
-FROM node:18.16.0-alpine as runtime
+FROM node:22.11.0-alpine as runtime
 
 WORKDIR /isss-backend
 
