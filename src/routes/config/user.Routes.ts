@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import User from '../../db/mongo/models/user';
-import { UserPasswordRequirements } from '../../types/interfaces/user.interface';
 import { dtoValidationMiddleware } from '../../validation/dto';
 import { CreateUserBody, UpdateUserBody, UpdatePasswordBody } from '../../validation/dto/user.dto';
 import { existCheck } from '../../validation/db';
@@ -27,7 +26,7 @@ UserRouter.post(
 		{ $or: [{ username: 'username' }, { phone_number: 'phone_number' }] },
 		'User or Phone number already exists!'
 	),
-	passwordValidator(UserPasswordRequirements),
+	passwordValidator(),
 	UserController.create
 );
 
@@ -49,7 +48,7 @@ UserRouter.patch(
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
 		info: 'Please provide both current and new password'
 	}),
-	passwordValidator(UserPasswordRequirements, 'new_password'),
+	passwordValidator('new_password'),
 	UserController.updatePassword
 );
 
@@ -86,7 +85,7 @@ UserRouter.patch(
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
 		info: 'Please provide new password'
 	}),
-	passwordValidator(UserPasswordRequirements, 'new_password'),
+	passwordValidator('new_password'),
 	UserController.resetUserPassword
 );
 
