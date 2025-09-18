@@ -30,6 +30,14 @@ export const getMonitorStatus = async (req: Request, res: Response) => {
 export const getGroupedActions = async (req: Request, res: Response) => {
 	const actionGroups = await Log.aggregate([
 		{
+			$match: {
+				'metadata.username': {
+					$exists: true,
+					$nin: ['system', 'unknown']
+				}
+			}
+		},
+		{
 			$group: {
 				_id: '$action'
 			}
