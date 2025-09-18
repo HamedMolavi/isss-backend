@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Log } from '../../db/mongo/models/secLog';
-import { readByIdMiddleware, readMiddleware } from '../../db/mongo/read.database';
+import { readMiddleware } from '../../db/mongo/read.database';
 import * as LogController from '../../controllers/log.controller';
 import { accessCheck } from '../../authentication/accessCheck.auth';
 import LogIntegrityRouter from './logIntegrity.routes';
@@ -49,6 +49,16 @@ LogRouter.get(
 						$gte?: Date;
 						$lte?: Date;
 					};
+					'metadata.username'?: {
+						$exists: boolean;
+						$nin?: string[];
+					};
+				};
+
+				// Filter out logs where username is not available or is system/unknown
+				query['metadata.username'] = {
+					$exists: true,
+					$nin: ['system', 'unknown']
 				};
 
 				// Filter by action if provided
@@ -79,7 +89,43 @@ LogRouter.get(
 );
 
 // Route for get log by id from DB
-LogRouter.get(`${route_prefix}/:id/info`, accessCheck('logs'), readByIdMiddleware(Log));
+LogRouter.get(`${route_prefix}/:id/info`, accessCheck('logs'), async (req, res) => {
+	try {
+		const id = req.params.id;
+
+		// Query with username filtering
+		const doc = await Log.findOne({
+			_id: id,
+			'metadata.username': {
+				$exists: true,
+				$nin: ['system', 'unknown']
+			}
+		}).exec();
+
+		if (!doc) {
+			return res.status(404).json({
+				success: false,
+				message: 'Log not found or not accessible'
+			});
+		}
+
+		return res.status(200).json({
+			success: true,
+			data: doc.toJSON()
+		});
+	} catch (err: unknown) {
+		if (err && typeof err === 'object' && 'kind' in err && err.kind === 'ObjectId') {
+			return res.status(400).json({
+				success: false,
+				message: `Invalid log ID: ${req.params.id}`
+			});
+		}
+		return res.status(500).json({
+			success: false,
+			message: 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error')
+		});
+	}
+});
 
 // Route for checking log status
 LogRouter.get(`${route_prefix}/monitor/status`, accessCheck('systemLog'), LogController.getMonitorStatus);

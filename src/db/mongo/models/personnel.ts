@@ -48,7 +48,8 @@ const PersonnelSchema: Schema<IPersonnel> = new Schema(
 		},
 		personnel_code: {
 			type: String,
-			required: true
+			required: true,
+			unique: true
 		},
 		camera_whitelist: {
 			type: [Schema.Types.ObjectId],
