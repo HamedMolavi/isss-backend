@@ -6,7 +6,9 @@ import {
 	IsBoolean,
 	IsOptional,
 	NotContains,
-	Validate
+	Validate,
+	IsDateString,
+	IsMongoId
 } from 'class-validator';
 import mongoose, { Schema } from 'mongoose';
 import { CountLicenseRestricion } from '.';
@@ -87,4 +89,19 @@ export class CameraInfoBody {
 	public password?: string;
 	@IsString()
 	public url?: string;
+}
+
+export class CreatePlaybackStreamBody {
+	@IsMongoId()
+	public camera_id!: string;
+
+	@IsDateString()
+	public start_date!: string;
+
+	@IsString()
+	public report_id?: string;
+
+	@IsOptional()
+	@IsDateString()
+	public end_date?: string;
 }

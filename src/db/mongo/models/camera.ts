@@ -2,7 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 import Model from './model';
 import ModelToCamera from './modelToCamera';
 import Schedule from './schedule';
-import { CameraTypes } from '../../../types/enums/camera.enum';
+import { CameraTypes, NVRTypes } from '../../../types/enums/camera.enum';
 import { ICamera } from '../../../types/interfaces/camera.interface';
 import { balanceNewCamera } from '../../../tools/loadBalancer.tools';
 import User from './user';
@@ -27,7 +27,8 @@ const CameraSchema: Schema<ICamera> = new Schema(
 			required: true,
 			enum: Object.values(CameraTypes) as string[],
 			default: CameraTypes.enter
-		}
+		},
+		nvr_type: { type: String, required: false, enum: Object.values(NVRTypes) as string[], default: null }
 	},
 	{
 		collection: 'Camera',

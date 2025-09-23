@@ -1,5 +1,4 @@
-import mongoose, { Schema } from 'mongoose';
-import { CameraTypes } from '../enums/camera.enum';
+import mongoose from 'mongoose';
 
 //define camera type
 export interface ICamera extends Document {
@@ -15,7 +14,8 @@ export interface ICamera extends Document {
 	password: string;
 	is_enabled: boolean;
 	create_date: Date;
-	camera_type: string | any;
+	camera_type: string | null;
+	nvr_type: string | null;
 }
 
 export interface ICameraInfo {

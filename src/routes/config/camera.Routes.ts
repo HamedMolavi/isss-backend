@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { getStreamUri, testCameraMiddleware } from '../../tools/camera.tools';
 import { dtoValidationMiddleware } from '../../validation/dto';
-import { CameraInfoBody, CreateCameraBody, UpdateCameraBody } from '../../validation/dto/camera.dto';
+import {
+	CameraInfoBody,
+	CreateCameraBody,
+	UpdateCameraBody,
+	CreatePlaybackStreamBody
+} from '../../validation/dto/camera.dto';
 import { CameraInfoKeys } from '../../types/interfaces/camera.interface';
 import { injectDataMiddleware } from '../../tools/request.tools';
 import * as CameraController from '../../controllers/camera.controller';
@@ -64,5 +69,16 @@ CameraRouter.patch(
 
 //add route for delete camera
 CameraRouter.delete(`${route_prefix}/:id`, CameraController.deleteById);
+
+//add route for create playback stream
+CameraRouter.post(
+	`${route_prefix}/playback-stream`,
+	dtoValidationMiddleware(CreatePlaybackStreamBody, {
+		skipMissingProperties: false,
+		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
+		info: 'please provide camera_id, start_date, and optional report_id and end_date'
+	}),
+	CameraController.createPlaybackStream
+);
 
 export default CameraRouter;

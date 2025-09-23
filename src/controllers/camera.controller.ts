@@ -10,6 +10,7 @@ import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
 import { ICamera } from '../types/interfaces/camera.interface';
 import { IUser } from '../types/interfaces/user.interface';
+import { getStreamCacheService } from '../services/streamCache.service';
 
 /**
  * Create a new camera
@@ -508,4 +509,160 @@ function sendFunction(
 	}
 	// return undefined to skip if user has no access
 	return undefined;
+}
+
+/**
+ * Create a temporary playback stream for a camera
+ */
+export const createPlaybackStream = async (req: Request, res: Response) => {
+	try {
+		const { camera_id, start_date, report_id, end_date } = req.body;
+
+		// Find the camera
+		const camera = await Camera.findById(camera_id).exec();
+		if (!camera) {
+			return ApiRes(res, {
+				status: HttpStatus.NOT_FOUND,
+				msg: 'Camera not found'
+			});
+		}
+
+		// Check if user has access to this camera
+		const hasAccess = await checkCameraAccess(req, camera);
+		if (!hasAccess) {
+			return ApiRes(res, {
+				status: HttpStatus.FORBIDDEN,
+				msg: 'Access denied to this camera'
+			});
+		}
+
+		// Parse dates
+		const startDate = new Date(start_date);
+		const endDate = end_date ? new Date(end_date) : new Date(startDate.getTime() + 20 * 1000); // Default: +20 seconds (10 before + 10 after)
+
+		// Validate dates
+		if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Invalid date format'
+			});
+		}
+
+		if (startDate >= endDate) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Start date must be before end date'
+			});
+		}
+
+		// Check Redis cache first
+		const streamCache = await getStreamCacheService();
+		const cachedStream = await streamCache.getCachedStream(
+			camera_id,
+			startDate.toISOString(),
+			endDate.toISOString(),
+			report_id
+		);
+
+		if (cachedStream) {
+			// Before returning cached stream, verify it's still available in go2rtc
+			const { go2rtcService } = await import('../services/go2rtc.service');
+			const isStreamAvailable = await go2rtcService.isStreamAvailable(cachedStream.streamName);
+
+			if (isStreamAvailable) {
+				// Stream is available, return from cache
+				return ApiRes(res, {
+					status: HttpStatus.OK,
+					data: {
+						stream_name: cachedStream.streamName,
+						camera_id: cachedStream.camera_id,
+						start_date: cachedStream.start_date,
+						end_date: cachedStream.end_date,
+						report_id: cachedStream.report_id,
+						expires_in: new Date(cachedStream.expires_at).getTime() - Date.now(),
+						expires_at: cachedStream.expires_at
+					}
+				});
+			} else {
+				// Stream is not available in go2rtc, remove from cache and create new one
+				await streamCache.removeCachedStream(
+					camera_id,
+					startDate.toISOString(),
+					endDate.toISOString(),
+					report_id
+				);
+				// Continue to create new stream below
+			}
+		}
+
+		// Prepare camera data
+		const cameraData = {
+			nvr_type: camera.nvr_type || 'hikvision', // Default to hikvision if not specified
+			ip: camera.ip,
+			username: camera.username,
+			password: camera.password,
+			nvr: camera.nvr || '1'
+		};
+
+		// Create playback stream using go2rtc service
+		const { createPlaybackStream: createStream } = await import('../services/go2rtc.service');
+		const result = await createStream(cameraData, startDate, endDate, report_id);
+
+		const responseData = {
+			stream_name: result.streamName,
+			camera_id: camera._id.toString(),
+			start_date: startDate.toISOString(),
+			end_date: endDate.toISOString(),
+			report_id: report_id || null,
+			expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+		};
+
+		// Cache the response in Redis
+		await streamCache.cacheStream(
+			camera_id,
+			startDate.toISOString(),
+			endDate.toISOString(),
+			{
+				streamName: result.streamName,
+				camera_id: camera._id.toString(),
+				start_date: startDate.toISOString(),
+				end_date: endDate.toISOString(),
+				report_id: report_id || undefined,
+				created_at: new Date().toISOString(),
+				expires_at: responseData.expires_at
+			},
+			report_id,
+			30 * 60 // 30 minutes TTL
+		);
+
+		return ApiRes(res, {
+			status: HttpStatus.OK,
+			data: responseData
+		});
+	} catch (error) {
+		console.error('Failed to create playback stream:', error);
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to create playback stream'
+		});
+	}
+};
+
+/**
+ * Check if user has access to camera
+ */
+async function checkCameraAccess(req: Request, camera: ICamera): Promise<boolean> {
+	const user = req.user as IUser;
+
+	// Admin and technician have access to all cameras
+	if (user.role === 'admin' || user.role === 'technician') {
+		return true;
+	}
+
+	// Regular user needs explicit camera access
+	if (user.role === 'user') {
+		return user.camera_access?.some((id: Types.ObjectId) => id.toString() === camera._id.toString()) || false;
+	}
+
+	return false;
 }
