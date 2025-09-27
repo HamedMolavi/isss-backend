@@ -28,18 +28,17 @@ const CameraSchema: Schema<ICamera> = new Schema(
 			enum: Object.values(CameraTypes) as string[],
 			default: CameraTypes.enter
 		},
-		nvr_type: { type: String, required: false, enum: Object.values(NVRTypes) as string[], default: null }
+		nvr_type: {
+			type: String,
+			required: false,
+			enum: Object.values(NVRTypes) as string[],
+			default: NVRTypes.hikvision
+		}
 	},
 	{
 		collection: 'Camera',
 		toJSON: {
 			transform(_doc, ret) {
-				delete ret['url'];
-				delete ret['nvr'];
-				delete ret['ip'];
-				delete ret['network'];
-				delete ret['username'];
-				delete ret['password'];
 				return ret;
 			}
 		}
