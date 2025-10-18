@@ -641,10 +641,15 @@ router.post(
 	readMiddleware(
 		Personnel,
 		(redisDateStringified) => {
-			const ids: Array<string> = JSON.parse(redisDateStringified);
-			return { person_id: { $in: ids } };
+			try {
+				const ids: Array<string> = JSON.parse(redisDateStringified);
+				return { person_id: { $in: ids } };
+			} catch (error) {
+				// If JSON parsing fails, return empty query to avoid errors
+				return {};
+			}
 		},
-		{ searchFromBody: (body) => JSON.stringify(body.redisData), populate: true }
+		{ searchFromBody: (body) => (body.redisData ? JSON.stringify(body.redisData) : ''), populate: true }
 	),
 	//error check
 	(req: Request, res: Response, next: NextFunction) =>

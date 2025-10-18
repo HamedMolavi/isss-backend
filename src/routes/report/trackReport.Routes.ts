@@ -61,14 +61,19 @@ function searchFromBody(
 	return JSON.stringify({ uid, start, end });
 }
 function searchFunction(search: string): FilterQuery<any> {
-	const searchJson = JSON.parse(search);
-	return {
-		uid: searchJson?.uid,
-		day: {
-			$gte: searchJson?.start,
-			$lt: searchJson?.end
-		}
-	};
+	try {
+		const searchJson = JSON.parse(search);
+		return {
+			uid: searchJson?.uid,
+			day: {
+				$gte: searchJson?.start,
+				$lt: searchJson?.end
+			}
+		};
+	} catch (error) {
+		// If JSON parsing fails, return empty query to avoid errors
+		return {};
+	}
 }
 
 export default router;

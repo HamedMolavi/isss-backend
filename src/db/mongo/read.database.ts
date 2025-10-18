@@ -65,7 +65,14 @@ export function readMiddleware(
 						: await query(search)
 					: defaultQuery) ?? {};
 			const sortQuery = req.query.sort
-				? JSON.parse(req.query.sort as string)
+				? (() => {
+						try {
+							return JSON.parse(req.query.sort as string);
+						} catch (error) {
+							// If JSON parsing fails, use default sort
+							return options?.defaultSort || { _id: -1 };
+						}
+					})()
 				: options?.defaultSort || { _id: -1 };
 
 			let docs: Document[] =
