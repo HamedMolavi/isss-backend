@@ -530,7 +530,8 @@ async function sendFunction(log: any, req: Request): Promise<any> {
 			image_id: log?.image_id ?? '',
 			hash_id: hash_id ?? '',
 			face_confidence: log?.face_confidence ?? '',
-			vector: log?.vector ?? ''
+			vector: log?.vector ?? '',
+			direction: log?.direction ?? ''
 		};
 	} catch (err: any) {
 		console.error(err);
