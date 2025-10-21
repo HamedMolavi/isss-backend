@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 import fs from 'fs';
 import { join } from 'path';
-import defaultEnvVars, { DefaultEnv } from './env.default';
 
 export default function extraEnvConfigs() {
 	try {

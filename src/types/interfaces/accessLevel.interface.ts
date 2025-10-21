@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose from 'mongoose';
 
 //define AccessLevel type
 export const accessList = [
@@ -14,8 +14,11 @@ export const accessList = [
 	'user',
 	'typeName',
 	'systemLog',
+	'logs',
 	'system',
-	'report'
+	'report',
+	'product',
+	'dataImportExport'
 ];
 export interface IAccessLevel extends Document {
 	_id: mongoose.Types.ObjectId;
@@ -32,7 +35,9 @@ export interface IAccessLevel extends Document {
 	user: number;
 	typeName: number;
 	systemLog: number;
+	logs: number;
 	system: number;
 	report: number;
 	product: number;
+	dataImportExport: number;
 }

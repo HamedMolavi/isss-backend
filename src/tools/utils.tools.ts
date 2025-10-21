@@ -6,6 +6,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Parser } from 'pickleparser';
 import { Jimp, ResizeStrategy } from 'jimp';
+import { createHash } from 'crypto';
 
 // bcrypt.hash("2", "$2b$10$/3XrA1.HamedMolaviC22O").then(hash => hash.slice(-31,-1))
 
@@ -149,3 +150,47 @@ export const idToCollectionName = (el: string) =>
 		.split('_')
 		.map((el) => el[0].toUpperCase() + el.slice(1))
 		.join('_');
+
+/**
+ * Generates a SHA256 hash for a given object and adds it as a 'hash' property.
+ * The hash is generated from a deterministic JSON string of the object (with sorted keys),
+ * excluding any existing 'hash' property.
+ *
+ * @param obj - The input object to generate a hash for
+ * @returns An object containing all original properties plus the generated hash,
+ *          or undefined if the input is invalid or an error occurs
+ *
+ * @example
+ * const data = { foo: 'bar', baz: 123 };
+ * const result = JSON_hash(data);
+ * // result = { foo: 'bar', baz: 123, hash: '...' }
+ *
+ * @throws {Error} When JSON stringification fails
+ */
+export const JSON_hash = (obj: Record<string, unknown>): { hash: string } | undefined => {
+	if (!obj || typeof obj !== 'object') {
+		return undefined;
+	}
+
+	try {
+		// Create a copy without the hash field
+		const { hash: _, ...objToHash } = obj;
+
+		// Handle empty object case
+		if (Object.keys(objToHash).length === 0) {
+			return undefined;
+		}
+
+		// Create deterministic JSON string (sorted keys)
+		const sortedJson = JSON.stringify(objToHash, null, 2);
+
+		// Generate SHA256 hash
+		const hashValue = createHash('sha256').update(sortedJson).digest('hex');
+
+		// Return object with new hash
+		return { ...obj, hash: hashValue };
+	} catch (error) {
+		console.error('Error generating hash:', error);
+		return undefined;
+	}
+};

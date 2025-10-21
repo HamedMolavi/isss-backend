@@ -114,3 +114,80 @@ export async function testCameraMiddleware(req: Request, res: Response, next: Ne
 		return next(new ApiError(500, 'internal server error , ' + err.message));
 	}
 }
+
+/**
+ * Generate RTSP URL based on NVR type and parameters
+ * @param nvrType - Type of NVR (hikvision, dahua, etc.)
+ * @param ip - IP address of the camera/NVR
+ * @param username - Username for authentication
+ * @param password - Password for authentication
+ * @param nvr - NVR/channel number
+ * @param startDate - Start date for playback (optional)
+ * @param endDate - End date for playback (optional)
+ * @returns RTSP URL string
+ */
+export function generateRTSPUrl(
+	nvrType: string,
+	ip: string,
+	username: string,
+	password: string,
+	nvr: string,
+	startDate?: Date,
+	endDate?: Date
+): string {
+	const port = 554; // Default RTSP port
+	const channel = nvr || 1;
+
+	// Format dates if provided (for playback)
+	let timeParams = '';
+	if (startDate && endDate) {
+		const startTime = formatDateToRTSP(startDate);
+		const endTime = formatDateToRTSP(endDate);
+		timeParams = `?starttime=${startTime}&endtime=${endTime}`;
+	}
+
+	switch (nvrType.toLowerCase()) {
+		case 'hikvision': {
+			if (startDate && endDate) {
+				// Playback URL
+
+				return `rtsp://${username}:${password}@${ip}:${port}/Streaming/tracks/${channel}${timeParams}`;
+			} else {
+				// Live stream URL
+
+				return `rtsp://${username}:${password}@${ip}:${port}/Streaming/Channels/${channel}`;
+			}
+		}
+
+		case 'dahua':
+			if (startDate && endDate) {
+				return `rtsp://${username}:${password}@${ip}:${port}/cam/playback?channel=${channel}&subtype=0&starttime=${formatDateToRTSP(startDate)}&endtime=${formatDateToRTSP(endDate)}`;
+			} else {
+				return `rtsp://${username}:${password}@${ip}:${port}/cam/realmonitor?channel=${channel}&subtype=0`;
+			}
+
+		default:
+			// Generic RTSP format
+			if (startDate && endDate) {
+				return `rtsp://${username}:${password}@${ip}:${port}/playback/stream${channel}${timeParams}`;
+			} else {
+				return `rtsp://${username}:${password}@${ip}:${port}/stream${channel}`;
+			}
+	}
+}
+
+/**
+ * Format date to RTSP time format (YYYYMMDDTHHMMSSZ)
+ * @param date - Date object
+ * @returns Formatted time string
+ */
+function formatDateToRTSP(date: Date): string {
+	const year = date.getUTCFullYear();
+	const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+	const day = date.getUTCDate().toString().padStart(2, '0');
+	const hour = date.getUTCHours().toString().padStart(2, '0');
+	const minute = date.getUTCMinutes().toString().padStart(2, '0');
+	const second = date.getUTCSeconds().toString().padStart(2, '0');
+
+	return `${year}${month}${day}T${hour}${minute}${second}Z`;
+}

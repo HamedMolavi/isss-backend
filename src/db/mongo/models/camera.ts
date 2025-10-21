@@ -2,7 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 import Model from './model';
 import ModelToCamera from './modelToCamera';
 import Schedule from './schedule';
-import { CameraTypes } from '../../../types/enums/camera.enum';
+import { CameraTypes, NVRTypes } from '../../../types/enums/camera.enum';
 import { ICamera } from '../../../types/interfaces/camera.interface';
 import { balanceNewCamera } from '../../../tools/loadBalancer.tools';
 import User from './user';
@@ -27,18 +27,18 @@ const CameraSchema: Schema<ICamera> = new Schema(
 			required: true,
 			enum: Object.values(CameraTypes) as string[],
 			default: CameraTypes.enter
+		},
+		nvr_type: {
+			type: String,
+			required: false,
+			enum: Object.values(NVRTypes) as string[],
+			default: NVRTypes.hikvision
 		}
 	},
 	{
 		collection: 'Camera',
 		toJSON: {
 			transform(_doc, ret) {
-				delete ret['url'];
-				delete ret['nvr'];
-				delete ret['ip'];
-				delete ret['network'];
-				delete ret['username'];
-				delete ret['password'];
 				return ret;
 			}
 		}
@@ -50,9 +50,9 @@ CameraSchema.post('save', balanceNewCamera);
 CameraSchema.post(
 	['remove', 'deleteOne', 'deleteMany', 'findOneAndDelete', 'findOneAndRemove'],
 	async (doc) => {
-		let model_cameras = await ModelToCamera.find({ camera_id: doc._id }).exec();
+		const model_cameras = await ModelToCamera.find({ camera_id: doc._id }).exec();
 		let models = await Model.find({}).exec();
-		let users = await User.find({}).exec();
+		let users = await User.find({ is_active: true }).exec();
 		let personnel = await Personnel.find({}).exec();
 		users = users.filter((user) =>
 			user.camera_access?.map((camera_id) => camera_id.toString()).includes(doc._id.toString())
@@ -76,13 +76,13 @@ CameraSchema.post(
 		).exec();
 		// delete camera access of each user
 		for (const user of users) {
-			let oldCA = user.camera_access;
+			const oldCA = user.camera_access;
 			user.camera_access = oldCA?.filter((camera_id) => camera_id.toString() != doc._id.toString());
 			await user.save();
 		}
 		// delete camera whitelist of each personnel
 		for (const person of personnel) {
-			let oldCW = person.camera_whitelist;
+			const oldCW = person.camera_whitelist;
 			person.camera_whitelist = oldCW?.filter((camera_id) => camera_id.toString() != doc._id.toString());
 			await person.save();
 		}

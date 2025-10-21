@@ -1,15 +1,23 @@
 import session from 'express-session';
 import redisStore from '../db/redis/store.database';
+import { SecurityConfigDefault } from '../config/security.config';
 
+/**
+ * Express session configuration
+ */
 export const sessionMiddleware = session({
 	store: redisStore(),
-	name: 'Bearer',
+	name: SecurityConfigDefault.SESSION.NAME,
 	secret: process.env['SESSION_SECRET'],
-	resave: false, //if you want to keep the session in case of user activity, set these both to true.
-	rolling: false, //if you want to keep the session in case of user activity, set these both to true.
+	resave: false,
+	rolling: true,
 	saveUninitialized: false,
+	proxy: process.env.NODE_ENV === 'production', // Trust the reverse proxy when in production
 	cookie: {
-		maxAge: undefined,
-		httpOnly: true
+		maxAge: SecurityConfigDefault.SESSION.TIMEOUT,
+		httpOnly: SecurityConfigDefault.SESSION.COOKIE.HTTP_ONLY,
+		secure: SecurityConfigDefault.SESSION.COOKIE.SECURE,
+		sameSite: SecurityConfigDefault.SESSION.COOKIE.SAME_SITE,
+		path: SecurityConfigDefault.SESSION.COOKIE.PATH
 	}
 });

@@ -1,132 +1,72 @@
 version: '3.8'
 services:
-  # redis:
-  #   image: redis:6.2-alpine
-  #   restart: always
-  #   environment:
-  #     - ALLOW_EMPTY_PASSWORD=yes
-  #   ports:
-  #     - '6379:6379'
-  #   command: redis-server --save 20 1 --loglevel warning
-  #   volumes:
-  #     - cache:/data
-  # mongo:
-  #   container_name: mongo
-  #   image: ${REG}mongo
-  #   restart: always
-  #   volumes:
-  #     - mongo-data:/data
-  #   ports:
-  #     - 27017:27017
-  #  redis:
-  #    container_name: redis
-  #    image: ${REG}redis
-  #   restart: always
-  #   volumes:
-  #     - cache:/data
-  #   ports:
-  #     - 6379:6379
-  app:
-    container_name: isss-backend
+  isss-backend-new:
+    container_name: isss-backend-new
+    image: 192.168.100.100:5000/isss-backend:4.1.2
     restart: always
     stdin_open: true
     tty: true
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
-    image: registry.ariapa.com/isss-backend
-    # env_file: .env
     environment:
-      - PORT_HTTP=3000
-      - PORT_HTTPS=4000
-      - HOST=0.0.0.0
-      - BASE_URL=192.168.10.20:9000/api/v1
-      - MONGODB_URL=mongodb://192.168.10.20:27021/test?directConnection=true
-      - REDIS_URL=redis://192.168.10.20:6379
-      - JWT_SECRET=eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTY1NzA4ODI5NiwiaWF0IjoxNjU3MDg4Mjk2fQ.0Qoo9fGvlQAQ428j7jJqSKOw9UJK-iXVEdQLwuyYJpg
-      - ELASTIC_SEARCH=http://192.168.10.20:9200
-      - REQUEST_LOG_FORMAT=combined
-      - NODE_ENV=development
-      - WEB_STREAM=http://192.168.10.20:8083/testcamera/
-      - REQUEST_LOG_FILE=./logs/request.log
-      - API_AI_REDIS_NAME=http://192.168.10.20:6379
-      - RECORD_STREAM_TIME=15000
-      - TREACKER_SEARCH_URL=http://192.168.10.20:9200/faceys1_log/_search
-      - SAMPLE_STREAM_URI=rtsp://192.168.10.108:554/unicast/c0/s0/live
-      - WORD_BEFORE_REPLACE_STREAM=c0
-      - WORD_AFTER_REPLACE_STREAM=c
-      - KAFKA_BOOTSTRAP=192.168.10.20:9092
-      - REQUEST_LOG_DIR=./
-      - SESSION_SECRET=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImFhYSI6dHJ1ZX0
-      - MODELS=face,plate
-      - MAX_LOAD=100
-      - TZ=Asia/Tehran
-      # - SECURE=FALSE
+      #TZ: Asia/Tehran
+      PORT_HTTP: 9000
+      PORT_HTTPS: 4000
+      HOST: 0.0.0.0
+      BASE_URL: 0.0.0.0:9000/api/v1
+      MONGODB_URL: mongodb://ariapa:ariapa@192.168.1.116:27021/test?authSource=admin&directConnection=true
+      REDIS_URL: redis://:${Password_init}@${HOST}:6379
+      ELASTIC_SEARCH: http://${ELASTIC_USERNAME}:${Password_init}@${HOST}:9200
+      NODE_ENV: development
+      WEB_STREAM: http://${HOST}:8083/testcamera/
+      RECORD_STREAM_TIME: 15000
+      TREACKER_SEARCH_URL: http://${ELASTIC_USERNAME}:${Password_init}@${HOST}:9200/facearc_log/_search
+      SAMPLE_STREAM_URI: rtsp://${NVR_HOST}:554/unicast/c0/s0/live
+      WORD_BEFORE_REPLACE_STREAM: c0
+      WORD_AFTER_REPLACE_STREAM: c
+      KAFKA_BOOTSTRAP: ${HOST}:9092
+      REQUEST_LOG_DIR: /isss-backend/src/logs
+      SESSION_SECRET: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImFhYSI6dHJ1ZX0
+      MAX_LOAD: 100
+      SIGNAL_TOPIC: signal
+      SIGNAL_KEY: connect
+      MODELS: ${SELECTED_MODELS:-face,plate}
+      FACE_INDEX: ${FACE_INDEX:-face_log}
+      PLATE_INDEX: ${PLATE_INDEX:-plate_log}
+      HUMAN_INDEX: human_log
+      SABOTAGE_INDEX: sabotage_log
+      OBJECT_INDEX: objectdetecion_log
+      NODE_OPTIONS: '--max-old-space-size=6144'
+      MAX_CAMERAS: ${MAX_CAMERAS:-12}
+      MAX_FACES: ${MAX_FACES:-12}
+      MAX_PLATES: ${MAX_PLATES:-12}
+      # Logging Configuration (New)
+      LOG_LEVEL: info
+      LOG_TTL_DAYS: 30
+      SQLITE_DB_PATH: ./src/data/integrity/integrity.db
+      # Security Configuration (New)
+      RATE_LIMIT_WINDOW: 900000
+      RATE_LIMIT_MAX: 100
+      AUTH_RATE_LIMIT_MAX: 5
+      HSTS_MAX_AGE: 31536000
+      # Session Configuration (New)
+      SESSION_LIMIT_PER_USER: 3
+      SESSION_CLEANUP_INTERVAL: 300000
+      # Integrity Monitoring (New)
+      INTEGRITY_CHECK_INTERVAL: 3600000
+      BACKUP_RETENTION_DAYS: 90
     ports:
-      - 9000:9000
-    volumes:
-      - ./logs:/isss-backend/logs
-      - ./assets:/isss-backend/assets
-      - ./security:/isss-backend/security
-      - ./metadata:/isss-backend/metadata
+      - 9001:9000
+      - 8881:4000
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:9000/healthcheck']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    # external_links:
-    #   - mongo1
-    #   - mongo2
-    #   - mongo3
-    #   - redis
-    # depends_on:
-    #   - mongo1
-    #   - mongo2
-    #   - mongo3
-    #   - redis
-# volumes:
-#   cache:
-#     driver: local
-#   mongo-data:
-#     driver: local
-# volumes:
-#   cache:
-#     driver: local
+      test: ['CMD', 'curl', '--fail', '-G', 'http://localhost:9000/api/v1/healthcheck']
+      interval: 15s
+      timeout: 15s
+      retries: 5
+      start_period: 10s
+    labels:
+      - '${HEAL}=true'
+    networks:
+      - external-net
 
-# version: '3.7'
-# services:
-#   backend:
-#     container_name: backend
-#     image: registry.ariapa.com/isss-backend:latest
-#     restart: always
-#     build:
-#       context: .
-#       dockerfile: Dockerfile
-#     ports:
-#       - '9080:3000'
-#     environment:
-#       API_AI_REDIS_NAME: http://192.168.1.122:23581
-#       BASE_URL: 192.168.1.122:9080/api/v1
-#       ELASTIC_SEARCH: http://192.168.1.122:9200
-#       HOST: 0.0.0.0
-#       JWT_SECRET: eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTY1NzA4ODI5NiwiaWF0IjoxNjU3MDg4Mjk2fQ.0Qoo9fGvlQAQ428j7jJqSKOw9UJK-iXVEdQLwuyYJpg
-#       KEY_HASH_OBJECT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyY2U3NzdkZTQxMjZlZWYzODlhZGM5ZCIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTY2MDY0ODEyOSwiaWF0IjoxNjU4MDU2MTI5fQ.g_y-WPtmALc8t-t6-6olgzzgDwH0LauX4j31YnMlFEk
-#       MONGODB_URL: mongodb://192.168.1.122:27019/test?directConnection=true
-#       NODE_ENV: development
-#       PORT_http: 3000
-#       PORT_https: 4000
-#       RECORD_STREAM_TIME: 20000
-#       REDIS_URL: redis://192.166.1.122:6379
-#       REQUEST_LOG_FILE: ./logs/request.log
-#       REQUEST_LOG_FORMAT: dev
-#       sample_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyYzY4NGMwNjhiMGNhNjUyNmY3ODkxNCIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTY1OTc2OTI5MCwiaWF0IjoxNjU3MTc3MjkwfQ.jqWxteAiyQnca22CRaKlHbsjdz-8dfZ0mIMzgaNTSBc
-#       TREACKER_SEARCH_URL: http://192.168.1.122:9200/face_log/_search
-#       WEB_STREAM: http://127.0.0.1:8083/testcamera/
-#       SAMPLE_STREAM_URI: rtsp://172.10.10.220:554/unicast/c0/s0/live
-#       WORD_BEFORE_REPLACE_STREAM: c0
-#       WORD_AFTER_REPLACE_STREAM: c
-#     volumes:
-#       - ./logs:/isss-backend/logs
-#       - ./assets:/isss-backend/assets
-#       - ./security:/isss-backend/security
+networks:
+  external-net:
+    driver: bridge

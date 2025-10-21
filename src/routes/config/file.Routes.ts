@@ -4,7 +4,7 @@ import PersonImage from '../../db/mongo/models/personImage';
 import { createMiddleware } from '../../db/mongo/create.database';
 import { randomUuid, resizeImage, unpickle } from '../../tools/utils.tools';
 import { dtoValidationMiddleware } from '../../validation/dto';
-import mongoose, { Schema } from 'mongoose';
+import mongoose from 'mongoose';
 import {
 	AddBatchPersonnel,
 	AddClient,
@@ -15,24 +15,30 @@ import { injectDataMiddleware } from '../../tools/request.tools';
 import Personnel from '../../db/mongo/models/personnel';
 import { allowedPassConvert } from '../../tools/time.tools';
 import JobTitle from '../../db/mongo/models/jobTitle';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, unlinkSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, writeFileSync } from 'fs';
 import path from 'path';
 import { ApiError } from '../../types/classes/error.class';
 import { hashString } from '../../tools/hash';
-import { IPersonnel } from '../../types/interfaces/personnel.interface';
 import { Kafka, logLevel } from 'kafkajs';
 import { ensureDirSync, moveSync } from 'fs-extra';
 import Product from '../../db/mongo/models/product';
 import Camera from '../../db/mongo/models/camera';
-import { ISection } from '../../types/interfaces/section.interface';
 import { readMiddleware } from '../../db/mongo/read.database';
+
+import { DataImportExportLogger } from '../../logger/data-input-output.logger';
+import { accessCheck } from '../../authentication/accessCheck.auth';
+import { checkIPRestriction } from '../../middleware/ip-restriction.middleware';
+import {
+	batchSecurityValidation,
+	batchRateLimit,
+	fileUploadSecurityValidation
+} from '../../middleware/batch-security-validation.middleware';
+import { UploadedFile } from 'express-fileupload';
 import Excel from 'exceljs';
 import CarColor from '../../db/mongo/models/carColor';
 import CarBrand from '../../db/mongo/models/carBrand';
-import { ICarBrand, ICarColor } from '../../types/interfaces/car.interface';
 import Car from '../../db/mongo/models/car';
 import { stringPersianToStringEnglish } from '../../tools/plate.tools';
-import { UploadedFile } from 'express-fileupload';
 
 const secret = process.env['SESSION_SECRET'];
 //create customized redis client
@@ -43,145 +49,166 @@ const snapshotKafka = new SnapshotKafka();
 const router: Router = Router();
 
 //create api for upload image
-router.post('/upload', cfs.uploadAvatarMiddleware('image_str', 'perssonel_id'));
+router.post(
+	'/upload',
+	fileUploadSecurityValidation,
+	cfs.uploadAvatarMiddleware('image_str', 'perssonel_id'),
+	(req, res, next) => {
+		// Log file upload
+		DataImportExportLogger.fileUploaded(req, 'avatar_image', 'IMAGE', true);
+		next();
+	}
+);
 
 //create api for download image
-router.get('/download/:fileName', cfs.downloadAvatarMiddleware('fileName'));
+router.get('/download/:fileName', fileUploadSecurityValidation, cfs.downloadAvatarMiddleware('fileName'));
 
 //create api for get list file upload
-router.get('/list', cfs.listMiddleware());
+router.get('/list', fileUploadSecurityValidation, cfs.listMiddleware());
 
-router.post('/batch/plate', async (req, res) => {
-	if (!req.files?.['file']) return res.status(400).json({ error: 'No file uploaded' });
-	try {
-		const result: any[] = [];
-		// Note: excel must be sent under "file" property of form.
-		const workbook = await new Excel.Workbook().xlsx.load((req.files?.['file'] as UploadedFile).data);
-		// Note: data must be saved in either "cars" worksheet or the first worksheet
-		const worksheet = workbook.getWorksheet('cars') || workbook.getWorksheet(1);
-		if (!worksheet) return res.status(400).json({ error: 'No Sheet present' });
-		const map: { [key: string]: number } = {};
-		worksheet.getRow(1).eachCell({ includeEmpty: true }, function (cell, colNumber) {
-			map[cell.value?.toString().trim() ?? ''] = colNumber;
-		});
+router.post(
+	'/batch/plate',
+	// Security validation for file uploads
+	fileUploadSecurityValidation,
+	checkIPRestriction,
+	accessCheck('dataImportExport'),
+	async (req, res) => {
+		if (!req.files?.['file']) return res.status(400).json({ error: 'No file uploaded' });
+		try {
+			const result: any[] = [];
+			// Note: excel must be sent under "file" property of form.
+			const workbook = await new Excel.Workbook().xlsx.load((req.files?.['file'] as UploadedFile).data);
+			// Note: data must be saved in either "cars" worksheet or the first worksheet
+			const worksheet = workbook.getWorksheet('cars') || workbook.getWorksheet(1);
+			if (!worksheet) return res.status(400).json({ error: 'No Sheet present' });
+			const map: { [key: string]: number } = {};
+			worksheet.getRow(1).eachCell({ includeEmpty: true }, function (cell, colNumber) {
+				map[cell.value?.toString().trim() ?? ''] = colNumber;
+			});
 
-		for (const row of worksheet?.getRows(2, worksheet.lastRow?.number ?? 0) ?? []) {
-			// Note: first row is the header, include plate_number + personnel_code + [first_name + last_name + color + brand]
-			let plate_number: string | undefined,
-				personnel_code: string | undefined,
-				personnel: any,
-				color: any,
-				brand: any,
-				first_name: string | undefined,
-				last_name: string | undefined;
-			if (
-				(!!map['plate_number'] && (plate_number = row.getCell(map['plate_number']).value?.toString())) ||
-				(!!map['rtl_plate_number'] &&
-					(plate_number = row
-						.getCell(map['rtl_plate_number'])
-						.value?.toString()
-						.split('')
-						.reverse()
-						.join('')))
-				// || ["first", "second", "third", "fifth"].every(el => !!map[el])
-			) {
-				plate_number = !!map['fifth']
-					? plate_number + (row.getCell(map['fifth']).value ?? '').toString()
-					: plate_number;
-				const number_plate = stringPersianToStringEnglish(plate_number);
-				if (number_plate.length !== 8 || (await Car.exists({ number_plate }))) continue;
+			for (const row of worksheet?.getRows(2, worksheet.lastRow?.number ?? 0) ?? []) {
+				// Note: first row is the header, include plate_number + personnel_code + [first_name + last_name + color + brand]
+				let plate_number: string | undefined,
+					personnel_code: string | undefined,
+					personnel: any,
+					color: any,
+					brand: any,
+					first_name: string | undefined,
+					last_name: string | undefined;
 				if (
-					!(personnel = await Personnel.findOne({
-						first_name: row.getCell(map['first_name']).value?.toString(),
-						last_name: row.getCell(map['last_name']).value?.toString()
-					})
-						.lean()
-						.exec()) &&
-					// personnel_code column was missing => first_name and last_name should be present to create a new personnel
-					(!map['personnel_code'] ||
-						// personnel_code cell is empty for this row => first_name and last_name should be present to create a new personnel
-						!(personnel_code = row.getCell(map['personnel_code']).value?.toString()) ||
-						// personnel_code is provided but there is no person in DB with that personnel_code => first_name and last_name should be present to create a new personnel
-						!(personnel = await Personnel.findOne({ personnel_code: personnel_code }).lean().exec())) // If all of above return false => There is a person in DB with the personnel_code => we don't need first_name and last_name any more
+					!!map['plate_number'] &&
+					(plate_number = row.getCell(map['plate_number']).value?.toString())
+					// || ["first", "second", "third", "fifth"].every(el => !!map[el])
 				) {
+					plate_number = map['fifth']
+						? plate_number + (row.getCell(map['fifth']).value ?? '').toString()
+						: plate_number;
+					const number_plate = stringPersianToStringEnglish(plate_number);
+					if (number_plate.length !== 8 || (await Car.exists({ number_plate }))) continue;
 					if (
-						!!map['first_name'] &&
-						map['last_name'] &&
-						(first_name = row.getCell(map['first_name']).value?.toString()) &&
-						(last_name = row.getCell(map['last_name']).value?.toString())
-					)
-						// new owner => create a person in database
-						personnel = await Personnel.create({
-							personnel_code:
-								personnel_code ??
-								Array(10)
-									.fill(0)
-									.map((_) => Math.floor(Math.random() * 10))
-									.join(''),
-							first_name,
-							last_name
-						});
-					else continue; //without owner => cancel the operation
-				}
+						!(personnel = await Personnel.findOne({
+							first_name: row.getCell(map['first_name']).value?.toString(),
+							last_name: row.getCell(map['last_name']).value?.toString()
+						})
+							.lean()
+							.exec()) &&
+						// personnel_code column was missing => first_name and last_name should be present to create a new personnel
+						(!map['personnel_code'] ||
+							// personnel_code cell is empty for this row => first_name and last_name should be present to create a new personnel
+							!(personnel_code = row.getCell(map['personnel_code']).value?.toString()) ||
+							// personnel_code is provided but there is no person in DB with that personnel_code => first_name and last_name should be present to create a new personnel
+							!(personnel = await Personnel.findOne({ personnel_code: personnel_code }).lean().exec())) // If all of above return false => There is a person in DB with the personnel_code => we don't need first_name and last_name any more
+					) {
+						if (
+							!!map['first_name'] &&
+							map['last_name'] &&
+							(first_name = row.getCell(map['first_name']).value?.toString()) &&
+							(last_name = row.getCell(map['last_name']).value?.toString())
+						)
+							// new owner => create a person in database
+							personnel = await Personnel.create({
+								personnel_code:
+									personnel_code ??
+									Array(10)
+										.fill(0)
+										.map(() => Math.floor(Math.random() * 10))
+										.join(''),
+								first_name,
+								last_name
+							});
+						else continue; //without owner => cancel the operation
+					}
 
-				if (
-					!map['color'] ||
-					!(color = await CarColor.findOne({
-						$or: [
-							{ name: { $regex: row.getCell(map['color']).value?.toString(), $options: 'i' } },
-							{ fa_name: { $regex: row.getCell(map['color']).value?.toString(), $options: 'i' } }
-						]
-					})
-						.lean()
-						.exec())
-				) {
-					color = await CarColor.findOne({ name: 'unknown' }).lean().exec();
+					if (
+						!map['color'] ||
+						!(color = await CarColor.findOne({
+							$or: [
+								{ name: { $regex: row.getCell(map['color']).value?.toString(), $options: 'i' } },
+								{ fa_name: { $regex: row.getCell(map['color']).value?.toString(), $options: 'i' } }
+							]
+						})
+							.lean()
+							.exec())
+					) {
+						color = await CarColor.findOne({ name: 'unknown' }).lean().exec();
+					}
+					if (
+						!map['brand'] ||
+						!(brand = await CarBrand.findOne({
+							$or: [
+								{ name: { $regex: row.getCell(map['brand']).value?.toString(), $options: 'i' } },
+								{ fa_name: { $regex: row.getCell(map['brand']).value?.toString(), $options: 'i' } }
+							]
+						})
+							.lean()
+							.exec())
+					) {
+						brand = await CarBrand.findOne({ name: 'unknown' }).lean().exec();
+					}
+					result.push(
+						await Car.create({
+							owner: personnel?._id,
+							number_plate,
+							brand: brand?._id,
+							color: color?._id
+						})
+					);
 				}
-				if (
-					!map['brand'] ||
-					!(brand = await CarBrand.findOne({
-						$or: [
-							{ name: { $regex: row.getCell(map['brand']).value?.toString(), $options: 'i' } },
-							{ fa_name: { $regex: row.getCell(map['brand']).value?.toString(), $options: 'i' } }
-						]
-					})
-						.lean()
-						.exec())
-				) {
-					brand = await CarBrand.findOne({ name: 'unknown' }).lean().exec();
-				}
-				result.push(
-					await Car.create({
-						owner: personnel?._id,
-						number_plate,
-						brand: brand?._id,
-						color: color?._id
-					})
-				);
 			}
+
+			// Log successful plate batch import
+			DataImportExportLogger.plateBatchImported(req, result.length, true);
+
+			res.status(201).json({
+				success: true,
+				data: result
+			});
+		} catch (err: any) {
+			// Log failed plate batch import
+			DataImportExportLogger.plateBatchImported(req, 0, false, err.message);
+			res.status(500).json({ error: 'Failed to read Excel file', details: err.message });
 		}
-		res.status(201).json({
-			success: true,
-			data: result
-		});
-	} catch (err: unknown) {
-		res
-			.status(500)
-			.json(
-				err instanceof Error
-					? { error: 'Failed to read Excel file', details: err.message, stack: err.stack }
-					: { error: 'Failed to read Excel file' }
-			);
 	}
-});
+);
 
 router.post(
 	'/batch',
+	// 1. SECURITY VALIDATION LAYER (FIRST PRIORITY)
+	batchRateLimit, // Rate limiting for batch operations
+	batchSecurityValidation, // Path traversal and input validation
+	checkIPRestriction, // IP restriction validation
+
+	// 2. AUTHENTICATION & AUTHORIZATION
+	accessCheck('dataImportExport'),
+
+	// 3. INPUT VALIDATION
 	dtoValidationMiddleware(AddBatchPersonnel, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
 		info: 'please fill all fields'
 	}),
+
+	// 4. EXISTING MIDDLEWARE CHAIN (unchanged)
 	snapshotKafka.middlewareWraper(
 		snapshotKafka.kafkaSession,
 		(req) => {
@@ -299,16 +326,16 @@ router.post(
 							hash_id
 						}).exec();
 						//////////////////////////////////////
-						if (!!existingPersonImage) {
+						if (existingPersonImage) {
 							const pervPerson = await Personnel.findById(existingPersonImage.person_id).exec();
 							if (person.id === pervPerson?.id) {
 								console.log(`Image already added for personnel ${person.id}/${personnel_code}: ${imagePath}`);
-							} else if (!!pervPerson) {
+							} else if (pervPerson) {
 								const pervPersonnel_code = pervPerson?.personnel_code;
 								console.log(
 									`Image ${imagePath} exists for ${pervPersonnel_code} and can't be added to ${personnel_code}`
 								);
-								let pp: string | undefined = data['successful'].find((p: string) =>
+								const pp: string | undefined = data['successful'].find((p: string) =>
 									p.includes(personnelCode_imageName.replace('_', '/'))
 								);
 								if (typeof pp === 'string') {
@@ -322,10 +349,10 @@ router.post(
 									if (!readdirSync(path.dirname(exactImagePath)).length)
 										rmdirSync(path.dirname(exactImagePath));
 								}
-								let pp2: string | undefined = data['successful'].find((p: string) =>
+								const pp2: string | undefined = data['successful'].find((p: string) =>
 									p.includes(pervPersonnel_code)
 								);
-								if (!!pp2) {
+								if (pp2) {
 									ensureDirSync(path.join(user_dir, pervPersonnel_code));
 									const exactImagePath = path.join(__dirname, '../../../face_DB', pp2);
 									moveSync(
@@ -347,7 +374,9 @@ router.post(
 											path.join(user_dir, `${pervPersonnel_code}/${pervPersonnel_code}.jpg`),
 											{ overwrite: true }
 										);
-									} catch (error) {}
+									} catch {
+										// Ignore file move errors
+									}
 								}
 								failed_count += 2;
 								successful_count -= data['successful'].filter((p: string) =>
@@ -404,6 +433,9 @@ router.post(
 		// data['failed_count'] = data['failed'].length;
 		data['failed_count'] = failed_count;
 		data['failed'] = undefined;
+		// Log batch personnel import
+		DataImportExportLogger.batchPersonnelImported(req, successful_count, failed_count, true);
+
 		res.send({
 			success: true,
 			data
@@ -480,9 +512,8 @@ router.post(
 		[
 			{ tracked: (body) => !!body['tracked'] },
 			{ alert: (body) => !!body['alert'] },
-			{ first_name: (body) => body['first_name'] ?? 'Hostile' },
-			{ last_name: (body) => body['last_name'] ?? body['code'] },
-			{ national_code: (body) => body['national_code'] },
+			{ first_name: (body) => 'Hostile' },
+			{ last_name: (body) => body['code'] },
 			{ person_type: (_body) => 'hostile' },
 			{ personnel_code: (body) => body['code'] }
 		],
@@ -610,10 +641,15 @@ router.post(
 	readMiddleware(
 		Personnel,
 		(redisDateStringified) => {
-			const ids: Array<string> = JSON.parse(redisDateStringified);
-			return { person_id: { $in: ids } };
+			try {
+				const ids: Array<string> = JSON.parse(redisDateStringified);
+				return { person_id: { $in: ids } };
+			} catch (error) {
+				// If JSON parsing fails, return empty query to avoid errors
+				return {};
+			}
 		},
-		{ searchFromBody: (body) => JSON.stringify(body.redisData), populate: true }
+		{ searchFromBody: (body) => (body.redisData ? JSON.stringify(body.redisData) : ''), populate: true }
 	),
 	//error check
 	(req: Request, res: Response, next: NextFunction) =>

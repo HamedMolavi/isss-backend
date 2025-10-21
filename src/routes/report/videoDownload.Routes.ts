@@ -3,7 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { ApiError } from '../../types/classes/error.class';
 import { getPathFromIdTime } from '../../tools/getPathFromIdTiem';
-import { Access } from '../../types/enums/access.enum';
+import { DataImportExportLogger } from '../../logger/data-input-output.logger';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 var ffmpeg = require('fluent-ffmpeg');
 //get user role from enviroment variable
 const const_role = process.env.const_role || 'user';
@@ -19,47 +20,56 @@ router.use(function (req: Request, res: Response, next: NextFunction) {
 	next();
 });
 
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
-	try {
-		//get parameter from url
-		const dataVideo: string = req.params.id;
-		const dataVideoList: string[] = dataVideo?.split('.');
-		const videoPath = getPathFromIdTime(Number(dataVideoList[1]), dataVideoList[0].toString());
-		await convertVideo(videoPath, 'mp4');
-		let videoName = videoPath.split('/');
-		videoName = videoName[videoName.length - 1]?.split('.');
-		let nameFileVideo2 = `${videoName[0]}.${videoName[1]}.${videoName[2]}_new.mp4`;
-		let newVideoPath = path.join(videoPath, './../') + nameFileVideo2;
-		const videoStat = fs.statSync(newVideoPath);
-		const fileSize = videoStat.size;
-		const videoRange = req.headers.range;
-		if (videoRange) {
-			const parts = videoRange.replace(/bytes=/, '').split('-');
-			const start = parseInt(parts[0], 10);
-			const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-			const chunksize = end - start + 1;
-			const file = fs.createReadStream(newVideoPath, { start, end });
-			const head = {
-				'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-				'Accept-Ranges': 'bytes',
-				'Content-Length': chunksize,
-				'Content-Type': 'video/mp4'
-			};
-			res.writeHead(206, head);
-			file.pipe(res);
-		} else {
-			const head = {
-				'Content-Length': fileSize,
-				'Content-Type': 'video/mp4'
-			};
-			res.writeHead(200, head);
-			let read_stream = fs.createReadStream(newVideoPath);
-			read_stream.pipe(res);
+router.get(
+	'/:id',
+	accessCheck('dataImportExport'),
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			//get parameter from url
+			const dataVideo: string = req.params.id;
+			const dataVideoList: string[] = dataVideo?.split('.');
+			const videoPath = getPathFromIdTime(Number(dataVideoList[1]), dataVideoList[0].toString());
+			await convertVideo(videoPath, 'mp4');
+			let videoName = videoPath.split('/');
+			videoName = videoName[videoName.length - 1]?.split('.');
+			let nameFileVideo2 = `${videoName[0]}.${videoName[1]}.${videoName[2]}_new.mp4`;
+			let newVideoPath = path.join(videoPath, './../') + nameFileVideo2;
+			const videoStat = fs.statSync(newVideoPath);
+			const fileSize = videoStat.size;
+			const videoRange = req.headers.range;
+			if (videoRange) {
+				const parts = videoRange.replace(/bytes=/, '').split('-');
+				const start = parseInt(parts[0], 10);
+				const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+				const chunksize = end - start + 1;
+				const file = fs.createReadStream(newVideoPath, { start, end });
+				const head = {
+					'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+					'Accept-Ranges': 'bytes',
+					'Content-Length': chunksize,
+					'Content-Type': 'video/mp4'
+				};
+				res.writeHead(206, head);
+				file.pipe(res);
+			} else {
+				const head = {
+					'Content-Length': fileSize,
+					'Content-Type': 'video/mp4'
+				};
+				res.writeHead(200, head);
+				let read_stream = fs.createReadStream(newVideoPath);
+				read_stream.pipe(res);
+			}
+
+			// Log successful video download
+			DataImportExportLogger.videoDownloaded(req, dataVideo, true);
+		} catch (error: any) {
+			// Log failed video download
+			DataImportExportLogger.videoDownloaded(req, req.params.id || 'unknown', false, error.message);
+			return next(new ApiError(500, 'internal server error' + error.message));
 		}
-	} catch (error: any) {
-		return next(new ApiError(500, 'internal server error' + error.message));
 	}
-});
+);
 
 export default router;
 

@@ -1,11 +1,10 @@
 import { Client } from '@elastic/elasticsearch';
-import { IConsumer } from './interfaces/kafka.interface';
 
 export {};
 declare global {
 	namespace NodeJS {
 		interface Process {
-			load: Object & { [key: string]: Object & { [key: string]: number } };
+			load: object & { [key: string]: object & { [key: string]: number } };
 			esclient: Client;
 		}
 		interface ProcessEnv {
@@ -30,8 +29,19 @@ declare global {
 			WORD_BEFORE_REPLACE_STREAM: string;
 			WORD_AFTER_REPLACE_STREAM: string;
 			MODELS: string;
-			LOGTYPES: string;
-			MDPATH: string;
+			LOG_COLLECTION_SIZE: string;
+			SQLITE_PATH: string;
+		}
+	}
+	namespace Express {
+		interface Request {
+			loginRateLimit?: {
+				username: string;
+				ip: string;
+			};
+		}
+		interface Response {
+			responseBody?: unknown;
 		}
 	}
 }

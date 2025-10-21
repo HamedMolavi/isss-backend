@@ -1,11 +1,10 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../types/classes/error.class';
-import mongoose, { Document, Types, isObjectIdOrHexString } from 'mongoose';
-import { ICamera } from '../types/interfaces/camera.interface';
-import Camera from '../db/mongo/models/camera';
-import { read } from '../db/mongo/read.database';
+import mongoose, { isObjectIdOrHexString } from 'mongoose';
+
 import AccessLevel from '../db/mongo/models/accessLevel';
 import { IAccessLevel } from '../types/interfaces/accessLevel.interface';
+import { UserLogger } from '../logger/user.logger';
 
 // CRUD => Create, Read, Update, Delete
 const accessTranslation = {
@@ -23,7 +22,12 @@ const accessCharPositions = {
 };
 
 export function userCanGetHisInfo(req: Request) {
-	let probableParamId = req.path.split('/').find((el) => isObjectIdOrHexString(el));
+	// Check if user is authenticated
+	if (!req.user) {
+		return false;
+	}
+
+	const probableParamId = req.path.split('/').find((el) => isObjectIdOrHexString(el));
 	if (
 		['GET', 'PATCH'].includes(req.method) &&
 		!!req.originalUrl.match('/api/v1/config/admin/users/') &&
@@ -51,12 +55,55 @@ export function accessCheck(
 	 */
 	return async function middleware(req: Request, res: Response, next: NextFunction) {
 		const user = req.user;
+
+		// Check if user is authenticated
+		if (!user) {
+			UserLogger.permissionCheckFailed(req, access, req.originalUrl, req.method, 'User not authenticated');
+			return next(new ApiError(401, 'Authentication required'));
+		}
+
+		// Check if user has access_level
+		if (!user.access_level) {
+			UserLogger.permissionCheckFailed(
+				req,
+				access,
+				req.originalUrl,
+				req.method,
+				'User has no access level assigned'
+			);
+			return next(new ApiError(403, 'Access level not assigned'));
+		}
+
 		const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level));
 		const userAccess = userAccessLevel?.[access] as number | undefined;
 		const method = req.method as 'GET' | 'POST' | 'DELETE' | 'PATCH';
-		if (userAccessLevel && userAccess && hasAccess(userAccess, options?.bitMapNumberFromRight ?? method))
+
+		if (userAccessLevel && userAccess && hasAccess(userAccess, options?.bitMapNumberFromRight ?? method)) {
+			// Log successful permission check
+			UserLogger.permissionCheckSuccess(req, access, req.originalUrl, accessTranslation[method]);
 			return next(); // first: check the role
-		if (!!options?.extraFunction && (await options.extraFunction(req, userAccess))) return next(); // second: check manual pass function
+		}
+
+		if (!!options?.extraFunction && (await options.extraFunction(req, userAccess))) {
+			// Log successful permission check via extra function
+			UserLogger.permissionCheckSuccess(
+				req,
+				access,
+				req.originalUrl,
+				`${accessTranslation[method]} (via extra function)`
+			);
+			return next(); // second: check manual pass function
+		}
+
+		// Log failed permission check
+		UserLogger.permissionCheckFailed(
+			req,
+			access,
+			req.originalUrl,
+			accessTranslation[method],
+			'Insufficient access level'
+		);
+
 		req.flash('error', `No [${access} ${accessTranslation[method]}] access!`);
 		return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
 	};
@@ -77,6 +124,19 @@ export function roleCheck(
 ) {
 	return async function middleware(req: Request, res: Response, next: NextFunction) {
 		const user = req.user;
+
+		// Check if user is authenticated
+		if (!user) {
+			req.flash('error', `Authentication required!`);
+			return next(new ApiError(401, `Authentication required!`));
+		}
+
+		// Check if user has role property
+		if (!user.role) {
+			req.flash('error', `User role not assigned!`);
+			return next(new ApiError(403, `User role not assigned!`));
+		}
+
 		if (user.role === role) return next(); // first: check the role
 		if (!!options?.extraFunction && options.extraFunction(req, res)) return next(); // second: check manual pass function
 		req.flash('error', `No access!`);
@@ -89,9 +149,23 @@ export function paramIdExistsInCameraWhiteList(options?: {
 	idFromReq?: (req: Request) => string | undefined;
 }) {
 	return async function middleware(req: Request, res: Response, next: NextFunction) {
-		let id = options?._id ?? options?.idFromReq?.(req) ?? req.params.id;
+		const id = options?._id ?? options?.idFromReq?.(req) ?? req.params.id;
 		if (!id) return next();
+
 		const user = req.user;
+
+		// Check if user is authenticated
+		if (!user) {
+			req.flash('error', `Authentication required!`);
+			return next(new ApiError(401, `Authentication required!`));
+		}
+
+		// Check if user has role property
+		if (!user.role) {
+			req.flash('error', `User role not assigned!`);
+			return next(new ApiError(403, `User role not assigned!`));
+		}
+
 		if (user.role === 'admin' || !!user.camera_access?.map((el) => el.toString())?.includes(id))
 			return next();
 		req.flash('error', `No access to this camera ${id}!`);

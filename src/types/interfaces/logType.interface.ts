@@ -1,14 +1,27 @@
-import mongoose, { Schema } from 'mongoose';
+import { LOG_TYPE_KEYS } from '../enums/logType.enum';
 
-//define LogType type
-export interface ILogType extends Document {
-	_id: mongoose.Types.ObjectId;
+export interface ILogType {
+	[LOG_TYPE_KEYS.username]: boolean;
+	[LOG_TYPE_KEYS.userid]: boolean;
+	[LOG_TYPE_KEYS.success]: boolean;
+	[LOG_TYPE_KEYS.ip]: boolean;
+	[LOG_TYPE_KEYS.userAgent]: boolean;
+	[LOG_TYPE_KEYS.action]: boolean;
+	[LOG_TYPE_KEYS.method]: boolean;
+	[LOG_TYPE_KEYS.url]: boolean;
+	[LOG_TYPE_KEYS.duration]: boolean;
+	[LOG_TYPE_KEYS.details]: boolean;
+	[LOG_TYPE_KEYS.headers]: boolean;
+	[LOG_TYPE_KEYS.timestamp]: boolean;
+	[LOG_TYPE_KEYS.model]: boolean;
+	[LOG_TYPE_KEYS.recordId]: boolean;
+	[LOG_TYPE_KEYS.component]: boolean;
+	[LOG_TYPE_KEYS.operation]: boolean;
+	[LOG_TYPE_KEYS.license]: boolean;
+	[LOG_TYPE_KEYS.successEvents]: boolean;
+	ts: number;
 	name: string;
-	filePath?: string;
-	defaultConfig?: {
-		timeDuplicationDiagnoses: number;
-		threshold: number;
-		min_people: number;
-		max_people: number;
-	};
+	system: boolean;
+	isActive: boolean;
+	isAutoBackup: boolean;
 }

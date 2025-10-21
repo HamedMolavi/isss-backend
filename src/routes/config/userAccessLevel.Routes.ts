@@ -1,5 +1,5 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { readByIdMiddleware, readMiddleware } from '../../db/mongo/read.database';
+import { Router, Request } from 'express';
+import { readByIdMiddleware } from '../../db/mongo/read.database';
 import AccessLevel from '../../db/mongo/models/accessLevel';
 
 const router: Router = Router();

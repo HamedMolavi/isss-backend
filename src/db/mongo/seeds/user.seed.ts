@@ -11,14 +11,15 @@ export async function makeSeedUser(accessLevel: IAccessLevel): Promise<IUser | u
 			camera: true,
 			report: true,
 			configuration: true,
-			username: 'admin',
-			password: '123',
+			username: 'ariapa_admin',
+			password: '@Ad652Min#',
 			access_level: accessLevel._id,
-			phone_number: '09330379999',
+			phone_number: '0912123456',
 			role: 'admin',
-			camera_access: []
+			camera_access: [],
+			is_active: true
 		});
-		console.log('\t++ Seed data user: username=test, password=123');
+		// console.log('\t++ Seed data user: username=test, password=123');
 		return users[0];
 	}
 	return undefined;
