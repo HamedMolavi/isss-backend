@@ -27,30 +27,80 @@ import Section from '../../db/mongo/models/section';
 import Department from '../../db/mongo/models/department';
 import PersonImage from '../../db/mongo/models/personImage';
 import { plateToQueryJSON } from '../../tools/elastic.tools';
-import { QueryDslQueryContainer } from '@elastic/elasticsearch/lib/api/types';
 import { DataImportExportLogger } from '../../logger/data-input-output.logger';
 import { accessCheck } from '../../authentication/accessCheck.auth';
 
-//create router for add to routes file
+/**
+ * ===================================
+ * REPORT ROUTES
+ * ===================================
+ *
+ * This router handles report generation and data retrieval from Elasticsearch logs
+ * for different event types (plate, face, human, object detection, sabotage, search).
+ *
+ * Features:
+ * - GET/POST endpoints for filtering and searching logs
+ * - Excel export functionality with access control
+ * - Data backup and deletion operations
+ * - Multi-index support (plate_log, face_log, human_log, etc.)
+ * - Role-based camera access filtering
+ * - Time range filtering with timezone support
+ * - Log enrichment with camera, personnel, vehicle metadata
+ */
+
+// Create router for report endpoints
 const router: Router = Router();
+
+/**
+ * ===================================
+ * CONFIGURATION
+ * ===================================
+ */
+
+// Elasticsearch index for full frame images
 const frame_index = process.env['FRAME_INDEX'] ?? 'frame_log';
+
+/**
+ * Searchable fields for each log type
+ * Used in GET requests with search query parameter
+ * Defines which fields support regex search for each index type
+ */
 const importantFields = {
 	face: ['description', 'name', 'camera_name', 'personnel_code'],
 	plate: [
 		'description',
 		'owner',
 		'camera_name',
+		// Convert Persian plate numbers to English for search
 		function plate_number(input: string) {
 			return stringPersianToStringEnglish(input);
 		}
 	]
 };
-// Validation //
+
+/**
+ * ===================================
+ * INPUT VALIDATION
+ * ===================================
+ */
+
+/**
+ * POST /:index(plate|search|face|sabotage|human|objectdetection)
+ * Validate request body based on log type
+ * - plate/search: ReportPlateBody (plate number, brand, color, owner, etc.)
+ * - face/sabotage: ReportFaceBody (personnel, camera, time range, etc.)
+ * - human: ReportHumanBody (human count filtering)
+ * - objectdetection: ReportObjectBody (detected objects)
+ */
 router.post(
 	'/:index(plate|search|face|sabotage|human|objectdetection)',
 	(req, res, next) => {
+		// Validate index parameter
 		if (!['plate', 'search', 'face', 'sabotage', 'human', 'objectdetection'].includes(req.params.index))
 			return next(new ApiError(404, `Index ${req.params.index} not found!`));
+
+		// Map each log type to its corresponding DTO validation class
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const dtoClass: { [key: string]: any } = {
 			plate: ReportPlateBody,
 			search: ReportPlateBody,
@@ -59,30 +109,38 @@ router.post(
 			human: ReportHumanBody,
 			objectdetection: ReportObjectBody
 		};
+
+		// Apply DTO validation based on index type
 		dtoValidationMiddleware(dtoClass[req.params.index], {
 			skipMissingProperties: false,
 			detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
 			info: 'please fill all fields'
 		})(req, res, next);
 	},
+	// Validate that start time is before stop time
 	Time.compareTimeMiddleware('start', 'stop')
 );
-// Inject Data //
-// router.use('',
-//   readMiddleware(Camera, undefined, { forceAll: true, populate: true, forcePopulate: ["section_id", "department_id"], next: true, save: "camera" }),
-//   injectDataMiddleware(injectAllKindOfStuff(['camera']), { spread: true }),
-// );
-// router.use('/:index(plate|search)/:id?',
-//   readMiddleware(Car, undefined, { forceAll: true, populate: true, forcePopulate: ["owner", "brand", "color"], next: true, save: "car" }),
-//   readMiddleware(CarColor, undefined, { forceAll: true, populate: true, forcePopulate: ["color"], next: true, save: "color" }),
-//   readMiddleware(CarBrand, undefined, { forceAll: true, populate: true, forcePopulate: ["brand"], next: true, save: "brand" }),
-//   injectDataMiddleware(injectAllKindOfStuff(['color', 'brand']), { spread: true }),
-//   injectDataMiddleware(injectAllKindOfStuff(['car'], "number_plate"), { spread: true }),
-// );
-// router.use('/:index(face)/:id?',
-//   readMiddleware(Personnel, () => { return {} }, { forceAll: true, populate: true, forcePopulate: ["department_id"], next: true, save: "personnel" }),
-//   injectDataMiddleware(injectAllKindOfStuff(['personnel']), { spread: true }),
-// );
+
+/**
+ * ===================================
+ * DATA CACHING INITIALIZATION
+ * ===================================
+ */
+
+/**
+ * Initialize empty cache objects for MongoDB data
+ * These act as request-scoped caches to avoid redundant database queries
+ * when processing multiple logs with the same camera_id, personnel_id, etc.
+ *
+ * Cache structure:
+ * - db_cameras: Stores camera documents by camera_id
+ * - db_personnel: Stores personnel documents by personnel_id
+ * - db_person_image: Stores person image documents by image_id
+ * - db_brands: Stores car brand documents by brand_id
+ * - db_colors: Stores car color documents by color_id
+ * - db_sections: Stores section documents by camera_id
+ * - db_departments: Stores department documents by camera_id
+ */
 router.use('', (req, res, next) => {
 	Object.assign(req.body, {
 		db_cameras: {},
@@ -95,27 +153,72 @@ router.use('', (req, res, next) => {
 	});
 	next();
 });
-// Delete //
+
+/**
+ * ===================================
+ * DELETE ENDPOINTS
+ * ===================================
+ */
+
+/**
+ * DELETE /:index(plate|search|face|sabotage|human|objectdetection)
+ * Delete multiple logs matching query criteria
+ * Requires appropriate access permissions
+ */
 router.delete(
 	'/:index(plate|search|face|sabotage|human|objectdetection)',
 	deleteElasticMiddleware(indexFunc)
 );
+
+/**
+ * DELETE /:index/:id
+ * Delete a single log by its Elasticsearch document ID
+ * Enriches the deleted log with related data before sending response
+ */
 router.delete(
 	'/:index(plate|search|face|sabotage|human|objectdetection)/:id',
 	deleteByIdElasticMiddleware(indexFunc, { send: sendFunction })
 );
-// Search //
+
+/**
+ * ===================================
+ * SEARCH & RETRIEVAL ENDPOINTS
+ * ===================================
+ */
+
+/**
+ * GET /:index(/:type(excel))?
+ * Retrieve all logs with optional search parameter
+ * - Regular request: Returns JSON array of logs
+ * - Excel request: Continues to Excel export middleware
+ *
+ * Query parameters:
+ * - search: Text search across important fields (name, description, camera_name, etc.)
+ * - timez: Timezone for timestamp formatting
+ */
 router.get(
-	'/:index(plate|search|face|sabotage|human|objectdetection)(/:type(excel))?/?$', // total get
+	'/:index(plate|search|face|sabotage|human|objectdetection)(/:type(excel))?/?$',
 	readElasticMiddleware(indexFunc, {
 		send: sendFunction,
 		save: 'esResult',
 		searchFromReq: getSearchFunction,
+		// Continue to next middleware if Excel export is requested
 		next: (req) => !!req.params['type']
 	})
 );
 
-// Export Excel
+/**
+ * ===================================
+ * EXCEL EXPORT ENDPOINTS
+ * ===================================
+ */
+
+/**
+ * GET /:index(plate|search|face)/excel
+ * Export all logs to Excel format
+ * Requires dataImportExport permission
+ * Logs the export operation for audit trail
+ */
 router.get(
 	'/:index(plate|search|face)/:type(excel)/?$',
 	accessCheck('dataImportExport'),
@@ -123,8 +226,10 @@ router.get(
 	async (req, res, next) => {
 		try {
 			const recordCount = Array.isArray(req.body.esResult) ? req.body.esResult.length : 0;
+			// Log successful Excel export
 			await DataImportExportLogger.excelExported(req, req.params.index, recordCount, true);
 		} catch (error) {
+			// Log failed Excel export
 			await DataImportExportLogger.excelExported(
 				req,
 				req.params.index,
@@ -136,14 +241,28 @@ router.get(
 		next();
 	}
 );
+
+/**
+ * GET /:index/:id(/:type(excel))?
+ * Retrieve a single log by Elasticsearch document ID
+ * - Regular request: Returns enriched log JSON
+ * - Excel request: Continues to Excel export middleware
+ */
 router.get(
-	'/:index(plate|search|face|sabotage|human|objectdetection)/:id?/:type(excel)?', // get with id
+	'/:index(plate|search|face|sabotage|human|objectdetection)/:id?/:type(excel)?',
 	readByIdElasticMiddleware(indexFunc, {
 		send: sendFunction,
 		save: 'esResult',
+		// Continue to next middleware if Excel export is requested
 		next: (req) => !!req.params['type']
 	})
 );
+
+/**
+ * GET /:index(plate|search|face)/:id?/excel
+ * Export single log to Excel format
+ * Requires dataImportExport permission
+ */
 router.get(
 	'/:index(plate|search|face)/:id?/:type(excel)?',
 	accessCheck('dataImportExport'),
@@ -152,8 +271,10 @@ router.get(
 		if (req.params.type === 'excel') {
 			try {
 				const recordCount = Array.isArray(req.body.esResult) ? req.body.esResult.length : 0;
+				// Log successful Excel export
 				await DataImportExportLogger.excelExported(req, req.params.index, recordCount, true);
 			} catch (error) {
+				// Log failed Excel export
 				await DataImportExportLogger.excelExported(
 					req,
 					req.params.index,
@@ -167,15 +288,40 @@ router.get(
 	}
 );
 
+/**
+ * ===================================
+ * ADVANCED FILTERING ENDPOINTS
+ * ===================================
+ */
+
+/**
+ * POST /:index(/:type(excel))?
+ * Advanced filtering with request body
+ * Supports complex queries with multiple filter criteria:
+ * - Time range filtering (date_start, date_end, time_start, time_end)
+ * - Camera filtering with role-based access control
+ * - Personnel/owner filtering
+ * - Vehicle attributes (brand, color, plate number)
+ * - Human count filtering
+ * - Person type filtering
+ * - Plate search modes (normal, noplate, etc.)
+ */
 router.post(
-	'/:index(plate|search|face|sabotage|human|objectdetection)(/:type(excel))?/?$', // filter with body
+	'/:index(plate|search|face|sabotage|human|objectdetection)(/:type(excel))?/?$',
 	readElasticMiddleware(indexFunc, {
 		searchFromReq: postSearchFunction,
 		send: sendFunction,
 		save: 'esResult',
+		// Continue to Excel export if requested
 		next: (req) => !!req.params['type']
 	})
 );
+
+/**
+ * POST /:index(plate|search|face)/excel
+ * Export filtered results to Excel
+ * Requires dataImportExport permission
+ */
 router.post(
 	'/:index(plate|search|face)/:type(excel)/?$',
 	accessCheck('dataImportExport'),
@@ -183,8 +329,10 @@ router.post(
 	async (req, res, next) => {
 		try {
 			const recordCount = Array.isArray(req.body.esResult) ? req.body.esResult.length : 0;
+			// Log successful Excel export
 			await DataImportExportLogger.excelExported(req, req.params.index, recordCount, true);
 		} catch (error) {
+			// Log failed Excel export
 			await DataImportExportLogger.excelExported(
 				req,
 				req.params.index,
@@ -197,21 +345,44 @@ router.post(
 	}
 );
 
+/**
+ * ===================================
+ * BACKUP & DELETE ENDPOINT
+ * ===================================
+ */
+
+/**
+ * POST /:index(plate|face)/backup
+ * Backup logs to Excel and then delete them from Elasticsearch
+ * Requires dataImportExport permission
+ *
+ * Operation flow:
+ * 1. Query logs matching filter criteria
+ * 2. Export matching logs to Excel
+ * 3. Delete the logs from Elasticsearch
+ * 4. Log the backup operation for audit trail
+ *
+ * This is a destructive operation - use with caution
+ */
 router.post(
-	'/:index(plate|face)/backup', // backup & delete true
+	'/:index(plate|face)/backup',
 	accessCheck('dataImportExport'),
+	// Delete matching logs but return documents instead of delete result
 	deleteElasticMiddleware(indexFunc, {
 		sendDocsInsteadOfDeleteResult: true,
 		send: sendFunction,
 		save: 'esResult',
 		next: true
 	}),
+	// Export deleted logs to Excel
 	sendExcelMiddleware({ cols: colsFunc, rows: 'esResult' }),
 	async (req, res, next) => {
 		try {
 			const recordCount = Array.isArray(req.body.esResult) ? req.body.esResult.length : 0;
+			// Log successful backup
 			await DataImportExportLogger.backupExported(req, req.params.index, recordCount, true);
 		} catch (error) {
+			// Log failed backup
 			await DataImportExportLogger.backupExported(
 				req,
 				req.params.index,
@@ -224,14 +395,35 @@ router.post(
 	}
 );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * ===================================
+ * HELPER FUNCTIONS
+ * ===================================
+ */
+
+/**
+ * Build Elasticsearch query for GET requests with search parameter
+ *
+ * @param req - Express request containing search query and user permissions
+ * @returns Elasticsearch query object with camera access filtering and text search
+ *
+ * Query features:
+ * - Camera access control based on user role
+ * - Regex text search across important fields
+ * - Results sorted by timestamp (newest first)
+ */
 function getSearchFunction(req: Request) {
+	// Determine which cameras user has access to
+	// Admin users have access to all cameras (empty array = no filter)
+	// Non-admin users are restricted to their camera_access list
+	// If no cameras assigned, use impossible value to return no results
 	const accessList =
 		req.user.role === 'admin'
 			? []
-			: !!req.user.camera_access?.length
+			: req.user.camera_access?.length
 				? req.user.camera_access
 				: ["who's daddy"];
+
 	return {
 		track_total_hits: true,
 		query: {
@@ -239,7 +431,7 @@ function getSearchFunction(req: Request) {
 				must: [
 					{
 						bool: {
-							// ensure camera access for user
+							// Camera access control: user can only see logs from their assigned cameras
 							should: accessList?.map((value) => ({
 								match: {
 									camera_id: value.toString()
@@ -250,7 +442,8 @@ function getSearchFunction(req: Request) {
 					},
 					{
 						bool: {
-							// search if provided
+							// Text search across important fields (if search query provided)
+							// Uses regex for partial matching with case-insensitive search
 							should:
 								typeof req.query?.search === 'string' &&
 								!!req.query.search &&
@@ -259,9 +452,11 @@ function getSearchFunction(req: Request) {
 									? importantFields[req.params.index as keyof typeof importantFields].map(
 											(el: string | ((input: string) => string)) => ({
 												regexp: {
+													// Use field name if string, or function name if function
 													[typeof el === 'string' ? el : el.name]: {
 														value:
 															'.*' +
+															// Apply function transformation if needed (e.g., Persian to English)
 															(typeof el === 'function' ? el(req.query.search as string) : req.query.search) +
 															'.*',
 														case_insensitive: true
@@ -276,28 +471,40 @@ function getSearchFunction(req: Request) {
 				]
 			}
 		},
+		// Sort results by timestamp, newest first
 		sort: [{ timestamp: { order: 'desc' } }]
 	} as SearchRequest;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * Build Elasticsearch query for POST requests with advanced filtering
+ *
+ * @param req - Express request containing filter criteria in body
+ * @returns Elasticsearch query object with complex filtering logic
+ *
+ * Supported filters:
+ * - Time range: date_start, date_end, time_start, time_end with timezone support
+ * - time_filter flag: single range vs daily recurring time windows
+ * - Camera access: role-based filtering with user camera permissions
+ * - Personnel: Filter by personnel_id or owner
+ * - Vehicle: brand, color filtering
+ * - Human detection: human_count filtering
+ * - Person type: Filter by person_type field
+ * - Plate search: Supports normal, noplate, and custom plate search modes
+ * - Allowed status: Filter by allowed field value
+ */
 function postSearchFunction(req: Request) {
-	let score: { script?: string; min_score?: number } = {};
-	let query: QueryDslQueryContainer & {
-		bool: {
-			must: QueryDslQueryContainer[];
-			must_not: QueryDslQueryContainer[];
-			should: QueryDslQueryContainer[];
-		};
-	};
-	//---- Prepration
+	// Extract request body parameters
 	const body = req.body;
-	let timezone = body.timez ?? body.timezone;
+	const timezone = body.timez ?? body.timezone;
 
-	// Choose time range method based on time_filter flag
-	let time_constraints = [];
+	// Build time range constraints based on time_filter flag
+	// time_filter=true: Single range from date_start to date_end
+	// time_filter=false: Daily recurring time windows (e.g., 9am-5pm every day in range)
+	const time_constraints = [];
 	if (body.date_start) {
 		if (body.time_filter) {
+			// Single time range: entire period from start to end
 			const time_range: { gte: string; lte: string } = Time.getSingleTimeRange(
 				body.date_start,
 				body.date_end,
@@ -310,6 +517,7 @@ function postSearchFunction(req: Request) {
 				range: { timestamp: { gte: time_range.gte, lte: time_range.lte } }
 			});
 		} else {
+			// Multiple daily time ranges: recurring time windows for each day
 			const times_epoch: Array<{ gte: string; lte: string }> = Time.getEpochList(
 				body.date_start,
 				body.date_end,
@@ -331,18 +539,29 @@ function postSearchFunction(req: Request) {
 		}
 	}
 
-	const userCameras = !!req.user.camera_access?.length
+	// Calculate camera access based on user role and permissions
+	// Admin: Can search all cameras (or filter by provided cameras list)
+	// Non-admin: Restricted to intersection of their access list and requested cameras
+	const userCameras = req.user.camera_access?.length
 		? req.user.camera_access?.map((el) => el.toString())
-		: ["who's daddy"];
+		: ["who's daddy"]; // Impossible value to return no results if no access
+
+	// Filter requested cameras to only those user has access to
 	const allowedSearchedCameras = body.cameras
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		?.filter((cam: any) => userCameras.includes(cam))
 		.concat(["who's daddy"]);
+
+	// Final camera list depends on user role and whether cameras were specified
 	const cameras =
 		(req.user.role === 'admin'
-			? body.cameras
-			: !!body.cameras?.length
-				? allowedSearchedCameras
-				: userCameras) ?? [];
+			? body.cameras // Admin can use requested cameras directly
+			: body.cameras?.length
+				? allowedSearchedCameras // Non-admin gets filtered list
+				: userCameras) ?? []; // Default to user's access list
+
+	// Map filter fields to values from request body
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const fields: { [key: string]: Array<any> } = {
 		camera_id: cameras,
 		personnel_id: body.personnels,
@@ -350,6 +569,7 @@ function postSearchFunction(req: Request) {
 		owner: body.owner,
 		color: body.colors,
 		human_count: body.human_count,
+		// Handle allowed field (can be boolean, array, or undefined)
 		allowed:
 			body.allowed === undefined || body.allowed === null
 				? []
@@ -358,18 +578,21 @@ function postSearchFunction(req: Request) {
 					: [body.allowed]
 	};
 
-	// Make clauses
-	query = {
+	// Build base query with field filters and time constraints
+	// For each field with values: create OR clause (should) between values
+	// Between different fields: create AND clause (must)
+	const query = {
 		bool: {
 			must: [
-				// Between fields there are ANDs. This way for each field there is a must restriction.
+				// Filter by each field (AND between fields, OR within field values)
 				...Object.entries(fields)
 					.filter(([, values]) => !!values && values.length > 0)
 					.map(([field, values]) => ({
 						bool: {
+							// OR clause: match any value within this field
 							should: [
-								// In a field (for example cameras), between each possible value there are ORs.
-								...values.map((value) => ({
+								// eslint-disable-next-line @typescript-eslint/no-explicit-any
+								...values.map((value: any) => ({
 									match: {
 										[`${field}`]: value
 									}
@@ -379,8 +602,10 @@ function postSearchFunction(req: Request) {
 						}
 					})),
 
+				// Add time range constraints
 				...time_constraints,
 
+				// Add person_type filter if specified
 				...(!!body.person_type && typeof body.person_type === 'string'
 					? [{ match: { person_type: body.person_type } }, { exists: { field: 'person_type' } }]
 					: [])
@@ -389,17 +614,25 @@ function postSearchFunction(req: Request) {
 			should: []
 		}
 	};
-	// Plate search special clauses and alter other parts of query
+
+	// Special handling for plate search
+	// noplate mode: Search for logs without valid plate numbers
 	if (body.plate_search_type === 'noplate')
 		body.plates = [{ first: '**', second: '*', third: '***', fourth: 'ایران', fifth: '**' }];
-	if (!!body.plates?.length) {
-		let plates = platesToStrings(body.plates);
-		let plate_search_type = body.plate_search_type ?? 'normal';
+
+	// Add plate number filtering if plates provided
+	if (body.plates?.length) {
+		// Convert plate objects to string format
+		const plates = platesToStrings(body.plates);
+		const plate_search_type = body.plate_search_type ?? 'normal';
+
+		// Add plate search clauses (OR between different plates)
 		query?.bool?.must?.push({
 			bool: {
-				// each field => they have to be OR
+				// Each plate pattern becomes a query clause
 				should: plates
 					.map((plateString) =>
+						// plateToQueryJSON handles wildcards and search modes
 						plateToQueryJSON(plateString, plate_search_type, {
 							originalQueryToAlter: query
 						})
@@ -407,10 +640,12 @@ function postSearchFunction(req: Request) {
 					.flat(),
 				minimum_should_match: 1
 			}
-		});
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any);
 	}
 
-	let query_elastic = {
+	// Return complete Elasticsearch query
+	const query_elastic = {
 		track_total_hits: true,
 		sort: [{ timestamp: { order: 'desc' } }],
 		query
@@ -418,28 +653,60 @@ function postSearchFunction(req: Request) {
 	return query_elastic;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * Transform Elasticsearch log document into enriched response object
+ *
+ * @param log - Raw Elasticsearch log document
+ * @param req - Express request (for timezone and caching)
+ * @returns Enriched log object with related data from MongoDB
+ *
+ * Enrichment process:
+ * 1. Fetch camera data and populate section/department information
+ * 2. Fetch personnel data for face logs or owner data for plate logs
+ * 3. Fetch person image hash_id for face logs
+ * 4. Fetch vehicle brand and color for plate logs
+ * 5. Fetch full frame image if frame_id exists
+ * 6. Format timestamps with timezone
+ * 7. Transform plate numbers to structured JSON
+ *
+ * Uses request-scoped caching to avoid redundant database queries
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendFunction(log: any, req: Request): Promise<any> {
 	try {
+		// Determine which crop image to use based on log type
+		// plate/objectdetection logs: use crop field
+		// face/other logs: use inner_crop field
 		const tmpFlag = ['plate_log', 'objectdetection_log'].includes(req.body['elasticsearchIndices']?.at(-1));
 		const crop = tmpFlag ? log?.crop : (log?.inner_crop ?? '');
 		const inner_crop = tmpFlag ? log?.inner_crop : '';
 
+		// Fetch camera data with caching
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let camera: any = undefined;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let sectionDoc: any = undefined;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let departmentDoc: any = undefined;
+
+		// Check cache first, then query database if needed
 		if (Object.prototype.hasOwnProperty.call(req.body['db_cameras'], log.camera_id)) {
 			camera = req.body?.['db_cameras']?.[log.camera_id];
 			sectionDoc = req.body?.['db_sections']?.[log.camera_id];
 			departmentDoc = req.body?.['db_departments']?.[log.camera_id];
 		} else if (!!log.camera_id && isValidObjectId(log.camera_id)) {
+			// Query camera and cache result
 			camera = await Camera.findById(log.camera_id).exec();
 			Object.assign(req.body['db_cameras'], { [log.camera_id]: camera });
-			if (!!camera) {
+
+			if (camera) {
+				// Query section and cache result
 				sectionDoc = await Section.findById(camera.section_id).exec();
 				Object.assign(req.body['db_sections'], { [log.camera_id]: sectionDoc });
-				if (!!sectionDoc) {
-					departmentDoc = !!sectionDoc?.department_id
+
+				if (sectionDoc) {
+					// Query department and cache result
+					departmentDoc = sectionDoc?.department_id
 						? await Department.findById(sectionDoc?.department_id).exec()
 						: undefined;
 					Object.assign(req.body['db_departments'], {
@@ -448,12 +715,19 @@ async function sendFunction(log: any, req: Request): Promise<any> {
 				}
 			}
 		}
+
 		const section = sectionDoc?.name ?? '';
 		const department = departmentDoc?.name ?? '';
 
+		// Fetch personnel/owner data with caching
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let personnel: any = undefined;
+		// For plate logs: owner field contains personnel_id
+		// For face logs: personnel_id field contains the ID
 		const log_personnel_id =
 			log.type === 'plate' ? log?.owner : log.type === 'face' ? log?.personnel_id : 'unknown';
+
+		// Check cache first, then query database if needed
 		if (Object.prototype.hasOwnProperty.call(req.body['db_personnel'], log_personnel_id)) {
 			personnel = req.body?.['db_personnel']?.[log_personnel_id];
 		} else if (!!log_personnel_id && log_personnel_id !== 'unknown' && isValidObjectId(log_personnel_id)) {
@@ -463,8 +737,9 @@ async function sendFunction(log: any, req: Request): Promise<any> {
 			});
 		}
 
+		// Fetch person image hash_id for face logs (used for deduplication)
 		let hash_id = undefined;
-		if (!!log?.hash_id) hash_id = log.hash_id;
+		if (log?.hash_id) hash_id = log.hash_id;
 		else if (Object.prototype.hasOwnProperty.call(req.body['db_person_image'], log.image_id)) {
 			const image = req.body?.['db_person_image']?.[log.image_id];
 			hash_id = image?.hash_id;
@@ -474,6 +749,7 @@ async function sendFunction(log: any, req: Request): Promise<any> {
 			hash_id = image?.hash_id;
 		}
 
+		// Fetch vehicle color data with caching
 		let color = undefined;
 		if (Object.prototype.hasOwnProperty.call(req.body['db_colors'], log.color)) {
 			color = req.body?.['db_colors']?.[log.color];
@@ -481,6 +757,8 @@ async function sendFunction(log: any, req: Request): Promise<any> {
 			color = await CarColor.findById(log.color).exec();
 			Object.assign(req.body['db_colors'], { [log.color]: color });
 		}
+
+		// Fetch vehicle brand data with caching
 		let brand = undefined;
 		if (Object.prototype.hasOwnProperty.call(req.body['db_brands'], log.brand)) {
 			brand = req.body?.['db_brands']?.[log.brand];
@@ -489,9 +767,13 @@ async function sendFunction(log: any, req: Request): Promise<any> {
 			Object.assign(req.body['db_brands'], { [log.brand]: brand });
 		}
 
-		const frame_log = !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : {};
+		// Fetch full frame image if frame_id exists
+		const frame_log = log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : {};
+		// Remove redundant fields from frame_log
 		delete frame_log['_id'];
 		delete frame_log['personnel_id'];
+
+		// Return enriched log object
 		return {
 			_id: log?._id,
 			type: log?.type,
@@ -501,17 +783,16 @@ async function sendFunction(log: any, req: Request): Promise<any> {
 			camera_name: camera?.name ?? '',
 			fullName: personnel?.toName() ?? log.name ?? '',
 			personnel_id: personnel?.id ?? 'unknown',
-			...frame_log,
-			// frame: !!log?.frame_id ? await readByIdElastic(frame_index, log.frame_id) : "",
-			// department: personnel?.section_id?.department_id?.name ?? department,
+			...frame_log, // Spread frame data (full scene image, etc.)
 			department,
-			// section: personnel?.section_id?.name ?? section,
 			section,
-			time: !!log?.timestamp
+			// Format timestamp with timezone
+			time: log?.timestamp
 				? new Date(log.timestamp).toLocaleString('en-US', {
 						timeZone: req.query?.timez?.toString() ?? 'Asia/Tehran'
 					})
 				: '',
+			// Transform plate number string to structured JSON
 			plate_number: stringPlateToJson(log.plate_number),
 			owner: log?.owner ?? '',
 			color: color?.name ?? '',
@@ -533,13 +814,24 @@ async function sendFunction(log: any, req: Request): Promise<any> {
 			vector: log?.vector ?? '',
 			direction: log?.direction ?? ''
 		};
-	} catch (err: any) {
+	} catch (err) {
 		console.error(err);
 		return undefined;
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * ===================================
+ * UTILITY FUNCTIONS
+ * ===================================
+ */
+
+/**
+ * Map request index parameter to Elasticsearch index name
+ *
+ * @param req - Express request containing index parameter
+ * @returns Elasticsearch index name from environment variables
+ */
 function indexFunc(req: Request) {
 	return {
 		plate: process.env['PLATE_INDEX'] ?? 'plate_log',
@@ -550,6 +842,13 @@ function indexFunc(req: Request) {
 		human: process.env['HUMAN_INDEX'] ?? 'human_log'
 	}[req.params.index] as string;
 }
+
+/**
+ * Map request index parameter to Excel column configuration
+ *
+ * @param req - Express request containing index parameter
+ * @returns Column configuration array for Excel export
+ */
 function colsFunc(req: Request) {
 	return {
 		plate: plateCols,
