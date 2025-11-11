@@ -65,7 +65,8 @@ router.post(
 	accessCheck('dataImportExport'),
 	async (req, res) => {
 		// Validate file upload
-		if (!req.files?.['file']) {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		if (!req.files || !(req.files as any)['file']) {
 			return res.status(400).json({ error: 'No file uploaded' });
 		}
 
@@ -76,7 +77,7 @@ router.post(
 			// Load Excel workbook from uploaded file
 			const workbook = await new Excel.Workbook().xlsx.load(
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				(req.files?.['file'] as UploadedFile).data as any
+				((req.files as any)['file'] as UploadedFile).data as any
 			);
 
 			// Get worksheet - try 'cars' sheet first, then first sheet
