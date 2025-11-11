@@ -1,26 +1,17 @@
-import { SnapshotKafka, ImageFileSystem } from '../../tools/kafkaFile.tools';
+import { SnapshotKafka } from '../../tools/kafkaFile.tools';
 import { NextFunction, Router, Request, Response } from 'express';
 import PersonImage from '../../db/mongo/models/personImage';
 import { createMiddleware } from '../../db/mongo/create.database';
-import { randomUuid, resizeImage, unpickle } from '../../tools/utils.tools';
+import { randomUuid, resizeImage } from '../../tools/utils.tools';
 import { dtoValidationMiddleware } from '../../validation/dto';
 import mongoose from 'mongoose';
-import {
-	AddBatchPersonnel,
-	AddClient,
-	AddHostilePerson,
-	AddPersonImage
-} from '../../validation/dto/files.dto';
+import { AddClient, AddHostilePerson, AddPersonImage } from '../../validation/dto/files.dto';
 import { injectDataMiddleware } from '../../tools/request.tools';
 import Personnel from '../../db/mongo/models/personnel';
 import { allowedPassConvert } from '../../tools/time.tools';
 import JobTitle from '../../db/mongo/models/jobTitle';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, writeFileSync } from 'fs';
-import path from 'path';
 import { ApiError } from '../../types/classes/error.class';
 import { hashString } from '../../tools/hash';
-import { Kafka, logLevel } from 'kafkajs';
-import { ensureDirSync, moveSync } from 'fs-extra';
 import Product from '../../db/mongo/models/product';
 import Camera from '../../db/mongo/models/camera';
 import { readMiddleware } from '../../db/mongo/read.database';
@@ -28,44 +19,44 @@ import { readMiddleware } from '../../db/mongo/read.database';
 import { DataImportExportLogger } from '../../logger/data-input-output.logger';
 import { accessCheck } from '../../authentication/accessCheck.auth';
 import { checkIPRestriction } from '../../middleware/ip-restriction.middleware';
-import {
-	batchSecurityValidation,
-	batchRateLimit,
-	fileUploadSecurityValidation
-} from '../../middleware/batch-security-validation.middleware';
+import { fileUploadSecurityValidation } from '../../middleware/batch-security-validation.middleware';
 import { UploadedFile } from 'express-fileupload';
 import Excel from 'exceljs';
 import CarColor from '../../db/mongo/models/carColor';
 import CarBrand from '../../db/mongo/models/carBrand';
 import Car from '../../db/mongo/models/car';
 import { stringPersianToStringEnglish } from '../../tools/plate.tools';
+import { uploadBase64ImageToS3, batch_personnel_add } from '../../controllers/file.controller';
+import { file_upload } from '../../file_upload/aws/upload';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import S3Client from '../../config/s3.config';
+import { BaseConfig } from '../../config/base.config';
+import { FileCrate } from '../../file_upload/methods/file/file_create';
+import { downloadS3FileAsBase64 } from '../../tools/s3.tools';
 
-const secret = process.env['SESSION_SECRET'];
-//create customized redis client
-const cfs = new ImageFileSystem();
-//create customized redis client
+// Session secret for hashing operations
+const SECRET = process.env['SESSION_SECRET'];
+
+// Initialize Kafka handler for snapshot/image processing
 const snapshotKafka = new SnapshotKafka();
-//create router for add to server
+
+// Create Express router for file operations
 const router: Router = Router();
 
-//create api for upload image
-router.post(
-	'/upload',
-	fileUploadSecurityValidation,
-	cfs.uploadAvatarMiddleware('image_str', 'perssonel_id'),
-	(req, res, next) => {
-		// Log file upload
-		DataImportExportLogger.fileUploaded(req, 'avatar_image', 'IMAGE', true);
-		next();
-	}
-);
+/**
+ * ===================================
+ * BATCH PLATE IMPORT ENDPOINT
+ * ===================================
+ */
 
-//create api for download image
-router.get('/download/:fileName', fileUploadSecurityValidation, cfs.downloadAvatarMiddleware('fileName'));
-
-//create api for get list file upload
-router.get('/list', fileUploadSecurityValidation, cfs.listMiddleware());
-
+/**
+ * POST /batch/plate
+ * Import vehicle plates from Excel file
+ * Processes Excel file containing plate numbers and associates them with personnel
+ *
+ * @body file - Excel file with columns: plate_number, personnel_code, first_name, last_name, color, brand
+ * @returns Array of created car records
+ */
 router.post(
 	'/batch/plate',
 	// Security validation for file uploads
@@ -73,78 +64,108 @@ router.post(
 	checkIPRestriction,
 	accessCheck('dataImportExport'),
 	async (req, res) => {
-		if (!req.files?.['file']) return res.status(400).json({ error: 'No file uploaded' });
+		// Validate file upload
+		if (!req.files?.['file']) {
+			return res.status(400).json({ error: 'No file uploaded' });
+		}
+
 		try {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const result: any[] = [];
-			// Note: excel must be sent under "file" property of form.
-			const workbook = await new Excel.Workbook().xlsx.load((req.files?.['file'] as UploadedFile).data);
-			// Note: data must be saved in either "cars" worksheet or the first worksheet
+
+			// Load Excel workbook from uploaded file
+			const workbook = await new Excel.Workbook().xlsx.load(
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				(req.files?.['file'] as UploadedFile).data as any
+			);
+
+			// Get worksheet - try 'cars' sheet first, then first sheet
 			const worksheet = workbook.getWorksheet('cars') || workbook.getWorksheet(1);
-			if (!worksheet) return res.status(400).json({ error: 'No Sheet present' });
-			const map: { [key: string]: number } = {};
+			if (!worksheet) {
+				return res.status(400).json({ error: 'No Sheet present' });
+			}
+
+			// Build column mapping from header row
+			const columnMap: { [key: string]: number } = {};
 			worksheet.getRow(1).eachCell({ includeEmpty: true }, function (cell, colNumber) {
-				map[cell.value?.toString().trim() ?? ''] = colNumber;
+				columnMap[cell.value?.toString().trim() ?? ''] = colNumber;
 			});
 
+			// Process each row (skip header row)
 			for (const row of worksheet?.getRows(2, worksheet.lastRow?.number ?? 0) ?? []) {
-				// Note: first row is the header, include plate_number + personnel_code + [first_name + last_name + color + brand]
-				let plate_number: string | undefined,
-					personnel_code: string | undefined,
-					personnel: any,
-					color: any,
-					brand: any,
-					first_name: string | undefined,
-					last_name: string | undefined;
+				let plateNumber: string | undefined;
+				let personnelCode: string | undefined;
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				let personnel: any;
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				let color: any;
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				let brand: any;
+				let firstName: string | undefined;
+				let lastName: string | undefined;
+
+				// Validate plate number exists
 				if (
-					!!map['plate_number'] &&
-					(plate_number = row.getCell(map['plate_number']).value?.toString())
-					// || ["first", "second", "third", "fifth"].every(el => !!map[el])
+					columnMap['plate_number'] &&
+					(plateNumber = row.getCell(columnMap['plate_number']).value?.toString())
 				) {
-					plate_number = map['fifth']
-						? plate_number + (row.getCell(map['fifth']).value ?? '').toString()
-						: plate_number;
-					const number_plate = stringPersianToStringEnglish(plate_number);
-					if (number_plate.length !== 8 || (await Car.exists({ number_plate }))) continue;
+					// Add optional fifth column if exists
+					plateNumber = columnMap['fifth']
+						? plateNumber + (row.getCell(columnMap['fifth']).value ?? '').toString()
+						: plateNumber;
+
+					// Normalize Persian characters to English
+					const normalizedPlate = stringPersianToStringEnglish(plateNumber);
+
+					// Skip if invalid length or duplicate
+					if (normalizedPlate.length !== 8 || (await Car.exists({ number_plate: normalizedPlate }))) {
+						continue;
+					}
+
+					// Try to find existing personnel by name
 					if (
 						!(personnel = await Personnel.findOne({
-							first_name: row.getCell(map['first_name']).value?.toString(),
-							last_name: row.getCell(map['last_name']).value?.toString()
+							first_name: row.getCell(columnMap['first_name']).value?.toString(),
+							last_name: row.getCell(columnMap['last_name']).value?.toString()
 						})
 							.lean()
 							.exec()) &&
-						// personnel_code column was missing => first_name and last_name should be present to create a new personnel
-						(!map['personnel_code'] ||
-							// personnel_code cell is empty for this row => first_name and last_name should be present to create a new personnel
-							!(personnel_code = row.getCell(map['personnel_code']).value?.toString()) ||
-							// personnel_code is provided but there is no person in DB with that personnel_code => first_name and last_name should be present to create a new personnel
-							!(personnel = await Personnel.findOne({ personnel_code: personnel_code }).lean().exec())) // If all of above return false => There is a person in DB with the personnel_code => we don't need first_name and last_name any more
+						// If no personnel_code column or empty cell or personnel not found
+						(!columnMap['personnel_code'] ||
+							!(personnelCode = row.getCell(columnMap['personnel_code']).value?.toString()) ||
+							!(personnel = await Personnel.findOne({ personnel_code: personnelCode }).lean().exec()))
 					) {
+						// Create new personnel if first_name and last_name are provided
 						if (
-							!!map['first_name'] &&
-							map['last_name'] &&
-							(first_name = row.getCell(map['first_name']).value?.toString()) &&
-							(last_name = row.getCell(map['last_name']).value?.toString())
-						)
-							// new owner => create a person in database
+							columnMap['first_name'] &&
+							columnMap['last_name'] &&
+							(firstName = row.getCell(columnMap['first_name']).value?.toString()) &&
+							(lastName = row.getCell(columnMap['last_name']).value?.toString())
+						) {
+							// Generate random personnel code if not provided
 							personnel = await Personnel.create({
 								personnel_code:
-									personnel_code ??
+									personnelCode ??
 									Array(10)
 										.fill(0)
 										.map(() => Math.floor(Math.random() * 10))
 										.join(''),
-								first_name,
-								last_name
+								first_name: firstName,
+								last_name: lastName
 							});
-						else continue; //without owner => cancel the operation
+						} else {
+							// Skip if no owner information
+							continue;
+						}
 					}
 
+					// Get car color or default to 'unknown'
 					if (
-						!map['color'] ||
+						!columnMap['color'] ||
 						!(color = await CarColor.findOne({
 							$or: [
-								{ name: { $regex: row.getCell(map['color']).value?.toString(), $options: 'i' } },
-								{ fa_name: { $regex: row.getCell(map['color']).value?.toString(), $options: 'i' } }
+								{ name: { $regex: row.getCell(columnMap['color']).value?.toString(), $options: 'i' } },
+								{ fa_name: { $regex: row.getCell(columnMap['color']).value?.toString(), $options: 'i' } }
 							]
 						})
 							.lean()
@@ -152,12 +173,14 @@ router.post(
 					) {
 						color = await CarColor.findOne({ name: 'unknown' }).lean().exec();
 					}
+
+					// Get car brand or default to 'unknown'
 					if (
-						!map['brand'] ||
+						!columnMap['brand'] ||
 						!(brand = await CarBrand.findOne({
 							$or: [
-								{ name: { $regex: row.getCell(map['brand']).value?.toString(), $options: 'i' } },
-								{ fa_name: { $regex: row.getCell(map['brand']).value?.toString(), $options: 'i' } }
+								{ name: { $regex: row.getCell(columnMap['brand']).value?.toString(), $options: 'i' } },
+								{ fa_name: { $regex: row.getCell(columnMap['brand']).value?.toString(), $options: 'i' } }
 							]
 						})
 							.lean()
@@ -165,10 +188,12 @@ router.post(
 					) {
 						brand = await CarBrand.findOne({ name: 'unknown' }).lean().exec();
 					}
+
+					// Create car record
 					result.push(
 						await Car.create({
 							owner: personnel?._id,
-							number_plate,
+							number_plate: normalizedPlate,
 							brand: brand?._id,
 							color: color?._id
 						})
@@ -183,312 +208,76 @@ router.post(
 				success: true,
 				data: result
 			});
-		} catch (err: any) {
+		} catch (err) {
 			// Log failed plate batch import
-			DataImportExportLogger.plateBatchImported(req, 0, false, err.message);
-			res.status(500).json({ error: 'Failed to read Excel file', details: err.message });
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			DataImportExportLogger.plateBatchImported(req, 0, false, (err as any).message);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			res.status(500).json({ error: 'Failed to read Excel file', details: (err as any).message });
 		}
 	}
 );
 
-router.post(
-	'/batch',
-	// 1. SECURITY VALIDATION LAYER (FIRST PRIORITY)
-	batchRateLimit, // Rate limiting for batch operations
-	batchSecurityValidation, // Path traversal and input validation
-	checkIPRestriction, // IP restriction validation
+/**
+ * ===================================
+ * BATCH PERSONNEL IMPORT ENDPOINT
+ * ===================================
+ */
 
-	// 2. AUTHENTICATION & AUTHORIZATION
+/**
+ * POST /batch/personnel
+ * Batch personnel import with face recognition - reads from request body
+ * Includes AI-powered face detection and embedding generation via Kafka
+ *
+ * @body personnels - JSON string array of personnel objects with fields:
+ *   - first_name (required)
+ *   - last_name (required)
+ *   - personnel_code (required, unique)
+ *   - national_code (optional)
+ *   - email (optional)
+ *   - phone_number (optional)
+ *   - job_id (optional)
+ *   - tracked (optional)
+ *   - camera_whitelist (optional)
+ *   - allowed_pass (optional)
+ *   - alert (optional)
+ * @files images - Multipart file uploads (matched by personnel_code in filename or order)
+ * @returns Summary of successful and failed imports with face recognition results
+ */
+router.post(
+	'/batch/personnel',
+	// File upload middleware for multiple images
+	file_upload().array('images'),
+
+	// Security validation
+	fileUploadSecurityValidation,
+	checkIPRestriction,
 	accessCheck('dataImportExport'),
 
-	// 3. INPUT VALIDATION
-	dtoValidationMiddleware(AddBatchPersonnel, {
-		skipMissingProperties: false,
-		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
-		info: 'please fill all fields'
-	}),
-
-	// 4. EXISTING MIDDLEWARE CHAIN (unchanged)
-	snapshotKafka.middlewareWraper(
-		snapshotKafka.kafkaSession,
-		(req) => {
-			req.body._id = randomUuid(24);
-			return [
-				{
-					producerKey: 'dara',
-					consumerKey: 'sara',
-					producerInput: { path: req.body['path'], _id: req.body['_id'] },
-					consumerId: req.body['_id'],
-					timeout: Math.max(
-						readdirSync(path.join(__dirname, '../../../face_DB', req.body['path'])).length * 50,
-						10000
-					)
-				}
-			];
-		},
-		{
-			save: 'aiRes',
-			next: true,
-			resultValidationFunction: (result) =>
-				!!result?.success_dir
-					? undefined
-					: {
-							status: 500,
-							message: 'Not Successful (no success dir in response)!'
-						}
-		}
-	),
-	// (req, res, next)=>{
-	//   req.body['aiRes'] = {
-	//     "success_dir": "DB_success_20240910_155141",
-	//     "successful": [
-	//       "DB_success_20240910_155141/9820574/9820574.jpg", "DB_success_20240910_155141/9319903/9319903.jpg", "DB_success_20240910_155141/9616734/9616734.jpg", "DB_success_20240910_155141/9942413/9942413.jpg", "DB_success_20240910_155141/9540153/9540153.jpg", "DB_success_20240910_155141/40110364/40110364.jpg" ],
-	//     "failed": [],
-	//     "_id": "7_4abe-82ff-31eabdc06e3e"
-	//   }
-	//   next();
-	// },
+	// Add Kafka session to request for face recognition
 	async (req, _res, next) => {
-		const producer = new Kafka({
-			logLevel: logLevel.ERROR,
-			brokers: process.env['KAFKA_BOOTSTRAP'].split(',')
-		}).producer();
-		await producer.connect();
-		await producer.send({
-			topic: process.env['SIGNAL_TOPIC'],
-			messages: [
-				{
-					key: 'connect',
-					value: JSON.stringify({
-						signal: 'shutdown',
-						origin: 'back',
-						sender: 'back',
-						timeout: Math.max(
-							readdirSync(path.join(__dirname, '../../../face_DB', req.body['aiRes']['success_dir'])).length *
-								30,
-							10 * 60 * 1000
-						)
-					})
-				}
-			]
-		});
-		await producer.disconnect();
-		return next();
+		// Inject Kafka session function into request body
+		req.body.kafkaSession = snapshotKafka.kafkaSession;
+		next();
 	},
-	// //save base64 file in assets
-	// cfs.uploadAvatarMiddleware("aiResponse.face", "personnel_id", { next: true }),
-	// injectDataMiddleware((body: any) => ({ _id: body["aiResponse"]["_id"], person_id: body["aiResponse"]["personnel_id"], vector: body["aiResponse"]["embedding"] }), { spread: true }),
-	// //create PersonImage document
-	// createMiddleware(["person_id", "vector", "hash_id", "_id"], PersonImage)
-	async (req, res, next) => {
-		const data: any = req.body['aiRes'];
-		const assetsDir = path.join(__dirname, '../../../assets/image');
-		const success_dir = path.join(__dirname, '../../../face_DB', data['success_dir']);
-		const user_dir = path.join(__dirname, '../../../face_DB', req.body['path']);
-		const picklePath = path.join(success_dir, 'embeddings.pkl');
-		if (!data || !data['success_dir'] || !existsSync(picklePath))
-			return next(new ApiError(500, 'Internal error!'));
-		const imageData: { [key: string]: Array<number> } = (await unpickle(picklePath)) as any;
-		let successful_count = 0;
-		let failed_count = data['failed'].length;
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		for (const personnelCode_imageName in imageData) {
-			const personnel_code = personnelCode_imageName.split('_')[0];
-			let newPerson = false;
-			let person = await Personnel.findOne({ personnel_code }).exec();
-			if (!person) {
-				person = new Personnel({
-					personnel_code,
-					first_name: personnel_code,
-					last_name: personnel_code
-				});
-				await person.save();
-				newPerson = true;
-			}
-			//////////////////////////////////////
-			try {
-				if (Object.prototype.hasOwnProperty.call(imageData, personnelCode_imageName)) {
-					const imagesDirPath = path.join(success_dir, personnel_code);
-					if (!existsSync(imagesDirPath)) {
-						failed_count += 1;
-						continue;
-					}
-					const personnel_id = person.id;
-					const imagePaths = readdirSync(imagesDirPath)
-						.filter((file) => /\.(png|jpg|jpeg|bmp)$/i.test(file.toLowerCase()))
-						.map((file) => path.join(imagesDirPath, file));
-					if (!imagePaths.length) console.log('wrong ext', readdirSync(imagesDirPath));
-					//////////////////////////////////////
-					for (const imagePath of imagePaths) {
-						const image64 = readFileSync(imagePath).toString('base64');
-						const hash_id = hashString(image64, secret);
-						const existingPersonImage = await PersonImage.findOne({
-							hash_id
-						}).exec();
-						//////////////////////////////////////
-						if (existingPersonImage) {
-							const pervPerson = await Personnel.findById(existingPersonImage.person_id).exec();
-							if (person.id === pervPerson?.id) {
-								console.log(`Image already added for personnel ${person.id}/${personnel_code}: ${imagePath}`);
-							} else if (pervPerson) {
-								const pervPersonnel_code = pervPerson?.personnel_code;
-								console.log(
-									`Image ${imagePath} exists for ${pervPersonnel_code} and can't be added to ${personnel_code}`
-								);
-								const pp: string | undefined = data['successful'].find((p: string) =>
-									p.includes(personnelCode_imageName.replace('_', '/'))
-								);
-								if (typeof pp === 'string') {
-									ensureDirSync(path.join(user_dir, personnel_code));
-									const exactImagePath = path.join(__dirname, '../../../face_DB', pp);
-									moveSync(
-										exactImagePath,
-										path.join(user_dir, `${personnel_code}/${path.basename(exactImagePath)}`),
-										{ overwrite: true }
-									);
-									if (!readdirSync(path.dirname(exactImagePath)).length)
-										rmdirSync(path.dirname(exactImagePath));
-								}
-								const pp2: string | undefined = data['successful'].find((p: string) =>
-									p.includes(pervPersonnel_code)
-								);
-								if (pp2) {
-									ensureDirSync(path.join(user_dir, pervPersonnel_code));
-									const exactImagePath = path.join(__dirname, '../../../face_DB', pp2);
-									moveSync(
-										exactImagePath,
-										path.join(user_dir, `${pervPersonnel_code}/${path.basename(exactImagePath)}`),
-										{ overwrite: true }
-									);
-									if (!readdirSync(path.dirname(exactImagePath)).length)
-										rmdirSync(path.dirname(exactImagePath));
-								} else {
-									try {
-										ensureDirSync(path.join(user_dir, pervPersonnel_code));
-										moveSync(
-											path.join(
-												assetsDir,
-												pervPerson.id,
-												`${pervPerson.id}-${existingPersonImage.hash_id}.jpeg`
-											),
-											path.join(user_dir, `${pervPersonnel_code}/${pervPersonnel_code}.jpg`),
-											{ overwrite: true }
-										);
-									} catch {
-										// Ignore file move errors
-									}
-								}
-								failed_count += 2;
-								successful_count -= data['successful'].filter((p: string) =>
-									p.includes(pervPersonnel_code)
-								).length;
-								await pervPerson?.delete();
-								await person.delete();
-								await existingPersonImage.delete();
-							}
-							continue;
-						}
-						//////////////////////////////////////
-						const vector = imageData[personnelCode_imageName];
-						const personnelImageDir = path.join(assetsDir, personnel_id);
-						const name = `${personnel_id}-${hash_id}`;
-						mkdirSync(personnelImageDir, { recursive: true });
-						writeFileSync(path.join(personnelImageDir, `${name}.jpeg`), Buffer.from(image64, 'base64'));
-						const personImage = new PersonImage({
-							_id: new mongoose.Types.ObjectId().toHexString(),
-							person_id: person._id,
-							hash_id,
-							vector
-						});
-						await personImage.save();
-						successful_count += 1;
-					}
-				}
-			} catch (error) {
-				console.log(error);
-				let pp: string | undefined = data['successful'].find((p: string) =>
-					p.includes(personnelCode_imageName.replace('_', '/'))
-				);
-				//  = data['successful'].filter((p: string) => {
-				//   if (!) return true;
-				//   pp = p;
-				//   return false;
-				// });
-				// data['failed']?.push(pp);
-				if (typeof pp === 'string') {
-					ensureDirSync(path.join(user_dir, personnel_code));
-					moveSync(path.join(__dirname, '../../../face_DB', pp), path.join(user_dir, personnel_code), {
-						overwrite: true
-					});
-				}
-				if (newPerson) {
-					await person.delete();
-				}
-				failed_count += 1;
-			}
-		}
-		// data['successful_count'] = data['successful'].length;
-		data['successful_count'] = successful_count;
-		data['successful'] = undefined;
-		// data['failed_count'] = data['failed'].length;
-		data['failed_count'] = failed_count;
-		data['failed'] = undefined;
-		// Log batch personnel import
-		DataImportExportLogger.batchPersonnelImported(req, successful_count, failed_count, true);
 
-		res.send({
-			success: true,
-			data
-		});
-		// return next();
-		const producer = new Kafka({
-			logLevel: logLevel.ERROR,
-			brokers: process.env['KAFKA_BOOTSTRAP'].split(',')
-		}).producer();
-		await producer.connect();
-		await producer.send({
-			topic: process.env['DATA_TOPIC'] ?? 'data',
-			messages: [
-				{
-					key: 'sio',
-					value: JSON.stringify({ type: 'batch', success: true, data })
-				}
-			]
-		});
-		await new Promise((resolve, _rej) => {
-			producer.send({
-				topic: process.env['SIGNAL_TOPIC'],
-				messages: [
-					{
-						key: 'connect',
-						value: JSON.stringify({
-							signal: 'turnon',
-							origin: 'back',
-							sender: 'back'
-						})
-					}
-				]
-			});
-			setTimeout(() => resolve(true), 5000);
-		});
-		await producer.send({
-			topic: process.env['SIGNAL_TOPIC'],
-			messages: [
-				{
-					key: 'connect',
-					value: JSON.stringify({
-						signal: 'restart',
-						origin: 'back',
-						sender: 'back'
-					})
-				}
-			]
-		});
-		await producer.disconnect();
-		return;
-	}
+	// Controller handles all validation and processing (including face recognition)
+	batch_personnel_add
 );
 
+/**
+ * POST /hostile
+ * Create a hostile person record with face recognition
+ * Automatically generates personnel code and processes face images
+ *
+ * @route POST /hostile
+ * @body tracked - Boolean flag to track this person
+ * @body alert - Boolean flag to set alert for this person
+ * @body image_str - Base64 encoded image(s) for face recognition (string or array)
+ * @returns {Object} 201 - Created PersonImage records with face data
+ * @returns {Object} 400 - Bad request if validation fails
+ * @security Requires authentication
+ */
 router.post(
 	'/hostile',
 	dtoValidationMiddleware(AddHostilePerson, {
@@ -497,7 +286,8 @@ router.post(
 		info: 'please fill all fields'
 	}),
 	injectDataMiddleware(
-		(body: any) => ({
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+		(_body: any) => ({
 			code:
 				randomUuid(4, 'number').toString() +
 				new Date()
@@ -510,20 +300,26 @@ router.post(
 	),
 	createMiddleware(
 		[
-			{ tracked: (body) => !!body['tracked'] },
-			{ alert: (body) => !!body['alert'] },
-			{ first_name: (body) => 'Hostile' },
-			{ last_name: (body) => body['code'] },
-			{ person_type: (_body) => 'hostile' },
-			{ personnel_code: (body) => body['code'] }
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ tracked: (body: any) => !!body['tracked'] },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ alert: (body: any) => !!body['alert'] },
+			{ first_name: () => 'Hostile' },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ last_name: (body: any) => body['code'] },
+			{ person_type: () => 'hostile' },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ personnel_code: (body: any) => body['code'] }
 		],
 		Personnel,
 		{ save: 'person', next: true }
 	),
 
 	async (req, res, next) => {
-		let data: any[] = [];
-		let result: any[] = [];
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const data: any[] = [];
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const result: any[] = [];
 		const person = req.body['person'];
 		if (!Array.isArray(req.body['image_str']))
 			if (typeof req.body['image_str'] === 'string') req.body['image_str'] = [req.body['image_str']];
@@ -541,13 +337,47 @@ router.post(
 			);
 		}
 		for (const aiResult of data) {
-			if (!!aiResult?.has_face) {
+			if (aiResult?.has_face) {
 				try {
-					const { hash } = cfs.uploadAvatar(person.id, aiResult['face']);
+					// Extract base64 from data URL if present
+					let faceBase64 = aiResult['face'];
+					faceBase64 = faceBase64?.split(',')[1] ?? faceBase64;
+
+					// Generate hash for file naming
+					const hash = hashString(faceBase64, SECRET);
+					const fileName = `${person.id}-${hash}`;
+					const fileKey = `images/personnel/${fileName}.jpeg`;
+
+					// Convert base64 to buffer
+					const imageBuffer = Buffer.from(faceBase64, 'base64');
+
+					// Upload to S3
+					const command = new PutObjectCommand({
+						Bucket: BaseConfig.BUCKET_NAME,
+						Key: fileKey,
+						Body: imageBuffer,
+						ContentType: 'image/jpeg',
+						ACL: 'public-read',
+						CacheControl: 'max-age=31536000'
+					});
+					await S3Client.instance().send(command);
+
+					// Save to FileModel
+					const fileUrl = `${BaseConfig.BUCKET_NAME}/${fileKey}`;
+					await new FileCrate().save(
+						fileUrl,
+						BaseConfig.BUCKET_NAME,
+						person.id,
+						fileKey,
+						imageBuffer.length.toString(),
+						'image/jpeg'
+					);
+
 					result.push(
 						await PersonImage.create({
 							_id: aiResult['_id'],
 							hash_id: hash,
+							file_key: fileKey,
 							person_id: person._id,
 							vector: aiResult['embedding']
 						})
@@ -565,53 +395,36 @@ router.post(
 	}
 );
 
-router.post(
-	'/kafka',
-	dtoValidationMiddleware(AddPersonImage, {
-		skipMissingProperties: false,
-		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
-		info: 'please fill all fields'
-	}),
-	snapshotKafka.middlewareWraper(
-		snapshotKafka.kafkaSession,
-		async (req) => {
-			const image_str =
-				req.body['image_str']?.length > 900 * 1024
-					? `data:image/jpeg;base64,${await resizeImage(req.body['image_str'])}`
-					: req.body['image_str'];
-			return [
-				{
-					producerKey: 'soghra',
-					consumerKey: 'asghar',
-					producerInput: { personnel_id: req.body['personnel_id'], image_str },
-					consumerId: req.body['personnel_id']
-				}
-			];
-		},
-		{
-			save: 'aiResponse',
-			next: true,
-			//error check
-			resultValidationFunction: (result) =>
-				!!result?.has_face ? undefined : { status: 406, message: 'No face found' }
-		}
-	),
-	//save base64 file in assets
-	cfs.uploadAvatarMiddleware('aiResponse.face', 'personnel_id', { next: true }),
-	injectDataMiddleware(
-		(body: any) => ({
-			_id: body['aiResponse']['_id'],
-			person_id: body['aiResponse']['personnel_id'],
-			vector: body['aiResponse']['embedding']
-		}),
-		{ spread: true }
-	),
-	//create PersonImage document
-	createMiddleware(['person_id', 'vector', 'hash_id', '_id'], PersonImage)
-);
-
+/**
+ * POST /search
+ * Search for personnel by face image
+ * Uses AI face recognition to match image against database vectors
+ *
+ * @route POST /search
+ * @files image - Image file upload via multipart form data (auto-resized if > 900KB)
+ * @body confidence - Optional confidence threshold for matches
+ * @returns {Object} 200 - Array of matched personnel records
+ * @returns {Object} 406 - No face found in the image
+ * @security Requires authentication
+ */
 router.post(
 	'/search',
+	file_upload().single('image'),
+	// Convert uploaded file to base64 for processing
+	async (req: Request, _res: Response, next: NextFunction) => {
+		try {
+			if (req.file) {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const uploadedFile = req.file as any;
+				// Download from S3 and convert to base64
+				const imageBase64 = await downloadS3FileAsBase64(uploadedFile.key);
+				req.body['image_str'] = `data:${uploadedFile.mimetype};base64,${imageBase64}`;
+			}
+			next();
+		} catch (error) {
+			next(error);
+		}
+	},
 	(req: Request, res: Response, next: NextFunction) => {
 		req.body.id = randomUuid(24);
 		return next();
@@ -644,15 +457,18 @@ router.post(
 			try {
 				const ids: Array<string> = JSON.parse(redisDateStringified);
 				return { person_id: { $in: ids } };
-			} catch (error) {
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			} catch (_error) {
 				// If JSON parsing fails, return empty query to avoid errors
 				return {};
 			}
 		},
-		{ searchFromBody: (body) => (body.redisData ? JSON.stringify(body.redisData) : ''), populate: true }
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		{ searchFromBody: (body: any) => (body.redisData ? JSON.stringify(body.redisData) : ''), populate: true }
 	),
 	//error check
-	(req: Request, res: Response, next: NextFunction) =>
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	(req: Request, res: Response, _next: NextFunction) =>
 		req.body['redisData']?.has_face == true
 			? res.status(406).send({ message: 'No face found' })
 			: res.status(200).send({
@@ -661,10 +477,22 @@ router.post(
 				})
 );
 
+/**
+ * POST /notifpersonnel/guest
+ * Create a guest personnel record with automatic code generation
+ * Guest personnel get special job title and allowed pass time
+ *
+ * @route POST /notifpersonnel/guest
+ * @body allowed_pass - Optional time range for guest access
+ * @returns {Object} 201 - Created guest personnel with person_id
+ * @returns {Object} 412 - Validation failed
+ * @security Requires authentication
+ */
 router.post(
 	'/notifpersonnel/guest',
 	injectDataMiddleware(
-		async (_body: any) => ({
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		async (): Promise<any> => ({
 			code:
 				randomUuid(4, 'number').toString() +
 				new Date()
@@ -680,24 +508,47 @@ router.post(
 	),
 	createMiddleware(
 		[
-			{ guest: (_body) => true },
+			{ guest: () => true },
 			{
-				allowed_pass: (body) => allowedPassConvert(body) ?? { start: 0, end: 2147483648000 }
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				allowed_pass: (body: any) => allowedPassConvert(body) ?? { start: 0, end: 2147483648000 }
 			},
-			{ first_name: (body) => 'Guest' },
-			{ last_name: (body) => body['code'] },
-			{ person_type: (_body) => 'guest' },
-			{ personnel_code: (body) => body['code'] },
-			{ job_id: (body) => body['guestId'] }
+			{ first_name: () => 'Guest' },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ last_name: (body: any) => body['code'] },
+			{ person_type: () => 'guest' },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ personnel_code: (body: any) => body['code'] },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ job_id: (body: any) => body['guestId'] }
 		],
 		Personnel,
 		{ save: 'person', next: true }
 	),
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	injectDataMiddleware((body: any) => ({ person_id: body.person?.id }), {
 		spread: true
 	})
 );
 
+/**
+ * POST /notifpersonnel/client
+ * Create a client personnel record with associated product
+ * Automatically assigns client job title and camera whitelist
+ *
+ * @route POST /notifpersonnel/client
+ * @body first_name - Client's first name (required)
+ * @body last_name - Client's last name (required)
+ * @body client_type - Type of client: 'client_buyer' or 'client_seller' (required)
+ * @body phone_number - Client's phone number (required)
+ * @body product_name - Name of the product (optional, defaults to 'طلا')
+ * @body product_images - Array of product images (optional)
+ * @body product_weight - Weight of the product (optional)
+ * @body face_log_id - Associated face log ID (optional)
+ * @returns {Object} 201 - Created client personnel and product records
+ * @returns {Object} 412 - Validation failed
+ * @security Requires authentication
+ */
 router.post(
 	'/notifpersonnel/client',
 	dtoValidationMiddleware(AddClient, {
@@ -707,13 +558,17 @@ router.post(
 	}),
 	createMiddleware(
 		[
-			{ first_name: (body) => body['first_name'] },
-			{ last_name: (body) => body['last_name'] },
-			{ person_type: (body) => body['client_type'] },
-			{ phone_number: (body) => body['phone_number'] },
-			{ alert: (_) => false },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ first_name: (body: any) => body['first_name'] },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ last_name: (body: any) => body['last_name'] },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ person_type: (body: any) => body['client_type'] },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ phone_number: (body: any) => body['phone_number'] },
+			{ alert: () => false },
 			{
-				personnel_code: (_) =>
+				personnel_code: () =>
 					randomUuid(4, 'number').toString() +
 					new Date()
 						.toLocaleDateString()
@@ -722,13 +577,13 @@ router.post(
 						.join('')
 			},
 			{
-				job_id: async (_) =>
+				job_id: async () =>
 					await JobTitle.findOne({ name: 'client' })
 						.exec()
 						.then((job) => job?.id)
 			},
 			{
-				camera_whitelist: async (_) =>
+				camera_whitelist: async () =>
 					await Camera.find({})
 						.exec()
 						.then((cameras) => cameras.map((cam) => cam._id))
@@ -737,26 +592,33 @@ router.post(
 		Personnel,
 		{ save: 'person', next: true }
 	),
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	injectDataMiddleware((body: any) => ({ person_id: body.person?.id }), {
 		spread: true
 	}),
 	createMiddleware(
 		[
 			{
-				name: (body) => (!!body['product_name'] ? body['product_name'] : 'طلا')
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				name: (body: any) => (body['product_name'] ? body['product_name'] : 'طلا')
 			},
-			{ images: (body) => body['product_images'] },
-			{ product_code: (body) => body['person']['personnel_code'] },
-			{ person_id: (body) => body['person']['_id'] },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ images: (body: any) => body['product_images'] },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ product_code: (body: any) => body['person']['personnel_code'] },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ person_id: (body: any) => body['person']['_id'] },
 			'face_log_id',
 			{
-				features: (body) => [{ name: 'product_weight', value: body['product_weight'] ?? 0 }]
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				features: (body: any) => [{ name: 'product_weight', value: body['product_weight'] ?? 0 }]
 			}
 		],
 		Product,
 		{ next: true, save: 'product' }
 	),
 	injectDataMiddleware(
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(body: any) => ({
 			first_name: body['first_name'],
 			last_name: body['last_name'],
@@ -770,6 +632,23 @@ router.post(
 	)
 );
 
+/**
+ * POST /notifpersonnel/:type?
+ * Add person image with face vector notification
+ * Processes image through Kafka (habil→ghabil) and saves to PersonImage collection
+ *
+ * @route POST /notifpersonnel/:type?
+ * @param type - Optional personnel type parameter
+ * @body person_id - ID of the personnel (required)
+ * @body vector - Face embedding vector (required)
+ * @body hash_id - Hash of the image (required)
+ * @body image_str - Base64 encoded image string (required)
+ * @body confidence - Face detection confidence score (optional)
+ * @returns {Object} 201 - Created PersonImage with image data
+ * @returns {Object} 400 - AI processing failed or validation error
+ * @returns {Object} 412 - Validation failed
+ * @security Requires authentication
+ */
 router.post(
 	'/notifpersonnel/:type?',
 	dtoValidationMiddleware(AddPersonImage, {
@@ -777,7 +656,8 @@ router.post(
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
 		info: 'please fill all fields'
 	}),
-	injectDataMiddleware((body: any) => ({ _id: new mongoose.Types.ObjectId().toHexString() }), {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+	injectDataMiddleware((_body: any) => ({ _id: new mongoose.Types.ObjectId().toHexString() }), {
 		spread: true
 	}),
 
@@ -801,13 +681,35 @@ router.post(
 				!result?.success ? { status: 400, message: result?.message } : undefined
 		}
 	),
-	cfs.uploadAvatarMiddleware('image_str', 'person_id', { next: true }),
+	// Save base64 image to S3 (for Kafka integration)
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const image_str = req.body.image_str;
+			const person_id = req.body.person_id;
+
+			if (image_str && person_id) {
+				const result = await uploadBase64ImageToS3(image_str, person_id, 'images/personnel');
+				req.body.uploaded_file = result;
+			}
+			next();
+		} catch (error) {
+			next(error);
+		}
+	},
+	injectDataMiddleware(
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(body: any) => ({
+			file_key: body['uploaded_file']?.file_key || ''
+		}),
+		{ spread: true }
+	),
 	//create PersonImage document
-	createMiddleware(['person_id', 'vector', 'hash_id', 'confidence', '_id'], PersonImage, {
+	createMiddleware(['person_id', 'vector', 'hash_id', 'confidence', 'file_key', '_id'], PersonImage, {
 		next: true,
 		save: 'imageDoc'
 	}),
-	(req: Request, res: Response, next: NextFunction) => {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	(req: Request, res: Response, _next: NextFunction) => {
 		res.status(201).send({
 			success: true,
 			data: {
