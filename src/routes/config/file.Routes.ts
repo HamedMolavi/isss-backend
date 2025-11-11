@@ -15,6 +15,7 @@ import { hashString } from '../../tools/hash';
 import Product from '../../db/mongo/models/product';
 import Camera from '../../db/mongo/models/camera';
 import { readMiddleware } from '../../db/mongo/read.database';
+import multer from 'multer';
 
 import { DataImportExportLogger } from '../../logger/data-input-output.logger';
 import { accessCheck } from '../../authentication/accessCheck.auth';
@@ -32,7 +33,6 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 import S3Client from '../../config/s3.config';
 import { BaseConfig } from '../../config/base.config';
 import { FileCrate } from '../../file_upload/methods/file/file_create';
-import { downloadS3FileAsBase64 } from '../../tools/s3.tools';
 
 // Session secret for hashing operations
 const SECRET = process.env['SESSION_SECRET'];
@@ -407,18 +407,32 @@ router.post(
  * @returns {Object} 406 - No face found in the image
  * @security Requires authentication
  */
+// Create multer upload middleware for memory storage (no S3 upload)
+const searchUploadMiddleware = multer({
+	storage: multer.memoryStorage(),
+	limits: {
+		fileSize: 30 * 1024 * 1024 // 30 MB max file size
+	},
+	fileFilter: (_req: Express.Request, file: Express.Multer.File, callback: multer.FileFilterCallback) => {
+		const isImage = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp'].includes(file.mimetype);
+		if (isImage) {
+			callback(null, true);
+		} else {
+			callback(new Error(`Invalid file type: ${file.mimetype}. Only images are allowed.`));
+		}
+	}
+}).single('image');
+
 router.post(
 	'/search',
-	file_upload().single('image'),
-	// Convert uploaded file to base64 for processing
+	searchUploadMiddleware,
+	// Convert uploaded file buffer to base64 for processing
 	async (req: Request, _res: Response, next: NextFunction) => {
 		try {
 			if (req.file) {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const uploadedFile = req.file as any;
-				// Download from S3 and convert to base64
-				const imageBase64 = await downloadS3FileAsBase64(uploadedFile.key);
-				req.body['image_str'] = `data:${uploadedFile.mimetype};base64,${imageBase64}`;
+				// Convert buffer directly to base64 (no S3 upload/download)
+				const imageBase64 = req.file.buffer.toString('base64');
+				req.body['image_str'] = `data:${req.file.mimetype};base64,${imageBase64}`;
 			}
 			next();
 		} catch (error) {
