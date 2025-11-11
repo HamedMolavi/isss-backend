@@ -1,19 +1,32 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import path from 'path';
-import { ApiError } from '../../types/classes/error.class';
+import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import PersonImage from '../../db/mongo/models/personImage';
-import { ImageFileSystem } from '../../tools/kafkaFile.tools';
 import Personnel from '../../db/mongo/models/personnel';
-import mongoose, { Schema } from 'mongoose';
-import { IPersonImage } from '../../types/interfaces/personImage.interface';
 import { readMiddleware } from '../../db/mongo/read.database';
+import { remove_file } from '../../file_upload/aws/remove';
+import { ApiRes } from '../../utils/api.response';
+import { HttpStatus } from '../../types/http_status';
+import { SnapshotKafka } from '../../tools/kafkaFile.tools';
+import { processFaceRecognition, savePersonImageWithVector } from '../../controllers/file.controller';
+import { getFileUrl } from '../../tools/s3.tools';
 
-//create customized filesystem
-const fs = new ImageFileSystem();
-//create router for add to routes file
+/**
+ * ===================================
+ * PERSON IMAGE ROUTES
+ * ===================================
+ *
+ * This router handles operations related to person images:
+ * - GET /?:type - Get all personnel images by type (guest/hostile/normal)
+ * - GET /:id - Get all images for a specific person
+ * - POST / - Upload a new image for a person
+ * - DELETE /:hash_id - Delete a specific image by hash ID
+ */
+
+// Initialize Kafka for face recognition
+const snapshotKafka = new SnapshotKafka();
+
+// Create router for personnel image endpoints
 const router: Router = Router();
-
-const specialTypes = ['Hostile', 'Guest'];
 router.get(
 	'/?:type(guest|hostile|normal)?$',
 	readMiddleware(Personnel, (person_type) => ({ person_type }), {
@@ -21,98 +34,271 @@ router.get(
 		save: 'personnel',
 		forceAll: true,
 		searchFromParams: (params) => params?.type?.toLowerCase() ?? 'normal',
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		send: async (person, _req) => {
+			// Find all images associated with this person
 			const images = await PersonImage.find({ person_id: person._id }).exec();
-			if (!!images.length) {
-				let pathRead = path.join(__dirname, `../../../assets/image/${person.id}/`);
-				const files = images.map((image) => person.id + '-' + image.hash_id + '.jpeg');
-				const imageFilesRead = fs.readFiles(pathRead, files);
+
+			if (images.length) {
+				// Map images to include file URLs constructed from file_key
+				const imagesWithUrls = images.map((image) => ({
+					hash_id: image.hash_id,
+					file_url: image.file_key ? getFileUrl(image.file_key) : null,
+					_id: image._id
+				}));
+
 				return {
 					_id: person.id,
 					person_id: await person.toJSON(),
-					images: imageFilesRead ?? []
+					images: imagesWithUrls
 				};
-			} else return undefined;
+			} else {
+				return undefined;
+			}
 		}
 	})
 );
 
-//route for get personnel by id from DB
-router.get('/:id', async function (req: Request, res: Response, next: NextFunction) {
+/**
+ * GET /:id
+ * Get all images for a specific person by person ID
+ *
+ * @param id - Person ID to retrieve images for
+ * @returns Array of image objects with URLs
+ */
+router.get('/:id', async function (req: Request, res: Response) {
 	try {
-		let id: string = req.params.id;
-		//verify body request
-		if (!id) {
-			req.flash('error', 'Please enter id');
-			return next(new ApiError(400, 'Please enter id'));
+		const personId: string = req.params.id;
+
+		// Validate person ID parameter
+		if (!personId) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Please enter id'
+			});
 		}
 
-		//query for get personnel by id from DB
-		let personImages = await PersonImage.find({ person_id: id }).select('hash_id').exec();
-		//send not found if personnel not found
-		if (!personImages) {
-			req.flash('error', 'personImages not found');
-			return next(new ApiError(404, 'personImages not found'));
+		// Query for all images belonging to this person
+		const personImages = await PersonImage.find({ person_id: personId }).exec();
+
+		// Check if person has any images
+		if (!personImages || personImages.length === 0) {
+			return res.status(200).json({
+				success: true,
+				data: []
+			});
 		}
-		let files = personImages?.map((elem) => id + '-' + elem.hash_id + '.jpeg');
-		//define path folder fo read files
-		let pathRead = path.join(__dirname, `./../../../assets/image/${id}/`);
-		let faces_base64: Object[] | null = [];
-		//check for exist path
-		faces_base64 = fs.readFiles(pathRead, files); //read all file in directory path an convert to base62 and get list base64
-		if (faces_base64 == null) {
-			req.flash('error', 'path not found');
-			return next(new ApiError(404, 'not found'));
-		}
-		//return response to client
+
+		// Map images to include file URLs constructed from file_key
+		const imagesWithUrls = personImages.map((image) => ({
+			hash_id: image.hash_id,
+			file_url: image.file_key ? getFileUrl(image.file_key) : null,
+			file_key: image.file_key,
+			_id: image._id
+		}));
+
+		// Return images with URLs
 		return res.status(200).json({
 			success: true,
-			data: faces_base64
+			data: imagesWithUrls
 		});
-	} catch (err: any) {
-		return next(new ApiError(500, 'Internal server error , ' + err.message));
+	} catch (err) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Internal server error , ' + (err instanceof Error ? err.message : 'Unknown error')
+		});
 	}
 });
 
-//add route for delete image from folder assets\image
-router.delete('/:hash_id', async function (req: Request, res: Response, next: NextFunction) {
+/**
+ * DELETE /:hash_id
+ * Delete a specific person image by hash ID
+ * Removes both the file from S3 and the database record
+ *
+ * @param hash_id - Hash ID of the image to delete
+ * @returns Deleted PersonImage document
+ */
+router.delete('/:hash_id', async function (req: Request, res: Response) {
 	try {
-		//get id from url
-		let hash_id = req.params.hash_id;
-		if (!hash_id) {
-			req.flash('error', 'Please enter hashid');
-			return next(new ApiError(400, 'Please enter hashid'));
+		// Get hash_id from URL parameters
+		const hashId = req.params.hash_id;
+
+		// Validate hash_id parameter
+		if (!hashId) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Please enter hashid'
+			});
 		}
-		//query for get personnel by id from DB
-		let personimage = await PersonImage.findOne({ hash_id: hash_id }).exec();
-		if (!personimage) {
-			req.flash('error', 'personimage Not Found');
-			return next(new ApiError(404, 'personimage Not Found'));
+
+		// Find the PersonImage record by hash_id
+		const personImage = await PersonImage.findOne({ hash_id: hashId }).exec();
+
+		if (!personImage) {
+			return ApiRes(res, {
+				status: HttpStatus.NOT_FOUND,
+				msg: 'personimage Not Found'
+			});
 		}
-		const person_id = personimage.person_id.toString();
-		// const masked_face_id = personimage.masked_face_id.toString();
-		//decleare file name for delete
-		let fileNames = [];
-		fileNames.push(`${person_id}-${hash_id}.jpeg`);
-		//  fileNames.push(`${person_id}-${masked_face_id}.jpeg`);
-		//define path folder fo read files
-		let pathDelete = path.join(__dirname, `./../../../assets/image/${person_id}/`);
-		let result = fs.deleteFiles(pathDelete, fileNames); //delete file in assets folder
-		if (!result) {
-			req.flash('error', 'image not found');
-			return next(new ApiError(404, 'image not found'));
+
+		// Delete file from S3 if file_key exists
+		if (personImage.file_key) {
+			await remove_file(personImage.file_key);
 		}
-		//delete from mongo
-		let personimageDeleted = await PersonImage.findOneAndDelete({
-			hash_id: hash_id
+
+		// Delete PersonImage record from MongoDB
+		const deletedPersonImage = await PersonImage.findOneAndDelete({
+			hash_id: hashId
 		}).exec();
-		//send response
-		return res.status(201).json({
+
+		// Return success response with deleted record
+		return res.status(200).json({
 			success: true,
-			data: personimageDeleted
+			data: deletedPersonImage
 		});
-	} catch (err: any) {
-		return next(new ApiError(500, 'Internal server error , ' + err.message));
+	} catch (err) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Internal server error , ' + (err instanceof Error ? err.message : 'Unknown error')
+		});
+	}
+});
+
+/**
+ * POST /
+ * Upload a new image for a person
+ * Uploads to S3 and creates database records
+ *
+ * @body person_id - Person ID to associate the image with
+ * @body image - Multipart file upload (as base64 or file buffer)
+ * @returns Created PersonImage document with file URL
+ */
+// Create multer upload middleware for memory storage (no S3 upload yet)
+const uploadMiddleware = multer({
+	storage: multer.memoryStorage(),
+	limits: {
+		fileSize: 30 * 1024 * 1024 // 30 MB max file size
+	},
+	fileFilter: (_req: Express.Request, file: Express.Multer.File, callback: multer.FileFilterCallback) => {
+		const isImage = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp'].includes(file.mimetype);
+		if (isImage) {
+			callback(null, true);
+		} else {
+			callback(new Error(`Invalid file type: ${file.mimetype}. Only images are allowed.`));
+		}
+	}
+}).single('image');
+
+router.post('/:person_id', uploadMiddleware, async function (req: Request, res: Response) {
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const uploadedFile = req.file as any;
+		const personId = req.params.person_id;
+
+		// Validate required fields
+		if (!personId) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'person_id is required'
+			});
+		}
+
+		if (!uploadedFile) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'image file is required'
+			});
+		}
+
+		// Verify person exists
+		const person = await Personnel.findById(personId).exec();
+		if (!person) {
+			return ApiRes(res, {
+				status: HttpStatus.NOT_FOUND,
+				msg: 'Personnel not found'
+			});
+		}
+
+		// Convert buffer to base64 for face recognition
+		const imageBase64 = uploadedFile.buffer.toString('base64');
+		const imageDataUrl = `data:${uploadedFile.mimetype};base64,${imageBase64}`;
+
+		try {
+			// Process face recognition via Kafka
+			const faceResult = await processFaceRecognition(
+				imageDataUrl,
+				personId,
+				snapshotKafka.kafkaSession.bind(snapshotKafka)
+			);
+
+			if (faceResult.has_face && faceResult.embedding && faceResult.cropped_face) {
+				// Save PersonImage with cropped face from Kafka (not original image)
+				const personImage = await savePersonImageWithVector(
+					personId,
+					faceResult.cropped_face, // Use cropped_face from asghar Kafka response
+					faceResult.embedding,
+					faceResult._id
+				);
+
+				// Return success response with face data
+				return res.status(201).json({
+					success: true,
+					data: {
+						_id: personImage._id,
+						person_id: personImage.person_id,
+						hash_id: personImage.hash_id,
+						file_url: personImage.file_key ? getFileUrl(personImage.file_key) : null,
+						file_key: personImage.file_key,
+						has_face: true,
+						multi_face: faceResult.multi_face
+					}
+				});
+			} else {
+				// No face detected in image - still save PersonImage with S3 upload
+				const personImage = await savePersonImageWithVector(personId, imageDataUrl, [], faceResult._id);
+
+				// Return success response without face data
+				return res.status(201).json({
+					success: true,
+					data: {
+						_id: personImage._id,
+						person_id: personImage.person_id,
+						hash_id: personImage.hash_id,
+						file_url: personImage.file_key ? getFileUrl(personImage.file_key) : null,
+						file_key: personImage.file_key,
+						has_face: false,
+						multi_face: faceResult.multi_face
+					}
+				});
+			}
+		} catch (faceError) {
+			// Still save the image even though face recognition failed
+			const personImage = await savePersonImageWithVector(
+				personId,
+				imageDataUrl,
+				[],
+				'' // No image ID from AI service
+			);
+
+			// Return success response (image saved but face recognition failed)
+			return res.status(201).json({
+				success: true,
+				data: {
+					_id: personImage._id,
+					person_id: personImage.person_id,
+					hash_id: personImage.hash_id,
+					file_url: personImage.file_key ? getFileUrl(personImage.file_key) : null,
+					file_key: personImage.file_key,
+					has_face: false,
+					face_recognition_error: faceError instanceof Error ? faceError.message : 'Unknown error'
+				}
+			});
+		}
+	} catch (err) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Internal server error , ' + (err instanceof Error ? err.message : 'Unknown error')
+		});
 	}
 });
 
