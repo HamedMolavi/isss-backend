@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { requestForGetPersonnel } from '../../db/elastic/connect.database';
 import Camera from '../../db/mongo/models/camera';
-import { ImageFileSystem } from '../../tools/kafkaFile.tools';
 import Personnel from '../../db/mongo/models/personnel';
 import { IPersonnel } from '../../types/interfaces/personnel.interface';
 import { dtoValidationMiddleware } from '../../validation/dto';
@@ -17,8 +16,9 @@ import { DoNotAllowOnDefault, injectDataMiddleware } from '../../tools/request.t
 import { PersonnelLogger } from '../../logger/personnel.logger';
 import { ApiRes } from '../../utils/api.response';
 import { HttpStatus } from '../../types/http_status';
+import PersonImage from '../../db/mongo/models/personImage';
+import { remove_file } from '../../file_upload/aws/remove';
 
-const fs = new ImageFileSystem();
 const router: Router = Router();
 
 type SearchValue = string | boolean;
@@ -293,11 +293,14 @@ router.post(
 		Personnel,
 		{ next: true, save: 'doc' }
 	),
-	handlePersonnelSuccess.create,
-	fs.uploadAvatarMiddleware('avatar_str', 'doc._id', { fileName: 'avatar', resultPropertyName: 'doc' }),
-	handlePersonnelError.create
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			await handlePersonnelSuccess.create(req, res, next);
+		} catch (error) {
+			handlePersonnelError.create(error as Error, req, res);
+		}
+	}
 );
-
 router.get(
 	'(/:type(search|hostile|guest|client))?/?$',
 	readMiddleware(Personnel, rawSearch, {
@@ -342,25 +345,57 @@ router.patch(
 			}
 		}
 	}),
-	handlePersonnelSuccess.update,
-	fs.uploadAvatarMiddleware('avatar_str', 'doc._id', { fileName: 'avatar', resultPropertyName: 'doc' }),
-	handlePersonnelError.update
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			await handlePersonnelSuccess.update(req, res, next);
+		} catch (error) {
+			handlePersonnelError.update(error as Error, req, res);
+		}
+	}
 );
 
 router.delete(
 	'/:id',
 	DoNotAllowOnDefault(Personnel, { first_name: 'Global' }),
 	deleteByIdMiddleware(Personnel, { next: true, save: 'doc' }),
-	handlePersonnelSuccess.delete,
-	fs.deleteDirectoryMiddleware(['doc', '_id'], { force: true, send: 'doc' }),
-	handlePersonnelError.delete
+	async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const doc = req.body['doc'];
+
+			if (doc && doc._id) {
+				// Find all images for this person
+				const personImages = await PersonImage.find({ person_id: doc._id }).exec();
+
+				// Delete all files from S3
+				for (const image of personImages) {
+					if (image.file_key) {
+						await remove_file(image.file_key);
+					}
+				}
+
+				// Delete all PersonImage records
+				await PersonImage.deleteMany({ person_id: doc._id }).exec();
+			}
+
+			await handlePersonnelSuccess.delete(req, res, next);
+		} catch (error) {
+			handlePersonnelError.delete(error as Error, req, res);
+		}
+	}
 );
+
+interface ExtendedPersonnel extends Record<string, unknown> {
+	lastTimeSeen?: Date;
+	lastCameraSeen?: string;
+	lastSection?: unknown;
+	allowed_pass?: unknown;
+}
 
 async function personnelSendFunction(
 	person: IPersonnel & Required<{ _id: mongoose.Types.ObjectId }>,
 	req: Request
 ) {
-	const per = person.toJSON();
+	const per = (await person.toJSON()) as unknown as ExtendedPersonnel;
 
 	if (req?.query?.lastSeen) {
 		const logPersonnel = await requestForGetPersonnel(person._id.toString());
@@ -368,17 +403,13 @@ async function personnelSendFunction(
 
 		if (logPersonnel?.data?.hits?.hits?.length > 0) {
 			try {
-				_camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id)
-					.populate('section_id')
-					.exec();
+				_camera = await Camera.findById(logPersonnel.data.hits.hits[0]?._source?.camera_id).populate(
+					'section_id'
+				);
+				per.lastTimeSeen = new Date(logPersonnel.data?.hits?.hits[0]?._source?.timestamp);
 			} catch (error) {
-				if (error instanceof Error && error.name === 'CastError') {
-					console.log(
-						`!!! Elastic data error: ${logPersonnel.data.hits.hits[0]?._source?.camera_id} as camera._id is wrong`
-					);
-				}
+				console.error('Error fetching camera or timestamp:', error);
 			}
-			per.lastTimeSeen = new Date(logPersonnel.data?.hits?.hits[0]?._source?.timestamp);
 		}
 
 		per.lastCameraSeen = _camera ? _camera.name : '';
