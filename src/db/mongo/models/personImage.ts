@@ -4,16 +4,15 @@ import { IPersonImage } from '../../../types/interfaces/personImage.interface';
 //create Model person_image with schema for save in DB
 const PersonImageSchema: Schema<IPersonImage> = new Schema(
 	{
-		_id: { type: mongoose.Types.ObjectId, required: true },
 		person_id: { type: Schema.Types.ObjectId, ref: 'Personnel' },
 		hash_id: { type: String, required: true },
+		file_key: { type: String, required: false }, // S3 object key
 		//  masked_face_id :{type : String , required : false},
 		vector: [Number]
 		//masked_embd:[Number]
 	},
 	{
-		collection: 'Person_Image',
-		_id: false
+		collection: 'Person_Image'
 	}
 );
 
