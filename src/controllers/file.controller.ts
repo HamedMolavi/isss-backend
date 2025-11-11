@@ -304,23 +304,9 @@ export const batch_personnel_add = async (req: Request, res: Response) => {
 			});
 		}
 
-		// Get uploaded files
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const uploadedFiles = (req.files as unknown as any[]) || [];
-
-		// Check if Kafka session is available for face recognition
-		const kafkaSession = req.body.kafkaSession;
-		const useFaceRecognition = !!kafkaSession;
-
 		const results: Array<{
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			personnel: any;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			image?: any;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			face_recognition?: any;
-			image_error?: string;
-			face_error?: string;
 		}> = [];
 		const errors: Array<{
 			index: number;
@@ -343,6 +329,7 @@ export const batch_personnel_add = async (req: Request, res: Response) => {
 					email: person.email,
 					phone_number: person.phone_number,
 					job_id: person.job_id,
+					section_id: person.section_id,
 					tracked: person.tracked,
 					personnel_code: person.personnel_code,
 					camera_whitelist: person.camera_whitelist,
@@ -356,6 +343,7 @@ export const batch_personnel_add = async (req: Request, res: Response) => {
 					email: ['email'],
 					phone_number: ['string'],
 					job_id: ['string'],
+					section_id: ['string'],
 					tracked: ['boolean'],
 					personnel_code: ['required', 'string'],
 					camera_whitelist: ['array'],
@@ -403,7 +391,7 @@ export const batch_personnel_add = async (req: Request, res: Response) => {
 					tracked: person.tracked || false,
 					personnel_code: person.personnel_code,
 					camera_whitelist: person.camera_whitelist || [],
-					section_whitelist: person.section_whitelist || [],
+					section_whitelist: person.section_id ? [person.section_id] : person.section_whitelist || [],
 					schedule_whitelist: person.schedule_whitelist || [],
 					department_whitelist: person.department_whitelist || [],
 					allowed_pass: person.allowed_pass || undefined,
@@ -413,91 +401,21 @@ export const batch_personnel_add = async (req: Request, res: Response) => {
 
 				await newPersonnel.save();
 
-				const resultData: {
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					personnel: any;
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					image?: any;
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					face_recognition?: any;
-					image_error?: string;
-					face_error?: string;
-				} = {
-					personnel: newPersonnel
-				};
-
-				// Find matching uploaded file for this personnel (by index or filename pattern)
-				const uploadedFile = uploadedFiles[i];
-
-				// Handle image upload if file is provided
-				if (uploadedFile) {
-					try {
-						// Convert uploaded file buffer to base64 for face recognition
-						const imageBase64 = uploadedFile.buffer.toString('base64');
-						const imageDataUrl = `data:${uploadedFile.mimetype};base64,${imageBase64}`;
-
-						// Process face recognition if Kafka session is available
-						if (useFaceRecognition) {
-							const faceResult = await processFaceRecognition(
-								imageDataUrl,
-								newPersonnel._id.toString(),
-								kafkaSession
-							);
-
-							if (faceResult.has_face && faceResult.embedding && faceResult.cropped_face) {
-								// Save PersonImage with cropped face from Kafka (not original image)
-								const personImage = await savePersonImageWithVector(
-									newPersonnel._id.toString(),
-									faceResult.cropped_face, // Use cropped_face from asghar Kafka response
-									faceResult.embedding,
-									faceResult._id
-								);
-
-								resultData.face_recognition = {
-									has_face: true,
-									image_id: personImage._id,
-									file_key: personImage.file_key,
-									file_url: personImage.file_url,
-									multi_face: faceResult.multi_face
-								};
-
-								Logger.debug('Cropped face from Kafka saved to S3', {
-									personnel_id: newPersonnel._id.toString(),
-									file_key: personImage.file_key,
-									cropped_face_length: faceResult.cropped_face.length
-								});
-							} else {
-								resultData.face_error = faceResult.multi_face
-									? 'Multiple faces detected in image'
-									: 'No face detected in image';
-
-								// Still upload to S3 for reference (already done by file_upload middleware)
-								resultData.image = {
-									file_key: uploadedFile.key,
-									file_url: uploadedFile.location,
-									size: uploadedFile.size
-								};
-							}
-						} else {
-							// No face recognition - file already uploaded by middleware
-							resultData.image = {
-								file_key: uploadedFile.key,
-								file_url: uploadedFile.location,
-								size: uploadedFile.size
-							};
-						}
-					} catch (imageError) {
-						Logger.error('Error processing image for personnel', {
-							personnel_code: person.personnel_code,
-							error: imageError instanceof Error ? imageError.message : String(imageError)
-						});
-
-						resultData.image_error =
-							imageError instanceof Error ? imageError.message : 'Failed to process image';
+				results.push({
+					personnel: {
+						_id: newPersonnel._id,
+						personnel_code: newPersonnel.personnel_code,
+						first_name: newPersonnel.first_name,
+						last_name: newPersonnel.last_name,
+						national_code: newPersonnel.national_code,
+						email: newPersonnel.email,
+						phone_number: newPersonnel.phone_number,
+						job_id: newPersonnel.job_id,
+						tracked: newPersonnel.tracked,
+						alert: newPersonnel.alert,
+						person_type: newPersonnel.person_type
 					}
-				}
-
-				results.push(resultData);
+				});
 			} catch (error) {
 				Logger.error('Error creating personnel - continuing to next', {
 					personnel_code: person.personnel_code,
@@ -520,7 +438,6 @@ export const batch_personnel_add = async (req: Request, res: Response) => {
 			total: personnels.length,
 			successful: results.length,
 			failed: errors.length,
-			face_recognition_enabled: useFaceRecognition,
 			summary_message: `Processed ${personnels.length} personnel: ${results.length} successful, ${errors.length} failed/skipped`
 		};
 

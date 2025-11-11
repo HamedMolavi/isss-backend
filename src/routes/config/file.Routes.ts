@@ -14,7 +14,6 @@ import { ApiError } from '../../types/classes/error.class';
 import { hashString } from '../../tools/hash';
 import Product from '../../db/mongo/models/product';
 import Camera from '../../db/mongo/models/camera';
-import { readMiddleware } from '../../db/mongo/read.database';
 import multer from 'multer';
 
 import { DataImportExportLogger } from '../../logger/data-input-output.logger';
@@ -28,7 +27,6 @@ import CarBrand from '../../db/mongo/models/carBrand';
 import Car from '../../db/mongo/models/car';
 import { stringPersianToStringEnglish } from '../../tools/plate.tools';
 import { uploadBase64ImageToS3, batch_personnel_add } from '../../controllers/file.controller';
-import { file_upload } from '../../file_upload/aws/upload';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import S3Client from '../../config/s3.config';
 import { BaseConfig } from '../../config/base.config';
@@ -66,7 +64,8 @@ router.post(
 	async (req, res) => {
 		// Validate file upload
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		if (!req.files || !(req.files as any)['file']) {
+		const files = req.files as any;
+		if (!files?.['file']) {
 			return res.status(400).json({ error: 'No file uploaded' });
 		}
 
@@ -77,7 +76,7 @@ router.post(
 			// Load Excel workbook from uploaded file
 			const workbook = await new Excel.Workbook().xlsx.load(
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				((req.files as any)['file'] as UploadedFile).data as any
+				(files['file'] as UploadedFile).data as any
 			);
 
 			// Get worksheet - try 'cars' sheet first, then first sheet
@@ -221,16 +220,16 @@ router.post(
 
 /**
  * ===================================
- * BATCH PERSONNEL IMPORT ENDPOINT
+ * BATCH PERSONNEL IMPORT ENDPOINTS
  * ===================================
  */
 
 /**
  * POST /batch/personnel
- * Batch personnel import with face recognition - reads from request body
- * Includes AI-powered face detection and embedding generation via Kafka
+ * Batch personnel import - JSON data only (no images)
+ * Creates personnel records from JSON array
  *
- * @body personnels - JSON string array of personnel objects with fields:
+ * @body personnels - JSON array of personnel objects with fields:
  *   - first_name (required)
  *   - last_name (required)
  *   - personnel_code (required, unique)
@@ -242,13 +241,49 @@ router.post(
  *   - camera_whitelist (optional)
  *   - allowed_pass (optional)
  *   - alert (optional)
- * @files images - Multipart file uploads (matched by personnel_code in filename or order)
- * @returns Summary of successful and failed imports with face recognition results
+ * @returns Summary of successful and failed imports
  */
 router.post(
 	'/batch/personnel',
-	// File upload middleware for multiple images
-	file_upload().array('images'),
+	// Security validation
+	fileUploadSecurityValidation,
+	checkIPRestriction,
+	accessCheck('dataImportExport'),
+
+	// Controller handles all validation and processing (JSON only, no images)
+	batch_personnel_add
+);
+
+/**
+ * POST /batch/personnel/images
+ * Batch upload images for existing personnel with face recognition
+ * Includes AI-powered face detection and embedding generation via Kafka
+ *
+ * @files images - Multipart file uploads (filename must contain personnel_code)
+ *   - Filename format: <personnel_code>.<ext> or <personnel_code>_<anything>.<ext>
+ *   - Supported formats: jpg, jpeg, png, webp
+ * @returns Summary of successful and failed image uploads with face recognition results
+ */
+// Create multer upload middleware for multiple images with memory storage
+const batchPersonnelImagesUploadMiddleware = multer({
+	storage: multer.memoryStorage(),
+	limits: {
+		fileSize: 30 * 1024 * 1024 // 30 MB max file size
+	},
+	fileFilter: (_req: Express.Request, file: Express.Multer.File, callback: multer.FileFilterCallback) => {
+		const isImage = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp'].includes(file.mimetype);
+		if (isImage) {
+			callback(null, true);
+		} else {
+			callback(new Error(`Invalid file type: ${file.mimetype}. Only images are allowed.`));
+		}
+	}
+}).array('images');
+
+router.post(
+	'/batch/personnel/images',
+	// File upload middleware for multiple images using memory storage
+	batchPersonnelImagesUploadMiddleware,
 
 	// Security validation
 	fileUploadSecurityValidation,
@@ -262,8 +297,131 @@ router.post(
 		next();
 	},
 
-	// Controller handles all validation and processing (including face recognition)
-	batch_personnel_add
+	// Process uploaded images with face recognition
+	async (req: Request, res: Response) => {
+		try {
+			const files = req.files as Express.Multer.File[];
+			if (!files || files.length === 0) {
+				return res.status(400).json({ success: false, error: 'No images uploaded' });
+			}
+
+			const results: {
+				successful: Array<{
+					filename: string;
+					personnel_code: string;
+					person_id: string;
+					image_id: string;
+					has_face: boolean;
+				}>;
+				failed: Array<{
+					filename: string;
+					personnel_code?: string;
+					error: string;
+					multi_face?: boolean;
+				}>;
+			} = {
+				successful: [],
+				failed: []
+			};
+
+			// Process each uploaded image
+			for (const file of files) {
+				try {
+					// Extract personnel_code from filename (before first dot or underscore)
+					const personnelCode = file.originalname.split(/[._]/)[0];
+
+					// Find personnel by code
+					const personnel = await Personnel.findOne({ personnel_code: personnelCode }).lean().exec();
+
+					if (!personnel) {
+						results.failed.push({
+							filename: file.originalname,
+							personnel_code: personnelCode,
+							error: 'Personnel not found'
+						});
+						continue;
+					}
+
+					// Convert buffer to base64
+					const imageBase64 = file.buffer.toString('base64');
+					let imageDataUrl = `data:${file.mimetype};base64,${imageBase64}`;
+
+					// Resize if too large
+					if (imageBase64.length > 900 * 1024) {
+						imageDataUrl = `data:image/jpeg;base64,${await resizeImage(imageDataUrl)}`;
+					}
+
+					// Process through Kafka for face recognition
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					const faceResult: any = await snapshotKafka.kafkaSession({
+						consumerId: personnel._id.toString(),
+						consumerKey: 'asghar',
+						producerKey: 'soghra',
+						producerInput: {
+							image_str: imageDataUrl,
+							personnel_id: personnel._id.toString()
+						}
+					});
+
+					if (faceResult?.has_face && faceResult?.cropped_face) {
+						// Upload cropped face to S3
+						const uploadResult = await uploadBase64ImageToS3(
+							faceResult.cropped_face,
+							personnel._id.toString(),
+							'images/personnel/cropped'
+						);
+
+						// Generate hash for PersonImage
+						const hash = hashString(faceResult.cropped_face.split(',')[1] || faceResult.cropped_face, SECRET);
+
+						// Save PersonImage record
+						const personImage = await PersonImage.create({
+							person_id: personnel._id,
+							vector: faceResult.embedding,
+							hash_id: hash,
+							file_key: uploadResult.file_key
+						});
+
+						results.successful.push({
+							filename: file.originalname,
+							personnel_code: personnelCode,
+							person_id: personnel._id.toString(),
+							image_id: personImage._id.toString(),
+							has_face: true
+						});
+					} else {
+						results.failed.push({
+							filename: file.originalname,
+							personnel_code: personnelCode,
+							error: 'No face detected in image',
+							multi_face: faceResult?.multi_face || false
+						});
+					}
+				} catch (error) {
+					results.failed.push({
+						filename: file.originalname,
+						error: error instanceof Error ? error.message : 'Unknown error'
+					});
+				}
+			}
+
+			return res.status(201).json({
+				success: true,
+				data: results,
+				summary: {
+					total: files.length,
+					successful: results.successful.length,
+					failed: results.failed.length
+				}
+			});
+		} catch (error) {
+			return res.status(500).json({
+				success: false,
+				error: 'Failed to process images',
+				details: error instanceof Error ? error.message : 'Unknown error'
+			});
+		}
+	}
 );
 
 /**
@@ -466,30 +624,112 @@ router.post(
 		},
 		{ save: 'redisData', next: true }
 	),
-	readMiddleware(
-		Personnel,
-		(redisDateStringified) => {
-			try {
-				const ids: Array<string> = JSON.parse(redisDateStringified);
-				return { person_id: { $in: ids } };
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			} catch (_error) {
-				// If JSON parsing fails, return empty query to avoid errors
-				return {};
+	// Store Kafka response and fetch personnel data
+	async (req: Request, _res: Response, next: NextFunction) => {
+		try {
+			// Save the Kafka response with match details
+			const kafkaResponse = req.body['redisData'];
+
+			// Debug: Log the Kafka response
+			console.log('Kafka Response:', JSON.stringify(kafkaResponse, null, 2));
+
+			req.body['kafkaSearchResult'] = kafkaResponse;
+
+			// Handle two different Kafka response formats:
+			// Format 1 (new): { matches: [{id, image_id, conf}, ...], has_face, multi_face }
+			// Format 2 (old): { timestamp, data: [id1, id2, ...] }
+			let ids: string[] = [];
+
+			if (kafkaResponse?.matches && Array.isArray(kafkaResponse.matches)) {
+				// New format with matches array
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				ids = [...new Set(kafkaResponse.matches.map((m: any) => m.id))] as string[];
+			} else if (kafkaResponse?.data && Array.isArray(kafkaResponse.data)) {
+				// Old format with data array
+				ids = [...new Set(kafkaResponse.data)] as string[];
 			}
-		},
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		{ searchFromBody: (body: any) => (body.redisData ? JSON.stringify(body.redisData) : ''), populate: true }
-	),
-	//error check
+
+			console.log('Extracted IDs:', ids);
+
+			// Fetch personnel records if we have IDs
+			if (ids.length > 0) {
+				const personnelDocs = await Personnel.find({ _id: { $in: ids } })
+					.populate('job_id')
+					.exec();
+
+				// Convert to JSON to include avatar URLs
+				req.body['personnelData'] = await Promise.all(
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					personnelDocs.map(async (p: any) => await p.toJSON())
+				);
+
+				console.log('Found personnel records:', personnelDocs.length);
+			} else {
+				req.body['personnelData'] = [];
+			}
+
+			next();
+		} catch (error) {
+			console.error('Error in search middleware:', error);
+			next(error);
+		}
+	},
+	//error check and response
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	(req: Request, res: Response, _next: NextFunction) =>
-		req.body['redisData']?.has_face == true
-			? res.status(406).send({ message: 'No face found' })
-			: res.status(200).send({
-					success: true,
-					data: req.body.redisData ?? ''
-				})
+	(req: Request, res: Response, _next: NextFunction) => {
+		const kafkaResponse = req.body['kafkaSearchResult'];
+		const personnelRecords = req.body['personnelData'] || [];
+
+		console.log('Final kafkaResponse:', JSON.stringify(kafkaResponse, null, 2));
+		console.log('has_face:', kafkaResponse?.has_face);
+		console.log('matches length:', kafkaResponse?.matches?.length);
+		console.log('data length:', kafkaResponse?.data?.length);
+
+		// Check if we have results (support both formats)
+		const hasMatches = kafkaResponse?.matches && kafkaResponse.matches.length > 0;
+		const hasData = kafkaResponse?.data && kafkaResponse.data.length > 0;
+
+		if (!hasMatches && !hasData) {
+			return res.status(406).send({
+				message: 'No face found or no matching personnel',
+				has_face: kafkaResponse?.has_face || false,
+				multi_face: kafkaResponse?.multi_face || false
+			});
+		}
+
+		// Build response based on format
+		if (kafkaResponse?.matches) {
+			// New format with detailed match information
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const results = kafkaResponse.matches.map((match: any) => {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const personnel = personnelRecords.find((p: any) => p._id?.toString() === match.id);
+				return {
+					...(personnel || { _id: match.id, not_found: true }),
+					match_details: {
+						image_id: match.image_id,
+						confidence: parseFloat(match.conf)
+					}
+				};
+			});
+
+			return res.status(200).send({
+				success: true,
+				data: {
+					has_face: kafkaResponse.has_face,
+					multi_face: kafkaResponse.multi_face,
+					total_matches: kafkaResponse.matches.length,
+					results: results
+				}
+			});
+		} else {
+			// Old format - just return personnel records
+			return res.status(200).send({
+				success: true,
+				data: personnelRecords
+			});
+		}
+	}
 );
 
 /**
