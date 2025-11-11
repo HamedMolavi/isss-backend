@@ -4,7 +4,6 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import flash from 'connect-flash';
 import passport from 'passport';
-import fileUpload from 'express-fileupload';
 import localVarMiddleware from './localVar.middleware';
 import { setupLogger } from './logger.middleware';
 import { sessionMiddleware } from './session.middleware';
@@ -47,22 +46,33 @@ export function RegisterMiddleware(app: Application) {
 
 	///////////////////////////////////////////////////////////////////////////////// Parsing & Logger
 
-	// Body Parser JSON - Parse JSON payloads up to 50mb
-	app.use(bodyParser.json({ limit: '50mb' }));
+	// Body Parser JSON - Parse JSON payloads up to 50mb (skips multipart/form-data)
+	app.use((req: Request, res: Response, next: NextFunction) => {
+		if (req.headers['content-type']?.includes('multipart/form-data')) {
+			// Skip body parsing for multipart requests - let multer handle them
+			return next();
+		}
+		bodyParser.json({ limit: '50mb' })(req, res, next);
+	});
 
-	// Body Parser URL-encoded - Parse URL-encoded payloads up to 50mb
-	app.use(
+	// Body Parser URL-encoded - Parse URL-encoded payloads up to 50mb (skips multipart/form-data)
+	app.use((req: Request, res: Response, next: NextFunction) => {
+		if (req.headers['content-type']?.includes('multipart/form-data')) {
+			// Skip body parsing for multipart requests - let multer handle them
+			return next();
+		}
 		bodyParser.urlencoded({
 			limit: '50mb',
 			extended: true
-		})
-	);
+		})(req, res, next);
+	});
 
 	// Body Parser Text - Parse text payloads up to 200mb
 	app.use(bodyParser.text({ limit: '200mb' }));
 
 	// File Upload - Handle multipart/form-data file uploads
-	app.use(fileUpload());
+	// COMMENTED OUT: Conflicts with multer - use multer in routes instead
+	// app.use(fileUpload());
 
 	// Flash Messages - Enable flash messaging for user feedback
 	app.use(flash());
