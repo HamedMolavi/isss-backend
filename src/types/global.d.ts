@@ -31,6 +31,9 @@ declare global {
 			MODELS: string;
 			LOG_COLLECTION_SIZE: string;
 			SQLITE_PATH: string;
+			MINIO_ROOT_USER: string;
+			MINIO_ROOT_PASSWORD: string;
+			MINIO_ENDPOINT: string;
 		}
 	}
 	namespace Express {
@@ -42,6 +45,14 @@ declare global {
 		}
 		interface Response {
 			responseBody?: unknown;
+		}
+	}
+
+	namespace RestApi {
+		interface ObjectResInterface {
+			is_success: boolean;
+			data?: unknown;
+			msg?: string;
 		}
 	}
 }
