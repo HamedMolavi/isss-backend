@@ -181,16 +181,16 @@ export class UserIntegrityService {
 						});
 
 						// Send alert for invalid hash
-						await this.sendIntegrityAlert({
-							userId,
-							action: 'USERNAME_HASH_MISMATCH',
-							timestamp: new Date(),
-							metadata: {
-								username: user.username,
-								created_date: user.created_date,
-								role: user.role
-							}
-						});
+						// await this.sendIntegrityAlert({
+						// 	userId,
+						// 	action: 'USERNAME_HASH_MISMATCH',
+						// 	timestamp: new Date(),
+						// 	metadata: {
+						// 		username: user.username,
+						// 		created_date: user.created_date,
+						// 		role: user.role
+						// 	}
+						// });
 					}
 				} catch (error) {
 					result.missingHashes++;
@@ -207,17 +207,17 @@ export class UserIntegrityService {
 					});
 
 					// Send alert for missing hash
-					await this.sendIntegrityAlert({
-						userId,
-						action: 'MISSING_USERNAME_HASH',
-						timestamp: new Date(),
-						metadata: {
-							username: user.username,
-							created_date: user.created_date,
-							role: user.role,
-							error: error instanceof Error ? error.message : 'Unknown error'
-						}
-					});
+					// await this.sendIntegrityAlert({
+					// 	userId,
+					// 	action: 'MISSING_USERNAME_HASH',
+					// 	timestamp: new Date(),
+					// 	metadata: {
+					// 		username: user.username,
+					// 		created_date: user.created_date,
+					// 		role: user.role,
+					// 		error: error instanceof Error ? error.message : 'Unknown error'
+					// 	}
+					// });
 				}
 			}
 

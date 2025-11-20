@@ -129,11 +129,14 @@ router.use(
  *
  * Uses cosine similarity scoring to find matching face vectors
  * Results include all matching logs within the similarity threshold
+ *
+ * Note: forceAll removed to prevent memory overflow with large result sets
+ * Use pagination parameters (page, perPage) to retrieve large datasets
  */
 router.use(
 	'/table/:id?',
 	readElasticMiddleware(`${process.env['FACE_INDEX'] ?? 'face_log'}`, {
-		forceAll: true,
+		forceAll: false,
 		searchFromReq: searchFunction,
 		send: unifiedSendFunction
 	})

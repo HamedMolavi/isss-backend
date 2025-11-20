@@ -24,7 +24,7 @@ router.post(
 		info: 'please fill all fields'
 	}),
 	existCheck(CarBrand, { $and: [{ name: 'name' }] }, 'Brand already exists!'),
-	createMiddleware(['name'], CarBrand)
+	createMiddleware(['name', 'car_type'], CarBrand)
 );
 
 //route for get car list

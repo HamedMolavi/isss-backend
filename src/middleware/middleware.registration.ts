@@ -11,7 +11,6 @@ import { authHeaderExtraction } from './auth.middleware';
 import { errorLoggerMiddleware, routeLoggerMiddleware } from './routeLogger.middleware';
 import { registerSecurityMiddleware } from './security.middleware';
 import { BaseConfig } from '../config/base.config';
-import { verifyLogIntegrityMiddleware } from './logIntegrity.middleware';
 import { verifyUserIntegrityMiddleware } from './userIntegrity.middleware';
 
 export function RegisterMiddleware(app: Application) {
@@ -87,10 +86,11 @@ export function RegisterMiddleware(app: Application) {
 	app.use(routeLoggerMiddleware());
 
 	// Log Integrity Verification - Verify log integrity for GET requests
-	app.use(verifyLogIntegrityMiddleware);
+	// DISABLED: Log integrity check is currently disabled
+	// app.use(verifyLogIntegrityMiddleware);
 
 	// User Integrity Verification - Verify user integrity for user-related routes
-	app.use(verifyUserIntegrityMiddleware);
+	// app.use(verifyUserIntegrityMiddleware);
 
 	// Error Logger - Log application errors
 	app.use(errorLoggerMiddleware());

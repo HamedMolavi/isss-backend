@@ -46,6 +46,7 @@ import { accessCheck } from '../../authentication/accessCheck.auth';
  * - Role-based camera access filtering
  * - Time range filtering with timezone support
  * - Log enrichment with camera, personnel, vehicle metadata
+ * - Direction filtering for plate logs (front, back, or all)
  */
 
 // Create router for report endpoints
@@ -488,12 +489,13 @@ function getSearchFunction(req: Request) {
  * - Camera access: role-based filtering with user camera permissions
  * - Personnel: Filter by personnel_id or owner
  * - Vehicle: brand, color filtering
+ * - Vehicle type: car_type filtering (filters brands by car_type)
  * - Human detection: human_count filtering
  * - Person type: Filter by person_type field
  * - Plate search: Supports normal, noplate, and custom plate search modes
  * - Allowed status: Filter by allowed field value
  */
-function postSearchFunction(req: Request) {
+async function postSearchFunction(req: Request) {
 	// Extract request body parameters
 	const body = req.body;
 	const timezone = body.timez ?? body.timezone;
@@ -560,12 +562,44 @@ function postSearchFunction(req: Request) {
 				? allowedSearchedCameras // Non-admin gets filtered list
 				: userCameras) ?? []; // Default to user's access list
 
+	// Handle car_type filtering: if car_type is provided, get brand IDs that match those car_types
+	let brands = body.brands ? [...body.brands] : [];
+	let hasCarTypeFilter = false;
+	if (body.car_type && Array.isArray(body.car_type) && body.car_type.length > 0) {
+		hasCarTypeFilter = true;
+		try {
+			// Query MongoDB to get all brand IDs that match the specified car_types
+			const brandsByCarType = await CarBrand.find({
+				car_type: { $in: body.car_type }
+			})
+				.select('_id')
+				.lean()
+				.exec();
+
+			// Extract brand IDs and convert to strings
+			const brandIdsByCarType = brandsByCarType.map((brand) => brand._id.toString());
+
+			// Merge with existing brands (if any) - use Set to avoid duplicates
+			const allBrandIds = new Set([...brands, ...brandIdsByCarType]);
+			brands = Array.from(allBrandIds);
+		} catch (error) {
+			console.error('Error fetching brands by car_type:', error);
+			// If error occurs, continue with existing brands filter only
+		}
+	}
+
+	// If car_type filter was applied but resulted in no brands, return empty result set
+	// by using an impossible brand ID that will never match
+	if (hasCarTypeFilter && brands.length === 0) {
+		brands = ["who's daddy"]; // Impossible value to return no results
+	}
+
 	// Map filter fields to values from request body
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const fields: { [key: string]: Array<any> } = {
 		camera_id: cameras,
 		personnel_id: body.personnels,
-		brand: body.brands,
+		brand: brands.length > 0 ? brands : [],
 		owner: body.owner,
 		color: body.colors,
 		human_count: body.human_count,
@@ -642,6 +676,20 @@ function postSearchFunction(req: Request) {
 			}
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any);
+	}
+
+	// Add direction filtering for plate logs
+	// direction: ['all'] - no filter, show all directions
+	// direction: ['front', 'back'] - filter by specific directions
+	if (body.direction?.length && !body.direction.includes('all')) {
+		query?.bool?.must?.push({
+			bool: {
+				should: body.direction.map((dir: string) => ({
+					match: { direction: dir }
+				})),
+				minimum_should_match: 1
+			}
+		});
 	}
 
 	// Return complete Elasticsearch query
@@ -798,6 +846,7 @@ async function sendFunction(log: any, req: Request): Promise<any> {
 			color: color?.name ?? '',
 			fa_color: color?.fa_name ?? '',
 			brand: brand?.name ?? '',
+			car_type: brand?.car_type ?? '',
 			allowed: log.allowed,
 			crop: crop,
 			video: camera?.url ?? '',

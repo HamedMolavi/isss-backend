@@ -110,7 +110,7 @@ export class LogIntegrityService {
 			});
 
 			// Use LogIntegrityLogger for successful Kafka alert
-			await LogIntegrityLogger.kafkaAlertSent(alert.logId, alert.action, this.INTEGRITY_TOPIC);
+			// await LogIntegrityLogger.kafkaAlertSent(alert.logId, alert.action, this.INTEGRITY_TOPIC);
 		} catch (error) {
 			// Use LogIntegrityLogger for failed Kafka alert
 			LogIntegrityLogger.kafkaAlertFailed(

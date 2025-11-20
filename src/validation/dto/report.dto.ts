@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class ReportPlateBody {
 	@IsString()
@@ -16,6 +16,9 @@ export class ReportPlateBody {
 	brand?: string[] | null;
 	@IsOptional()
 	@IsArray()
+	car_type?: string[] | null;
+	@IsOptional()
+	@IsArray()
 	color?: string[] | null;
 	@IsOptional()
 	@IsArray()
@@ -26,6 +29,9 @@ export class ReportPlateBody {
 	@IsOptional()
 	@IsArray()
 	cameras?: string[];
+	@IsOptional()
+	@IsArray()
+	direction?: string[];
 	plate?: Plate;
 }
 
@@ -84,6 +90,34 @@ export class ReportHumanBody {
 	@IsOptional()
 	@IsArray()
 	cameras?: string[];
+}
+
+export class AnalyticsBody {
+	@IsString()
+	time_start?: string;
+	@IsString()
+	time_end?: string;
+	@IsOptional()
+	@IsString()
+	date_start?: string;
+	@IsOptional()
+	@IsString()
+	date_end?: string;
+	@IsOptional()
+	@IsArray()
+	cameras?: string[];
+	@IsOptional()
+	@IsNumber()
+	limit?: number;
+	@IsOptional()
+	@IsString()
+	timez?: string;
+	@IsOptional()
+	@IsString()
+	index_type?: string;
+	@IsOptional()
+	@IsBoolean()
+	time_filter?: boolean;
 }
 
 export class ReportObjectBody {

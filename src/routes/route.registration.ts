@@ -43,6 +43,7 @@ import SimilarityRouter from './report/similarity.Routes';
 import SchedulesReportRouter from './report/schedulesReport.Routes';
 import DepartmentReportRouter from './report/departmentReport.Routes';
 import TrackReportRouter from './report/trackReport.Routes';
+import AnalyticsReportRouter from './report/analytics.report';
 
 // Log routes
 import LogRouter from './log/log.Routes';
@@ -125,6 +126,14 @@ export function RegisterRoutes(app: Application) {
 	app.use(`${routePrefix}/schedules-report`, SchedulesReportRouter);
 	app.use(`${routePrefix}/report-departments`, DepartmentReportRouter);
 	app.use(`${routePrefix}/track-reports`, TrackReportRouter);
+	app.use(
+		`${routePrefix}/reports/analytics`,
+		accessCheck('report', {
+			extraFunction: (req, userAccess) =>
+				req.method === 'POST' && !!userAccess && !!hasAccess(userAccess, 'GET')
+		}),
+		AnalyticsReportRouter
+	);
 
 	// Log routes
 	app.use(`${routePrefix}/logs`, LogRouter);
