@@ -427,13 +427,17 @@ router.post(
 /**
  * POST /hostile
  * Create a hostile person record with face recognition
- * Automatically generates personnel code and processes face images
+ * Allows specifying name, family, national_code, and optionally processes face images
  *
  * @route POST /hostile
+ * @body first_name - First name of the hostile person (optional, defaults to 'Hostile')
+ * @body last_name - Last name/family of the hostile person (optional, defaults to generated code)
+ * @body national_code - National code of the hostile person (optional)
+ * @body personnel_code - Personnel code (optional, auto-generated if not provided)
  * @body tracked - Boolean flag to track this person
  * @body alert - Boolean flag to set alert for this person
- * @body image_str - Base64 encoded image(s) for face recognition (string or array)
- * @returns {Object} 201 - Created PersonImage records with face data
+ * @body image_str - Base64 encoded image(s) for face recognition (string or array, optional)
+ * @returns {Object} 201 - Created hostile person with PersonImage records if images provided
  * @returns {Object} 400 - Bad request if validation fails
  * @security Requires authentication
  */
@@ -463,12 +467,15 @@ router.post(
 			{ tracked: (body: any) => !!body['tracked'] },
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			{ alert: (body: any) => !!body['alert'] },
-			{ first_name: () => 'Hostile' },
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			{ last_name: (body: any) => body['code'] },
+			{ first_name: (body: any) => body['first_name'] || 'Hostile' },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ last_name: (body: any) => body['last_name'] || body['code'] },
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ national_code: (body: any) => body['national_code'] || '' },
 			{ person_type: () => 'hostile' },
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			{ personnel_code: (body: any) => body['code'] }
+			{ personnel_code: (body: any) => body['personnel_code'] || body['code'] }
 		],
 		Personnel,
 		{ save: 'person', next: true }
@@ -480,6 +487,18 @@ router.post(
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const result: any[] = [];
 		const person = req.body['person'];
+
+		// If no images provided, return the created person without face processing
+		if (!req.body['image_str']) {
+			const personData = person.toJSON ? await person.toJSON() : JSON.parse(JSON.stringify(person));
+			return res.status(201).json({
+				success: true,
+				data: personData,
+				images: []
+			});
+		}
+
+		// Ensure image_str is an array
 		if (!Array.isArray(req.body['image_str']))
 			if (typeof req.body['image_str'] === 'string') req.body['image_str'] = [req.body['image_str']];
 			else next(new ApiError(400, 'Bad request!'));
@@ -505,7 +524,7 @@ router.post(
 					// Generate hash for file naming
 					const hash = hashString(faceBase64, SECRET);
 					const fileName = `${person.id}-${hash}`;
-					const fileKey = `images/personnel/${fileName}.jpeg`;
+					const fileKey = `images/hostile/${fileName}.jpeg`;
 
 					// Convert base64 to buffer
 					const imageBuffer = Buffer.from(faceBase64, 'base64');
@@ -546,11 +565,321 @@ router.post(
 				}
 			}
 		}
-		if (!result.length) await person.delete();
+		if (!result.length) {
+			// If images were provided but no faces detected, still keep the person
+			const personData = person.toJSON ? await person.toJSON() : JSON.parse(JSON.stringify(person));
+			return res.status(201).json({
+				success: true,
+				data: personData,
+				images: [],
+				warning: 'No faces detected in provided images'
+			});
+		}
+		const personData = person.toJSON ? await person.toJSON() : JSON.parse(JSON.stringify(person));
 		return res.status(201).json({
 			success: true,
-			data: result
+			data: personData,
+			images: result
 		});
+	}
+);
+
+/**
+ * ===================================
+ * BATCH HOSTILE PERSON IMPORT ENDPOINTS
+ * ===================================
+ */
+
+/**
+ * POST /batch/hostile
+ * Batch hostile person import - JSON data only (no images)
+ * Creates hostile person records from JSON array
+ *
+ * @body hostiles - JSON array of hostile person objects with fields:
+ *   - first_name (optional, defaults to 'Hostile')
+ *   - last_name (optional, defaults to generated code)
+ *   - national_code (optional)
+ *   - personnel_code (optional, auto-generated if not provided)
+ *   - tracked (optional)
+ *   - alert (optional)
+ * @returns Summary of successful and failed imports
+ */
+router.post(
+	'/batch/hostile',
+	// Security validation
+	fileUploadSecurityValidation,
+	checkIPRestriction,
+	accessCheck('dataImportExport'),
+
+	async (req: Request, res: Response) => {
+		try {
+			const hostiles = req.body.hostiles;
+
+			if (!hostiles || !Array.isArray(hostiles)) {
+				return res.status(400).json({
+					success: false,
+					error: 'hostiles array is required'
+				});
+			}
+
+			const results: {
+				successful: Array<{
+					first_name: string;
+					last_name: string;
+					national_code: string;
+					personnel_code: string;
+					_id: string;
+				}>;
+				failed: Array<{
+					index: number;
+					data: unknown;
+					error: string;
+				}>;
+			} = {
+				successful: [],
+				failed: []
+			};
+
+			for (let i = 0; i < hostiles.length; i++) {
+				const hostile = hostiles[i];
+				try {
+					// Generate unique code for this hostile person
+					const code =
+						randomUuid(4, 'number').toString() +
+						new Date()
+							.toLocaleDateString()
+							.split('/')
+							.map((el: string) => ('0' + el + '0').slice(-3, -1))
+							.join('') +
+						i.toString().padStart(3, '0');
+
+					// Create hostile person record
+					const person = await Personnel.create({
+						first_name: hostile.first_name || 'Hostile',
+						last_name: hostile.last_name || code,
+						national_code: hostile.national_code || '',
+						personnel_code: hostile.personnel_code || code,
+						person_type: 'hostile',
+						tracked: !!hostile.tracked,
+						alert: !!hostile.alert
+					});
+
+					results.successful.push({
+						first_name: person.first_name,
+						last_name: person.last_name,
+						national_code: person.national_code,
+						personnel_code: person.personnel_code,
+						_id: person._id.toString()
+					});
+				} catch (error) {
+					results.failed.push({
+						index: i,
+						data: hostile,
+						error: error instanceof Error ? error.message : 'Unknown error'
+					});
+				}
+			}
+
+			// Log the batch import
+			DataImportExportLogger.batchPersonnelImported(
+				req,
+				results.successful.length,
+				results.failed.length,
+				true
+			);
+
+			return res.status(201).json({
+				success: true,
+				data: results,
+				summary: {
+					total: hostiles.length,
+					successful: results.successful.length,
+					failed: results.failed.length
+				}
+			});
+		} catch (error) {
+			DataImportExportLogger.batchPersonnelImported(
+				req,
+				0,
+				0,
+				false,
+				error instanceof Error ? error.message : 'Unknown error'
+			);
+			return res.status(500).json({
+				success: false,
+				error: 'Failed to process batch hostile import',
+				details: error instanceof Error ? error.message : 'Unknown error'
+			});
+		}
+	}
+);
+
+/**
+ * POST /batch/hostile/images
+ * Batch upload images for existing hostile persons with face recognition
+ * Includes AI-powered face detection and embedding generation via Kafka
+ *
+ * @files images - Multipart file uploads (filename must contain personnel_code)
+ *   - Filename format: <personnel_code>.<ext> or <personnel_code>_<anything>.<ext>
+ *   - Supported formats: jpg, jpeg, png, webp
+ * @returns Summary of successful and failed image uploads with face recognition results
+ */
+// Create multer upload middleware for multiple hostile images with memory storage
+const batchHostileImagesUploadMiddleware = multer({
+	storage: multer.memoryStorage(),
+	limits: {
+		fileSize: 30 * 1024 * 1024 // 30 MB max file size
+	},
+	fileFilter: (_req: Express.Request, file: Express.Multer.File, callback: multer.FileFilterCallback) => {
+		const isImage = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp'].includes(file.mimetype);
+		if (isImage) {
+			callback(null, true);
+		} else {
+			callback(new Error(`Invalid file type: ${file.mimetype}. Only images are allowed.`));
+		}
+	}
+}).array('images');
+
+router.post(
+	'/batch/hostile/images',
+	// File upload middleware for multiple images using memory storage
+	batchHostileImagesUploadMiddleware,
+
+	// Security validation
+	fileUploadSecurityValidation,
+	checkIPRestriction,
+	accessCheck('dataImportExport'),
+
+	// Process uploaded images with face recognition
+	async (req: Request, res: Response) => {
+		try {
+			const files = req.files as Express.Multer.File[];
+			if (!files || files.length === 0) {
+				return res.status(400).json({ success: false, error: 'No images uploaded' });
+			}
+
+			const results: {
+				successful: Array<{
+					filename: string;
+					personnel_code: string;
+					person_id: string;
+					image_id: string;
+					has_face: boolean;
+				}>;
+				failed: Array<{
+					filename: string;
+					personnel_code?: string;
+					error: string;
+					multi_face?: boolean;
+				}>;
+			} = {
+				successful: [],
+				failed: []
+			};
+
+			// Process each uploaded image
+			for (const file of files) {
+				try {
+					// Extract personnel_code from filename (before first dot or underscore)
+					const personnelCode = file.originalname.split(/[._]/)[0];
+
+					// Find hostile person by code
+					const personnel = await Personnel.findOne({
+						personnel_code: personnelCode,
+						person_type: 'hostile'
+					})
+						.lean()
+						.exec();
+
+					if (!personnel) {
+						results.failed.push({
+							filename: file.originalname,
+							personnel_code: personnelCode,
+							error: 'Hostile person not found'
+						});
+						continue;
+					}
+
+					// Convert buffer to base64
+					const imageBase64 = file.buffer.toString('base64');
+					let imageDataUrl = `data:${file.mimetype};base64,${imageBase64}`;
+
+					// Resize if too large
+					if (imageBase64.length > 900 * 1024) {
+						imageDataUrl = `data:image/jpeg;base64,${await resizeImage(imageDataUrl)}`;
+					}
+
+					// Process through Kafka for face recognition
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					const faceResult: any = await snapshotKafka.kafkaSession({
+						consumerId: personnel._id.toString(),
+						consumerKey: 'asghar',
+						producerKey: 'soghra',
+						producerInput: {
+							image_str: imageDataUrl,
+							personnel_id: personnel._id.toString()
+						}
+					});
+
+					if (faceResult?.has_face && faceResult?.face) {
+						// Upload face to S3
+						const faceBase64 = faceResult.face;
+						const uploadResult = await uploadBase64ImageToS3(
+							faceBase64,
+							personnel._id.toString(),
+							'images/hostile'
+						);
+
+						// Generate hash for PersonImage
+						const hash = hashString(faceBase64.split(',')[1] || faceBase64, SECRET);
+
+						// Save PersonImage record
+						const personImage = await PersonImage.create({
+							person_id: personnel._id,
+							vector: faceResult.embedding,
+							hash_id: hash,
+							file_key: uploadResult.file_key
+						});
+
+						results.successful.push({
+							filename: file.originalname,
+							personnel_code: personnelCode,
+							person_id: personnel._id.toString(),
+							image_id: personImage._id.toString(),
+							has_face: true
+						});
+					} else {
+						results.failed.push({
+							filename: file.originalname,
+							personnel_code: personnelCode,
+							error: 'No face detected in image',
+							multi_face: faceResult?.multi_face || false
+						});
+					}
+				} catch (error) {
+					results.failed.push({
+						filename: file.originalname,
+						error: error instanceof Error ? error.message : 'Unknown error'
+					});
+				}
+			}
+
+			return res.status(201).json({
+				success: true,
+				data: results,
+				summary: {
+					total: files.length,
+					successful: results.successful.length,
+					failed: results.failed.length
+				}
+			});
+		} catch (error) {
+			return res.status(500).json({
+				success: false,
+				error: 'Failed to process images',
+				details: error instanceof Error ? error.message : 'Unknown error'
+			});
+		}
 	}
 );
 
