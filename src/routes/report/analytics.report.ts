@@ -149,7 +149,7 @@ function dbscanClustering(
  * Validate request body for analytics endpoints
  */
 router.post(
-	'/:type(most-repeated-plates|most-repeated-known-faces|most-repeated-unknown-faces|most-active-cameras|brand-statistics|color-statistics|plate-statistics-by-camera)',
+	'/:type(most-repeated-plates|most-repeated-known-faces|most-repeated-unknown-faces|most-active-cameras|brand-statistics|color-statistics|plate-statistics-by-camera|people-counting-summary|people-counting-by-camera|people-counting-hourly)',
 	dtoValidationMiddleware(AnalyticsBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
@@ -1338,6 +1338,569 @@ router.post('/brand-statistics', async (req: Request, res, next) => {
 			success: true,
 			data,
 			total: data.length
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * ===================================
+ * PEOPLE COUNTING HELPER FUNCTION
+ * ===================================
+ */
+
+/**
+ * Helper function to get people counting data from Elasticsearch
+ * Used by all three people counting endpoints
+ * @param intervalHours - Interval in hours for histogram aggregation (1, 2, 4, or 12)
+ */
+async function getPeopleCountingData(req: Request, intervalHours: number = 1) {
+	const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
+	const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+	const intervalMs = intervalHours * 3600000; // Convert hours to milliseconds
+
+	// Build time range constraints
+	const time_constraints = buildTimeConstraints(
+		date_start,
+		date_end,
+		time_start,
+		time_end,
+		timezone,
+		req.body.time_filter
+	);
+
+	// Get all cameras with their types (enter/exit)
+	const cameraAccess = Array.isArray(req.user.camera_access) ? req.user.camera_access : [];
+	const cameraQuery =
+		req.user.role === 'admin'
+			? cameras && cameras.length > 0
+				? { _id: { $in: cameras } }
+				: {}
+			: {
+					_id: {
+						$in:
+							cameras && cameras.length > 0
+								? cameras.filter((c: string) => cameraAccess.map(String).includes(c))
+								: cameraAccess
+					}
+				};
+
+	const allCameras = await Camera.find(cameraQuery).exec();
+	const cameraTypeMap = new Map<string, { name: string; type: string }>();
+	const entryCameraIds: string[] = [];
+	const exitCameraIds: string[] = [];
+
+	allCameras.forEach((cam) => {
+		const camId = cam._id.toString();
+		cameraTypeMap.set(camId, { name: cam.name, type: cam.camera_type ?? 'null' });
+		if (cam.camera_type === 'enter') {
+			entryCameraIds.push(camId);
+		} else if (cam.camera_type === 'exit') {
+			exitCameraIds.push(camId);
+		}
+	});
+
+	const faceIndex: string = process.env['FACE_INDEX'] ?? 'face_log';
+
+	// Build queries for entry and exit cameras
+	// Note: camera_filter is NOT included here because cameraIds are already
+	// filtered from allCameras which respects user access permissions
+	const buildFaceQuery = (cameraIds: string[], isKnown: boolean) => {
+		const cameraConstraint =
+			cameraIds.length > 0
+				? [
+						{
+							bool: {
+								should: cameraIds.map((cid) => ({ term: { 'camera_id.keyword': cid } })),
+								minimum_should_match: 1
+							}
+						}
+					]
+				: [];
+
+		const personnelConstraint = isKnown
+			? [
+					{ exists: { field: 'personnel_id' } },
+					{ bool: { must_not: [{ term: { 'personnel_id.keyword': 'unknown' } }] } }
+				]
+			: [
+					{
+						bool: {
+							should: [
+								{ term: { 'personnel_id.keyword': 'unknown' } },
+								{ bool: { must_not: [{ exists: { field: 'personnel_id' } }] } }
+							],
+							minimum_should_match: 1
+						}
+					}
+				];
+
+		const aggs: Record<string, unknown> = {
+			by_camera: {
+				terms: {
+					field: 'camera_id.keyword',
+					size: 1000
+				}
+			},
+			by_hour: {
+				histogram: {
+					field: 'timestamp',
+					interval: intervalMs
+				},
+				aggs: {
+					by_camera: {
+						terms: {
+							field: 'camera_id.keyword',
+							size: 1000
+						}
+					}
+				}
+			}
+		};
+
+		// Add by_person aggregation for known personnel with camera breakdown
+		if (isKnown) {
+			aggs.by_person = {
+				terms: {
+					field: 'personnel_id.keyword',
+					size: 10000
+				},
+				aggs: {
+					by_camera: {
+						terms: {
+							field: 'camera_id.keyword',
+							size: 100
+						}
+					}
+				}
+			};
+		}
+
+		return {
+			index: faceIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [...time_constraints, ...cameraConstraint, ...personnelConstraint]
+				}
+			},
+			aggs
+		};
+	};
+
+	// Execute all queries in parallel
+	const [entryKnownRes, entryUnknownRes, exitKnownRes, exitUnknownRes] = await Promise.all([
+		// Entry - Known personnel
+		(async () => {
+			if (entryCameraIds.length === 0) return null;
+			try {
+				return await process.esclient.search(buildFaceQuery(entryCameraIds, true));
+			} catch (err: unknown) {
+				const error = err as { meta?: { body?: { error?: { type?: string } } } };
+				if (error.meta?.body?.error?.type === 'index_not_found_exception') return null;
+				throw err;
+			}
+		})(),
+		// Entry - Unknown
+		(async () => {
+			if (entryCameraIds.length === 0) return null;
+			try {
+				return await process.esclient.search(buildFaceQuery(entryCameraIds, false));
+			} catch (err: unknown) {
+				const error = err as { meta?: { body?: { error?: { type?: string } } } };
+				if (error.meta?.body?.error?.type === 'index_not_found_exception') return null;
+				throw err;
+			}
+		})(),
+		// Exit - Known personnel
+		(async () => {
+			if (exitCameraIds.length === 0) return null;
+			try {
+				return await process.esclient.search(buildFaceQuery(exitCameraIds, true));
+			} catch (err: unknown) {
+				const error = err as { meta?: { body?: { error?: { type?: string } } } };
+				if (error.meta?.body?.error?.type === 'index_not_found_exception') return null;
+				throw err;
+			}
+		})(),
+		// Exit - Unknown
+		(async () => {
+			if (exitCameraIds.length === 0) return null;
+			try {
+				return await process.esclient.search(buildFaceQuery(exitCameraIds, false));
+			} catch (err: unknown) {
+				const error = err as { meta?: { body?: { error?: { type?: string } } } };
+				if (error.meta?.body?.error?.type === 'index_not_found_exception') return null;
+				throw err;
+			}
+		})()
+	]);
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const getTotal = (res: any) => res?.hits?.total?.value ?? 0;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const getAggs = (res: any) => res?.aggregations;
+
+	return {
+		entryKnownRes,
+		entryUnknownRes,
+		exitKnownRes,
+		exitUnknownRes,
+		getTotal,
+		getAggs,
+		cameraTypeMap,
+		timezone
+	};
+}
+
+/**
+ * POST /people-counting-summary
+ * Get overall people counting statistics (entry/exit) separated by personnel and unknown
+ *
+ * Returns:
+ * - total_entry: Total people entered
+ * - total_exit: Total people exited
+ * - personnel_entry: Known personnel entries
+ * - personnel_exit: Known personnel exits
+ * - unknown_entry: Unknown people entries
+ * - unknown_exit: Unknown people exits
+ * - net_flow: Difference between entries and exits
+ * - personnel_breakdown: Array of { personnel_id, entry_count, exit_count, total_count } for each known person
+ * - unique_personnel_count: Number of unique known personnel detected
+ */
+router.post('/people-counting-summary', async (req: Request, res, next) => {
+	try {
+		const { entryKnownRes, entryUnknownRes, exitKnownRes, exitUnknownRes, getTotal, getAggs, cameraTypeMap } =
+			await getPeopleCountingData(req);
+
+		const personnelEntry = getTotal(entryKnownRes);
+		const unknownEntry = getTotal(entryUnknownRes);
+		const personnelExit = getTotal(exitKnownRes);
+		const unknownExit = getTotal(exitUnknownRes);
+
+		// Build person breakdown for known personnel with camera details
+		const personStats = new Map<
+			string,
+			{
+				entry_count: number;
+				exit_count: number;
+				cameras: Map<string, { entry_count: number; exit_count: number }>;
+			}
+		>();
+
+		// Process entry known personnel by person
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(getAggs(entryKnownRes)?.by_person?.buckets ?? []).forEach((b: any) => {
+			const personId = String(b.key);
+			const existing = personStats.get(personId) || {
+				entry_count: 0,
+				exit_count: 0,
+				cameras: new Map()
+			};
+			existing.entry_count += b.doc_count;
+
+			// Process camera breakdown for this person
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(b.by_camera?.buckets ?? []).forEach((camBucket: any) => {
+				const camId = String(camBucket.key);
+				const camStats = existing.cameras.get(camId) || { entry_count: 0, exit_count: 0 };
+				camStats.entry_count += camBucket.doc_count;
+				existing.cameras.set(camId, camStats);
+			});
+
+			personStats.set(personId, existing);
+		});
+
+		// Process exit known personnel by person
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(getAggs(exitKnownRes)?.by_person?.buckets ?? []).forEach((b: any) => {
+			const personId = String(b.key);
+			const existing = personStats.get(personId) || {
+				entry_count: 0,
+				exit_count: 0,
+				cameras: new Map()
+			};
+			existing.exit_count += b.doc_count;
+
+			// Process camera breakdown for this person
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(b.by_camera?.buckets ?? []).forEach((camBucket: any) => {
+				const camId = String(camBucket.key);
+				const camStats = existing.cameras.get(camId) || { entry_count: 0, exit_count: 0 };
+				camStats.exit_count += camBucket.doc_count;
+				existing.cameras.set(camId, camStats);
+			});
+
+			personStats.set(personId, existing);
+		});
+
+		// Load personnel names for breakdown
+		const personnelIds = Array.from(personStats.keys());
+		const personnelDocs = await Personnel.find({ _id: { $in: personnelIds } })
+			.exec()
+			.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc])));
+
+		// Convert to array format including personnel name and camera breakdown
+		const personnelBreakdown = Array.from(personStats.entries()).map(([personnel_id, stats]) => {
+			const person = personnelDocs.get(personnel_id);
+			return {
+				personnel_id,
+				personnel_name: person ? person.toName() : 'Unknown',
+				entry_count: stats.entry_count,
+				exit_count: stats.exit_count,
+				total_count: stats.entry_count + stats.exit_count,
+				cameras: Array.from(stats.cameras.entries()).map(([camId, camStats]) => {
+					const camInfo = cameraTypeMap.get(camId);
+					return {
+						camera_id: camId,
+						camera_name: camInfo?.name ?? 'Unknown',
+						camera_type: camInfo?.type ?? 'unknown',
+						entry_count: camStats.entry_count,
+						exit_count: camStats.exit_count,
+						total_count: camStats.entry_count + camStats.exit_count
+					};
+				})
+			};
+		});
+
+		return res.status(200).json({
+			success: true,
+			data: {
+				total_entry: personnelEntry + unknownEntry,
+				total_exit: personnelExit + unknownExit,
+				personnel_entry: personnelEntry,
+				personnel_exit: personnelExit,
+				unknown_entry: unknownEntry,
+				unknown_exit: unknownExit,
+				net_flow: personnelEntry + unknownEntry - (personnelExit + unknownExit),
+				personnel_breakdown: personnelBreakdown,
+				unique_personnel_count: personnelBreakdown.length
+			}
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /people-counting-by-camera
+ * Get people counting statistics per camera
+ *
+ * Returns array of:
+ * - camera_id, camera_name, camera_type
+ * - direction: 'entry' or 'exit'
+ * - total_count, personnel_count, unknown_count
+ */
+router.post('/people-counting-by-camera', async (req: Request, res, next) => {
+	try {
+		const { entryKnownRes, entryUnknownRes, exitKnownRes, exitUnknownRes, getAggs, cameraTypeMap } =
+			await getPeopleCountingData(req);
+
+		// Build camera breakdown
+		const cameraStats = new Map<
+			string,
+			{ personnel_count: number; unknown_count: number; type: 'entry' | 'exit' | 'unknown' }
+		>();
+
+		// Helper to get direction based on camera type from map
+		const getDirection = (camId: string): 'entry' | 'exit' | 'unknown' => {
+			const camInfo = cameraTypeMap.get(camId);
+			if (camInfo?.type === 'enter') return 'entry';
+			if (camInfo?.type === 'exit') return 'exit';
+			return 'unknown';
+		};
+
+		// Process entry cameras (known personnel)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(getAggs(entryKnownRes)?.by_camera?.buckets ?? []).forEach((b: any) => {
+			const existing = cameraStats.get(b.key) || {
+				personnel_count: 0,
+				unknown_count: 0,
+				type: getDirection(b.key)
+			};
+			existing.personnel_count += b.doc_count;
+			cameraStats.set(b.key, existing);
+		});
+		// Process entry cameras (unknown)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(getAggs(entryUnknownRes)?.by_camera?.buckets ?? []).forEach((b: any) => {
+			const existing = cameraStats.get(b.key) || {
+				personnel_count: 0,
+				unknown_count: 0,
+				type: getDirection(b.key)
+			};
+			existing.unknown_count += b.doc_count;
+			cameraStats.set(b.key, existing);
+		});
+
+		// Process exit cameras (known personnel)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(getAggs(exitKnownRes)?.by_camera?.buckets ?? []).forEach((b: any) => {
+			const existing = cameraStats.get(b.key) || {
+				personnel_count: 0,
+				unknown_count: 0,
+				type: getDirection(b.key)
+			};
+			existing.personnel_count += b.doc_count;
+			cameraStats.set(b.key, existing);
+		});
+		// Process exit cameras (unknown)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(getAggs(exitUnknownRes)?.by_camera?.buckets ?? []).forEach((b: any) => {
+			const existing = cameraStats.get(b.key) || {
+				personnel_count: 0,
+				unknown_count: 0,
+				type: getDirection(b.key)
+			};
+			existing.unknown_count += b.doc_count;
+			cameraStats.set(b.key, existing);
+		});
+
+		// Format camera breakdown
+		const data = Array.from(cameraStats.entries()).map(([camId, stats]) => {
+			const camInfo = cameraTypeMap.get(camId);
+			return {
+				camera_id: camId,
+				camera_name: camInfo?.name ?? 'Unknown',
+				camera_type: camInfo?.type ?? 'unknown',
+				direction: stats.type,
+				total_count: stats.personnel_count + stats.unknown_count,
+				personnel_count: stats.personnel_count,
+				unknown_count: stats.unknown_count
+			};
+		});
+
+		return res.status(200).json({
+			success: true,
+			data,
+			total: data.length
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /people-counting-hourly
+ * Get time-based breakdown of people counting statistics
+ *
+ * Request Parameters:
+ * - interval: Time interval in hours (1, 2, 4, 12, or 24). Default: 1
+ *
+ * Returns array of:
+ * - time: Formatted time string
+ * - time_epoch: Epoch milliseconds
+ * - personnel_entry, unknown_entry, personnel_exit, unknown_exit
+ * - total_entry, total_exit
+ * - cameras: Array of camera breakdowns for this time period
+ */
+router.post('/people-counting-hourly', async (req: Request, res, next) => {
+	try {
+		// Get interval from request (default 1 hour, allowed: 1, 2, 4, 12, 24)
+		const requestedInterval = Number(req.body.interval) || 1;
+		const allowedIntervals = [1, 2, 4, 12, 24];
+		const intervalHours = allowedIntervals.includes(requestedInterval) ? requestedInterval : 1;
+
+		const { entryKnownRes, entryUnknownRes, exitKnownRes, exitUnknownRes, getAggs, cameraTypeMap, timezone } =
+			await getPeopleCountingData(req, intervalHours);
+
+		// Build hourly breakdown with camera details
+		// Key: hourKey, Value: { stats, cameras: Map<cameraId, cameraStats> }
+		const hourlyStats = new Map<
+			string,
+			{
+				personnel_entry: number;
+				unknown_entry: number;
+				personnel_exit: number;
+				unknown_exit: number;
+				cameras: Map<
+					string,
+					{ personnel_entry: number; unknown_entry: number; personnel_exit: number; unknown_exit: number }
+				>;
+			}
+		>();
+
+		const processHourlyBuckets = (
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			buckets: any[],
+			field: 'personnel_entry' | 'unknown_entry' | 'personnel_exit' | 'unknown_exit'
+		) => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(buckets ?? []).forEach((b: any) => {
+				const hourKey = String(b.key);
+				const existing = hourlyStats.get(hourKey) || {
+					personnel_entry: 0,
+					unknown_entry: 0,
+					personnel_exit: 0,
+					unknown_exit: 0,
+					cameras: new Map()
+				};
+				existing[field] += b.doc_count;
+
+				// Process camera breakdown within this hour bucket
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				(b.by_camera?.buckets ?? []).forEach((camBucket: any) => {
+					const camId = String(camBucket.key);
+					const camStats = existing.cameras.get(camId) || {
+						personnel_entry: 0,
+						unknown_entry: 0,
+						personnel_exit: 0,
+						unknown_exit: 0
+					};
+					(camStats as Record<string, number>)[field] += camBucket.doc_count;
+					existing.cameras.set(camId, camStats);
+				});
+
+				hourlyStats.set(hourKey, existing);
+			});
+		};
+
+		processHourlyBuckets(getAggs(entryKnownRes)?.by_hour?.buckets ?? [], 'personnel_entry');
+		processHourlyBuckets(getAggs(entryUnknownRes)?.by_hour?.buckets ?? [], 'unknown_entry');
+		processHourlyBuckets(getAggs(exitKnownRes)?.by_hour?.buckets ?? [], 'personnel_exit');
+		processHourlyBuckets(getAggs(exitUnknownRes)?.by_hour?.buckets ?? [], 'unknown_exit');
+
+		// Format time breakdown with camera details
+		const data = Array.from(hourlyStats.entries())
+			.sort((a, b) => Number(a[0]) - Number(b[0]))
+			.map(([timeEpoch, stats]) => ({
+				time: new Date(Number(timeEpoch)).toLocaleString('en-US', { timeZone: timezone }),
+				time_epoch: Number(timeEpoch),
+				personnel_entry: stats.personnel_entry,
+				unknown_entry: stats.unknown_entry,
+				personnel_exit: stats.personnel_exit,
+				unknown_exit: stats.unknown_exit,
+				total_entry: stats.personnel_entry + stats.unknown_entry,
+				total_exit: stats.personnel_exit + stats.unknown_exit,
+				cameras: Array.from(stats.cameras.entries()).map(([camId, camStats]) => {
+					const camInfo = cameraTypeMap.get(camId);
+					return {
+						camera_id: camId,
+						camera_name: camInfo?.name ?? 'Unknown',
+						camera_type: camInfo?.type ?? 'unknown',
+						personnel_entry: camStats.personnel_entry,
+						unknown_entry: camStats.unknown_entry,
+						personnel_exit: camStats.personnel_exit,
+						unknown_exit: camStats.unknown_exit,
+						total_entry: camStats.personnel_entry + camStats.unknown_entry,
+						total_exit: camStats.personnel_exit + camStats.unknown_exit
+					};
+				})
+			}));
+
+		return res.status(200).json({
+			success: true,
+			data,
+			total: data.length,
+			interval_hours: intervalHours
 		});
 	} catch (err) {
 		return next(
