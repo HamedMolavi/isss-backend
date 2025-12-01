@@ -136,9 +136,16 @@ export function readElasticMiddleware(
 				}
 			}
 
+			// Return empty result set when no data found (instead of 404 error)
 			if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !nextValue) {
-				req.flash(`error ,${index} data not found in DB`);
-				return next(new ApiError(404, `error ,${index} data not found in DB`));
+				return res.status(200).json({
+					success: true,
+					data: [],
+					page,
+					perPage,
+					total: 0,
+					pages: 0
+				});
 			}
 
 			if (!!Array.isArray(req.body['elasticsearchIndices'])) req.body['elasticsearchIndices'].push(index);
