@@ -678,18 +678,18 @@ async function postSearchFunction(req: Request) {
 		} as any);
 	}
 
-	// Add direction filtering for plate logs
-	// direction: ['all'] - no filter, show all directions
-	// direction: ['front', 'back'] - filter by specific directions
-	if (body.direction?.length && !body.direction.includes('all')) {
+	// Add angle filtering for plate logs
+	// angle: [] or 'all' - no filter, show all angles
+	// angle: ['front', 'back', 'side'] - filter by specific angles (OR logic)
+	const angles = Array.isArray(body.angle) ? body.angle : body.angle ? [body.angle] : [];
+	if (angles.length > 0 && !angles.includes('all')) {
 		query?.bool?.must?.push({
 			bool: {
-				should: body.direction.map((dir: string) => ({
-					match: { direction: dir }
-				})),
+				should: angles.map((ang: string) => ({ match: { angle: ang } })),
 				minimum_should_match: 1
 			}
-		});
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any);
 	}
 
 	// Return complete Elasticsearch query
@@ -861,7 +861,8 @@ async function sendFunction(log: any, req: Request): Promise<any> {
 			hash_id: hash_id ?? '',
 			face_confidence: log?.face_confidence ?? '',
 			vector: log?.vector ?? '',
-			direction: log?.direction ?? ''
+			direction: log?.direction ?? '',
+			angle: log?.angle ?? ''
 		};
 	} catch (err) {
 		console.error(err);

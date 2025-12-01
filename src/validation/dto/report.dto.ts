@@ -31,7 +31,7 @@ export class ReportPlateBody {
 	cameras?: string[];
 	@IsOptional()
 	@IsArray()
-	direction?: string[];
+	angle?: string[];
 	plate?: Plate;
 }
 
