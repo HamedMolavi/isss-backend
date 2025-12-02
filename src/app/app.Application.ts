@@ -18,45 +18,50 @@ const app: Application = express();
 app.set('json limit', '600mb');
 
 /////////////////////////////////////////////////////////////////////////////////
-// MIDDLEWARE REGISTRATION
-// All middleware is registered through the centralized RegisterMiddleware function
-// This includes: CORS, authentication, parsing, logging, sessions, etc.
-RegisterMiddleware(app);
+// APPLICATION INITIALIZATION
+// Async function to properly initialize middleware and routes
+export async function initializeApp(): Promise<Application> {
+	// MIDDLEWARE REGISTRATION
+	// All middleware is registered through the centralized RegisterMiddleware function
+	// This includes: CORS, authentication, parsing, logging, sessions, etc.
+	await RegisterMiddleware(app);
 
-/////////////////////////////////////////////////////////////////////////////////
-// ROUTE REGISTRATION
-// All routes are registered through the centralized RegisterRoutes function
-// This includes: auth, config, reports, logs, system routes with proper middleware
-RegisterRoutes(app);
+	// ROUTE REGISTRATION
+	// All routes are registered through the centralized RegisterRoutes function
+	// This includes: auth, config, reports, logs, system routes with proper middleware
+	RegisterRoutes(app);
 
-/////////////////////////////////////////////////////////////////////////////////
-// ERROR HANDLING
+	/////////////////////////////////////////////////////////////////////////////////
+	// ERROR HANDLING (must be registered AFTER routes)
 
-// 404 Handler - Catch all unmatched routes
-app.use(function notFound(req: Request, _res: Response, next: NextFunction) {
-	const err = new ApiError(404, `Requested path ${req.path} not found`);
-	next(err);
-});
+	// 404 Handler - Catch all unmatched routes
+	app.use(function notFound(req: Request, _res: Response, next: NextFunction) {
+		const err = new ApiError(404, `Requested path ${req.path} not found`);
+		next(err);
+	});
 
-// Global Error Handler - Handle all application errors
-app.use(function errorHandler(err: ApiError, _req: Request, res: Response) {
-	const statusCode = err.statusCode || 500;
+	// Global Error Handler - Handle all application errors
+	app.use(function errorHandler(err: ApiError, _req: Request, res: Response) {
+		const statusCode = err.statusCode || 500;
 
-	// Log error details (except for file not found errors)
-	if (err.message !== 'File not found') {
-		console.log('Error in endpoint: ', {
+		// Log error details (except for file not found errors)
+		if (err.message !== 'File not found') {
+			console.log('Error in endpoint: ', {
+				success: false,
+				message: err.message,
+				stack: err.stack
+			});
+		}
+
+		// Send error response
+		return res.status(statusCode).send({
 			success: false,
 			message: err.message,
-			stack: err.stack
+			stack: process.env.NODE_ENV === 'development' ? err.stack : ''
 		});
-	}
-
-	// Send error response
-	return res.status(statusCode).send({
-		success: false,
-		message: err.message,
-		stack: process.env.NODE_ENV === 'development' ? err.stack : ''
 	});
-});
+
+	return app;
+}
 
 export default app;

@@ -13,9 +13,9 @@ import { registerSecurityMiddleware } from './security.middleware';
 import { BaseConfig } from '../config/base.config';
 import { verifyUserIntegrityMiddleware } from './userIntegrity.middleware';
 
-export function RegisterMiddleware(app: Application) {
-	// Register security middleware
-	registerSecurityMiddleware(app);
+export async function RegisterMiddleware(app: Application) {
+	// Register security middleware (must be awaited as it's async)
+	await registerSecurityMiddleware(app);
 
 	///////////////////////////////////////////////////////////////////////////////// Credentials and authentication
 
