@@ -10,12 +10,15 @@ export enum AuthEventType {
 	LOGIN_SUCCESS = 'login_success',
 	LOGIN_FAILED = 'login_failed',
 	LOGIN_ERROR = 'login_error',
+	LOGIN_BLOCKED = 'login_blocked',
 	LOGOUT = 'logout',
 	SESSION_EXPIRED = 'session_expired',
 	UNAUTHORIZED_ACCESS = 'unauthorized_access',
 	OTP_GENERATED = 'otp_generated',
 	OTP_ENABLED = 'otp_enabled',
 	OTP_DISABLED = 'otp_disabled',
+	OTP_VERIFICATION_FAILED = 'otp_verification_failed',
+	OTP_DISABLE_FAILED = 'otp_disable_failed',
 	IP_RESTRICTION_ENABLED = 'ip_restriction_enabled',
 	IP_RESTRICTION_DISABLED = 'ip_restriction_disabled',
 	IP_ADDED = 'ip_added',
@@ -82,6 +85,19 @@ export class AuthLogger {
 			userid: userId, // Override with specific userId if provided
 			details: {
 				error
+			}
+		});
+	}
+
+	/**
+	 * Log login blocked due to rate limiting
+	 */
+	static loginBlocked(req: Request, reason: string, attemptedCredentials?: { username?: string }): void {
+		Logger.warn('Login blocked - rate limit exceeded', {
+			...this.createBaseLogData(req, AuthEventType.LOGIN_BLOCKED, false),
+			details: {
+				error: reason,
+				attemptedCredentials
 			}
 		});
 	}

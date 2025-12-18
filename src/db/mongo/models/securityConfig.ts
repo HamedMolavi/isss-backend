@@ -36,6 +36,36 @@ const SecurityConfigSchema = new Schema<ISecurityConfig>(
 				required: true,
 				default: 60
 			},
+			backupIntervalDays: {
+				type: Number,
+				required: true,
+				default: 30
+			},
+			maxSizeBytes: {
+				type: Number,
+				required: true,
+				default: 1024 * 1024 * 1024 // 1GB default
+			},
+			maxLogCount: {
+				type: Number,
+				required: true,
+				default: 1000000 // 1 million logs default
+			},
+			warningThreshold: {
+				type: Number,
+				required: true,
+				default: 0.8 // 80% warning threshold
+			},
+			autoBackup: {
+				type: Boolean,
+				required: true,
+				default: true
+			},
+			autoCleanup: {
+				type: Boolean,
+				required: true,
+				default: false
+			},
 			defaultConfig: {
 				ttlDays: {
 					type: Number,

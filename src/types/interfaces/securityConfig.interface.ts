@@ -10,6 +10,12 @@ export interface ISecurityConfig extends Document {
 		checkIntervalHours: number;
 		checkIntervalMs: number;
 		ttlDays: number;
+		backupIntervalDays: number;
+		maxSizeBytes: number;
+		maxLogCount: number;
+		warningThreshold: number;
+		autoBackup: boolean;
+		autoCleanup: boolean;
 		defaultConfig: {
 			ttlDays: number;
 			isAutoBackup: boolean;

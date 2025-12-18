@@ -2,6 +2,7 @@ import { Request } from 'express';
 import { Logger } from '.';
 import { LogType } from '../db/mongo/models/logType';
 import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Backup service event types
@@ -28,7 +29,10 @@ export enum BackupEventType {
 	COMPRESSED_BACKUP_CREATED = 'compressed_backup_created',
 	COMPRESSED_BACKUP_FAILED = 'compressed_backup_failed',
 	FTP_UPLOAD_COMPLETED = 'ftp_upload_completed',
-	FTP_UPLOAD_FAILED = 'ftp_upload_failed'
+	FTP_UPLOAD_FAILED = 'ftp_upload_failed',
+	STORAGE_WARNING_THRESHOLD_EXCEEDED = 'storage_warning_threshold_exceeded',
+	STORAGE_CRITICAL_THRESHOLD_EXCEEDED = 'storage_critical_threshold_exceeded',
+	STORAGE_THRESHOLD_CLEARED = 'storage_threshold_cleared'
 }
 
 /**
@@ -47,7 +51,7 @@ export class BackupLogger {
 			success,
 			userid: req?.user?._id?.toString() || 'system',
 			username: req?.user?.username || 'system',
-			ip: req?.ip || req?.socket?.remoteAddress || 'system',
+			ip: (req ? getClientIP(req) : '') || 'system',
 			userAgent: req?.get('User-Agent') || 'system',
 			method: req?.method || 'SYSTEM',
 			url: req?.originalUrl || 'system_operation',
@@ -406,5 +410,107 @@ export class BackupLogger {
 				failureReason: error
 			}
 		});
+	}
+
+	/**
+	 * Log storage warning threshold exceeded
+	 */
+	static async storageWarningThresholdExceeded(
+		storageInfo: {
+			currentSizeBytes: number;
+			maxSizeBytes: number;
+			usagePercent: number;
+			warningThreshold: number;
+			totalLogs: number;
+		},
+		req?: Request
+	): Promise<void> {
+		try {
+			Logger.warn('Storage warning threshold exceeded', {
+				...this.createBaseLogData(
+					BackupEventType.STORAGE_WARNING_THRESHOLD_EXCEEDED,
+					false,
+					req,
+					'storage_warning'
+				),
+				details: {
+					currentSizeMB: Math.round((storageInfo.currentSizeBytes / 1024 / 1024) * 100) / 100,
+					maxSizeMB: Math.round((storageInfo.maxSizeBytes / 1024 / 1024) * 100) / 100,
+					usagePercent: Math.round(storageInfo.usagePercent * 100) / 100,
+					warningThreshold: storageInfo.warningThreshold * 100,
+					totalLogs: storageInfo.totalLogs,
+					severity: 'warning',
+					recommendation: 'Consider backing up and cleaning old logs to free up storage space'
+				}
+			});
+		} catch (error) {
+			console.error('Error logging storage warning:', error);
+		}
+	}
+
+	/**
+	 * Log storage critical threshold exceeded (>95%)
+	 */
+	static async storageCriticalThresholdExceeded(
+		storageInfo: {
+			currentSizeBytes: number;
+			maxSizeBytes: number;
+			usagePercent: number;
+			totalLogs: number;
+		},
+		req?: Request
+	): Promise<void> {
+		try {
+			Logger.error('Storage critical threshold exceeded', {
+				...this.createBaseLogData(
+					BackupEventType.STORAGE_CRITICAL_THRESHOLD_EXCEEDED,
+					false,
+					req,
+					'storage_critical'
+				),
+				details: {
+					currentSizeMB: Math.round((storageInfo.currentSizeBytes / 1024 / 1024) * 100) / 100,
+					maxSizeMB: Math.round((storageInfo.maxSizeBytes / 1024 / 1024) * 100) / 100,
+					usagePercent: Math.round(storageInfo.usagePercent * 100) / 100,
+					totalLogs: storageInfo.totalLogs,
+					severity: 'critical',
+					recommendation: 'Immediate action required: backup and clean old logs to prevent data loss'
+				}
+			});
+		} catch (error) {
+			console.error('Error logging storage critical warning:', error);
+		}
+	}
+
+	/**
+	 * Log storage threshold cleared (back to normal)
+	 */
+	static async storageThresholdCleared(
+		storageInfo: {
+			currentSizeBytes: number;
+			maxSizeBytes: number;
+			usagePercent: number;
+			previousUsagePercent: number;
+		},
+		req?: Request
+	): Promise<void> {
+		try {
+			const logType = await LogType.findOne({ isActive: true }).sort({ ts: -1 }).exec();
+			if (logType?.[LOG_TYPE_KEYS.successEvents] === true || !req) {
+				Logger.info('Storage usage returned to normal', {
+					...this.createBaseLogData(BackupEventType.STORAGE_THRESHOLD_CLEARED, true, req, 'storage_info'),
+					details: {
+						currentSizeMB: Math.round((storageInfo.currentSizeBytes / 1024 / 1024) * 100) / 100,
+						maxSizeMB: Math.round((storageInfo.maxSizeBytes / 1024 / 1024) * 100) / 100,
+						usagePercent: Math.round(storageInfo.usagePercent * 100) / 100,
+						previousUsagePercent: Math.round(storageInfo.previousUsagePercent * 100) / 100,
+						severity: 'info',
+						status: 'normal'
+					}
+				});
+			}
+		} catch (error) {
+			console.error('Error logging storage threshold cleared:', error);
+		}
 	}
 }

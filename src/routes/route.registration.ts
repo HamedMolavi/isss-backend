@@ -10,6 +10,7 @@ import IPRestrictionRouter from './auth/ipRestriction.Routes';
 // Config routes
 import UserConfigRouter from './config/userConfig.Routes';
 import AdminConfigRouter from './config/adminConfig.Routes';
+import UserAuthHistoryRouter from './config/userAuthHistory.Routes';
 import FileRouter from './config/file.Routes';
 import SnapshotRouter from './config/snapshot.Routes';
 import TestEmailRouter from './config/testEmailSend.Routes';
@@ -49,6 +50,7 @@ import AnalyticsReportRouter from './report/analytics.report';
 import LogRouter from './log/log.Routes';
 import LogTypeRouter from './log/logType.Routes';
 import LogBackupRouter from './log/logBackup.routes';
+import LogConfigRouter from './log/logConfig.routes';
 
 // Session routes
 import SessionRouter from './config/session.Routes';
@@ -82,6 +84,7 @@ export function RegisterRoutes(app: Application) {
 
 	// Config routes - User
 	app.use(`${routePrefix}/config/user`, UserConfigRouter);
+	app.use(`${routePrefix}/config/user`, UserAuthHistoryRouter);
 	app.use(`${routePrefix}/config/admin`, AdminConfigRouter);
 	app.use(`${routePrefix}/config/security`, SecurityConfigRouter);
 
@@ -139,6 +142,7 @@ export function RegisterRoutes(app: Application) {
 	app.use(`${routePrefix}/logs`, LogRouter);
 	app.use(`${routePrefix}/log-types`, LogTypeRouter);
 	app.use(`${routePrefix}/logs`, LogBackupRouter);
+	app.use(`${routePrefix}/logs`, LogConfigRouter);
 
 	// Session routes
 	app.use(`${routePrefix}/sessions`, SessionRouter);

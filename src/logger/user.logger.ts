@@ -2,6 +2,7 @@ import { Request } from 'express';
 import { Logger } from '.';
 import { LogType } from '../db/mongo/models/logType';
 import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * User management event types
@@ -20,7 +21,10 @@ export enum UserEventType {
 	PERMISSION_CHECK_SUCCESS = 'permission_check_success',
 	PERMISSION_CHECK_FAILED = 'permission_check_failed',
 	PASSWORD_UPDATED = 'password_updated',
-	PASSWORD_UPDATE_FAILED = 'password_update_failed'
+	PASSWORD_UPDATE_FAILED = 'password_update_failed',
+	PASSWORD_RESET_BY_ADMIN = 'password_reset_by_admin',
+	PASSWORD_CHANGE_REQUIRED = 'password_change_required',
+	PASSWORD_CHANGE_COMPLETED = 'password_change_completed'
 }
 
 /**
@@ -39,7 +43,7 @@ export class UserLogger {
 			success,
 			userid: req.user?._id?.toString(),
 			username: req.user?.username,
-			ip: req.ip || req.socket.remoteAddress || 'unknown',
+			ip: getClientIP(req) || 'unknown',
 			userAgent: req.get('User-Agent') || 'unknown',
 			method: req.method,
 			url: req.originalUrl,
@@ -265,6 +269,34 @@ export class UserLogger {
 				targetUserId,
 				error,
 				attemptedBy: req.user?.username
+			}
+		});
+	}
+
+	/**
+	 * Log password reset by admin (forces user to change password on next login)
+	 */
+	static userPasswordResetByAdmin(req: Request, targetUser: { _id: string; username: string }): void {
+		Logger.info('User password reset by admin - password change required on next login', {
+			...this.createBaseLogData(req, UserEventType.PASSWORD_RESET_BY_ADMIN, true, 'security'),
+			details: {
+				targetUserId: targetUser._id,
+				targetUsername: targetUser.username,
+				resetBy: req.user?.username,
+				mustChangePassword: true
+			}
+		});
+	}
+
+	/**
+	 * Log when user completes forced password change
+	 */
+	static userCompletedForcedPasswordChange(req: Request, user: { _id: string; username: string }): void {
+		Logger.info('User completed forced password change', {
+			...this.createBaseLogData(req, UserEventType.PASSWORD_CHANGE_COMPLETED, true, 'security'),
+			details: {
+				userId: user._id,
+				username: user.username
 			}
 		});
 	}

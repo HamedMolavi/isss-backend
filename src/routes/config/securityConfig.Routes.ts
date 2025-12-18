@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { roleCheck } from '../../authentication/accessCheck.auth';
 import * as SecurityConfigController from '../../controllers/securityConfig.controller';
+import { updateLogTTLConfig } from '../../controllers/logConfig.controller';
+import { dtoValidationMiddleware } from '../../validation/dto';
+import { UpdateLogTTLConfigDto } from '../../validation/dto/logConfig.dto';
 
 const SecurityConfigRouter: Router = Router();
 
@@ -34,7 +37,8 @@ SecurityConfigRouter.put(
 SecurityConfigRouter.put(
 	`${route_prefix}/log-backup`,
 	roleCheck('admin'),
-	SecurityConfigController.updateLogBackupSettings
+	dtoValidationMiddleware(UpdateLogTTLConfigDto),
+	updateLogTTLConfig
 );
 
 // Admin only: Update session settings

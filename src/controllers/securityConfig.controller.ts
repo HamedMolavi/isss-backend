@@ -4,6 +4,17 @@ import { ISecurityConfig } from '../types/interfaces/securityConfig.interface';
 import { SecurityLogger } from '../logger/security.logger';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
+import { getSessionManager } from '../services/session.service';
+import { refreshSecurityConfig } from '../config/security.config';
+
+/**
+ * Hash algorithm information - fixed to SHA-256 as per ST document
+ */
+export const HASH_ALGORITHM_INFO = {
+	algorithm: 'SHA-256',
+	digestSizeBits: 256,
+	description: 'Secure Hash Algorithm 256-bit'
+} as const;
 
 /**
  * Get current security configuration
@@ -26,6 +37,12 @@ export const getConfig = async (req: Request, res: Response, next: NextFunction)
 					checkIntervalHours: 24,
 					checkIntervalMs: 24 * 60 * 60 * 1000,
 					ttlDays: 60,
+					backupIntervalDays: 30,
+					maxSizeBytes: 1024 * 1024 * 1024,
+					maxLogCount: 1000000,
+					warningThreshold: 0.8,
+					autoBackup: true,
+					autoCleanup: false,
 					defaultConfig: {
 						ttlDays: 60,
 						isAutoBackup: true
@@ -175,44 +192,6 @@ export const updateLoginRateLimit = async (req: Request, res: Response, next: Ne
 };
 
 /**
- * Update log backup settings
- */
-export const updateLogBackupSettings = async (req: Request, res: Response, next: NextFunction) => {
-	try {
-		const { checkIntervalHours, checkIntervalMs, ttlDays, defaultConfig } = req.body;
-
-		const updateData: Partial<ISecurityConfig['logBackup']> = {};
-
-		if (checkIntervalHours !== undefined) updateData.checkIntervalHours = checkIntervalHours;
-		if (checkIntervalMs !== undefined) updateData.checkIntervalMs = checkIntervalMs;
-		if (ttlDays !== undefined) updateData.ttlDays = ttlDays;
-		if (defaultConfig !== undefined) updateData.defaultConfig = defaultConfig;
-
-		if (Object.keys(updateData).length === 0) {
-			return ApiRes(res, {
-				status: HttpStatus.BAD_REQUEST,
-				msg: 'No valid log backup fields provided'
-			});
-		}
-
-		const config = await SecurityConfig.findOneAndUpdate(
-			{},
-			{ $set: { logBackup: updateData } },
-			{ new: true, upsert: true }
-		);
-
-		SecurityLogger.logBackupConfigUpdated(req, updateData);
-		return ApiRes(res, {
-			status: HttpStatus.OK,
-			msg: 'Log backup settings updated successfully',
-			data: config
-		});
-	} catch (error) {
-		next(error);
-	}
-};
-
-/**
  * Update session settings
  */
 export const updateSessionSettings = async (req: Request, res: Response, next: NextFunction) => {
@@ -239,11 +218,22 @@ export const updateSessionSettings = async (req: Request, res: Response, next: N
 			{ new: true, upsert: true }
 		);
 
+		// Refresh the in-memory security config so new timeout takes effect immediately
+		await refreshSecurityConfig();
+
+		// Update TTL for all active sessions to apply new timeout immediately
+		const sessionManager = await getSessionManager();
+		const { updated, failed } = await sessionManager.updateAllSessionsTTL(timeout);
+
 		SecurityLogger.sessionConfigUpdated(req, timeout);
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: 'Session settings updated successfully',
-			data: config
+			data: {
+				...config?.toObject(),
+				activeSessionsUpdated: updated,
+				activeSessionsFailed: failed
+			}
 		});
 	} catch (error) {
 		next(error);

@@ -2,6 +2,7 @@ import { Request } from 'express';
 import { Logger } from '.';
 import { LogType } from '../db/mongo/models/logType';
 import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Log integrity event types
@@ -20,7 +21,9 @@ export enum LogIntegrityEventType {
 	KAFKA_ALERT_FAILED = 'kafka_alert_failed',
 	HASH_MISMATCH_DETECTED = 'hash_mismatch_detected',
 	MISSING_HASH_DETECTED = 'missing_hash_detected',
-	UNAUTHORIZED_MODIFICATION = 'unauthorized_modification'
+	UNAUTHORIZED_MODIFICATION = 'unauthorized_modification',
+	TAMPERING_SIMULATED = 'tampering_simulated',
+	TAMPERING_REPORT_GENERATED = 'tampering_report_generated'
 }
 
 /**
@@ -39,7 +42,7 @@ export class LogIntegrityLogger {
 			success,
 			userid: req?.user?._id?.toString() || 'system',
 			username: req?.user?.username || 'system',
-			ip: req?.ip || req?.socket?.remoteAddress || 'system',
+			ip: (req ? getClientIP(req) : '') || 'system',
 			userAgent: req?.get('User-Agent') || 'system',
 			method: req?.method || 'SYSTEM',
 			url: req?.originalUrl || 'system_operation',
@@ -437,5 +440,55 @@ export class LogIntegrityLogger {
 		} catch (error) {
 			console.error('Error logging modification check:', error);
 		}
+	}
+
+	/**
+	 * Log tampering simulation event
+	 */
+	static tamperingSimulated(
+		logId: string,
+		field: string,
+		originalValue: unknown,
+		newValue: unknown,
+		integrityBeforeTampering: boolean,
+		integrityAfterTampering: boolean,
+		req?: Request
+	): void {
+		const tamperingDetected = integrityBeforeTampering && !integrityAfterTampering;
+		Logger.warn('Log tampering simulation executed', {
+			...this.createBaseLogData(LogIntegrityEventType.TAMPERING_SIMULATED, true, req),
+			details: {
+				logId,
+				operation: 'tampering_simulation',
+				field,
+				originalValue,
+				newValue,
+				integrityBeforeTampering,
+				integrityAfterTampering,
+				tamperingDetected,
+				detectionMethod: 'SHA-256 hash verification',
+				severity: tamperingDetected ? 'CRITICAL' : 'WARNING',
+				systemResponse: tamperingDetected
+					? 'Tampering successfully detected by integrity system'
+					: 'Warning: Tampering was not detected - investigate integrity system'
+			}
+		});
+	}
+
+	/**
+	 * Log tampering report generation
+	 */
+	static tamperingReportGenerated(logId: string, isIntact: boolean, req?: Request): void {
+		const logMethod = isIntact ? Logger.info : Logger.warn;
+		logMethod('Tampering report generated', {
+			...this.createBaseLogData(LogIntegrityEventType.TAMPERING_REPORT_GENERATED, true, req),
+			details: {
+				logId,
+				operation: 'tampering_report',
+				integrityStatus: isIntact ? 'INTACT' : 'TAMPERED',
+				severity: isIntact ? 'INFO' : 'CRITICAL',
+				reportType: 'detailed_tampering_analysis'
+			}
+		});
 	}
 }

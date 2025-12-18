@@ -50,6 +50,10 @@ LogSchema.index({ 'metadata.type': 1, timestamp: -1 });
 LogSchema.index({ 'metadata.userId': 1, timestamp: -1 });
 LogSchema.index({ message: 1 }); // Add index for message field
 
+// Indexes for sorting by IP (event location) and username
+LogSchema.index({ 'metadata.ip': 1, timestamp: -1 });
+LogSchema.index({ 'metadata.username': 1, timestamp: -1 });
+
 LogSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });
 
 // Pre-save hook to generate and store hash

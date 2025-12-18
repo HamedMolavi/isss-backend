@@ -1,5 +1,6 @@
 import { Request } from 'express';
 import { Logger } from '.';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Security event types
@@ -16,7 +17,8 @@ export enum SecurityEventType {
 	RATE_LIMIT_CONFIG_UPDATED = 'rate_limit_config_updated',
 	SESSION_CONFIG_UPDATED = 'session_config_updated',
 	LOG_BACKUP_CONFIG_UPDATED = 'log_backup_config_updated',
-	MAX_SESSIONS_CONFIG_UPDATED = 'max_sessions_config_updated'
+	MAX_SESSIONS_CONFIG_UPDATED = 'max_sessions_config_updated',
+	FUNCTIONAL_BEHAVIOR_CHANGED = 'functional_behavior_changed'
 }
 
 /**
@@ -30,7 +32,7 @@ export class SecurityLogger {
 			success,
 			userid: req.user?._id?.toString(),
 			username: req.user?.username,
-			ip: req.ip ?? req.socket.remoteAddress ?? 'unknown',
+			ip: getClientIP(req) || 'unknown',
 			userAgent: req.get('User-Agent') ?? 'unknown',
 			method: req.method,
 			url: req.originalUrl || req.url,
@@ -104,6 +106,19 @@ export class SecurityLogger {
 			details: {
 				activity,
 				...additionalDetails
+			}
+		});
+	}
+
+	/**
+	 * Log changes to functional behavior or user group policies
+	 */
+	static functionalBehaviorChanged(req: Request, behavior: string, details?: Record<string, unknown>): void {
+		Logger.info('Functional behavior changed', {
+			...this.createBaseLogData(req, SecurityEventType.FUNCTIONAL_BEHAVIOR_CHANGED, true),
+			details: {
+				behavior,
+				...details
 			}
 		});
 	}
