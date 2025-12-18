@@ -13,6 +13,7 @@ import {
 	ACTION_LABELS
 } from '../utils/logFormatter';
 import { Logger } from '../logger';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Check log status
@@ -198,13 +199,14 @@ export const getLogs = async (req: Request, res: Response) => {
 		const outputLogs = format === 'raw' ? logs : formatLogs(logs as any);
 
 		// Log access to logs listing
+		const clientIp = getClientIP(req);
 		Logger.info('Logs retrieved', {
 			type: 'log_access',
 			action: 'logs_list',
 			success: true,
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
-			ip: req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip,
+			ip: clientIp,
 			params: {
 				page,
 				limit,
@@ -252,7 +254,7 @@ export const getLogs = async (req: Request, res: Response) => {
 			error: error instanceof Error ? error.message : 'Unknown error',
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
-			ip: req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip
+			ip: getClientIP(req)
 		});
 		console.error('Error fetching logs:', error);
 		return ApiRes(res, {
