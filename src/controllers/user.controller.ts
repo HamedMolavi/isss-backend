@@ -6,46 +6,110 @@ import { HttpStatus } from '../types/http_status';
 import { UserLogger } from '../logger/user.logger';
 import { getSessionManager } from '../services/session.service';
 import { IUserDocument } from '../types/interfaces/user.interface';
+import { SecurityLogger } from '../logger/security.logger';
+
+type UsernamePayload = {
+	username?: string;
+	phone_number?: string;
+};
+
+const COMMON_USERNAMES = new Set([
+	'admin',
+	'administrator',
+	'root',
+	'test',
+	'user',
+	'guest',
+	'superuser',
+	'manager',
+	'operator'
+]);
+
+function normalize(val: unknown): string {
+	return (val ?? '').toString().trim().toLowerCase();
+}
+
+function isEmailLike(username: string): boolean {
+	return username.includes('@');
+}
+
+function isNationalIdLike(username: string): boolean {
+	// Treat long digit-only strings as national-code/phone-like
+	return /^\d{8,}$/.test(username);
+}
+
+function violatesUsernamePolicy(username: unknown, payload: UsernamePayload): string | null {
+	const usernameNorm = normalize(username);
+
+	if (!usernameNorm) return 'نام کاربری الزامی است';
+	if (isEmailLike(usernameNorm)) return 'نام کاربری نباید شبیه ایمیل باشد';
+	if (isNationalIdLike(usernameNorm)) return 'نام کاربری نباید فقط عدد باشد';
+	if (COMMON_USERNAMES.has(usernameNorm)) return 'نام کاربری انتخاب‌شده خیلی رایج است';
+	// Avoid using phone number as username
+	if (normalize(payload?.phone_number) && usernameNorm === normalize(payload?.phone_number)) {
+		return 'نام کاربری نباید با شماره تلفن یکسان باشد';
+	}
+
+	return null;
+}
 
 /**
  * Create a new user
  */
 export const create = async (req: Request, res: Response) => {
-	const payload = req.body;
-	// trim string based values
-	for (const key in payload) {
-		if (Object.prototype.hasOwnProperty.call(payload, key)) {
-			const element = payload[key];
-			if (typeof element === 'string') payload[key] = element.trim();
+	try {
+		const payload = req.body;
+		// trim string based values
+		for (const key in payload) {
+			if (Object.prototype.hasOwnProperty.call(payload, key)) {
+				const element = payload[key];
+				if (typeof element === 'string') payload[key] = element.trim();
+			}
 		}
-	}
 
-	const doc = new User(payload);
-	const result = await doc.save().catch((err) => {
-		UserLogger.userCreateFailed(req, err.message, payload);
-		return null;
-	});
+		const usernameError = violatesUsernamePolicy(payload.username, payload);
+		if (usernameError) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: usernameError
+			});
+		}
 
-	if (!result) {
+		const doc = new User(payload);
+		const result = await doc.save().catch((err) => {
+			UserLogger.userCreateFailed(req, err.message, payload);
+			throw err; // Re-throw to be caught by outer try-catch
+		});
+
+		if (!result) {
+			return ApiRes(res, {
+				status: HttpStatus.INTERNAL_SERVER_ERROR,
+				msg: 'Failed to create user'
+			});
+		}
+
+		// Log successful user creation with role assignment
+		UserLogger.userCreated(req, {
+			_id: result._id.toString(),
+			username: result.username,
+			role: result.role,
+			access_level: result.access_level.toString()
+		});
+
+		req.flash('info', `User added.`);
+		return ApiRes(res, {
+			status: HttpStatus.CREATED,
+			data: result.toJSON()
+		});
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+		console.error('User creation error:', errorMessage);
+		UserLogger.userCreateFailed(req, errorMessage, req.body);
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,
-			msg: 'Failed to create user'
+			msg: `Failed to create user: ${errorMessage}`
 		});
 	}
-
-	// Log successful user creation with role assignment
-	UserLogger.userCreated(req, {
-		_id: result._id.toString(),
-		username: result.username,
-		role: result.role,
-		access_level: result.access_level.toString()
-	});
-
-	req.flash('info', `User added.`);
-	return ApiRes(res, {
-		status: HttpStatus.CREATED,
-		data: result.toJSON()
-	});
 };
 
 /**
@@ -53,7 +117,8 @@ export const create = async (req: Request, res: Response) => {
  */
 export const getAll = async (req: Request, res: Response) => {
 	const search = (req.query.search as string) || '';
-	const includeInactive = req.query.includeInactive === 'true';
+	const isAdmin = req.user?.role === 'admin';
+	const includeInactive = isAdmin || req.query.includeInactive === 'true';
 
 	// Build base query
 	const query: FilterQuery<IUserDocument> = {};
@@ -63,7 +128,7 @@ export const getAll = async (req: Request, res: Response) => {
 		query.username = { $regex: search, $options: 'i' };
 	}
 
-	// Show active users by default, include inactive if requested
+	// Show active users by default, include inactive if admin or explicitly requested
 	if (!includeInactive) {
 		query.is_active = true;
 	}
@@ -166,6 +231,13 @@ export const updateById = async (req: Request, res: Response) => {
 			currentUser.role,
 			payload.role
 		);
+
+		SecurityLogger.functionalBehaviorChanged(req, 'user_role_changed', {
+			targetUserId: user._id.toString(),
+			targetUsername: user.username,
+			oldRole: currentUser.role,
+			newRole: payload.role
+		});
 	}
 
 	// Log access level assignment if access_level was changed
@@ -179,6 +251,13 @@ export const updateById = async (req: Request, res: Response) => {
 			currentUser.access_level?.toString() || 'none',
 			payload.access_level.toString()
 		);
+
+		SecurityLogger.functionalBehaviorChanged(req, 'user_access_level_changed', {
+			targetUserId: user._id.toString(),
+			targetUsername: user.username,
+			oldAccessLevel: currentUser.access_level?.toString() || 'none',
+			newAccessLevel: payload.access_level.toString()
+		});
 	}
 
 	// Log general user update
@@ -220,6 +299,14 @@ export const updateById = async (req: Request, res: Response) => {
  */
 export const deleteById = async (req: Request, res: Response) => {
 	const id = req.params.id;
+
+	// Prevent users from deleting their own account
+	if (req.user && req.user._id.toString() === id) {
+		return ApiRes(res, {
+			status: HttpStatus.FORBIDDEN,
+			msg: 'You cannot delete your own account'
+		});
+	}
 
 	// Get user before deletion for logging
 	const userToDelete = await User.findById(id)
@@ -311,10 +398,10 @@ export const updatePassword = async (req: Request, res: Response) => {
 		});
 	}
 
-	// Update password
+	// Update password and clear must_change_password flag
 	const updateResult = await User.updateOne(
 		{ _id: user._id },
-		{ $set: { password: req.body.new_password } },
+		{ $set: { password: req.body.new_password, must_change_password: false } },
 		{ new: true }
 	)
 		.exec()
@@ -335,6 +422,14 @@ export const updatePassword = async (req: Request, res: Response) => {
 		_id: user._id.toString(),
 		username: userInfo.username
 	});
+
+	// If user was required to change password, log completion
+	if (userInfo.must_change_password) {
+		UserLogger.userCompletedForcedPasswordChange(req, {
+			_id: user._id.toString(),
+			username: userInfo.username
+		});
+	}
 
 	// Terminate all other user sessions except current one
 	try {
@@ -517,10 +612,10 @@ export const resetUserPassword = async (req: Request, res: Response) => {
 		});
 	}
 
-	// Update password
+	// Update password and set must_change_password flag
 	const updateResult = await User.updateOne(
 		{ _id: userId },
-		{ $set: { password: newPassword } },
+		{ $set: { password: newPassword, must_change_password: true } },
 		{ new: true }
 	)
 		.exec()
@@ -536,8 +631,8 @@ export const resetUserPassword = async (req: Request, res: Response) => {
 		});
 	}
 
-	// Log successful password reset
-	UserLogger.userPasswordUpdated(req, {
+	// Log successful password reset by admin (forces password change)
+	UserLogger.userPasswordResetByAdmin(req, {
 		_id: userId,
 		username: userToReset.username
 	});

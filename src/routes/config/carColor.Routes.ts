@@ -11,9 +11,13 @@ import { deleteByIdMiddleware } from '../../db/mongo/delete.database';
 import Car from '../../db/mongo/models/car';
 import mongoose from 'mongoose';
 import { carSendFunction } from '../../tools/car.tools';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to server file
 const router: Router = Router();
+
+// Apply access check middleware to all car color routes
+router.use(accessCheck('color'));
 
 //add route for register new car_color
 // router.post(

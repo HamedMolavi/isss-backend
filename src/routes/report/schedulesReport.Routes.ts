@@ -10,6 +10,7 @@ import { ICamera } from '../../types/interfaces/camera.interface';
 import { IModel } from '../../types/interfaces/model.interface';
 import { ISchedule } from '../../types/interfaces/schedule.interface';
 import { IModelToCamera } from '../../types/interfaces/modelToCamera.interface';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || 'user';
@@ -54,6 +55,9 @@ interface IChildrenSchedule {
 
 //create router for add to server file
 const router: Router = Router();
+
+// Apply access check middleware to all schedules report routes
+router.use(accessCheck('schedule'));
 
 //add error handler middleware
 router.use(function (req: Request, res: Response, next: NextFunction) {

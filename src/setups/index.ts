@@ -6,6 +6,8 @@ import { initBalancer } from '../tools/loadBalancer.tools';
 import { SignalConsumer } from '../tools/systemSignal.tools';
 import { setupLogger } from './logger.setup';
 import { initializeSecurityConfig } from '../config/security.config';
+import { LogIntegrityService } from '../services/logIntegrity.service';
+import { BackupSchedulerService } from '../services/backupScheduler.service';
 
 export default async function setup() {
 	await setupInteractive();
@@ -27,19 +29,19 @@ export default async function setup() {
 	await setupLogger();
 
 	// Initialize backup scheduler
-	// try {
-	// 	const backupScheduler = BackupSchedulerService.getInstance();
-	// 	await backupScheduler.start();
-	// } catch (error) {
-	// 	console.error('Failed to start backup scheduler:', error);
-	// }
+	try {
+		const backupScheduler = BackupSchedulerService.getInstance();
+		await backupScheduler.start();
+	} catch (error) {
+		console.error('Failed to start backup scheduler:', error);
+	}
 
 	// // Initialize log integrity service and setup modification trigger
-	// try {
-	// 	const logIntegrityService = LogIntegrityService.getInstance();
-	// 	logIntegrityService.setupLogModificationTrigger();
-	// 	console.log('Log integrity service initialized successfully');
-	// } catch (error) {
-	// 	console.error('Failed to initialize log integrity service:', error);
-	// }
+	try {
+		const logIntegrityService = LogIntegrityService.getInstance();
+		logIntegrityService.setupLogModificationTrigger();
+		console.log('Log integrity service initialized successfully');
+	} catch (error) {
+		console.error('Failed to initialize log integrity service:', error);
+	}
 }

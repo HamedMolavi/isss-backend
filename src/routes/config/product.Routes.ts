@@ -13,6 +13,7 @@ import Personnel from '../../db/mongo/models/personnel';
 import { productCols, sendExcelMiddleware } from '../../tools/excel.tools';
 import Time from '../../tools/time.tools';
 import { BaseConfig } from '../../config/base.config';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 /**
  * Type definition for person data structure used in product operations
@@ -59,6 +60,9 @@ const getFileUrl = (fileKey: string): string => {
 };
 
 const router: Router = Router();
+
+// Apply access check middleware to all product routes
+router.use(accessCheck('product'));
 
 /**
  * Constructs MongoDB aggregation pipeline for raw text search across product and personnel fields

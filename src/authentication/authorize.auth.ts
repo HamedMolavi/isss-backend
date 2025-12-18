@@ -6,24 +6,24 @@ import cookie from 'cookie-signature';
 import { AuthLogger } from '../logger/auth.logger';
 import OTPService from '../services/otp.service';
 import User from '../db/mongo/models/user';
-import { formatToIPv4 } from '../tools/util.tools';
+import { getClientIP } from '../tools/util.tools';
 
 export function passportGate(req: Request, res: Response, next: NextFunction) {
+	// Generic error message to prevent user enumeration
+	const accessDeniedResponse = {
+		status: HttpStatus.UNAUTHORIZED,
+		msg: 'Access denied'
+	};
+
 	if (!req.user) {
 		AuthLogger.unauthorizedAccess(req, 'No authenticated user');
-		return ApiRes(res, {
-			status: HttpStatus.UNAUTHORIZED,
-			msg: 'Unauthorized'
-		});
+		return ApiRes(res, accessDeniedResponse);
 	}
 
 	// Check if user is active
 	if (req.user.is_active === false) {
 		AuthLogger.unauthorizedAccess(req, 'User account is deactivated');
-		return ApiRes(res, {
-			status: HttpStatus.FORBIDDEN,
-			msg: 'Account deactivated'
-		});
+		return ApiRes(res, accessDeniedResponse);
 	}
 
 	// Update last activity time
@@ -31,16 +31,16 @@ export function passportGate(req: Request, res: Response, next: NextFunction) {
 		req.session.lastActivity = new Date();
 	}
 
-	// Optional: Check if IP has changed
-	const currentIp = req.ip ?? req.socket.remoteAddress;
-	if (req.session.ip && req.session.ip !== currentIp) {
-		AuthLogger.unauthorizedAccess(req, `IP address changed from ${req.session.ip} to ${currentIp}`);
-		// Optionally uncomment to invalidate session on IP change:
-		// return ApiRes(res, {
-		// 	status: HttpStatus.UNAUTHORIZED,
-		// 	msg: 'Session security violation'
-		// });
-	}
+	// Optional: Check if IP has changed - use consistent IP extraction
+	// const currentIp = getClientIP(req);
+	// if (req.session.ip && req.session.ip !== currentIp) {
+	// AuthLogger.unauthorizedAccess(req, `IP address changed from ${req.session.ip} to ${currentIp}`);
+	// Optionally uncomment to invalidate session on IP change:
+	// return ApiRes(res, {
+	// 	status: HttpStatus.UNAUTHORIZED,
+	// 	msg: 'Session security violation'
+	// });
+	// }
 
 	return next();
 }
@@ -48,14 +48,15 @@ export function passportGate(req: Request, res: Response, next: NextFunction) {
 export function assignPassport(req: Request, res: Response, next: NextFunction) {
 	passport.authenticate('login', async (err, user, info) => {
 		if (err || !user) {
-			AuthLogger.loginFailed(req, err?.message || info?.message, {
-				username: req.body.username,
-				password: req.body.password // Only logged for failed attempts
-			});
-			return ApiRes(res, {
-				status: HttpStatus.UNAUTHORIZED,
-				msg: 'Invalid credentials'
-			});
+			// Store login failure info for rate limiter to record and respond
+			req.loginFailed = {
+				error: err?.message || info?.message,
+				attemptedCredentials: {
+					username: req.body.username,
+					password: req.body.password
+				}
+			};
+			return next();
 		}
 
 		// --- OTP Verification Step ---
@@ -83,15 +84,16 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 			const isValid = OTPService.verifyToken(userWithSecret.otp_secret, otp_token);
 
 			if (!isValid) {
-				AuthLogger.loginFailed(req, 'Invalid OTP token', { username: req.body.username });
-				return ApiRes(res, {
-					status: HttpStatus.UNAUTHORIZED,
-					msg: 'Invalid credentials'
-				});
+				// Store OTP failure info for rate limiter to record and respond
+				req.loginFailed = {
+					error: 'Invalid OTP token',
+					attemptedCredentials: { username: req.body.username }
+				};
+				return next();
 			}
 		}
 
-		req.logIn(user, (err) => {
+		req.logIn(user, async (err) => {
 			if (err) {
 				AuthLogger.loginError(req, err.message, user._id?.toString());
 				return ApiRes(res, {
@@ -106,25 +108,41 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 				req.session.cookie.maxAge = maxAge;
 			}
 
-			// Store essential session data
+			// Store essential session data - use consistent IP extraction
 			const currentTime = new Date();
-			const remoteAddress =
-				(req.headers['x-real-ip'] as string) ||
-				req.ip ||
-				(Array.isArray(req.headers['x-forwarded-for'])
-					? req.headers['x-forwarded-for'][0]
-					: typeof req.headers['x-forwarded-for'] === 'string'
-						? req.headers['x-forwarded-for']
-						: undefined) ||
-				'N/A';
-			let ip = remoteAddress as string;
-			ip = formatToIPv4(ip) || '';
+			const ip = getClientIP(req);
 			req.session.ip = ip;
 			req.session.userAgent = req.get('User-Agent');
 			req.session.loginTime = currentTime;
 			req.session.lastActivity = currentTime;
 			req.session.userId = user._id?.toString();
 			req.session.isRemembered = req.body.is_remember || false;
+
+			// Persist login info to the user document
+			const loginMetadata = {
+				ip,
+				userAgent: req.session.userAgent,
+				loginTime: currentTime
+			};
+
+			try {
+				await User.findByIdAndUpdate(user._id, {
+					$set: {
+						last_login: currentTime,
+						last_operation: loginMetadata
+					}
+				});
+
+				// Keep the in-memory user in sync for downstream middleware
+				req.user.last_login = currentTime;
+				req.user.last_operation = loginMetadata;
+			} catch (updateErr) {
+				AuthLogger.loginError(
+					req,
+					`Failed to update login metadata: ${(updateErr as Error).message}`,
+					user._id?.toString()
+				);
+			}
 
 			// Log successful authentication
 			const sessionInfo = {
@@ -163,9 +181,18 @@ export function sendTokenToclient(req: Request, res: Response) {
 			msg: 'Internal Error!'
 		});
 	} else {
+		// Include must_change_password and previous_last_login in response
+		const responseData: Record<string, unknown> = { token, ...req.user };
+		if (req.user?.must_change_password) {
+			responseData.must_change_password = true;
+		}
+		// Include previous last login for security display
+		if (req.user?.previous_last_login) {
+			responseData.last_successful_login = req.user.previous_last_login;
+		}
 		return ApiRes(res, {
 			status: HttpStatus.OK,
-			data: { token, ...req.user }
+			data: responseData
 		});
 	}
 }

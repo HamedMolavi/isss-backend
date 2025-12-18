@@ -468,6 +468,17 @@ function getSearchFunction(req: Request) {
 									: [],
 							minimum_should_match: 1
 						}
+					},
+					{
+						bool: {
+							// Filter: show if angle is empty, doesn't exist, or is not 'side'
+							should: [
+								{ term: { 'angle.keyword': '' } },
+								{ bool: { must_not: [{ exists: { field: 'angle' } }] } },
+								{ bool: { must_not: [{ term: { 'angle.keyword': 'side' } }] } }
+							],
+							minimum_should_match: 1
+						}
 					}
 				]
 			}

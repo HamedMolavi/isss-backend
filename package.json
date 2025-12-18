@@ -113,6 +113,7 @@
 		"speakeasy": "^2.0.0",
 		"sqlite3": "^5.1.7",
 		"supertest": "^6.2.3",
+		"svg-captcha-fixed": "^1.5.2",
 		"systeminformation": "^5.21.23",
 		"trez-sms-client": "^1.0.4",
 		"ts-node": "^10.7.0",

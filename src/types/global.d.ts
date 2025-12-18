@@ -42,6 +42,13 @@ declare global {
 				username: string;
 				ip: string;
 			};
+			loginFailed?: {
+				error?: string;
+				attemptedCredentials?: {
+					username?: string;
+					password?: string;
+				};
+			};
 		}
 		interface Response {
 			responseBody?: unknown;
@@ -56,3 +63,15 @@ declare global {
 		}
 	}
 }
+
+declare module 'express-session' {
+	interface SessionData {
+		captcha?: {
+			id: string;
+			hash: string;
+			expiresAt: number;
+		};
+	}
+}
+
+declare module 'svg-captcha-fixed';

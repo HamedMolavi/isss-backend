@@ -10,6 +10,7 @@ import { HttpStatus } from '../types/http_status';
 import { BackupLogger } from '../logger/backup.logger';
 import { randomBytes } from 'crypto';
 import { Logger } from '../logger';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Estimate backup size, duration, and check storage availability
@@ -393,7 +394,7 @@ export const cancelBackupJob = async (req: Request, res: Response) => {
 		Logger.info(`Backup job cancelled: ${jobId}`, {
 			jobId,
 			userId: req.user?.id,
-			ip: req.ip
+			ip: getClientIP(req)
 		});
 
 		return ApiRes(res, {

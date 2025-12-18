@@ -12,6 +12,9 @@ SessionRouter.get(`${route_prefix}`, roleCheck('admin'), SessionController.getAl
 // Admin only: Terminate a specific session by ID
 SessionRouter.delete(`${route_prefix}/:id`, roleCheck('admin'), SessionController.terminateSession);
 
+// User access: Terminate one of the current user's own sessions by ID
+SessionRouter.delete(`${route_prefix}/me/:id`, SessionController.terminateMySession);
+
 // Admin only: Terminate all sessions except current one
 SessionRouter.delete(
 	`${route_prefix}/terminate/all`,
@@ -31,8 +34,5 @@ SessionRouter.delete(
 
 // User access: Get current user's own sessions
 SessionRouter.get(`${route_prefix}/me`, SessionController.getCurrentUserSessions);
-
-// User access: Get current user's login attempts
-SessionRouter.get(`${route_prefix}/attempts`, SessionController.getCurrentUserLoginAttempts);
 
 export default SessionRouter;

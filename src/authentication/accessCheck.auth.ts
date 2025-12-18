@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../types/classes/error.class';
 import mongoose, { isObjectIdOrHexString } from 'mongoose';
+import { ApiRes } from '../utils/api.response';
+import { HttpStatus } from '../types/http_status';
 
 import AccessLevel from '../db/mongo/models/accessLevel';
 import { IAccessLevel } from '../types/interfaces/accessLevel.interface';
@@ -13,6 +14,7 @@ const accessTranslation = {
 	PATCH: 'Update',
 	DELETE: 'Delete'
 };
+
 // PGPD => POST, GET, PATCH, DELETE
 const accessCharPositions = {
 	POST: -4, // minus for reversing
@@ -30,7 +32,6 @@ export function userCanGetHisInfo(req: Request) {
 	const probableParamId = req.path.split('/').find((el) => isObjectIdOrHexString(el));
 	if (
 		['GET', 'PATCH'].includes(req.method) &&
-		!!req.originalUrl.match('/api/v1/config/admin/users/') &&
 		!!probableParamId &&
 		probableParamId === req.user._id.toString()
 	) {
@@ -49,17 +50,29 @@ export function accessCheck(
 		extraFunction?: (req: Request, userAccess: number | undefined) => boolean | Promise<boolean>;
 	}
 ) {
-	/**
-	 * @access
-	 * @bitMapNumberFromRight
-	 */
 	return async function middleware(req: Request, res: Response, next: NextFunction) {
 		const user = req.user;
+		const method = req.method as 'GET' | 'POST' | 'DELETE' | 'PATCH';
 
 		// Check if user is authenticated
 		if (!user) {
 			UserLogger.permissionCheckFailed(req, access, req.originalUrl, req.method, 'User not authenticated');
-			return next(new ApiError(401, 'Authentication required'));
+			req.flash('error', 'Access denied');
+			return ApiRes(res, {
+				status: HttpStatus.FORBIDDEN,
+				msg: 'Access denied'
+			});
+		}
+
+		// Check extraFunction first (e.g., user accessing their own info)
+		if (!!options?.extraFunction && (await options.extraFunction(req, undefined))) {
+			UserLogger.permissionCheckSuccess(
+				req,
+				access,
+				req.originalUrl,
+				`${accessTranslation[method]} (via extra function)`
+			);
+			return next();
 		}
 
 		// Check if user has access_level
@@ -71,31 +84,21 @@ export function accessCheck(
 				req.method,
 				'User has no access level assigned'
 			);
-			return next(new ApiError(403, 'Access level not assigned'));
+			req.flash('error', 'Access denied');
+			return ApiRes(res, {
+				status: HttpStatus.FORBIDDEN,
+				msg: 'Access denied'
+			});
 		}
 
 		const userAccessLevel = await AccessLevel.findById(new mongoose.Types.ObjectId(user.access_level));
 		const userAccess = userAccessLevel?.[access] as number | undefined;
-		const method = req.method as 'GET' | 'POST' | 'DELETE' | 'PATCH';
 
 		if (userAccessLevel && userAccess && hasAccess(userAccess, options?.bitMapNumberFromRight ?? method)) {
-			// Log successful permission check
 			UserLogger.permissionCheckSuccess(req, access, req.originalUrl, accessTranslation[method]);
-			return next(); // first: check the role
+			return next();
 		}
 
-		if (!!options?.extraFunction && (await options.extraFunction(req, userAccess))) {
-			// Log successful permission check via extra function
-			UserLogger.permissionCheckSuccess(
-				req,
-				access,
-				req.originalUrl,
-				`${accessTranslation[method]} (via extra function)`
-			);
-			return next(); // second: check manual pass function
-		}
-
-		// Log failed permission check
 		UserLogger.permissionCheckFailed(
 			req,
 			access,
@@ -103,9 +106,11 @@ export function accessCheck(
 			accessTranslation[method],
 			'Insufficient access level'
 		);
-
-		req.flash('error', `No [${access} ${accessTranslation[method]}] access!`);
-		return next(new ApiError(403, `No [${access} ${accessTranslation[method]}] access!`));
+		req.flash('error', 'Access denied');
+		return ApiRes(res, {
+			status: HttpStatus.FORBIDDEN,
+			msg: 'Access denied'
+		});
 	};
 }
 
@@ -127,20 +132,46 @@ export function roleCheck(
 
 		// Check if user is authenticated
 		if (!user) {
-			req.flash('error', `Authentication required!`);
-			return next(new ApiError(401, `Authentication required!`));
+			UserLogger.permissionCheckFailed(req, 'role', req.originalUrl, req.method, 'User not authenticated');
+			req.flash('error', 'Access denied');
+			return ApiRes(res, {
+				status: HttpStatus.FORBIDDEN,
+				msg: 'Access denied'
+			});
 		}
 
 		// Check if user has role property
 		if (!user.role) {
-			req.flash('error', `User role not assigned!`);
-			return next(new ApiError(403, `User role not assigned!`));
+			UserLogger.permissionCheckFailed(req, 'role', req.originalUrl, req.method, 'User has no role assigned');
+			req.flash('error', 'Access denied');
+			return ApiRes(res, {
+				status: HttpStatus.FORBIDDEN,
+				msg: 'Access denied'
+			});
 		}
 
-		if (user.role === role) return next(); // first: check the role
-		if (!!options?.extraFunction && options.extraFunction(req, res)) return next(); // second: check manual pass function
-		req.flash('error', `No access!`);
-		return next(new ApiError(403, `No access!`));
+		if (user.role === role) {
+			UserLogger.permissionCheckSuccess(req, 'role', req.originalUrl, `Role: ${role}`);
+			return next();
+		}
+
+		if (!!options?.extraFunction && options.extraFunction(req, res)) {
+			UserLogger.permissionCheckSuccess(req, 'role', req.originalUrl, `Role: ${role} (via extra function)`);
+			return next();
+		}
+
+		UserLogger.permissionCheckFailed(
+			req,
+			'role',
+			req.originalUrl,
+			req.method,
+			`Required role: ${role}, User role: ${user.role}`
+		);
+		req.flash('error', 'Access denied');
+		return ApiRes(res, {
+			status: HttpStatus.FORBIDDEN,
+			msg: 'Access denied'
+		});
 	};
 }
 
@@ -156,20 +187,53 @@ export function paramIdExistsInCameraWhiteList(options?: {
 
 		// Check if user is authenticated
 		if (!user) {
-			req.flash('error', `Authentication required!`);
-			return next(new ApiError(401, `Authentication required!`));
+			UserLogger.permissionCheckFailed(
+				req,
+				'cameraWhiteList',
+				req.originalUrl,
+				req.method,
+				'User not authenticated'
+			);
+			req.flash('error', 'Access denied');
+			return ApiRes(res, {
+				status: HttpStatus.FORBIDDEN,
+				msg: 'Access denied'
+			});
 		}
 
 		// Check if user has role property
 		if (!user.role) {
-			req.flash('error', `User role not assigned!`);
-			return next(new ApiError(403, `User role not assigned!`));
+			UserLogger.permissionCheckFailed(
+				req,
+				'cameraWhiteList',
+				req.originalUrl,
+				req.method,
+				'User has no role assigned'
+			);
+			req.flash('error', 'Access denied');
+			return ApiRes(res, {
+				status: HttpStatus.FORBIDDEN,
+				msg: 'Access denied'
+			});
 		}
 
-		if (user.role === 'admin' || !!user.camera_access?.map((el) => el.toString())?.includes(id))
+		if (user.role === 'admin' || !!user.camera_access?.map((el) => el.toString())?.includes(id)) {
+			UserLogger.permissionCheckSuccess(req, 'cameraWhiteList', req.originalUrl, `Camera ID: ${id}`);
 			return next();
-		req.flash('error', `No access to this camera ${id}!`);
-		return next(new ApiError(403, `No access to this camera ${id}!`));
+		}
+
+		UserLogger.permissionCheckFailed(
+			req,
+			'cameraWhiteList',
+			req.originalUrl,
+			req.method,
+			`Camera ID ${id} not in whitelist`
+		);
+		req.flash('error', 'Access denied');
+		return ApiRes(res, {
+			status: HttpStatus.FORBIDDEN,
+			msg: 'Access denied'
+		});
 	};
 }
 // export function cameraAccessCheck(camerasFieldName: string, options?: {

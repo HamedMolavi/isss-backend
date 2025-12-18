@@ -8,9 +8,14 @@ import Time from '../../tools/time.tools';
 import Camera from '../../db/mongo/models/camera';
 import { cumulativeSendFunction, daySendFunction } from '../../tools/track.tools';
 import { sendDataMiddleware } from '../../tools/middleware.tools';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to server
 const router: Router = Router();
+
+// Apply access check middleware to all track report routes
+router.use(accessCheck('report'));
+
 // get track data
 router.post(
 	'/cumulative',

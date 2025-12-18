@@ -12,6 +12,19 @@ import { accessList } from '../types/interfaces/accessLevel.interface';
 export const create = async (req: Request, res: Response) => {
 	const payload = req.body;
 
+	// Prevent granting write permissions on read-only sections
+	const readOnlyKeys: Array<keyof typeof payload> = ['logs', 'systemLog'];
+	for (const key of readOnlyKeys) {
+		const perm = payload?.[key];
+		if (perm && (perm.create || perm.update || perm.delete)) {
+			req.flash('error', 'Logs access is read-only');
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Logs access is read-only and cannot include create/update/delete permissions'
+			});
+		}
+	}
+
 	// Transform access permissions to hex format
 	const transformedPayload: Record<string, unknown> = { name: payload.name };
 	for (const key of accessList) {

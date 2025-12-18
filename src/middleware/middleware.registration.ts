@@ -11,9 +11,15 @@ import { authHeaderExtraction } from './auth.middleware';
 import { errorLoggerMiddleware, routeLoggerMiddleware } from './routeLogger.middleware';
 import { registerSecurityMiddleware } from './security.middleware';
 import { BaseConfig } from '../config/base.config';
-import { verifyUserIntegrityMiddleware } from './userIntegrity.middleware';
+// import { verifyUserIntegrityMiddleware } from './userIntegrity.middleware';
+import { inputSanitizationMiddleware } from './input-sanitization.middleware';
+import { httpSecurityMiddleware } from './http-methods.middleware';
 
 export async function RegisterMiddleware(app: Application) {
+	// HTTP Security - Handle OPTIONS, validate methods, sanitize headers
+	// Must be registered FIRST before any other middleware
+	app.use(httpSecurityMiddleware);
+
 	// Register security middleware (must be awaited as it's async)
 	await registerSecurityMiddleware(app);
 
@@ -68,6 +74,10 @@ export async function RegisterMiddleware(app: Application) {
 
 	// Body Parser Text - Parse text payloads up to 200mb
 	app.use(bodyParser.text({ limit: '200mb' }));
+
+	// Input Sanitization - Validate and sanitize all inputs
+	// Protects against CRLF injection and enforces input length limits
+	app.use(inputSanitizationMiddleware);
 
 	// File Upload - Handle multipart/form-data file uploads
 	// COMMENTED OUT: Conflicts with multer - use multer in routes instead

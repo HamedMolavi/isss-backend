@@ -18,8 +18,13 @@ import { ApiRes } from '../../utils/api.response';
 import { HttpStatus } from '../../types/http_status';
 import PersonImage from '../../db/mongo/models/personImage';
 import { remove_file } from '../../file_upload/aws/remove';
+import { personnelCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 const router: Router = Router();
+
+// Apply access check middleware to all personnel routes
+router.use(accessCheck('personnel'));
 
 type SearchValue = string | boolean;
 type SearchResult =
@@ -270,6 +275,7 @@ const handlePersonnelError = {
 
 router.post(
 	'',
+	personnelCreationRateLimit, // Rate limit to prevent race condition attacks
 	dtoValidationMiddleware(CreatePersonnelBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development',

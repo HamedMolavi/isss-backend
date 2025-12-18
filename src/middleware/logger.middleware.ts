@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import rfs = require('rotating-file-stream');
 import { isAbsolute, join } from 'path';
 import { randomUuid } from '../tools/utils.tools';
+import { getClientIP } from '../tools/util.tools';
 import { mkdirSync, statSync } from 'fs';
 
 const requestLogDir = !!process.env.REQUEST_LOG_DIR
@@ -14,6 +15,11 @@ const requestLogDir = !!process.env.REQUEST_LOG_DIR
 logger.token('id', function getId() {
 	// log id
 	return randomUuid();
+});
+
+// Custom token for IPv4-formatted client IP address
+logger.token('client-ip', function getClientIPToken(req: Request) {
+	return getClientIP(req) || 'unknown';
 });
 try {
 	statSync(requestLogDir); // log directory exists
@@ -57,7 +63,7 @@ export function setupLogger() {
 	});
 	const middlewares = [
 		///////////////////////////////////////////////////////////////////////////////////////////////////////
-		logger(':id :user-agent :remote-addr :date[web] :url :method :status'), // log all
+		logger(':id :user-agent :client-ip :date[web] :url :method :status'), // log all
 		///////////////////////////////////////////////////////////////////////////////////////////////////////
 		logger(
 			(tokens, req: Request, res: Response) => {

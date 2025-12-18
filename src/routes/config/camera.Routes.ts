@@ -10,15 +10,21 @@ import {
 import { CameraInfoKeys } from '../../types/interfaces/camera.interface';
 import { injectDataMiddleware } from '../../tools/request.tools';
 import * as CameraController from '../../controllers/camera.controller';
+import { cameraCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to server
 const CameraRouter: Router = Router();
 
 const route_prefix = '';
 
-//add route for register new camera
+// Apply access check middleware to all camera routes
+CameraRouter.use(accessCheck('camera'));
+
+//add route for register new camera with rate limiting
 CameraRouter.post(
 	`${route_prefix}`,
+	cameraCreationRateLimit, // Rate limit to prevent race condition attacks
 	dtoValidationMiddleware(CreateCameraBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,

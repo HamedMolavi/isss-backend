@@ -1,7 +1,10 @@
 import { Router } from 'express';
-import { generateOtp, enableOtp, disableOtp } from '../../controllers/otp.controller';
+import { generateOtp, enableOtp, disableOtp, getOtpStatus } from '../../controllers/otp.controller';
 
 const OtpRouter: Router = Router();
+
+// Endpoint to get OTP status
+OtpRouter.get('/status', getOtpStatus);
 
 // Endpoint to generate a new OTP secret and QR code
 OtpRouter.post('/generate', generateOtp);

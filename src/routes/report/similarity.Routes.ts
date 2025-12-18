@@ -9,6 +9,7 @@ import { dataCollector, sendDataMiddleware, unifiedSendFunction } from '../../to
 import { cumulativeSendFunction, daySendFunction } from '../../tools/track.tools';
 import Time from '../../tools/time.tools';
 import { QueryDslQueryContainer } from '@elastic/elasticsearch/lib/api/types';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 /**
  * ===================================
@@ -31,6 +32,9 @@ import { QueryDslQueryContainer } from '@elastic/elasticsearch/lib/api/types';
 
 // Create router for similarity search endpoints
 const router: Router = Router();
+
+// Apply access check middleware to all similarity routes
+router.use(accessCheck('report'));
 
 /**
  * ===================================

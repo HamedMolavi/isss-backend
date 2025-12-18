@@ -709,8 +709,21 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 		// minPts=1 allows single detections to form their own cluster
 		const clusters = dbscanClustering(faceVectors, 0.4, 1);
 
-		// Sort clusters by size (most detections first) and take top N
-		const sortedClusters = clusters.sort((a, b) => b.length - a.length).slice(0, limit);
+		// Sort clusters by size (most detections first), then by earliest timestamp for deterministic ordering
+		const sortedClusters = clusters
+			.sort((a, b) => {
+				// Primary: sort by cluster size (descending)
+				if (b.length !== a.length) return b.length - a.length;
+				// Secondary: sort by earliest timestamp in cluster (ascending) for deterministic ordering
+				const aMinTime = Math.min(
+					...a.map((log: { timestamp?: string }) => new Date(log.timestamp ?? 0).getTime())
+				);
+				const bMinTime = Math.min(
+					...b.map((log: { timestamp?: string }) => new Date(log.timestamp ?? 0).getTime())
+				);
+				return aMinTime - bMinTime;
+			})
+			.slice(0, limit);
 
 		// Filter clusters by camera_ids if specified
 		let filteredClusters = sortedClusters.filter((cluster) => Array.isArray(cluster) && cluster.length > 0);

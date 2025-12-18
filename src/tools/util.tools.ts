@@ -32,7 +32,11 @@ export const formatToIPv4 = (ip: string): string | null => {
 	if (!ip) return null;
 
 	// Clean the input
-	const cleaned = ip.trim();
+	let cleaned = ip.trim();
+
+	// Remove IPv6 mapped prefix variations (::ffff:, ::FFFF:, etc.)
+	// This handles formats like "::ffff:192.168.1.1" or "::FFFF:192.168.1.1"
+	cleaned = cleaned.replace(/^::ffff:/i, '');
 
 	// If it's already IPv4, validate and return
 	const ipv4Regex = /^(?:\d{1,3}\.){3}\d{1,3}$/;
@@ -46,22 +50,51 @@ export const formatToIPv4 = (ip: string): string | null => {
 		return cleaned;
 	}
 
-	// Try to extract IPv4 from IPv6 mapped format (::ffff:192.168.1.1)
-	const ipv6MappedRegex = /::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/i;
-	const mapped = cleaned.match(ipv6MappedRegex);
-	if (mapped && mapped[1]) {
-		const parts = mapped[1].split('.');
-		let valid = true;
-		for (const part of parts) {
-			const num = parseInt(part, 10);
-			if (num > 255) {
-				valid = false;
-				break;
-			}
-		}
-		if (valid) return mapped[1];
-	}
-
 	// If no valid IPv4 found, return null
 	return null;
+};
+
+/**
+ * Extracts the client IP address from the request consistently
+ * Handles x-forwarded-for, x-real-ip, and direct IP
+ * @param req - The Express request object (or similar with headers and ip properties)
+ * @returns The formatted IPv4 address or empty string if not found
+ */
+export const getClientIP = (req: {
+	headers: Record<string, string | string[] | undefined>;
+	ip?: string;
+	socket?: { remoteAddress?: string };
+}): string => {
+	let rawIP: string | undefined;
+
+	// Priority: x-real-ip > x-forwarded-for (first IP) > req.ip > socket.remoteAddress
+	const xRealIP = req.headers['x-real-ip'];
+	if (xRealIP) {
+		rawIP = Array.isArray(xRealIP) ? xRealIP[0] : xRealIP;
+	}
+
+	if (!rawIP) {
+		const xForwardedFor = req.headers['x-forwarded-for'];
+		if (xForwardedFor) {
+			// x-forwarded-for can be a comma-separated string or array
+			if (Array.isArray(xForwardedFor)) {
+				rawIP = xForwardedFor[0];
+			} else {
+				// Get the first IP from comma-separated list (original client IP)
+				rawIP = xForwardedFor.split(',')[0]?.trim();
+			}
+		}
+	}
+
+	if (!rawIP) {
+		rawIP = req.ip || req.socket?.remoteAddress;
+	}
+
+	if (!rawIP) {
+		return '';
+	}
+
+	// Format to IPv4
+	const formattedIP = formatToIPv4(rawIP);
+	return formattedIP || '';
 };

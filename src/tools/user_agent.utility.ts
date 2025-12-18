@@ -1,5 +1,6 @@
 import { Request } from 'express';
 import { parse } from 'platform';
+import { getClientIP } from './util.tools';
 
 /**
  * Retrieves information about the user agent from the request object
@@ -7,10 +8,11 @@ import { parse } from 'platform';
  */
 export const get_user_agent = (req: Request) => {
 	const info = parse(req.headers['user-agent']);
-	const remoteAddress = req.headers['x-real-ip'] || req.ip || req.headers['x-forwarded-for'] || 'N/A';
+	// Use centralized IP extraction for consistency
+	const ip = getClientIP(req);
 
 	return {
-		ip: remoteAddress,
+		ip: ip || 'N/A',
 		browser: info?.name,
 		description: info?.description,
 		user_agent: req.headers['user-agent'],

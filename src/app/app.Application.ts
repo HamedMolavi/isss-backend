@@ -41,23 +41,54 @@ export async function initializeApp(): Promise<Application> {
 	});
 
 	// Global Error Handler - Handle all application errors
-	app.use(function errorHandler(err: ApiError, _req: Request, res: Response) {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	app.use(function errorHandler(err: ApiError, _req: Request, res: Response, _next: NextFunction) {
 		const statusCode = err.statusCode || 500;
 
-		// Log error details (except for file not found errors)
+		// Log error details internally (except for file not found errors)
 		if (err.message !== 'File not found') {
-			console.log('Error in endpoint: ', {
-				success: false,
-				message: err.message,
-				stack: err.stack
-			});
+			console.error('Error in endpoint:', err.message);
+			// Only log stack trace to console in development
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Stack:', err.stack);
+			}
 		}
 
-		// Send error response
-		return res.status(statusCode).send({
+		// Sanitize error message - remove sensitive information
+		let safeMessage = 'An error occurred';
+
+		// Only show specific error messages for client errors (4xx)
+		if (statusCode >= 400 && statusCode < 500) {
+			// Filter out sensitive information from error messages
+			const sensitivePatterns = [
+				/mongodb/i,
+				/mongoose/i,
+				/redis/i,
+				/postgres/i,
+				/mysql/i,
+				/sql/i,
+				/database/i,
+				/connection/i,
+				/ECONNREFUSED/i,
+				/ETIMEDOUT/i,
+				/at\s+\w+\s+\(/i, // Stack trace pattern
+				/node_modules/i,
+				/internal/i,
+				/\.js:\d+:\d+/i // File path pattern
+			];
+
+			const containsSensitiveInfo = sensitivePatterns.some((pattern) => pattern.test(err.message));
+
+			if (!containsSensitiveInfo) {
+				safeMessage = err.message;
+			}
+		}
+
+		// Send sanitized error response - NEVER include stack trace
+		return res.status(statusCode).json({
 			success: false,
-			message: err.message,
-			stack: process.env.NODE_ENV === 'development' ? err.stack : ''
+			status: statusCode,
+			msg: safeMessage
 		});
 	});
 
