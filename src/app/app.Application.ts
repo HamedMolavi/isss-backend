@@ -16,6 +16,8 @@ import { ApiError } from '../types/classes/error.class';
 // Create Express application instance
 const app: Application = express();
 app.set('json limit', '600mb');
+// Explicitly disable trust proxy to avoid using X-Forwarded-* for IPs
+app.set('trust proxy', false);
 
 /////////////////////////////////////////////////////////////////////////////////
 // APPLICATION INITIALIZATION

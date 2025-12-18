@@ -12,7 +12,7 @@ export const sessionMiddleware = session({
 	resave: false,
 	rolling: true,
 	saveUninitialized: false,
-	proxy: process.env.NODE_ENV === 'production', // Trust the reverse proxy when in production
+	proxy: false, // Do not trust reverse proxies; rely on direct connection info
 	cookie: {
 		maxAge: SecurityConfigDefault.SESSION.TIMEOUT,
 		httpOnly: SecurityConfigDefault.SESSION.COOKIE.HTTP_ONLY,
