@@ -5,6 +5,7 @@ import { HttpStatus } from '../types/http_status';
 import { parseUserAgent, ACTION_LABELS } from '../utils/logFormatter';
 import { LoginRateLimiter } from '../middleware/login-rate-limit.middleware';
 import { Logger } from '../logger';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Get authentication history for the current user
@@ -133,13 +134,14 @@ export const getMyAuthHistory = async (req: Request, res: Response) => {
 			};
 		});
 
+		const clientIp = getClientIP(req);
 		Logger.info('User auth history viewed', {
 			type: 'auth_history',
 			action: 'auth_history_view',
 			success: true,
 			userId: user._id?.toString(),
 			username: user.username,
-			ip: req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip,
+			ip: clientIp,
 			params: {
 				page,
 				limit,
@@ -205,7 +207,7 @@ export const getMyAuthHistory = async (req: Request, res: Response) => {
 			success: false,
 			userId: user._id?.toString(),
 			username: user.username,
-			ip: req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip,
+			ip: getClientIP(req),
 			error: error instanceof Error ? error.message : 'Unknown error'
 		});
 		console.error('Error fetching auth history:', error);
@@ -268,13 +270,14 @@ export const getMyAuthSummary = async (req: Request, res: Response) => {
 			? parseUserAgent(String(lastFailedLogin.metadata?.userAgent || ''))
 			: null;
 
+		const clientIp = getClientIP(req);
 		Logger.info('User auth summary viewed', {
 			type: 'auth_history',
 			action: 'auth_summary_view',
 			success: true,
 			userId: user._id?.toString(),
 			username: user.username,
-			ip: req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip
+			ip: clientIp
 		});
 
 		return ApiRes(res, {
@@ -318,7 +321,7 @@ export const getMyAuthSummary = async (req: Request, res: Response) => {
 			success: false,
 			userId: user._id?.toString(),
 			username: user.username,
-			ip: req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip,
+			ip: getClientIP(req),
 			error: error instanceof Error ? error.message : 'Unknown error'
 		});
 		console.error('Error fetching auth summary:', error);

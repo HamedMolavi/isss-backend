@@ -525,13 +525,14 @@ export const getMyLogs = async (req: Request, res: Response) => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const outputLogs = format === 'raw' ? logs : formatLogs(logs as any);
 
+		const clientIp = getClientIP(req);
 		Logger.info('User logs retrieved', {
 			type: 'log_access',
 			action: 'logs_list',
 			success: true,
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
-			ip: req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip,
+			ip: clientIp,
 			params: {
 				page,
 				limit,
@@ -578,7 +579,7 @@ export const getMyLogs = async (req: Request, res: Response) => {
 			error: error instanceof Error ? error.message : 'Unknown error',
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
-			ip: req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip
+			ip: getClientIP(req)
 		});
 		console.error('Error fetching user logs:', error);
 		return ApiRes(res, {
@@ -625,6 +626,7 @@ export const getLogById = async (req: Request, res: Response) => {
 			}
 		});
 
+		const clientIp = getClientIP(req);
 		Logger.info('Log accessed by ID', {
 			type: 'log_access',
 			action: 'log_read',
@@ -632,7 +634,7 @@ export const getLogById = async (req: Request, res: Response) => {
 			logId: id,
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
-			ip: req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip,
+			ip: clientIp,
 			format
 		});
 
@@ -652,7 +654,7 @@ export const getLogById = async (req: Request, res: Response) => {
 			logId: req.params.id,
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
-			ip: req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip,
+			ip: getClientIP(req),
 			error: err instanceof Error ? err.message : 'Unknown error'
 		});
 		return ApiRes(res, {
