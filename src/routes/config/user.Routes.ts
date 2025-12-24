@@ -13,7 +13,6 @@ import { passportGate } from '../../authentication/authorize.auth';
 import { accessCheck, userCanGetHisInfo, roleCheck } from '../../authentication/accessCheck.auth';
 import * as UserController from '../../controllers/user.controller';
 import { userCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
-import { rejectInactiveEntity } from '../../middleware/inactive-entity.guard';
 
 const UserRouter: Router = Router();
 
@@ -45,7 +44,6 @@ UserRouter.get(`${route_prefix}`, accessCheck('user'), UserController.getAll);
 UserRouter.get(
 	`${route_prefix}/:id`,
 	accessCheck('user', { extraFunction: userCanGetHisInfo }),
-	rejectInactiveEntity(User, { entityName: 'User' }),
 	UserController.getById
 );
 
@@ -65,7 +63,6 @@ UserRouter.patch(
 UserRouter.patch(
 	`${route_prefix}/:id`,
 	accessCheck('user', { extraFunction: userCanGetHisInfo }),
-	rejectInactiveEntity(User, { entityName: 'User' }),
 	dtoValidationMiddleware(UpdateUserBody, {
 		skipMissingProperties: true,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
@@ -80,12 +77,7 @@ UserRouter.patch(
 );
 
 // Delete user - requires user access level
-UserRouter.delete(
-	`${route_prefix}/:id`,
-	accessCheck('user'),
-	rejectInactiveEntity(User, { entityName: 'User' }),
-	UserController.deleteById
-);
+UserRouter.delete(`${route_prefix}/:id`, accessCheck('user'), UserController.deleteById);
 
 // User activation/deactivation routes - requires user access level
 UserRouter.patch(`${route_prefix}/:id/activate`, accessCheck('user'), UserController.activateUser);
@@ -95,7 +87,6 @@ UserRouter.patch(`${route_prefix}/:id/deactivate`, accessCheck('user'), UserCont
 UserRouter.patch(
 	`${route_prefix}/:id/reset-password`,
 	roleCheck('admin'),
-	rejectInactiveEntity(User, { entityName: 'User' }),
 	dtoValidationMiddleware(ResetPasswordBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,

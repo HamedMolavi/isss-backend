@@ -7,6 +7,12 @@ import { dtoValidationMiddleware } from '../../validation/dto';
 import { IPAddressDto } from '../../validation/dto/ip-restriction.dto';
 import { formatToIPv4 } from '../../tools/util.tools';
 
+function normalizeAllowedIps(allowed?: unknown[] | null): string[] {
+	return (allowed ?? []).map((item) =>
+		typeof item === 'string' ? item : (item?.toString?.() ?? String(item))
+	);
+}
+
 const IPRestrictionRouter: Router = Router();
 
 const route_prefix = '';
@@ -25,10 +31,21 @@ IPRestrictionRouter.post(`${route_prefix}/add`, dtoValidationMiddleware(IPAddres
 			});
 		}
 
+		const beforeAllowedIps = normalizeAllowedIps(req.user?.allowed_ips);
+		const beforeConfig = {
+			ip_restricted: req.user?.ip_restricted,
+			allowed_ips: beforeAllowedIps
+		};
+
 		const success = await IPRestrictionService.addAllowedIP(req.user, formattedIP);
 
 		if (success) {
-			AuthLogger.ipAdded(req, formattedIP);
+			const afterAllowedIps = beforeAllowedIps.includes(formattedIP)
+				? beforeAllowedIps
+				: [...beforeAllowedIps, formattedIP];
+			const afterConfig = { ...beforeConfig, allowed_ips: afterAllowedIps };
+
+			AuthLogger.ipAdded(req, formattedIP, beforeConfig, afterConfig);
 			return ApiRes(res, {
 				status: HttpStatus.OK,
 				msg: 'IP added successfully'
@@ -65,10 +82,19 @@ IPRestrictionRouter.delete(
 				});
 			}
 
+			const beforeAllowedIps = normalizeAllowedIps(req.user?.allowed_ips);
+			const beforeConfig = {
+				ip_restricted: req.user?.ip_restricted,
+				allowed_ips: beforeAllowedIps
+			};
+
 			const success = await IPRestrictionService.removeAllowedIP(req.user, formattedIP);
 
 			if (success) {
-				AuthLogger.ipRemoved(req, formattedIP);
+				const afterAllowedIps = beforeAllowedIps.filter((existingIp) => existingIp !== formattedIP);
+				const afterConfig = { ...beforeConfig, allowed_ips: afterAllowedIps };
+
+				AuthLogger.ipRemoved(req, formattedIP, beforeConfig, afterConfig);
 				return ApiRes(res, {
 					status: HttpStatus.OK,
 					msg: 'IP removed successfully'
@@ -92,10 +118,16 @@ IPRestrictionRouter.delete(
 // Enable IP restriction
 IPRestrictionRouter.post(`${route_prefix}/enable`, async (req, res) => {
 	try {
+		const beforeConfig = {
+			ip_restricted: req.user?.ip_restricted,
+			allowed_ips: normalizeAllowedIps(req.user?.allowed_ips)
+		};
+
 		const success = await IPRestrictionService.enableIPRestriction(req.user);
 
 		if (success) {
-			AuthLogger.ipRestrictionEnabled(req);
+			const afterConfig = { ...beforeConfig, ip_restricted: true };
+			AuthLogger.ipRestrictionEnabled(req, beforeConfig, afterConfig);
 			return ApiRes(res, {
 				status: HttpStatus.OK,
 				msg: 'IP restriction enabled successfully'
@@ -118,10 +150,16 @@ IPRestrictionRouter.post(`${route_prefix}/enable`, async (req, res) => {
 // Disable IP restriction
 IPRestrictionRouter.post(`${route_prefix}/disable`, async (req, res) => {
 	try {
+		const beforeConfig = {
+			ip_restricted: req.user?.ip_restricted,
+			allowed_ips: normalizeAllowedIps(req.user?.allowed_ips)
+		};
+
 		const success = await IPRestrictionService.disableIPRestriction(req.user);
 
 		if (success) {
-			AuthLogger.ipRestrictionDisabled(req);
+			const afterConfig = { ...beforeConfig, ip_restricted: false };
+			AuthLogger.ipRestrictionDisabled(req, beforeConfig, afterConfig);
 			return ApiRes(res, {
 				status: HttpStatus.OK,
 				msg: 'IP restriction disabled successfully'
