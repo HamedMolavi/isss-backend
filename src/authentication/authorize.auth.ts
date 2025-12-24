@@ -7,6 +7,7 @@ import { AuthLogger } from '../logger/auth.logger';
 import OTPService from '../services/otp.service';
 import User from '../db/mongo/models/user';
 import { getClientIP } from '../tools/util.tools';
+import { getSessionManager } from '../services/session.service';
 
 export function passportGate(req: Request, res: Response, next: NextFunction) {
 	// Generic error message to prevent user enumeration
@@ -200,4 +201,42 @@ export function sendTokenToclient(req: Request, res: Response) {
 export function reLogin(req: Request, res: Response, next: NextFunction) {
 	if (req.user) return sendTokenToclient(req, res);
 	next();
+}
+
+export async function cleanupExcessSessions(req: Request, res: Response, next: NextFunction) {
+	try {
+		// Only act when login succeeded and max-session flag was set
+		if (!req.user || req.loginFailed || !req.maxSessionsExceeded) {
+			return next();
+		}
+
+		const sessionManager = await getSessionManager();
+		const currentSessionId = req.sessionID;
+		const userId = req.user._id?.toString();
+
+		if (!currentSessionId || !userId) {
+			return next();
+		}
+
+		// Collect other active sessions for logging context
+		const userSessions = await sessionManager.getUserSessions(userId).catch(() => []);
+		const otherSessions = userSessions.filter((s) => s.session_id !== currentSessionId);
+
+		if (otherSessions.length === 0) {
+			return next();
+		}
+
+		const terminated = await sessionManager.terminateUserSessions(userId, currentSessionId);
+
+		if (terminated) {
+			otherSessions.forEach((session) => {
+				AuthLogger.sessionTerminated(req, session.session_id, userId);
+			});
+		}
+
+		return next();
+	} catch (error) {
+		console.error('Error cleaning up excess sessions:', error);
+		return next();
+	}
 }
