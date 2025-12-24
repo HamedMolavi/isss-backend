@@ -22,9 +22,38 @@ export enum SecurityEventType {
 }
 
 /**
+ * Keys that should be masked in logs to avoid leaking sensitive data
+ */
+const SENSITIVE_KEYS = ['password', 'secret', 'token', 'key', 'apiKey', 'apiSecret', 'privateKey'];
+
+/**
  * Security logger that works with LogType filtering
  */
 export class SecurityLogger {
+	/**
+	 * Mask sensitive keys in an object to avoid leaking secrets in logs
+	 */
+	private static maskSensitiveFields(
+		obj: Record<string, unknown> | undefined
+	): Record<string, unknown> | undefined {
+		if (!obj) return obj;
+
+		const masked: Record<string, unknown> = {};
+		for (const [key, value] of Object.entries(obj)) {
+			const lowerKey = key.toLowerCase();
+			const isSensitive = SENSITIVE_KEYS.some((sk) => lowerKey.includes(sk.toLowerCase()));
+
+			if (isSensitive && value !== undefined && value !== null) {
+				masked[key] = '***MASKED***';
+			} else if (value && typeof value === 'object' && !Array.isArray(value)) {
+				masked[key] = this.maskSensitiveFields(value as Record<string, unknown>);
+			} else {
+				masked[key] = value;
+			}
+		}
+		return masked;
+	}
+
 	private static createBaseLogData(req: Request, action: string, success: boolean) {
 		return {
 			type: 'security',
@@ -111,6 +140,19 @@ export class SecurityLogger {
 	}
 
 	/**
+	 * Log successful security validation (non-suspicious)
+	 */
+	static securityCheckPassed(req: Request, activity: string, details?: Record<string, unknown>): void {
+		Logger.info(`Security check passed: ${activity}`, {
+			...this.createBaseLogData(req, SecurityEventType.FUNCTIONAL_BEHAVIOR_CHANGED, true),
+			details: {
+				activity,
+				...details
+			}
+		});
+	}
+
+	/**
 	 * Log changes to functional behavior or user group policies
 	 */
 	static functionalBehaviorChanged(req: Request, behavior: string, details?: Record<string, unknown>): void {
@@ -133,18 +175,20 @@ export class SecurityLogger {
 	}
 
 	/**
-	 * Log security configuration update
+	 * Log security configuration update with before and after values
 	 */
 	static securityConfigUpdated(
 		req: Request,
 		configType: string,
-		updatedFields?: Record<string, unknown>
+		beforeConfig?: Record<string, unknown>,
+		afterConfig?: Record<string, unknown>
 	): void {
 		Logger.info(`Security configuration updated: ${configType}`, {
 			...this.createBaseLogData(req, SecurityEventType.SECURITY_CONFIG_UPDATED, true),
 			details: {
 				configType,
-				updatedFields
+				before: this.maskSensitiveFields(beforeConfig),
+				after: this.maskSensitiveFields(afterConfig)
 			}
 		});
 	}

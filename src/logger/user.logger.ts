@@ -27,10 +27,47 @@ export enum UserEventType {
 	PASSWORD_CHANGE_COMPLETED = 'password_change_completed'
 }
 
+const SENSITIVE_KEYS = ['password', 'secret', 'token', 'key', 'apiKey', 'apiSecret', 'privateKey', 'otp'];
+
 /**
  * User management logger
  */
 export class UserLogger {
+	private static maskSensitiveFields(obj?: Record<string, unknown>): Record<string, unknown> | undefined {
+		if (!obj) return obj;
+
+		const masked: Record<string, unknown> = {};
+		for (const [key, value] of Object.entries(obj)) {
+			const lowerKey = key.toLowerCase();
+			const isSensitive = SENSITIVE_KEYS.some((sk) => lowerKey.includes(sk.toLowerCase()));
+
+			if (isSensitive && value !== undefined && value !== null) {
+				masked[key] = '***MASKED***';
+			} else if (value && typeof value === 'object' && !Array.isArray(value)) {
+				masked[key] = this.maskSensitiveFields(value as Record<string, unknown>);
+			} else {
+				masked[key] = value;
+			}
+		}
+		return masked;
+	}
+
+	private static buildBeforeAfterFromChanges(
+		changes?: Record<string, { old: unknown; new: unknown }>
+	): { before?: Record<string, unknown>; after?: Record<string, unknown> } {
+		if (!changes) return {};
+
+		const before: Record<string, unknown> = {};
+		const after: Record<string, unknown> = {};
+
+		for (const [field, change] of Object.entries(changes)) {
+			before[field] = change.old;
+			after[field] = change.new;
+		}
+
+		return { before, after };
+	}
+
 	private static createBaseLogData(
 		req: Request,
 		action: string,
@@ -216,8 +253,14 @@ export class UserLogger {
 		req: Request,
 		targetUser: { _id: string; username: string },
 		updatedFields: string[],
-		changes?: Record<string, { old: unknown; new: unknown }>
+		changes?: Record<string, { old: unknown; new: unknown }>,
+		beforeUser?: Record<string, unknown>,
+		afterUser?: Record<string, unknown>
 	): void {
+		const diffSnapshots = this.buildBeforeAfterFromChanges(changes);
+		const before = this.maskSensitiveFields(beforeUser ?? diffSnapshots.before);
+		const after = this.maskSensitiveFields(afterUser ?? diffSnapshots.after);
+
 		Logger.info('User updated successfully', {
 			...this.createBaseLogData(req, UserEventType.USER_UPDATED, true),
 			details: {
@@ -225,6 +268,8 @@ export class UserLogger {
 				targetUsername: targetUser.username,
 				updatedFields,
 				changes,
+				before,
+				after,
 				updatedBy: req.user?.username
 			}
 		});
