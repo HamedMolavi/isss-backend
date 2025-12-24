@@ -86,13 +86,20 @@ export const updateMaxConcurrentSessions = async (req: Request, res: Response, n
 			});
 		}
 
+		const beforeConfig = await SecurityConfig.findOne({}, { maxConcurrentSessions: 1 });
+
 		const config = await SecurityConfig.findOneAndUpdate(
 			{},
 			{ maxConcurrentSessions: maxConcurrentSessions },
 			{ new: true, upsert: true }
 		);
 
-		SecurityLogger.maxSessionsConfigUpdated(req, maxConcurrentSessions);
+		SecurityLogger.securityConfigUpdated(
+			req,
+			'maxConcurrentSessions',
+			beforeConfig ? { maxConcurrentSessions: beforeConfig.maxConcurrentSessions } : undefined,
+			config ? { maxConcurrentSessions: config.maxConcurrentSessions } : undefined
+		);
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: 'Max concurrent sessions updated successfully',
@@ -136,13 +143,20 @@ export const updatePasswordRequirements = async (req: Request, res: Response, ne
 			}
 		}
 
+		const beforeConfig = await SecurityConfig.findOne({}, { passwordRequirements: 1 });
+
 		const config = await SecurityConfig.findOneAndUpdate(
 			{},
 			{ passwordRequirements },
 			{ new: true, upsert: true }
 		);
 
-		SecurityLogger.passwordRequirementsUpdated(req, passwordRequirements);
+		SecurityLogger.securityConfigUpdated(
+			req,
+			'passwordRequirements',
+			beforeConfig ? { passwordRequirements: beforeConfig.passwordRequirements } : undefined,
+			config ? { passwordRequirements: config.passwordRequirements } : undefined
+		);
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: 'Password requirements updated successfully',
@@ -174,13 +188,20 @@ export const updateLoginRateLimit = async (req: Request, res: Response, next: Ne
 			});
 		}
 
+		const beforeConfig = await SecurityConfig.findOne({}, { loginRateLimit: 1 });
+
 		const config = await SecurityConfig.findOneAndUpdate(
 			{},
 			{ $set: { loginRateLimit: updateData } },
 			{ new: true, upsert: true }
 		);
 
-		SecurityLogger.rateLimitConfigUpdated(req, updateData);
+		SecurityLogger.securityConfigUpdated(
+			req,
+			'loginRateLimit',
+			beforeConfig ? { loginRateLimit: beforeConfig.loginRateLimit } : undefined,
+			config ? { loginRateLimit: config.loginRateLimit } : undefined
+		);
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: 'Login rate limit settings updated successfully',
@@ -212,6 +233,8 @@ export const updateSessionSettings = async (req: Request, res: Response, next: N
 			});
 		}
 
+		const beforeConfig = await SecurityConfig.findOne({}, { 'session.timeout': 1 });
+
 		const config = await SecurityConfig.findOneAndUpdate(
 			{},
 			{ $set: { 'session.timeout': timeout } },
@@ -225,7 +248,12 @@ export const updateSessionSettings = async (req: Request, res: Response, next: N
 		const sessionManager = await getSessionManager();
 		const { updated, failed } = await sessionManager.updateAllSessionsTTL(timeout);
 
-		SecurityLogger.sessionConfigUpdated(req, timeout);
+		SecurityLogger.securityConfigUpdated(
+			req,
+			'session.timeout',
+			beforeConfig ? { timeout: beforeConfig.session?.timeout } : undefined,
+			config ? { timeout: config.session?.timeout } : undefined
+		);
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: 'Session settings updated successfully',

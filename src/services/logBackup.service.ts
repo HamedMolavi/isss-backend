@@ -17,6 +17,9 @@ const pipelineAsync = promisify(pipeline);
 export interface BackupConfig {
 	ttlDays: number;
 	isAutoBackup: boolean;
+	maxSizeBytes?: number;
+	maxLogCount?: number;
+	warningThreshold?: number;
 	ftpConfig?: {
 		host: string;
 		user: string;
@@ -111,6 +114,10 @@ export class LogBackupService {
 		daysUntilExpiry: number;
 		daysSinceLastBackup: number;
 		nextBackupDue: Date | null;
+		storageUsagePercent: number;
+		logCountUsagePercent: number;
+		storageCritical: boolean;
+		storageWarning: boolean;
 	}> {
 		try {
 			const config = await this.getBackupConfig();
@@ -144,11 +151,36 @@ export class LogBackupService {
 				daysUntilExpiry = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
 			}
 
+			// Evaluate storage thresholds
+			const maxSizeBytes = config.maxSizeBytes || 1024 * 1024 * 1024;
+			const maxLogCount = config.maxLogCount || 1000000;
+			const warningThreshold = config.warningThreshold ?? 0.8;
+			const criticalThreshold = 0.95; // aligned with checkStorageWarning
+
+			// Estimate storage size
+			let estimatedSizeBytes = 0;
+			try {
+				const stats = await Log.collection.stats();
+				estimatedSizeBytes = stats.size || 0;
+			} catch {
+				estimatedSizeBytes = (await Log.countDocuments()) * 2048;
+			}
+
+			const storageUsagePercent = maxSizeBytes > 0 ? (estimatedSizeBytes / maxSizeBytes) * 100 : 0;
+			const totalLogs = await Log.countDocuments();
+			const logCountUsagePercent = maxLogCount > 0 ? (totalLogs / maxLogCount) * 100 : 0;
+
+			const storageCritical =
+				storageUsagePercent >= criticalThreshold * 100 || logCountUsagePercent >= criticalThreshold * 100;
+			const storageWarning =
+				storageUsagePercent >= warningThreshold * 100 || logCountUsagePercent >= warningThreshold * 100;
+
 			// Backup is needed if:
-			// 1. There are logs that will expire within the backup interval
-			// 2. AND it's been at least the backup interval since last backup (or no backup yet)
+			// 1. Storage/log count is at critical threshold (force backup/cleanup)
+			// 2. OR storage/log count is at warning threshold (proactive backup)
+			// 3. OR logs will expire within the backup interval AND interval passed
 			const intervalPassed = !lastBackupInfo.date || daysSinceLastBackup >= (config.backupIntervalDays || 30);
-			const needsBackup = logsToExpire > 0 && intervalPassed;
+			const needsBackup = storageCritical || storageWarning || (logsToExpire > 0 && intervalPassed);
 
 			await BackupLogger.ttlBackupCompleted(
 				'system_check',
@@ -165,7 +197,11 @@ export class LogBackupService {
 				logsToExpire,
 				daysUntilExpiry,
 				daysSinceLastBackup,
-				nextBackupDue
+				nextBackupDue,
+				storageUsagePercent,
+				logCountUsagePercent,
+				storageCritical,
+				storageWarning
 			};
 		} catch (error) {
 			BackupLogger.ttlBackupFailed(error instanceof Error ? error.message : 'Unknown error');
@@ -387,36 +423,56 @@ export class LogBackupService {
 				errors: 0
 			};
 
-			for (const logData of logsToRestore) {
+			const BATCH_SIZE = 500;
+
+			const toDoc = (logData: Record<string, unknown>) => ({
+				level: String(logData.level ?? 'info'),
+				timestamp: logData.timestamp ? new Date(logData.timestamp as string) : new Date(),
+				message: String(logData.message ?? ''),
+				action: String(logData.action ?? ''),
+				metadata: logData.metadata,
+				expires_at: logData.expires_at ? new Date(logData.expires_at as string) : undefined
+			});
+
+			for (let i = 0; i < logsToRestore.length; i += BATCH_SIZE) {
+				const batch = logsToRestore.slice(i, i + BATCH_SIZE);
+
 				try {
-					// Check for duplicates if skipDuplicates is enabled
 					if (options?.skipDuplicates) {
-						const existingLog = await Log.findOne({
-							timestamp: logData.timestamp,
-							message: logData.message,
-							action: logData.action
+						const ops = batch.map((logData) => {
+							const doc = toDoc(logData);
+							const filter = {
+								timestamp: doc.timestamp,
+								message: doc.message,
+								action: doc.action
+							};
+							return {
+								updateOne: {
+									filter,
+									update: { $setOnInsert: doc },
+									upsert: true
+								}
+							};
 						});
 
-						if (existingLog) {
-							result.duplicatesSkipped++;
-							continue;
-						}
+						const bulkResult = await Log.bulkWrite(ops as Parameters<typeof Log.bulkWrite>[0], {
+							ordered: false
+						});
+						const upserts = bulkResult.upsertedCount || 0;
+						const attempted = ops.length;
+						const writeErrors =
+							(bulkResult as unknown as { getWriteErrors?: () => unknown[] }).getWriteErrors?.() || [];
+
+						result.totalRestored += upserts;
+						result.duplicatesSkipped += attempted - upserts;
+						result.errors += writeErrors.length;
+					} else {
+						const docs = batch.map(toDoc);
+						const insertResult = await Log.insertMany(docs, { ordered: false });
+						result.totalRestored += insertResult.length;
 					}
-
-					// Create new log entry
-					const newLog = new Log({
-						level: logData.level,
-						timestamp: logData.timestamp,
-						message: logData.message,
-						action: logData.action,
-						metadata: logData.metadata,
-						expires_at: logData.expires_at
-					});
-
-					await newLog.save();
-					result.totalRestored++;
 				} catch (logError) {
-					result.errors++;
+					result.errors += batch.length;
 					BackupLogger.backupCreateFailed(logError instanceof Error ? logError.message : 'Unknown error');
 				}
 			}

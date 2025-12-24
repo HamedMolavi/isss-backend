@@ -407,7 +407,7 @@ export const fileUploadSecurityValidation = (req: Request, res: Response, next: 
 					}
 
 					// Log successful MIME type validation
-					SecurityLogger.suspiciousActivity(req, 'file_mime_type_validated', {
+					SecurityLogger.securityCheckPassed(req, 'file_mime_type_validated', {
 						fileName: uploadedFile.name,
 						detectedMimeType: mimeValidation.detectedType,
 						fileSize: uploadedFile.size,
@@ -431,7 +431,7 @@ export const fileUploadSecurityValidation = (req: Request, res: Response, next: 
 		}
 
 		// 3. Log successful validation
-		SecurityLogger.suspiciousActivity(req, 'file_upload_security_validated', {
+		SecurityLogger.securityCheckPassed(req, 'file_upload_security_validated', {
 			fileCount: req.files ? Object.keys(req.files).length : 0,
 			userLevel: user.access_level?.toString(),
 			securityCheck: 'passed'

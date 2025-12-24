@@ -262,6 +262,16 @@ export const updateById = async (req: Request, res: Response) => {
 
 	// Log general user update
 	if (updatedFields.length > 0) {
+		const currentUserSnapshot = currentUser.toObject();
+		const updatedUserSnapshot = user.toObject();
+		const beforeSnapshot: Record<string, unknown> = {};
+		const afterSnapshot: Record<string, unknown> = {};
+
+		updatedFields.forEach((field) => {
+			beforeSnapshot[field] = currentUserSnapshot[field as keyof typeof currentUserSnapshot];
+			afterSnapshot[field] = updatedUserSnapshot[field as keyof typeof updatedUserSnapshot];
+		});
+
 		UserLogger.userUpdated(
 			req,
 			{
@@ -269,7 +279,9 @@ export const updateById = async (req: Request, res: Response) => {
 				username: user.username
 			},
 			updatedFields,
-			changes
+			changes,
+			beforeSnapshot,
+			afterSnapshot
 		);
 	}
 
@@ -493,6 +505,8 @@ export const activateUser = async (req: Request, res: Response) => {
 	}
 
 	// Log user activation
+	const beforeSnapshot = { is_active: existingUser.is_active };
+	const afterSnapshot = { is_active: user.is_active };
 	UserLogger.userUpdated(
 		req,
 		{
@@ -502,7 +516,9 @@ export const activateUser = async (req: Request, res: Response) => {
 		['is_active'],
 		{
 			is_active: { old: false, new: true }
-		}
+		},
+		beforeSnapshot,
+		afterSnapshot
 	);
 
 	req.flash('info', 'User activated successfully.');
@@ -563,6 +579,8 @@ export const deactivateUser = async (req: Request, res: Response) => {
 	}
 
 	// Log user deactivation
+	const beforeSnapshot = { is_active: existingUser.is_active };
+	const afterSnapshot = { is_active: user.is_active };
 	UserLogger.userUpdated(
 		req,
 		{
@@ -572,7 +590,9 @@ export const deactivateUser = async (req: Request, res: Response) => {
 		['is_active'],
 		{
 			is_active: { old: true, new: false }
-		}
+		},
+		beforeSnapshot,
+		afterSnapshot
 	);
 
 	// Terminate all user sessions since user is being deactivated
