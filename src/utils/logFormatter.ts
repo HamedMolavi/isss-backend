@@ -30,6 +30,56 @@ export const ACTION_LABELS: Record<string, string> = {
 	ip_removed: 'حذف IP مجاز',
 	ip_access_denied: 'دسترسی IP رد شد',
 
+	// Security events
+	rate_limit_exceeded: 'تخطی از محدودیت نرخ',
+	xss_sanitization: 'پاکسازی محتوای مخرب (XSS)',
+	mongodb_sanitization: 'پاکسازی ورودی مشکوک MongoDB',
+	malicious_input_blocked: 'ورودی مخرب مسدود شد',
+	suspicious_activity: 'فعالیت مشکوک',
+	security_config_accessed: 'مشاهده تنظیمات امنیتی',
+	security_config_updated: 'به‌روزرسانی تنظیمات امنیتی',
+	password_requirements_updated: 'به‌روزرسانی الزامات رمز عبور',
+	rate_limit_config_updated: 'به‌روزرسانی محدودیت نرخ',
+	session_config_updated: 'به‌روزرسانی تنظیمات نشست',
+	log_backup_config_updated: 'به‌روزرسانی پشتیبان‌گیری لاگ',
+	max_sessions_config_updated: 'به‌روزرسانی حداکثر نشست',
+	functional_behavior_changed: 'تغییر سیاست عملکردی',
+
+	// Log integrity events
+	service_started: 'شروع سرویس یکپارچگی لاگ',
+	service_stopped: 'توقف سرویس یکپارچگی لاگ',
+	integrity_violation: 'تخلف در یکپارچگی لاگ',
+	hash_verification_started: 'شروع بررسی هش',
+	hash_verification_completed: 'اتمام بررسی هش',
+	hash_verification_failed: 'شکست در بررسی هش',
+	modification_detected: 'تشخیص تغییر لاگ',
+	modification_trigger_setup: 'راه‌اندازی تریگر پایش تغییرات',
+	modification_trigger_failed: 'شکست در راه‌اندازی تریگر تغییرات',
+	kafka_alert_sent: 'ارسال هشدار به کافکا',
+	kafka_alert_failed: 'شکست در ارسال هشدار به کافکا',
+	hash_mismatch_detected: 'عدم تطابق هش',
+	missing_hash_detected: 'عدم وجود هش',
+	unauthorized_modification: 'تغییر غیرمجاز لاگ',
+	tampering_simulated: 'شبیه‌سازی دستکاری لاگ',
+	tampering_report_generated: 'تولید گزارش دستکاری',
+	service_status_check: 'بررسی وضعیت سرویس یکپارچگی',
+	log_modification_check: 'بررسی تغییر یک لاگ',
+
+	// Backup scheduler events
+	scheduler_started: 'شروع زمان‌بند پشتیبان',
+	scheduler_start_failed: 'شکست در شروع زمان‌بند',
+	scheduler_stopped: 'توقف زمان‌بند پشتیبان',
+	scheduler_restarted: 'راه‌اندازی مجدد زمان‌بند',
+	scheduled_check_started: 'شروع بررسی زمان‌بندی‌شده',
+	scheduled_check_completed: 'اتمام بررسی زمان‌بندی‌شده',
+	scheduled_check_failed: 'شکست بررسی زمان‌بندی‌شده',
+	scheduled_backup_triggered: 'اجرای پشتیبان خودکار',
+	scheduled_backup_completed: 'اتمام پشتیبان خودکار',
+	scheduled_backup_not_needed: 'نیاز به پشتیبان نیست',
+	manual_check_triggered: 'بررسی دستی پشتیبان',
+	ttl_status_evaluated: 'ارزیابی وضعیت TTL',
+	scheduler_status_check: 'بررسی وضعیت زمان‌بند',
+
 	// User management events
 	user_created: 'ایجاد کاربر جدید',
 	user_create_failed: 'ایجاد کاربر ناموفق',
@@ -68,11 +118,11 @@ export const ACTION_LABELS: Record<string, string> = {
 	data_imported: 'واردات داده',
 
 	// Request events
-	get_request: 'درخواست GET',
-	post_request: 'درخواست POST',
-	put_request: 'درخواست PUT',
-	patch_request: 'درخواست PATCH',
-	delete_request: 'درخواست DELETE',
+	get_request: 'درخواست دریافت',
+	post_request: 'درخواست ایجاد',
+	put_request: 'درخواست به‌روزرسانی',
+	patch_request: 'درخواست به‌روزرسانی ',
+	delete_request: 'درخواست حذف',
 
 	// Log access events
 	logs_list: 'مشاهده لاگ‌ها',
@@ -129,6 +179,7 @@ export const HTTP_METHOD_INFO: Record<string, { label: string; color: string }> 
 	GET: { label: 'دریافت', color: 'green' },
 	POST: { label: 'ایجاد', color: 'blue' },
 	PUT: { label: 'به‌روزرسانی', color: 'orange' },
+	PATCH: { label: 'به‌روزرسانی ', color: 'orange' },
 	DELETE: { label: 'حذف', color: 'red' }
 };
 
@@ -194,6 +245,56 @@ export const ACTION_CATEGORIES: Record<string, string[]> = {
 		'ip_removed',
 		'ip_access_denied'
 	],
+	security: [
+		'rate_limit_exceeded',
+		'xss_sanitization',
+		'mongodb_sanitization',
+		'malicious_input_blocked',
+		'suspicious_activity',
+		'security_config_accessed',
+		'security_config_updated',
+		'password_requirements_updated',
+		'rate_limit_config_updated',
+		'session_config_updated',
+		'log_backup_config_updated',
+		'max_sessions_config_updated',
+		'functional_behavior_changed'
+	],
+	log_integrity: [
+		'service_started',
+		'service_stopped',
+		'integrity_violation',
+		'hash_verification_started',
+		'hash_verification_completed',
+		'hash_verification_failed',
+		'modification_detected',
+		'modification_trigger_setup',
+		'modification_trigger_failed',
+		'kafka_alert_sent',
+		'kafka_alert_failed',
+		'hash_mismatch_detected',
+		'missing_hash_detected',
+		'unauthorized_modification',
+		'tampering_simulated',
+		'tampering_report_generated',
+		'service_status_check',
+		'log_modification_check'
+	],
+	backup_scheduler: [
+		'scheduler_started',
+		'scheduler_start_failed',
+		'scheduler_stopped',
+		'scheduler_restarted',
+		'scheduled_check_started',
+		'scheduled_check_completed',
+		'scheduled_check_failed',
+		'scheduled_backup_triggered',
+		'scheduled_backup_completed',
+		'scheduled_backup_not_needed',
+		'manual_check_triggered',
+		'ttl_status_evaluated',
+		'scheduler_status_check'
+	],
 	user_management: [
 		'user_created',
 		'user_create_failed',
@@ -240,6 +341,9 @@ export const CATEGORY_LABELS: Record<string, string> = {
 	authentication: 'احراز هویت',
 	otp: 'رمز یکبار مصرف',
 	ip_restriction: 'محدودیت IP',
+	security: 'امنیت',
+	log_integrity: 'یکپارچگی لاگ',
+	backup_scheduler: 'زمان‌بند پشتیبان',
 	user_management: 'مدیریت کاربران',
 	system: 'سیستم',
 	data: 'داده‌ها',
@@ -267,6 +371,8 @@ interface RawLog {
 		userId?: string;
 		success?: boolean;
 		userAgent?: string;
+		user_agent?: string;
+		headers?: Record<string, unknown>;
 		details?: Record<string, unknown>;
 		method?: string;
 		url?: string;
@@ -541,6 +647,15 @@ export function formatLog(log: RawLog): FormattedLog {
 	const category = getActionCategory(action);
 	const levelInfo = LEVEL_SEVERITY[level] || { color: 'gray', priority: 99 };
 	const httpRequestInfo = extractHttpRequestInfo(log);
+	const headers = log.metadata?.headers as Record<string, unknown> | undefined;
+	const rawUserAgent = String(
+		log.metadata?.userAgent ||
+			log.metadata?.user_agent ||
+			(headers?.['user-agent'] as string | undefined) ||
+			(headers?.['User-Agent'] as string | undefined) ||
+			''
+	);
+	const parsedUserAgent = parseUserAgent(rawUserAgent);
 
 	// Provide a non-null request object when partial HTTP metadata exists
 	const requestInfo =
@@ -593,7 +708,7 @@ export function formatLog(log: RawLog): FormattedLog {
 		},
 		location: {
 			ip: log.metadata?.ip || '',
-			userAgent: simplifyUserAgent(log.metadata?.userAgent || '')
+			userAgent: parsedUserAgent.summary
 		},
 		request: requestInfo,
 		message: log.message || '',
@@ -601,22 +716,6 @@ export function formatLog(log: RawLog): FormattedLog {
 		success: log.metadata?.success ?? null,
 		details: cleanDetails(log.metadata?.details || null)
 	};
-}
-
-/**
- * Simplify user agent string
- */
-function simplifyUserAgent(userAgent: string): string {
-	if (!userAgent) return '';
-
-	// Extract browser name and OS
-	const browserMatch = userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera|MSIE|Trident)/i);
-	const osMatch = userAgent.match(/(Windows|Mac|Linux|Android|iOS|iPhone|iPad)/i);
-
-	const browser = browserMatch ? browserMatch[1] : 'Unknown Browser';
-	const os = osMatch ? osMatch[1] : 'Unknown OS';
-
-	return `${browser} on ${os}`;
 }
 
 /**
