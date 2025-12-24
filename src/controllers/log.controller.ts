@@ -70,6 +70,7 @@ export const getGroupedActions = async (req: Request, res: Response) => {
  * - sortBy, sortOrder: Sorting (default: timestamp desc)
  * - action, level, category: Event filters
  * - username, ip: User filters
+ * - accessLevelName: Filter by access level name (supports multiple values)
  * - success: Filter by success status (true/false)
  * - startDate, endDate: Date range filter
  * - format: 'raw' for raw data, default is formatted/readable
@@ -78,6 +79,28 @@ export const getGroupedActions = async (req: Request, res: Response) => {
  */
 export const getLogs = async (req: Request, res: Response) => {
 	try {
+		// Helpers
+		const parseListParam = (value: unknown): string[] => {
+			if (!value) return [];
+			const raw = Array.isArray(value) ? value : [value];
+			return raw
+				.join(',')
+				.split(',')
+				.map((v) => v.trim())
+				.filter(Boolean);
+		};
+		const intersectOrSet = (current: Set<string> | null, incoming: string[]): Set<string> | null => {
+			if (!incoming.length) return current;
+			if (!current) return new Set(incoming);
+			const next = new Set<string>();
+			incoming.forEach((v) => {
+				if (current.has(v)) {
+					next.add(v);
+				}
+			});
+			return next;
+		};
+
 		// Pagination
 		const page = Math.max(1, parseInt(req.query.page as string) || 1);
 		const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
@@ -97,22 +120,20 @@ export const getLogs = async (req: Request, res: Response) => {
 				$nin: ['system', 'unknown']
 			}
 		};
+		const orConditions: Array<Record<string, unknown>> = [];
 
 		// Track action filter separately so we can safely combine with HTTP visibility rules
-		let actionFilter: string | { $in: string[] } | undefined;
+		let actionSet: Set<string> | null = null;
 
-		// Filter by action
-		if (req.query.action) {
-			actionFilter = req.query.action as string;
-		}
+		// Filter by action (supports comma-separated or repeated params)
+		const requestedActions = parseListParam(req.query.action);
+		actionSet = intersectOrSet(actionSet, requestedActions);
 
 		// Filter by category (group of actions)
-		if (req.query.category) {
-			const category = req.query.category as string;
-			const categoryActions = ACTION_CATEGORIES[category];
-			if (categoryActions && categoryActions.length > 0) {
-				actionFilter = { $in: categoryActions };
-			}
+		const requestedCategories = parseListParam(req.query.category);
+		if (requestedCategories.length) {
+			const categoryActions = requestedCategories.flatMap((c) => ACTION_CATEGORIES[c] || []);
+			actionSet = intersectOrSet(actionSet, categoryActions);
 		}
 
 		// Filter by level
@@ -120,9 +141,25 @@ export const getLogs = async (req: Request, res: Response) => {
 			query.level = req.query.level;
 		}
 
+		// Filter by access level name (matches current/previous/new fields in details)
+		const accessLevelNames = parseListParam(req.query.accessLevelName);
+		if (accessLevelNames.length) {
+			const regexes = accessLevelNames.map((name) => new RegExp(name, 'i'));
+			orConditions.push(
+				...regexes.flatMap((regex) => [
+					{ 'metadata.details.accessLevelName': regex },
+					{ 'metadata.details.previousAccessLevel': regex },
+					{ 'metadata.details.newAccessLevel': regex },
+					{ 'metadata.details.accessLevel': regex }
+				])
+			);
+		}
+
 		// Filter by username
 		if (req.query.username) {
+			const baseUsernameFilter = query['metadata.username'] as Record<string, unknown>;
 			query['metadata.username'] = {
+				...baseUsernameFilter,
 				$regex: req.query.username,
 				$options: 'i'
 			};
@@ -141,35 +178,63 @@ export const getLogs = async (req: Request, res: Response) => {
 			query['metadata.success'] = req.query.success === 'true';
 		}
 
+		// Apply OR conditions if any were added (e.g., access level name matching)
+		if (orConditions.length) {
+			(query as Record<string, unknown>).$or = orConditions;
+		}
+
 		// HTTP log visibility
 		const showHttpLogs = req.query.showHttpLogs === 'true';
 
 		// Filter by HTTP method if provided
 		if (req.query.httpMethod) {
-			const methods = (req.query.httpMethod as string).split(',').map((m) => m.toUpperCase().trim());
+			const methods = parseListParam(req.query.httpMethod).map((m) => m.toUpperCase());
 			query['metadata.method'] = { $in: methods };
 		}
 
 		// Hide HTTP logs and show only actions with labels when showHttpLogs is false
 		if (!showHttpLogs) {
 			// Get all actions that have labels defined (exclude log viewing and permission check actions)
-			const labeledActions = Object.keys(ACTION_LABELS).filter(
-				(a) => a !== 'logs_list' && a !== 'log_read' && a !== 'permission_check_success'
-			);
+			const labeledActions = Object.keys(ACTION_LABELS).filter((a) => a !== 'permission_check_success');
 
-			// If action filter already exists, intersect it with allowed labeled actions
-			if (actionFilter) {
-				const requested = typeof actionFilter === 'string' ? [actionFilter] : actionFilter.$in || [];
-				const intersected = requested.filter((a) => labeledActions.includes(a));
-				actionFilter = { $in: intersected };
-			} else {
-				actionFilter = { $in: labeledActions };
-			}
+			actionSet = intersectOrSet(actionSet, labeledActions);
 		}
 
 		// Apply action filter after combining all conditions
-		if (actionFilter) {
-			query.action = actionFilter;
+		if (actionSet) {
+			if (actionSet.size === 0) {
+				return ApiRes(res, {
+					status: HttpStatus.OK,
+					data: {
+						logs: [],
+						pagination: {
+							page,
+							limit,
+							total: 0,
+							totalPages: 0,
+							hasNext: false,
+							hasPrev: page > 1
+						},
+						filters: {
+							sortBy,
+							sortOrder: sortOrder === 1 ? 'asc' : 'desc',
+							format,
+							action: [],
+							category: requestedCategories,
+							level: req.query.level || null,
+							accessLevelName: accessLevelNames.length ? accessLevelNames : null,
+							username: req.query.username || null,
+							ip: req.query.ip || null,
+							success: req.query.success || null,
+							startDate: req.query.startDate || null,
+							endDate: req.query.endDate || null,
+							showHttpLogs,
+							httpMethod: req.query.httpMethod ? parseListParam(req.query.httpMethod) : null
+						}
+					}
+				});
+			}
+			query.action = { $in: Array.from(actionSet) };
 		}
 
 		// Filter by date range
@@ -233,16 +298,17 @@ export const getLogs = async (req: Request, res: Response) => {
 					sortBy,
 					sortOrder: sortOrder === 1 ? 'asc' : 'desc',
 					format,
-					action: req.query.action || null,
-					category: req.query.category || null,
+					action: actionSet ? Array.from(actionSet) : null,
+					category: requestedCategories.length ? requestedCategories : null,
 					level: req.query.level || null,
+					accessLevelName: accessLevelNames.length ? accessLevelNames : null,
 					username: req.query.username || null,
 					ip: req.query.ip || null,
 					success: req.query.success || null,
 					startDate: req.query.startDate || null,
 					endDate: req.query.endDate || null,
 					showHttpLogs,
-					httpMethod: req.query.httpMethod || null
+					httpMethod: req.query.httpMethod ? parseListParam(req.query.httpMethod) : null
 				}
 			}
 		});
@@ -270,36 +336,176 @@ export const getLogs = async (req: Request, res: Response) => {
  */
 export const getFilterOptions = async (req: Request, res: Response) => {
 	try {
-		// Get unique values from the database
+		const parseListParam = (value: unknown): string[] => {
+			if (!value) return [];
+			const raw = Array.isArray(value) ? value : [value];
+			return raw
+				.join(',')
+				.split(',')
+				.map((v) => v.trim())
+				.filter(Boolean);
+		};
+
+		const intersectOrSet = (current: Set<string> | null, incoming: string[]): Set<string> | null => {
+			if (!incoming.length) return current;
+			if (!current) return new Set(incoming);
+			const next = new Set<string>();
+			incoming.forEach((v) => {
+				if (current.has(v)) {
+					next.add(v);
+				}
+			});
+			return next;
+		};
+
+		// Build query based on current selections to return context-aware options
+		const query: Record<string, unknown> = {
+			'metadata.username': {
+				$exists: true,
+				$nin: ['system', 'unknown']
+			}
+		};
+
+		const requestedActions = parseListParam(req.query.action);
+		const requestedCategories = parseListParam(req.query.category);
+		let actionSet: Set<string> | null = null;
+
+		actionSet = intersectOrSet(actionSet, requestedActions);
+		if (requestedCategories.length) {
+			const categoryActions = requestedCategories.flatMap((c) => ACTION_CATEGORIES[c] || []);
+			actionSet = intersectOrSet(actionSet, categoryActions);
+		}
+
+		// Level
+		if (req.query.level) {
+			query.level = req.query.level;
+		}
+
+		// Username
+		if (req.query.username) {
+			const baseUsernameFilter = (query['metadata.username'] as Record<string, unknown>) || {};
+			query['metadata.username'] = {
+				...baseUsernameFilter,
+				$regex: req.query.username,
+				$options: 'i'
+			};
+		}
+
+		// IP
+		if (req.query.ip) {
+			query['metadata.ip'] = {
+				$regex: req.query.ip,
+				$options: 'i'
+			};
+		}
+
+		// Success
+		if (req.query.success !== undefined) {
+			query['metadata.success'] = req.query.success === 'true';
+		}
+
+		// HTTP method
+		if (req.query.httpMethod) {
+			const methods = parseListParam(req.query.httpMethod).map((m) => m.toUpperCase());
+			query['metadata.method'] = { $in: methods };
+		}
+
+		// HTTP visibility
+		const showHttpLogs = req.query.showHttpLogs === 'true';
+		if (!showHttpLogs) {
+			const labeledActions = Object.keys(ACTION_LABELS).filter((a) => a !== 'permission_check_success');
+			actionSet = intersectOrSet(actionSet, labeledActions);
+		}
+
+		// Date range
+		if (req.query.startDate || req.query.endDate) {
+			query.timestamp = {};
+			if (req.query.startDate) {
+				(query.timestamp as Record<string, Date>).$gte = new Date(req.query.startDate as string);
+			}
+			if (req.query.endDate) {
+				(query.timestamp as Record<string, Date>).$lte = new Date(req.query.endDate as string);
+			}
+		}
+
+		// Apply action filter if set
+		if (actionSet) {
+			if (actionSet.size === 0) {
+				return ApiRes(res, {
+					status: HttpStatus.OK,
+					data: {
+						actions: [],
+						categories: [],
+						levels: [],
+						usernames: [],
+						ips: [],
+						httpMethods: [],
+						sortOptions: [
+							{ value: 'timestamp', label: 'زمان' },
+							{ value: 'level', label: 'سطح' },
+							{ value: 'metadata.username', label: 'نام کاربری' },
+							{ value: 'metadata.ip', label: 'آدرس IP' }
+						]
+					}
+				});
+			}
+			query.action = { $in: Array.from(actionSet) };
+		}
+
+		const categoryActionSet = requestedCategories.length
+			? new Set(requestedCategories.flatMap((c) => ACTION_CATEGORIES[c] || []))
+			: null;
+
+		// Get unique values from the database using the built query so all options are interconnected
 		const [uniqueActions, uniqueLevels, uniqueUsernames, uniqueIPs, uniqueHttpMethods] = await Promise.all([
-			Log.distinct('action', {
-				'metadata.username': { $exists: true, $nin: ['system', 'unknown'] }
-			}).exec(),
-			Log.distinct('level', {
-				'metadata.username': { $exists: true, $nin: ['system', 'unknown'] }
-			}).exec(),
-			Log.distinct('metadata.username', {
-				'metadata.username': { $exists: true, $nin: ['system', 'unknown'] }
-			}).exec(),
-			Log.distinct('metadata.ip', {
-				'metadata.ip': { $exists: true, $ne: '' }
-			}).exec(),
-			Log.distinct('metadata.method', {
-				'metadata.method': { $exists: true, $ne: null }
-			}).exec()
+			Log.distinct('action', query).exec(),
+			Log.distinct('level', query).exec(),
+			Log.distinct('metadata.username', query).exec(),
+			Log.distinct('metadata.ip', query).exec(),
+			Log.distinct('metadata.method', query).exec()
 		]);
+
+		// Categories: keep only those that contain at least one available action
+		const resolvedCategoryOptions = getCategoryOptions().filter((opt) => {
+			const actionsInCategory = ACTION_CATEGORIES[opt.value] || [];
+			// If an action filter is applied, category must include that action
+			if (actionSet) {
+				return actionsInCategory.some((a) => actionSet!.has(a) && uniqueActions.includes(a));
+			}
+			// Otherwise, category must have at least one action present in unique results
+			return actionsInCategory.some((a) => uniqueActions.includes(a));
+		});
+
+		// Actions: keep those present in DB results and matching category if selected
+		const resolvedActionOptions = getActionOptions().filter((opt) => {
+			const isAvailable = uniqueActions.includes(opt.value);
+			const inCategory = categoryActionSet ? categoryActionSet.has(opt.value) : true;
+			return isAvailable && inCategory;
+		});
+
+		// Levels: keep those present in DB results
+		const resolvedLevelOptions = getLevelOptions().filter((opt) => uniqueLevels.includes(opt.value));
+
+		// Usernames: from query results
+		const resolvedUsernames = uniqueUsernames.filter((u) => u && u !== 'unknown').sort();
+
+		// IPs: from query results
+		const resolvedIPs = uniqueIPs.filter((ip) => ip).sort();
+
+		// HTTP methods: from query results
+		const resolvedHttpMethods = getHttpMethodOptions().filter((opt) =>
+			uniqueHttpMethods.map((m: string) => m?.toUpperCase()).includes(opt.value)
+		);
 
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			data: {
-				actions: getActionOptions().filter((opt) => uniqueActions.includes(opt.value)),
-				categories: getCategoryOptions(),
-				levels: getLevelOptions().filter((opt) => uniqueLevels.includes(opt.value)),
-				usernames: uniqueUsernames.filter((u) => u && u !== 'unknown').sort(),
-				ips: uniqueIPs.filter((ip) => ip).sort(),
-				httpMethods: getHttpMethodOptions().filter((opt) =>
-					uniqueHttpMethods.map((m: string) => m?.toUpperCase()).includes(opt.value)
-				),
+				actions: resolvedActionOptions,
+				categories: resolvedCategoryOptions,
+				levels: resolvedLevelOptions,
+				usernames: resolvedUsernames,
+				ips: resolvedIPs,
+				httpMethods: resolvedHttpMethods,
 				sortOptions: [
 					{ value: 'timestamp', label: 'زمان' },
 					{ value: 'level', label: 'سطح' },
@@ -427,9 +633,15 @@ export const getLogStats = async (req: Request, res: Response) => {
  * - page, limit: Pagination (default: page=1, limit=20, max=100)
  * - sortBy, sortOrder: Sorting (default: timestamp desc)
  * - action, level, category: Event filters
+ * - accessLevelName: Filter by access level name (supports multiple values)
  * - success: Filter by success status (true/false)
  * - startDate, endDate: Date range filter
  * - format: 'raw' for raw data, default is formatted/readable
+ * - showHttpLogs: Show/hide HTTP logs (default: false)
+ * - httpMethod: Filter by HTTP method (GET,POST,PUT,DELETE)
+ *
+ * This mirrors the behavior of `getLogs` but is restricted to the
+ * currently authenticated user's username.
  */
 export const getMyLogs = async (req: Request, res: Response) => {
 	try {
@@ -442,66 +654,142 @@ export const getMyLogs = async (req: Request, res: Response) => {
 			});
 		}
 
+		// Helpers (same behavior as getLogs)
+		const parseListParam = (value: unknown): string[] => {
+			if (!value) return [];
+			const raw = Array.isArray(value) ? value : [value];
+			return raw
+				.join(',')
+				.split(',')
+				.map((v) => v.trim())
+				.filter(Boolean);
+		};
+
+		const intersectOrSet = (current: Set<string> | null, incoming: string[]): Set<string> | null => {
+			if (!incoming.length) return current;
+			if (!current) return new Set(incoming);
+			const next = new Set<string>();
+			incoming.forEach((v) => {
+				if (current.has(v)) {
+					next.add(v);
+				}
+			});
+			return next;
+		};
+
+		// Pagination
 		const page = Math.max(1, parseInt(req.query.page as string) || 1);
 		const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
 		const skip = (page - 1) * limit;
 
+		// Output format
 		const format = (req.query.format as string) || 'readable';
 
+		// Sorting
 		const sortBy = (req.query.sortBy as string) || 'timestamp';
 		const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
 
+		// Base query restricted to current user
 		const query: Record<string, unknown> = {
 			'metadata.username': user.username
 		};
+		const orConditions: Array<Record<string, unknown>> = [];
 
-		let actionFilter: string | { $in: string[] } | undefined;
+		// Track action filter like in getLogs
+		let actionSet: Set<string> | null = null;
 
-		const showHttpLogs = req.query.showHttpLogs === 'true';
+		// Filter by action (supports comma-separated or repeated params)
+		const requestedActions = parseListParam(req.query.action);
+		actionSet = intersectOrSet(actionSet, requestedActions);
 
-		if (req.query.action) {
-			actionFilter = req.query.action as string;
+		// Filter by category (group of actions)
+		const requestedCategories = parseListParam(req.query.category);
+		if (requestedCategories.length) {
+			const categoryActions = requestedCategories.flatMap((c) => ACTION_CATEGORIES[c] || []);
+			actionSet = intersectOrSet(actionSet, categoryActions);
 		}
 
-		if (req.query.category) {
-			const category = req.query.category as string;
-			const categoryActions = ACTION_CATEGORIES[category];
-			if (categoryActions && categoryActions.length > 0) {
-				actionFilter = { $in: categoryActions };
-			}
-		}
-
+		// Filter by level
 		if (req.query.level) {
 			query.level = req.query.level;
 		}
 
+		// Filter by access level name (matches current/previous/new fields in details)
+		const accessLevelNames = parseListParam(req.query.accessLevelName);
+		if (accessLevelNames.length) {
+			const regexes = accessLevelNames.map((name) => new RegExp(name, 'i'));
+			orConditions.push(
+				...regexes.flatMap((regex) => [
+					{ 'metadata.details.accessLevelName': regex },
+					{ 'metadata.details.previousAccessLevel': regex },
+					{ 'metadata.details.newAccessLevel': regex },
+					{ 'metadata.details.accessLevel': regex }
+				])
+			);
+		}
+
+		// Filter by success status
 		if (req.query.success !== undefined) {
 			query['metadata.success'] = req.query.success === 'true';
 		}
 
+		// Apply OR conditions if any were added (e.g., access level name matching)
+		if (orConditions.length) {
+			(query as Record<string, unknown>).$or = orConditions;
+		}
+
+		// HTTP log visibility
+		const showHttpLogs = req.query.showHttpLogs === 'true';
+
+		// Filter by HTTP method if provided
 		if (req.query.httpMethod) {
-			const methods = (req.query.httpMethod as string).split(',').map((m) => m.toUpperCase().trim());
+			const methods = parseListParam(req.query.httpMethod).map((m) => m.toUpperCase());
 			query['metadata.method'] = { $in: methods };
 		}
 
+		// Hide HTTP logs and show only actions with labels when showHttpLogs is false
 		if (!showHttpLogs) {
-			const labeledActions = Object.keys(ACTION_LABELS).filter(
-				(a) => a !== 'logs_list' && a !== 'log_read' && a !== 'permission_check_success'
-			);
+			// Same behavior as getLogs, excluding permission check action
+			const labeledActions = Object.keys(ACTION_LABELS).filter((a) => a !== 'permission_check_success');
+			actionSet = intersectOrSet(actionSet, labeledActions);
+		}
 
-			if (actionFilter) {
-				const requested = typeof actionFilter === 'string' ? [actionFilter] : actionFilter.$in || [];
-				const intersected = requested.filter((a) => labeledActions.includes(a));
-				actionFilter = { $in: intersected };
-			} else {
-				actionFilter = { $in: labeledActions };
+		// Apply action filter after combining all conditions
+		if (actionSet) {
+			if (actionSet.size === 0) {
+				// No matching actions for this user with current filters
+				return ApiRes(res, {
+					status: HttpStatus.OK,
+					data: {
+						logs: [],
+						pagination: {
+							page,
+							limit,
+							total: 0,
+							totalPages: 0,
+							hasNext: false,
+							hasPrev: page > 1
+						},
+						filters: {
+							sortBy,
+							sortOrder: sortOrder === 1 ? 'asc' : 'desc',
+							format,
+							action: [],
+							category: requestedCategories,
+							level: req.query.level || null,
+							success: req.query.success || null,
+							startDate: req.query.startDate || null,
+							endDate: req.query.endDate || null,
+							showHttpLogs,
+							httpMethod: req.query.httpMethod ? parseListParam(req.query.httpMethod) : null
+						}
+					}
+				});
 			}
+			query.action = { $in: Array.from(actionSet) };
 		}
 
-		if (actionFilter) {
-			query.action = actionFilter;
-		}
-
+		// Filter by date range
 		if (req.query.startDate || req.query.endDate) {
 			query.timestamp = {};
 			if (req.query.startDate) {
@@ -560,14 +848,14 @@ export const getMyLogs = async (req: Request, res: Response) => {
 					sortOrder: sortOrder === 1 ? 'asc' : 'desc',
 					format,
 					username: user.username,
-					action: req.query.action || null,
-					category: req.query.category || null,
+					action: actionSet ? Array.from(actionSet) : null,
+					category: requestedCategories.length ? requestedCategories : null,
 					level: req.query.level || null,
 					success: req.query.success || null,
-					showHttpLogs,
-					httpMethod: req.query.httpMethod || null,
 					startDate: req.query.startDate || null,
-					endDate: req.query.endDate || null
+					endDate: req.query.endDate || null,
+					showHttpLogs,
+					httpMethod: req.query.httpMethod ? parseListParam(req.query.httpMethod) : null
 				}
 			}
 		});
