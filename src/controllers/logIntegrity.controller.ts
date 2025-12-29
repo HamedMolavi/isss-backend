@@ -24,7 +24,14 @@ export const getIntegrityStatus = async (req: Request, res: Response) => {
 			}
 		});
 	} catch (error) {
-		Logger.error('Failed to get integrity status', { action: 'INTEGRITY_STATUS_FAILED', error });
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to get integrity status', {
+			action: 'INTEGRITY_STATUS_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
 		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در دریافت وضعیت' });
 	}
 };
@@ -59,7 +66,14 @@ export const verifyRecentLogsIntegrity = async (req: Request, res: Response) => 
 			}
 		});
 	} catch (error) {
-		Logger.error('Failed to verify logs', { action: 'VERIFY_LOGS_FAILED', error });
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to verify logs', {
+			action: 'VERIFY_LOGS_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
 		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در بررسی یکپارچگی' });
 	}
 };
@@ -97,7 +111,14 @@ export const checkLogModification = async (req: Request, res: Response) => {
 			}
 		});
 	} catch (error) {
-		Logger.error('Failed to check log', { action: 'CHECK_LOG_FAILED', error });
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to check log', {
+			action: 'CHECK_LOG_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
 		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در بررسی لاگ' });
 	}
 };
@@ -157,7 +178,14 @@ export const getTamperingReport = async (req: Request, res: Response) => {
 			}
 		});
 	} catch (error) {
-		Logger.error('Failed to generate report', { action: 'REPORT_FAILED', error });
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to generate report', {
+			action: 'REPORT_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
 		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در تولید گزارش' });
 	}
 };
@@ -210,7 +238,14 @@ export const restoreTamperedLog = async (req: Request, res: Response) => {
 			}
 		});
 	} catch (error) {
-		Logger.error('Failed to restore log', { action: 'RESTORE_FAILED', error });
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to restore log', {
+			action: 'RESTORE_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
 		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در بازیابی لاگ' });
 	}
 };

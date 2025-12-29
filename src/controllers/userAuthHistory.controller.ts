@@ -135,6 +135,7 @@ export const getMyAuthHistory = async (req: Request, res: Response) => {
 		});
 
 		const clientIp = getClientIP(req);
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.info('User auth history viewed', {
 			type: 'auth_history',
 			action: 'auth_history_view',
@@ -142,6 +143,7 @@ export const getMyAuthHistory = async (req: Request, res: Response) => {
 			userId: user._id?.toString(),
 			username: user.username,
 			ip: clientIp,
+			userAgent,
 			params: {
 				page,
 				limit,
@@ -201,6 +203,7 @@ export const getMyAuthHistory = async (req: Request, res: Response) => {
 			}
 		});
 	} catch (error) {
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.error('Failed to fetch auth history', {
 			type: 'auth_history',
 			action: 'auth_history_view',
@@ -208,6 +211,7 @@ export const getMyAuthHistory = async (req: Request, res: Response) => {
 			userId: user._id?.toString(),
 			username: user.username,
 			ip: getClientIP(req),
+			userAgent,
 			error: error instanceof Error ? error.message : 'Unknown error'
 		});
 		console.error('Error fetching auth history:', error);
@@ -271,13 +275,15 @@ export const getMyAuthSummary = async (req: Request, res: Response) => {
 			: null;
 
 		const clientIp = getClientIP(req);
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.info('User auth summary viewed', {
 			type: 'auth_history',
 			action: 'auth_summary_view',
 			success: true,
 			userId: user._id?.toString(),
 			username: user.username,
-			ip: clientIp
+			ip: clientIp,
+			userAgent
 		});
 
 		return ApiRes(res, {
@@ -315,6 +321,7 @@ export const getMyAuthSummary = async (req: Request, res: Response) => {
 			}
 		});
 	} catch (error) {
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.error('Failed to fetch auth summary', {
 			type: 'auth_history',
 			action: 'auth_summary_view',
@@ -322,6 +329,7 @@ export const getMyAuthSummary = async (req: Request, res: Response) => {
 			userId: user._id?.toString(),
 			username: user.username,
 			ip: getClientIP(req),
+			userAgent,
 			error: error instanceof Error ? error.message : 'Unknown error'
 		});
 		console.error('Error fetching auth summary:', error);

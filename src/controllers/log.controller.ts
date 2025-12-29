@@ -265,6 +265,7 @@ export const getLogs = async (req: Request, res: Response) => {
 
 		// Log access to logs listing
 		const clientIp = getClientIP(req);
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.info('Logs retrieved', {
 			type: 'log_access',
 			action: 'logs_list',
@@ -272,6 +273,7 @@ export const getLogs = async (req: Request, res: Response) => {
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
 			ip: clientIp,
+			userAgent,
 			params: {
 				page,
 				limit,
@@ -313,6 +315,7 @@ export const getLogs = async (req: Request, res: Response) => {
 			}
 		});
 	} catch (error) {
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.error('Failed to retrieve logs', {
 			type: 'log_access',
 			action: 'logs_list',
@@ -320,7 +323,8 @@ export const getLogs = async (req: Request, res: Response) => {
 			error: error instanceof Error ? error.message : 'Unknown error',
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
-			ip: getClientIP(req)
+			ip: getClientIP(req),
+			userAgent
 		});
 		console.error('Error fetching logs:', error);
 		return ApiRes(res, {
@@ -814,6 +818,7 @@ export const getMyLogs = async (req: Request, res: Response) => {
 		const outputLogs = format === 'raw' ? logs : formatLogs(logs as any);
 
 		const clientIp = getClientIP(req);
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.info('User logs retrieved', {
 			type: 'log_access',
 			action: 'logs_list',
@@ -821,6 +826,7 @@ export const getMyLogs = async (req: Request, res: Response) => {
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
 			ip: clientIp,
+			userAgent,
 			params: {
 				page,
 				limit,
@@ -860,6 +866,7 @@ export const getMyLogs = async (req: Request, res: Response) => {
 			}
 		});
 	} catch (error) {
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.error('Failed to retrieve user logs', {
 			type: 'log_access',
 			action: 'logs_list',
@@ -867,6 +874,7 @@ export const getMyLogs = async (req: Request, res: Response) => {
 			error: error instanceof Error ? error.message : 'Unknown error',
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
+			userAgent,
 			ip: getClientIP(req)
 		});
 		console.error('Error fetching user logs:', error);
@@ -915,6 +923,7 @@ export const getLogById = async (req: Request, res: Response) => {
 		});
 
 		const clientIp = getClientIP(req);
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.info('Log accessed by ID', {
 			type: 'log_access',
 			action: 'log_read',
@@ -923,6 +932,7 @@ export const getLogById = async (req: Request, res: Response) => {
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
 			ip: clientIp,
+			userAgent,
 			format
 		});
 
@@ -935,6 +945,7 @@ export const getLogById = async (req: Request, res: Response) => {
 			});
 		}
 		console.error('Error fetching log by ID:', err);
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.error('Failed to access log by ID', {
 			type: 'log_access',
 			action: 'log_read',
@@ -943,6 +954,7 @@ export const getLogById = async (req: Request, res: Response) => {
 			userId: req.user?._id?.toString() ?? 'unknown',
 			username: req.user?.username ?? 'unknown',
 			ip: getClientIP(req),
+			userAgent,
 			error: err instanceof Error ? err.message : 'Unknown error'
 		});
 		return ApiRes(res, {

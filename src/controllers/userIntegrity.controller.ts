@@ -23,7 +23,14 @@ export const getUserIntegrityStatus = async (req: Request, res: Response) => {
 			}
 		});
 	} catch (error) {
-		Logger.error('Failed to get user integrity status', { action: 'USER_INTEGRITY_STATUS_FAILED', error });
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to get user integrity status', {
+			action: 'USER_INTEGRITY_STATUS_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
 		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در دریافت وضعیت' });
 	}
 };
@@ -60,7 +67,14 @@ export const verifyUsernamesIntegrity = async (req: Request, res: Response) => {
 			}
 		});
 	} catch (error) {
-		Logger.error('Failed to verify usernames', { action: 'VERIFY_USERNAMES_FAILED', error });
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to verify usernames', {
+			action: 'VERIFY_USERNAMES_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
 		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در بررسی یکپارچگی' });
 	}
 };
@@ -97,7 +111,14 @@ export const checkUsernameModification = async (req: Request, res: Response) => 
 			}
 		});
 	} catch (error) {
-		Logger.error('Failed to check username', { action: 'CHECK_USERNAME_FAILED', error });
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to check username', {
+			action: 'CHECK_USERNAME_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
 		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در بررسی کاربر' });
 	}
 };

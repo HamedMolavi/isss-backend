@@ -11,6 +11,8 @@ import { isValidObjectId } from 'mongoose';
 import { stringPlateToJson } from '../../tools/plate.tools';
 import { Clock } from '../../types/interfaces/time.interface';
 import { cosineSimilarity } from '../../tools/utils.tools';
+import { platesToStrings } from '../../tools/car.tools';
+import { plateToQueryJSON } from '../../tools/elastic.tools';
 
 /**
  * ===================================
@@ -132,6 +134,52 @@ function dbscanClustering(
 	return clusters.map((clusterIndices) => clusterIndices.map((idx) => vectors[idx].data));
 }
 
+type ElasticsearchSearchError = {
+	message?: string;
+	meta?: {
+		body?: {
+			error?: {
+				type?: string;
+				reason?: string;
+				caused_by?: { type?: string; reason?: string };
+				root_cause?: Array<{ type?: string; reason?: string }>;
+			};
+		};
+	};
+};
+
+const isIndexNotFoundError = (error: unknown): boolean => {
+	const esError = error as ElasticsearchSearchError;
+	return esError.meta?.body?.error?.type === 'index_not_found_exception';
+};
+
+const isCustomTimeZoneUnsupportedError = (error: unknown): boolean => {
+	const esError = error as ElasticsearchSearchError;
+	const errorInfo = esError.meta?.body?.error;
+	if (!errorInfo) return false;
+
+	const reasons: string[] = [];
+	const collectReason = (value: unknown) => {
+		if (typeof value === 'string' && value.trim() !== '') {
+			reasons.push(value);
+		} else if (Array.isArray(value)) {
+			value.forEach((item) => collectReason(item));
+		} else if (value && typeof value === 'object' && 'reason' in (value as { reason?: unknown })) {
+			const maybeReason = (value as { reason?: unknown }).reason;
+			if (typeof maybeReason === 'string' && maybeReason.trim() !== '') {
+				reasons.push(maybeReason);
+			}
+		}
+	};
+
+	collectReason(errorInfo.reason);
+	collectReason(errorInfo.caused_by?.reason);
+	collectReason(errorInfo.root_cause);
+	collectReason(esError.message);
+
+	return reasons.some((reason) => reason.includes('does not support custom time zones'));
+};
+
 /**
  * ===================================
  * INPUT VALIDATION
@@ -149,13 +197,53 @@ function dbscanClustering(
  * Validate request body for analytics endpoints
  */
 router.post(
-	'/:type(most-repeated-plates|most-repeated-known-faces|most-repeated-unknown-faces|most-active-cameras|brand-statistics|color-statistics|plate-statistics-by-camera|people-counting-summary|people-counting-by-camera|people-counting-hourly)',
+	'/:type(most-repeated-plates|most-repeated-known-faces|most-repeated-unknown-faces|most-active-cameras|brand-statistics|color-statistics|plate-statistics-by-camera|people-counting-summary|people-counting-by-camera|people-counting-hourly|similar-plates-15min|suspicious-plates)',
 	dtoValidationMiddleware(AnalyticsBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
 		info: 'please fill all required fields'
 	}),
 	// Validate that start time is before stop time
+	Time.compareTimeMiddleware('start', 'stop')
+);
+
+router.post(
+	'/similar-plates-15min/summary',
+	dtoValidationMiddleware(AnalyticsBody, {
+		skipMissingProperties: false,
+		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
+		info: 'please fill all required fields'
+	}),
+	Time.compareTimeMiddleware('start', 'stop')
+);
+
+router.post(
+	'/similar-plates-15min/details',
+	dtoValidationMiddleware(AnalyticsBody, {
+		skipMissingProperties: false,
+		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
+		info: 'please fill all required fields'
+	}),
+	Time.compareTimeMiddleware('start', 'stop')
+);
+
+router.post(
+	'/suspicious-plates/summary',
+	dtoValidationMiddleware(AnalyticsBody, {
+		skipMissingProperties: false,
+		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
+		info: 'please fill all required fields'
+	}),
+	Time.compareTimeMiddleware('start', 'stop')
+);
+
+router.post(
+	'/suspicious-plates/details',
+	dtoValidationMiddleware(AnalyticsBody, {
+		skipMissingProperties: false,
+		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
+		info: 'please fill all required fields'
+	}),
 	Time.compareTimeMiddleware('start', 'stop')
 );
 
@@ -385,6 +473,2270 @@ router.post('/most-repeated-plates', async (req: Request, res, next) => {
 			success: true,
 			data,
 			total: data.length
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /similar-plates-15min
+ *
+ * Detects plates that appear across multiple cameras within configurable time windows.
+ * Groups identical plate numbers into time-based buckets to identify potential security concerns.
+ *
+ * Use Case:
+ * - Track vehicles moving between different camera zones
+ * - Identify patterns of movement across facility areas
+ * - Detect coordinated vehicle activity
+ *
+ * Request Body Parameters:
+ * @param {string} date_start - Start date for search range
+ * @param {string} date_end - End date for search range
+ * @param {string} time_start - Start time filter (optional)
+ * @param {string} time_end - End time filter (optional)
+ * @param {string[]} cameras - Array of camera IDs to filter (optional)
+ * @param {number} limit - Results per page (default: 20)
+ * @param {number} page - Page number for pagination (default: 1)
+ * @param {number} bucket_interval_minutes - Time window in minutes for grouping detections (default: 15)
+ * @param {string} timez - Timezone for date/time processing (default: 'Asia/Tehran')
+ * @param {Array} plates - Array of plate numbers to search for (optional)
+ * @param {string} plate_search_type - Search mode: 'normal', 'fuzzy', 'noplate' (optional)
+ *
+ * Response:
+ * Returns plates grouped by time buckets, showing all occurrences within each bucket,
+ * including camera details, timestamps, and image crops.
+ */
+router.post('/similar-plates-15min', async (req: Request, res, next) => {
+	try {
+		const {
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			cameras,
+			limit: rawLimit = 20,
+			bucket_interval_minutes,
+			page: rawPage,
+			timez,
+			plates,
+			plate_search_type
+		} = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const limit = Number(rawLimit) > 0 ? Number(rawLimit) : 20;
+		const page = Number(rawPage) > 0 ? Number(rawPage) : 1;
+		// bucket_interval_minutes: interval in minutes for grouping detections (default: 15 minutes)
+		const bucketIntervalMinutes = Number(bucket_interval_minutes) > 0 ? Number(bucket_interval_minutes) : 15;
+		const bucketIntervalMs = bucketIntervalMinutes * 60 * 1000;
+		const bucketIntervalStr = `${bucketIntervalMinutes}m`;
+		// Fetch a large number to get accurate total count (max 10000 for performance)
+		// We need all data to calculate the true total after filtering
+		const plateAggSize = 10000;
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build base query with must clauses
+		const mustClauses = [...time_constraints, ...camera_filter];
+		const mustNotClauses = [
+			{ wildcard: { 'plate_number.keyword': '*\\**' } },
+			{ wildcard: { 'plate_number.keyword': '*_*' } },
+			{ regexp: { 'plate_number.keyword': '.*[_*].*' } }
+		];
+
+		// Handle plate search (similar to new.report.ts)
+		// noplate mode: Search for logs without valid plate numbers
+		let plateSearchClauses: unknown[] = [];
+		if (plate_search_type === 'noplate') {
+			// For noplate, we want to include plates with masks, so we don't add them to must_not
+			// Instead, we add a specific query for masked plates
+			plateSearchClauses = [
+				{
+					bool: {
+						should: [
+							{ term: { 'plate_number.keyword': '********' } },
+							{ term: { 'plate_number.keyword': '' } },
+							{ bool: { must_not: [{ exists: { field: 'plate_number' } }] } }
+						],
+						minimum_should_match: 1
+					}
+				}
+			];
+			// Remove the mask exclusions for noplate mode
+			mustNotClauses.length = 0;
+		} else if (plates?.length) {
+			// Convert plate objects to string format
+			const plateStrings = platesToStrings(plates);
+			const searchType = plate_search_type ?? 'normal';
+
+			// Add plate search clauses (OR between different plates)
+			// Build a temporary query object for plateToQueryJSON
+			const tempQuery = {
+				bool: {
+					must: mustClauses,
+					must_not: [],
+					should: []
+				}
+			};
+			plateSearchClauses = [
+				{
+					bool: {
+						// Each plate pattern becomes a query clause
+						should: plateStrings
+							.map((plateString) =>
+								// plateToQueryJSON handles wildcards and search modes
+								plateToQueryJSON(plateString, searchType, {
+									originalQueryToAlter: tempQuery
+								})
+							)
+							.flat(),
+						minimum_should_match: 1
+					}
+				}
+			];
+		}
+
+		// Add plate search clauses to must clauses if any
+		if (plateSearchClauses.length > 0) {
+			mustClauses.push(...plateSearchClauses);
+		}
+
+		const query = {
+			index: process.env['PLATE_INDEX'] ?? 'plate_log',
+			size: 0,
+			query: {
+				bool: {
+					must: mustClauses,
+					must_not: mustNotClauses
+				}
+			},
+			aggs: {
+				plates: {
+					terms: {
+						field: 'plate_number.keyword',
+						size: plateAggSize,
+						order: { _count: 'desc' }
+					},
+					aggs: {
+						by_15m: {
+							date_histogram: {
+								field: 'timestamp',
+								fixed_interval: bucketIntervalStr,
+								min_doc_count: 2,
+								order: { _count: 'desc' }
+							},
+							aggs: {
+								first_seen: { min: { field: 'timestamp' } },
+								last_seen: { max: { field: 'timestamp' } },
+								cameras: {
+									terms: {
+										field: 'camera_id.keyword',
+										size: 20
+									}
+								},
+								occurrences: {
+									top_hits: {
+										size: 30,
+										_source: ['timestamp', 'camera_id', 'crop', 'inner_crop'],
+										sort: [{ timestamp: { order: 'asc' } }]
+									}
+								},
+								sample: {
+									top_hits: {
+										size: 1,
+										_source: ['plate_number', 'crop', 'inner_crop']
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esRes;
+		try {
+			esRes = await process.esclient.search(query);
+		} catch (err: unknown) {
+			const error = err as { meta?: { body?: { error?: { type?: string } } }; message?: string };
+			if (error.meta?.body?.error?.type === 'index_not_found_exception') {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0,
+					message: `Index ${query.index} not found. No data available.`
+				});
+			}
+			throw err;
+		}
+
+		type OccurrenceHit = {
+			_id?: string;
+			_source?: { timestamp?: string; camera_id?: string; crop?: string; inner_crop?: string };
+		};
+		type HistogramBucket = {
+			key: number;
+			doc_count: number;
+			first_seen?: { value?: number };
+			last_seen?: { value?: number };
+			cameras?: { buckets?: Array<{ key: string }> };
+			occurrences?: { hits?: { hits?: OccurrenceHit[] } };
+			sample?: { hits?: { hits?: Array<{ _source?: { crop?: string; inner_crop?: string } }> } };
+		};
+		type PlateAggBucket = {
+			key: string;
+			doc_count: number;
+			by_15m?: { buckets?: HistogramBucket[] };
+		};
+
+		const aggregations = esRes.aggregations as {
+			plates?: { buckets?: PlateAggBucket[] };
+		};
+		if (!aggregations?.plates?.buckets) {
+			return res.status(200).json({
+				success: true,
+				data: [],
+				total: 0
+			});
+		}
+
+		// Collect camera IDs once for enrichment
+		const allCameraIds = new Set<string>();
+		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
+			(plateBucket.by_15m?.buckets ?? []).forEach((bucket) => {
+				(bucket.cameras?.buckets ?? []).forEach((cam) => {
+					const camId = String(cam.key);
+					if (isValidObjectId(camId)) {
+						allCameraIds.add(camId);
+					}
+				});
+			});
+		});
+
+		const cameraMap = await Camera.find({ _id: { $in: Array.from(allCameraIds) } })
+			.exec()
+			.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc])));
+
+		// Build response clusters
+		const clusters: Array<{
+			plate_number: unknown;
+			plate_number_string: string;
+			bucket_start: string;
+			bucket_end: string;
+			count: number;
+			first_seen: string;
+			last_seen: string;
+			last_seen_timestamp: number;
+			camera_ids: string[];
+			cameras: Array<{ camera_id: string; camera_name: string }>;
+			occurrences: Array<{
+				log_id: string | null;
+				timestamp: string | null;
+				camera_id: string | null;
+				crop: string | null;
+				inner_crop: string | null;
+			}>;
+			sample_crop: string | null;
+			sample_inner_crop: string | null;
+		}> = [];
+
+		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
+			const plateKey = plateBucket.key as string;
+
+			// Filter out unrecognized/invalid plates
+			if (
+				!plateKey ||
+				plateKey.trim() === '' ||
+				plateKey === '********' ||
+				plateKey.includes('*') ||
+				plateKey.includes('_')
+			) {
+				return;
+			}
+
+			const histogramBuckets = (plateBucket.by_15m?.buckets ?? []).sort((a, b) => b.doc_count - a.doc_count);
+
+			histogramBuckets.forEach((bucket) => {
+				const cameraIds = (bucket.cameras?.buckets ?? []).map((c) => String(c.key));
+				const uniqueCameraIds: string[] = Array.from(new Set(cameraIds));
+
+				const camerasData = uniqueCameraIds.map((cid: string) => {
+					const cam = isValidObjectId(cid) ? cameraMap.get(cid) : undefined;
+					return { camera_id: cid, camera_name: cam?.name ?? 'Unknown' };
+				});
+
+				const occurrences =
+					bucket.occurrences?.hits?.hits?.map((hit: OccurrenceHit) => ({
+						log_id: hit._id ?? null,
+						timestamp: hit._source?.timestamp ?? null,
+						camera_id: hit._source?.camera_id ?? null,
+						crop: hit._source?.crop ?? null,
+						inner_crop: hit._source?.inner_crop ?? null
+					})) ?? [];
+
+				const sample = bucket.sample?.hits?.hits?.[0]?._source;
+
+				const firstSeen = bucket.first_seen?.value ? new Date(bucket.first_seen.value) : new Date(bucket.key);
+				const lastSeen = bucket.last_seen?.value ? new Date(bucket.last_seen.value) : new Date(bucket.key);
+
+				clusters.push({
+					plate_number: stringPlateToJson(plateKey),
+					plate_number_string: plateKey,
+					bucket_start: new Date(bucket.key).toLocaleString('en-US', { timeZone: timezone }),
+					bucket_end: new Date(bucket.key + bucketIntervalMs).toLocaleString('en-US', { timeZone: timezone }),
+					count: bucket.doc_count ?? occurrences.length,
+					first_seen: firstSeen.toLocaleString('en-US', { timeZone: timezone }),
+					last_seen: lastSeen.toLocaleString('en-US', { timeZone: timezone }),
+					last_seen_timestamp: lastSeen.getTime(),
+					camera_ids: uniqueCameraIds,
+					cameras: camerasData,
+					occurrences,
+					sample_crop: sample?.crop ?? null,
+					sample_inner_crop: sample?.inner_crop ?? null
+				});
+			});
+		});
+
+		// Sort clusters by latest report timestamp descending
+		const sortedClusters = clusters.sort((a, b) => b.last_seen_timestamp - a.last_seen_timestamp);
+		const total = sortedClusters.length;
+		const start = (page - 1) * limit;
+		const pagedData = sortedClusters.slice(start, start + limit).map((cluster) => {
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			const { last_seen_timestamp, ...rest } = cluster;
+			return rest;
+		});
+
+		return res.status(200).json({
+			success: true,
+			data: pagedData,
+			total,
+			page,
+			limit,
+			total_pages: Math.ceil(total / limit)
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /similar-plates-15min/unique-count
+ * Get count of unique plates in similar-plates-15min results
+ */
+router.post('/similar-plates-15min/unique-count', async (req: Request, res, next) => {
+	try {
+		const { date_start, date_end, time_start, time_end, cameras, timez, plates, plate_search_type } =
+			req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const bucketIntervalMinutes = 15;
+		const bucketIntervalStr = `${bucketIntervalMinutes}m`;
+		const plateAggSize = 10000;
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build base query with must clauses
+		const mustClauses = [...time_constraints, ...camera_filter];
+		const mustNotClauses = [
+			{ wildcard: { 'plate_number.keyword': '*\\**' } },
+			{ wildcard: { 'plate_number.keyword': '*_*' } },
+			{ regexp: { 'plate_number.keyword': '.*[_*].*' } }
+		];
+
+		// Handle plate search
+		let plateSearchClauses: unknown[] = [];
+		if (plate_search_type === 'noplate') {
+			plateSearchClauses = [
+				{
+					bool: {
+						should: [
+							{ term: { 'plate_number.keyword': '********' } },
+							{ term: { 'plate_number.keyword': '' } },
+							{ bool: { must_not: [{ exists: { field: 'plate_number' } }] } }
+						],
+						minimum_should_match: 1
+					}
+				}
+			];
+			mustNotClauses.length = 0;
+		} else if (plates?.length) {
+			const plateStrings = platesToStrings(plates);
+			const searchType = plate_search_type ?? 'normal';
+			const tempQuery = {
+				bool: {
+					must: mustClauses,
+					must_not: [],
+					should: []
+				}
+			};
+			plateSearchClauses = [
+				{
+					bool: {
+						should: plateStrings
+							.map((plateString) =>
+								plateToQueryJSON(plateString, searchType, {
+									originalQueryToAlter: tempQuery
+								})
+							)
+							.flat(),
+						minimum_should_match: 1
+					}
+				}
+			];
+		}
+
+		if (plateSearchClauses.length > 0) {
+			mustClauses.push(...plateSearchClauses);
+		}
+
+		const query = {
+			index: process.env['PLATE_INDEX'] ?? 'plate_log',
+			size: 0,
+			query: {
+				bool: {
+					must: mustClauses,
+					must_not: mustNotClauses
+				}
+			},
+			aggs: {
+				plates: {
+					terms: {
+						field: 'plate_number.keyword',
+						size: plateAggSize,
+						order: { _count: 'desc' }
+					},
+					aggs: {
+						by_15m: {
+							date_histogram: {
+								field: 'timestamp',
+								fixed_interval: bucketIntervalStr,
+								min_doc_count: 2,
+								order: { _count: 'desc' }
+							},
+							aggs: {
+								first_seen: { min: { field: 'timestamp' } },
+								last_seen: { max: { field: 'timestamp' } },
+								cameras: {
+									terms: {
+										field: 'camera_id.keyword',
+										size: 20
+									}
+								},
+								occurrences: {
+									top_hits: {
+										size: 30,
+										_source: ['timestamp', 'camera_id', 'crop', 'inner_crop'],
+										sort: [{ timestamp: { order: 'asc' } }]
+									}
+								},
+								sample: {
+									top_hits: {
+										size: 1,
+										_source: ['plate_number', 'crop', 'inner_crop']
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esRes;
+		try {
+			esRes = await process.esclient.search(query);
+		} catch (err: unknown) {
+			const error = err as { meta?: { body?: { error?: { type?: string } } }; message?: string };
+			if (error.meta?.body?.error?.type === 'index_not_found_exception') {
+				return res.status(200).json({
+					success: true,
+					unique_plates_count: 0,
+					message: `Index ${query.index} not found. No data available.`
+				});
+			}
+			throw err;
+		}
+
+		type PlateAggBucket = {
+			key: string;
+			doc_count: number;
+			by_15m?: { buckets?: Array<{ key: number }> };
+		};
+
+		const aggregations = esRes.aggregations as {
+			plates?: { buckets?: PlateAggBucket[] };
+		};
+
+		if (!aggregations?.plates?.buckets) {
+			return res.status(200).json({
+				success: true,
+				unique_plates_count: 0
+			});
+		}
+
+		// Calculate unique plates count
+		// Count all unique plates that have at least one bucket (same logic as main endpoint)
+		const uniquePlates = new Set<string>();
+		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
+			const plateKey = plateBucket.key as string;
+
+			// Filter out unrecognized/invalid plates (same as main endpoint)
+			if (
+				!plateKey ||
+				plateKey.trim() === '' ||
+				plateKey === '********' ||
+				plateKey.includes('*') ||
+				plateKey.includes('_')
+			) {
+				return;
+			}
+
+			// Count all plates that have at least one bucket (with min_doc_count: 2, this means at least 2 detections in that bucket)
+			// This matches the main endpoint logic where all buckets are shown
+			const histogramBuckets = plateBucket.by_15m?.buckets ?? [];
+			if (histogramBuckets.length > 0) {
+				uniquePlates.add(plateKey);
+			}
+		});
+
+		return res.status(200).json({
+			success: true,
+			unique_plates_count: uniquePlates.size
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /similar-plates-15min/chart
+ * Get chart data for unique plates over time
+ * Returns time-series data grouped by interval (hour, day, week)
+ */
+router.post('/similar-plates-15min/chart', async (req: Request, res, next) => {
+	try {
+		const {
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			cameras,
+			timez,
+			plates,
+			plate_search_type,
+			bucket_interval_minutes,
+			interval: rawInterval = 'hour' // 'hour', 'day', 'week'
+		} = req.body;
+
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const bucketIntervalMinutes = Number(bucket_interval_minutes) > 0 ? Number(bucket_interval_minutes) : 15;
+		const bucketIntervalStr = `${bucketIntervalMinutes}m`;
+		const plateAggSize = 10000;
+
+		// Determine interval for histogram
+		let intervalStr: string;
+		switch (rawInterval) {
+			case 'day':
+				intervalStr = '1d';
+				break;
+			case 'week':
+				intervalStr = '1w';
+				break;
+			case 'hour':
+			default:
+				intervalStr = '1h';
+				break;
+		}
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build base query with must clauses
+		const mustClauses = [...time_constraints, ...camera_filter];
+		const mustNotClauses = [
+			{ wildcard: { 'plate_number.keyword': '*\\**' } },
+			{ wildcard: { 'plate_number.keyword': '*_*' } },
+			{ regexp: { 'plate_number.keyword': '.*[_*].*' } }
+		];
+
+		// Handle plate search
+		let plateSearchClauses: unknown[] = [];
+		if (plate_search_type === 'noplate') {
+			plateSearchClauses = [
+				{
+					bool: {
+						should: [
+							{ term: { 'plate_number.keyword': '********' } },
+							{ term: { 'plate_number.keyword': '' } },
+							{ bool: { must_not: [{ exists: { field: 'plate_number' } }] } }
+						],
+						minimum_should_match: 1
+					}
+				}
+			];
+			mustNotClauses.length = 0;
+		} else if (plates?.length) {
+			const plateStrings = platesToStrings(plates);
+			const searchType = plate_search_type ?? 'normal';
+			const tempQuery = {
+				bool: {
+					must: mustClauses,
+					must_not: [],
+					should: []
+				}
+			};
+			plateSearchClauses = [
+				{
+					bool: {
+						should: plateStrings
+							.map((plateString) =>
+								plateToQueryJSON(plateString, searchType, {
+									originalQueryToAlter: tempQuery
+								})
+							)
+							.flat(),
+						minimum_should_match: 1
+					}
+				}
+			];
+		}
+
+		if (plateSearchClauses.length > 0) {
+			mustClauses.push(...plateSearchClauses);
+		}
+
+		const query = {
+			index: process.env['PLATE_INDEX'] ?? 'plate_log',
+			size: 0,
+			query: {
+				bool: {
+					must: mustClauses,
+					must_not: mustNotClauses
+				}
+			},
+			aggs: {
+				by_time: {
+					date_histogram: {
+						field: 'timestamp',
+						fixed_interval: intervalStr,
+						time_zone: timezone,
+						min_doc_count: 1
+					},
+					aggs: {
+						plates: {
+							terms: {
+								field: 'plate_number.keyword',
+								size: plateAggSize,
+								order: { _count: 'desc' }
+							},
+							aggs: {
+								by_15m: {
+									date_histogram: {
+										field: 'timestamp',
+										fixed_interval: bucketIntervalStr,
+										min_doc_count: 2,
+										order: { _count: 'desc' }
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esRes;
+		try {
+			esRes = await process.esclient.search(query);
+		} catch (err: unknown) {
+			if (isCustomTimeZoneUnsupportedError(err)) {
+				const byTimeHistogram = query.aggs?.by_time?.date_histogram as Record<string, unknown> | undefined;
+				if (byTimeHistogram?.time_zone) {
+					// Legacy indices store timestamp as a long; remove time_zone so ES accepts the histogram.
+					delete byTimeHistogram.time_zone;
+				}
+				try {
+					esRes = await process.esclient.search(query);
+				} catch (retryErr: unknown) {
+					if (isIndexNotFoundError(retryErr)) {
+						return res.status(200).json({
+							success: true,
+							data: [],
+							interval: rawInterval,
+							message: `Index ${query.index} not found. No data available.`
+						});
+					}
+					throw retryErr;
+				}
+			} else if (isIndexNotFoundError(err)) {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					interval: rawInterval,
+					message: `Index ${query.index} not found. No data available.`
+				});
+			} else {
+				throw err;
+			}
+		}
+
+		type HistogramBucket = {
+			key: number;
+			doc_count: number;
+		};
+		type PlateBucket = {
+			key: string;
+			doc_count: number;
+			by_15m?: { buckets?: HistogramBucket[] };
+		};
+		type TimeBucket = {
+			key: number;
+			doc_count: number;
+			plates?: { buckets?: PlateBucket[] };
+		};
+
+		const aggregations = esRes.aggregations as {
+			by_time?: { buckets?: TimeBucket[] };
+		};
+
+		if (!aggregations?.by_time?.buckets) {
+			return res.status(200).json({
+				success: true,
+				data: [],
+				interval: rawInterval
+			});
+		}
+
+		// Process each time bucket
+		const chartData = (aggregations.by_time.buckets ?? []).map((timeBucket) => {
+			const uniquePlates = new Set<string>();
+			const plateBuckets = timeBucket.plates?.buckets ?? [];
+
+			plateBuckets.forEach((plateBucket) => {
+				const plateKey = plateBucket.key as string;
+
+				// Filter out unrecognized/invalid plates
+				if (
+					!plateKey ||
+					plateKey.trim() === '' ||
+					plateKey === '********' ||
+					plateKey.includes('*') ||
+					plateKey.includes('_')
+				) {
+					return;
+				}
+
+				// Only count plates that have at least 1 bucket (with min_doc_count: 2, this means at least 2 detections)
+				const histogramBuckets = plateBucket.by_15m?.buckets ?? [];
+				if (histogramBuckets.length >= 1) {
+					uniquePlates.add(plateKey);
+				}
+			});
+
+			return {
+				time: new Date(timeBucket.key).toLocaleString('en-US', { timeZone: timezone }),
+				time_epoch: timeBucket.key,
+				unique_plates_count: uniquePlates.size,
+				total_detections: timeBucket.doc_count
+			};
+		});
+
+		return res.status(200).json({
+			success: true,
+			data: chartData,
+			interval: rawInterval,
+			total: chartData.length
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /suspicious-plates
+ *
+ * Advanced suspicious behavior detection using configurable time windows and filtering criteria.
+ * Identifies plates with repeated appearances that span extended time periods, indicating
+ * potential loitering, surveillance, or other suspicious activity patterns.
+ *
+ * Detection Logic (ALL conditions must be met):
+ * 1. Plate must have ≥2 detections
+ * 2. Detections must span multiple 15-minute buckets (not confined to single bucket)
+ * 3. Time span between first and last detection must exceed minimum threshold
+ * 4. All detections must fall within the configured time window from first detection
+ *
+ * Use Case:
+ * - Detect vehicles loitering in facility areas for extended periods
+ * - Identify potential surveillance or reconnaissance activity
+ * - Flag unusual repeated appearances that don't match normal entry/exit patterns
+ * - Distinguish between normal visits (quick entry/exit) and suspicious behavior
+ *
+ * Request Body Parameters:
+ * @param {string} date_start - Start date for search range
+ * @param {string} date_end - End date for search range
+ * @param {string} time_start - Start time filter (optional)
+ * @param {string} time_end - End time filter (optional)
+ * @param {string[]} cameras - Array of camera IDs to filter (optional)
+ * @param {number} limit - Results per page (default: 20)
+ * @param {number} page - Page number for pagination (default: 1)
+ * @param {number} window_hours - Time window in hours from first detection to consider (default: 24)
+ * @param {number} min_time_span_hours - Minimum hours between first and last detection (default: 1)
+ * @param {number} occurrence_limit - Maximum occurrences to return per plate (default: 100, max: 100)
+ * @param {string} timez - Timezone for date/time processing (default: 'Asia/Tehran')
+ * @param {Array} plates - Array of plate numbers to search for (optional)
+ * @param {string} plate_search_type - Search mode: 'normal', 'fuzzy', 'noplate' (optional)
+ *
+ * Response:
+ * Returns suspicious plates with their occurrences (newest first), camera details, time spans,
+ * and detection counts. Each plate includes first_seen, last_seen timestamps and image crops.
+ *
+ * Example:
+ * window_hours: 48, min_time_span_hours: 2
+ * → Finds plates detected multiple times over 2+ hours within a 48-hour window
+ */
+router.post('/suspicious-plates', async (req: Request, res, next) => {
+	try {
+		const {
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			cameras,
+			limit: rawLimit = 20,
+			page: rawPage,
+			timez,
+			occurrence_limit,
+			plates,
+			plate_search_type,
+			window_hours: rawWindowHours,
+			min_time_span_hours: rawMinTimeSpanHours
+		} = req.body;
+
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const limit = Number(rawLimit) > 0 ? Number(rawLimit) : 20;
+		const page = Number(rawPage) > 0 ? Number(rawPage) : 1;
+		const bucketIntervalMs = 15 * 60 * 1000;
+
+		// Configurable suspicious plate detection parameters
+		// Window hours: Time window to check for occurrences (default: 24 hours)
+		// Min time span hours: Minimum time span between first and last occurrence to be considered suspicious (default: 1 hour)
+		const windowHours =
+			rawWindowHours != null && !isNaN(Number(rawWindowHours)) && Number(rawWindowHours) > 0
+				? Number(rawWindowHours)
+				: 24;
+		const minTimeSpanHours =
+			rawMinTimeSpanHours != null && !isNaN(Number(rawMinTimeSpanHours)) && Number(rawMinTimeSpanHours) >= 0
+				? Number(rawMinTimeSpanHours)
+				: 1;
+		// Fetch a large number to get accurate total count (max 10000 for performance)
+		// We need all data to calculate the true total after filtering
+		const plateAggSize = 10000;
+		// Elasticsearch max_inner_result_window limit is 100 by default
+		// Use user's value if provided (capped at 100), otherwise use 100 to get maximum
+		const maxOccurrencesSize = 100; // Elasticsearch limit
+		const occurrencesSize =
+			Number(occurrence_limit) > 0
+				? Math.min(Number(occurrence_limit), maxOccurrencesSize)
+				: maxOccurrencesSize;
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build base query with must clauses
+		const mustClauses = [...time_constraints, ...camera_filter];
+		const mustNotClauses = [
+			{ wildcard: { 'plate_number.keyword': '*\\**' } },
+			{ wildcard: { 'plate_number.keyword': '*_*' } },
+			{ regexp: { 'plate_number.keyword': '.*[_*].*' } }
+		];
+
+		// Handle plate search (similar to similar-plates-15min)
+		// noplate mode: Search for logs without valid plate numbers
+		let plateSearchClauses: unknown[] = [];
+		if (plate_search_type === 'noplate') {
+			// For noplate, we want to include plates with masks, so we don't add them to must_not
+			// Instead, we add a specific query for masked plates
+			plateSearchClauses = [
+				{
+					bool: {
+						should: [
+							{ term: { 'plate_number.keyword': '********' } },
+							{ term: { 'plate_number.keyword': '' } },
+							{ bool: { must_not: [{ exists: { field: 'plate_number' } }] } }
+						],
+						minimum_should_match: 1
+					}
+				}
+			];
+			// Remove the mask exclusions for noplate mode
+			mustNotClauses.length = 0;
+		} else if (plates?.length) {
+			// Convert plate objects to string format
+			const plateStrings = platesToStrings(plates);
+			const searchType = plate_search_type ?? 'normal';
+
+			// Add plate search clauses (OR between different plates)
+			// Build a temporary query object for plateToQueryJSON
+			const tempQuery = {
+				bool: {
+					must: mustClauses,
+					must_not: [],
+					should: []
+				}
+			};
+			plateSearchClauses = [
+				{
+					bool: {
+						// Each plate pattern becomes a query clause
+						should: plateStrings
+							.map((plateString) =>
+								// plateToQueryJSON handles wildcards and search modes
+								plateToQueryJSON(plateString, searchType, {
+									originalQueryToAlter: tempQuery
+								})
+							)
+							.flat(),
+						minimum_should_match: 1
+					}
+				}
+			];
+		}
+
+		// Add plate search clauses to must clauses if any
+		if (plateSearchClauses.length > 0) {
+			mustClauses.push(...plateSearchClauses);
+		}
+
+		const query = {
+			index: process.env['PLATE_INDEX'] ?? 'plate_log',
+			size: 0,
+			query: {
+				bool: {
+					must: mustClauses,
+					must_not: mustNotClauses
+				}
+			},
+			aggs: {
+				plates: {
+					terms: {
+						field: 'plate_number.keyword',
+						size: plateAggSize,
+						order: { _count: 'desc' },
+						min_doc_count: 2
+					},
+					aggs: {
+						first_seen: { min: { field: 'timestamp' } },
+						last_seen: { max: { field: 'timestamp' } },
+						cameras: {
+							terms: {
+								field: 'camera_id.keyword',
+								size: 20
+							}
+						},
+						occurrences: {
+							top_hits: {
+								size: occurrencesSize,
+								_source: ['timestamp', 'camera_id', 'crop', 'inner_crop', 'plate_number'],
+								sort: [{ timestamp: { order: 'asc' } }]
+							}
+						},
+						sample: {
+							top_hits: {
+								size: 1,
+								_source: ['plate_number', 'crop', 'inner_crop']
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esRes;
+		try {
+			esRes = await process.esclient.search(query);
+		} catch (err: unknown) {
+			const error = err as { meta?: { body?: { error?: { type?: string } } }; message?: string };
+			if (error.meta?.body?.error?.type === 'index_not_found_exception') {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0,
+					message: `Index ${query.index} not found. No data available.`
+				});
+			}
+			throw err;
+		}
+
+		type OccurrenceHit = {
+			_id?: string;
+			_source?: {
+				timestamp?: string;
+				camera_id?: string;
+				crop?: string;
+				inner_crop?: string;
+				plate_number?: string;
+			};
+		};
+		type PlateAggBucket = {
+			key: string;
+			doc_count: number;
+			first_seen?: { value?: number };
+			last_seen?: { value?: number };
+			cameras?: { buckets?: Array<{ key: string }> };
+			occurrences?: { hits?: { hits?: OccurrenceHit[] } };
+			sample?: { hits?: { hits?: Array<{ _source?: { crop?: string; inner_crop?: string } }> } };
+		};
+
+		const aggregations = esRes.aggregations as {
+			plates?: { buckets?: PlateAggBucket[] };
+		};
+
+		if (!aggregations?.plates?.buckets) {
+			return res.status(200).json({
+				success: true,
+				data: [],
+				total: 0
+			});
+		}
+
+		// Enrich cameras
+		const allCameraIds = new Set<string>();
+		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
+			(plateBucket.cameras?.buckets ?? []).forEach((cam) => {
+				const camId = String(cam.key);
+				if (isValidObjectId(camId)) {
+					allCameraIds.add(camId);
+				}
+			});
+			(plateBucket.occurrences?.hits?.hits ?? []).forEach((hit) => {
+				const camId = hit._source?.camera_id;
+				if (camId && isValidObjectId(camId)) {
+					allCameraIds.add(camId);
+				}
+			});
+		});
+
+		const cameraMap = await Camera.find({ _id: { $in: Array.from(allCameraIds) } })
+			.exec()
+			.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc])));
+
+		const suspicious: Array<{
+			plate_number: unknown;
+			plate_number_string: string;
+			count: number;
+			first_seen: string;
+			last_seen: string;
+			last_seen_timestamp: number;
+			camera_ids: string[];
+			cameras: Array<{ camera_id: string; camera_name: string }>;
+			occurrences: Array<{
+				log_id: string | null;
+				timestamp: string | null;
+				camera_id: string | null;
+				camera_name: string;
+				crop: string | null;
+				inner_crop: string | null;
+			}>;
+			sample_crop: string | null;
+			sample_inner_crop: string | null;
+		}> = [];
+
+		const toBucketKey = (ts: string | undefined | null): number | null => {
+			if (!ts) return null;
+			const n = new Date(ts).getTime();
+			return Number.isFinite(n) ? Math.floor(n / bucketIntervalMs) : null;
+		};
+
+		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
+			const plateKey = plateBucket.key;
+			const hits = plateBucket.occurrences?.hits?.hits ?? [];
+			if (!hits.length) return;
+
+			const allOccurrences = hits.map((hit) => ({
+				log_id: hit._id ?? null,
+				timestamp: hit._source?.timestamp ?? null,
+				camera_id: hit._source?.camera_id ?? null,
+				camera_name: hit._source?.camera_id
+					? (cameraMap.get(String(hit._source?.camera_id))?.name ?? 'Unknown')
+					: 'Unknown',
+				crop: hit._source?.crop ?? null,
+				inner_crop: hit._source?.inner_crop ?? null
+			}));
+
+			// Convert timestamps and sort by time (newest first)
+			const occurrencesWithTimestamps = allOccurrences
+				.map((o) => {
+					if (!o.timestamp) return null;
+					const ts = typeof o.timestamp === 'string' ? new Date(o.timestamp).getTime() : Number(o.timestamp);
+					if (!Number.isFinite(ts) || ts <= 0) return null;
+					return { ...o, timestampMs: ts };
+				})
+				.filter((o): o is (typeof allOccurrences)[0] & { timestampMs: number } => o !== null)
+				.sort((a, b) => b.timestampMs - a.timestampMs);
+
+			if (occurrencesWithTimestamps.length < 2) return;
+
+			// Filter occurrences to only include those within the configured time window
+			// Start from the first occurrence and include all occurrences within the window
+			const firstTimestamp = occurrencesWithTimestamps[0].timestampMs;
+			const windowMs = windowHours * 60 * 60 * 1000;
+			const windowEnd = firstTimestamp + windowMs;
+
+			// Get all occurrences within the time window
+			const occurrencesInWindow = occurrencesWithTimestamps.filter((o) => o.timestampMs <= windowEnd);
+
+			if (occurrencesInWindow.length < 2) return;
+
+			// Calculate time span within the time window
+			const lastTimestampInWindow = occurrencesInWindow[occurrencesInWindow.length - 1].timestampMs;
+			const timeSpanMs = lastTimestampInWindow - firstTimestamp;
+			const timeSpanHours = timeSpanMs / (1000 * 60 * 60);
+
+			// Exclude plates with very short time spans (less than configured minimum) as these are likely normal entry/exit patterns
+			// A normal visit (entry followed by exit) typically happens within minutes
+			// Consider plates suspicious if they have multiple occurrences spanning at least the configured minimum within the time window
+			// This catches vehicles that appear multiple times over an extended period (suspicious loitering/activity)
+			if (timeSpanHours < minTimeSpanHours) return;
+
+			// Check if occurrences span multiple 15-minute buckets
+			const bucketKeys = new Set<number>();
+			occurrencesInWindow.forEach((o) => {
+				const key = toBucketKey(o.timestamp);
+				if (key !== null) bucketKeys.add(key);
+			});
+
+			// Safe plates have all detections in a single 15m bucket; exclude those
+			if (bucketKeys.size < 2) return;
+
+			// Use only occurrences within the time window
+			const occurrences = occurrencesInWindow.map((o) => ({
+				log_id: o.log_id,
+				timestamp: o.timestamp,
+				camera_id: o.camera_id,
+				camera_name: o.camera_name,
+				crop: o.crop,
+				inner_crop: o.inner_crop
+			}));
+
+			const sample = plateBucket.sample?.hits?.hits?.[0]?._source;
+			// Use timestamps from filtered occurrences within 24-hour window
+			const firstSeen = new Date(firstTimestamp);
+			const lastSeen = new Date(occurrencesInWindow[occurrencesInWindow.length - 1].timestampMs);
+
+			const cameraIds = (plateBucket.cameras?.buckets ?? []).map((c) => String(c.key));
+			const uniqueCameraIds = Array.from(new Set(cameraIds));
+			const camerasData = uniqueCameraIds.map((cid) => {
+				const cam = isValidObjectId(cid) ? cameraMap.get(cid) : undefined;
+				return { camera_id: cid, camera_name: cam?.name ?? 'Unknown' };
+			});
+
+			suspicious.push({
+				plate_number: stringPlateToJson(plateKey),
+				plate_number_string: plateKey,
+				count: plateBucket.doc_count,
+				first_seen: firstSeen.toLocaleString('en-US', { timeZone: timezone }),
+				last_seen: lastSeen.toLocaleString('en-US', { timeZone: timezone }),
+				last_seen_timestamp: lastSeen.getTime(),
+				camera_ids: uniqueCameraIds,
+				cameras: camerasData,
+				occurrences,
+				sample_crop: sample?.crop ?? null,
+				sample_inner_crop: sample?.inner_crop ?? null
+			});
+		});
+
+		// Sort suspicious plates by latest report timestamp descending
+		const sorted = suspicious.sort((a, b) => b.last_seen_timestamp - a.last_seen_timestamp);
+		const total = sorted.length;
+		const start = (page - 1) * limit;
+		const pagedData = sorted.slice(start, start + limit).map((item) => {
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			const { last_seen_timestamp, ...rest } = item;
+			return rest;
+		});
+
+		return res.status(200).json({
+			success: true,
+			data: pagedData,
+			total,
+			page,
+			limit,
+			total_pages: Math.ceil(total / limit)
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /suspicious-plates/unique-count
+ * Get count of unique suspicious plates (24 hours window)
+ */
+router.post('/suspicious-plates/unique-count', async (req: Request, res, next) => {
+	try {
+		const {
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			cameras,
+			timez,
+			occurrence_limit,
+			plates,
+			plate_search_type,
+			window_hours: rawWindowHours,
+			min_time_span_hours: rawMinTimeSpanHours
+		} = req.body;
+
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const bucketIntervalMs = 15 * 60 * 1000;
+
+		// Configurable suspicious plate detection parameters
+		const windowHours = Number(rawWindowHours) > 0 ? Number(rawWindowHours) : 24;
+		const minTimeSpanHours = Number(rawMinTimeSpanHours) > 0 ? Number(rawMinTimeSpanHours) : 1;
+		const plateAggSize = 10000;
+		const maxOccurrencesSize = 100;
+		const occurrencesSize =
+			Number(occurrence_limit) > 0
+				? Math.min(Number(occurrence_limit), maxOccurrencesSize)
+				: maxOccurrencesSize;
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build base query with must clauses
+		const mustClauses = [...time_constraints, ...camera_filter];
+		const mustNotClauses = [
+			{ wildcard: { 'plate_number.keyword': '*\\**' } },
+			{ wildcard: { 'plate_number.keyword': '*_*' } },
+			{ regexp: { 'plate_number.keyword': '.*[_*].*' } }
+		];
+
+		// Handle plate search
+		let plateSearchClauses: unknown[] = [];
+		if (plate_search_type === 'noplate') {
+			plateSearchClauses = [
+				{
+					bool: {
+						should: [
+							{ term: { 'plate_number.keyword': '********' } },
+							{ term: { 'plate_number.keyword': '' } },
+							{ bool: { must_not: [{ exists: { field: 'plate_number' } }] } }
+						],
+						minimum_should_match: 1
+					}
+				}
+			];
+			mustNotClauses.length = 0;
+		} else if (plates?.length) {
+			const plateStrings = platesToStrings(plates);
+			const searchType = plate_search_type ?? 'normal';
+			const tempQuery = {
+				bool: {
+					must: mustClauses,
+					must_not: [],
+					should: []
+				}
+			};
+			plateSearchClauses = [
+				{
+					bool: {
+						should: plateStrings
+							.map((plateString) =>
+								plateToQueryJSON(plateString, searchType, {
+									originalQueryToAlter: tempQuery
+								})
+							)
+							.flat(),
+						minimum_should_match: 1
+					}
+				}
+			];
+		}
+
+		if (plateSearchClauses.length > 0) {
+			mustClauses.push(...plateSearchClauses);
+		}
+
+		const query = {
+			index: process.env['PLATE_INDEX'] ?? 'plate_log',
+			size: 0,
+			query: {
+				bool: {
+					must: mustClauses,
+					must_not: mustNotClauses
+				}
+			},
+			aggs: {
+				plates: {
+					terms: {
+						field: 'plate_number.keyword',
+						size: plateAggSize,
+						order: { _count: 'desc' },
+						min_doc_count: 2
+					},
+					aggs: {
+						first_seen: { min: { field: 'timestamp' } },
+						last_seen: { max: { field: 'timestamp' } },
+						cameras: {
+							terms: {
+								field: 'camera_id.keyword',
+								size: 20
+							}
+						},
+						occurrences: {
+							top_hits: {
+								size: occurrencesSize,
+								_source: ['timestamp', 'camera_id', 'crop', 'inner_crop', 'plate_number'],
+								sort: [{ timestamp: { order: 'asc' } }]
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esRes;
+		try {
+			esRes = await process.esclient.search(query);
+		} catch (err: unknown) {
+			const error = err as { meta?: { body?: { error?: { type?: string } } }; message?: string };
+			if (error.meta?.body?.error?.type === 'index_not_found_exception') {
+				return res.status(200).json({
+					success: true,
+					unique_plates_count: 0,
+					message: `Index ${query.index} not found. No data available.`
+				});
+			}
+			throw err;
+		}
+
+		type OccurrenceHit = {
+			_id?: string;
+			_source?: {
+				timestamp?: string;
+				camera_id?: string;
+				crop?: string;
+				inner_crop?: string;
+				plate_number?: string;
+			};
+		};
+		type PlateAggBucket = {
+			key: string;
+			doc_count: number;
+			first_seen?: { value?: number };
+			last_seen?: { value?: number };
+			cameras?: { buckets?: Array<{ key: string }> };
+			occurrences?: { hits?: { hits?: OccurrenceHit[] } };
+		};
+
+		const aggregations = esRes.aggregations as {
+			plates?: { buckets?: PlateAggBucket[] };
+		};
+
+		if (!aggregations?.plates?.buckets) {
+			return res.status(200).json({
+				success: true,
+				unique_plates_count: 0
+			});
+		}
+
+		const toBucketKey = (ts: string | undefined | null): number | null => {
+			if (!ts) return null;
+			const n = new Date(ts).getTime();
+			return Number.isFinite(n) ? Math.floor(n / bucketIntervalMs) : null;
+		};
+
+		// Calculate unique suspicious plates count
+		const uniquePlates = new Set<string>();
+		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
+			const plateKey = plateBucket.key;
+			const hits = plateBucket.occurrences?.hits?.hits ?? [];
+			if (!hits.length) return;
+
+			const allOccurrences = hits.map((hit) => ({
+				log_id: hit._id ?? null,
+				timestamp: hit._source?.timestamp ?? null,
+				camera_id: hit._source?.camera_id ?? null,
+				crop: hit._source?.crop ?? null,
+				inner_crop: hit._source?.inner_crop ?? null
+			}));
+
+			// Convert timestamps and sort by time
+			const occurrencesWithTimestamps = allOccurrences
+				.map((o) => {
+					if (!o.timestamp) return null;
+					const ts = typeof o.timestamp === 'string' ? new Date(o.timestamp).getTime() : Number(o.timestamp);
+					if (!Number.isFinite(ts) || ts <= 0) return null;
+					return { ...o, timestampMs: ts };
+				})
+				.filter((o): o is (typeof allOccurrences)[0] & { timestampMs: number } => o !== null)
+				.sort((a, b) => a.timestampMs - b.timestampMs);
+
+			if (occurrencesWithTimestamps.length < 2) return;
+
+			// Filter occurrences to only include those within the configured time window
+			const firstTimestamp = occurrencesWithTimestamps[0].timestampMs;
+			const windowMs = windowHours * 60 * 60 * 1000;
+			const windowEnd = firstTimestamp + windowMs;
+
+			// Get all occurrences within the time window
+			const occurrencesInWindow = occurrencesWithTimestamps.filter((o) => o.timestampMs <= windowEnd);
+
+			if (occurrencesInWindow.length < 2) return;
+
+			// Calculate time span within the time window
+			const lastTimestampInWindow = occurrencesInWindow[occurrencesInWindow.length - 1].timestampMs;
+			const timeSpanMs = lastTimestampInWindow - firstTimestamp;
+			const timeSpanHours = timeSpanMs / (1000 * 60 * 60);
+
+			// Exclude plates with very short time spans (less than configured minimum)
+			if (timeSpanHours < minTimeSpanHours) return;
+
+			// Check if occurrences span multiple 15-minute buckets
+			const bucketKeys = new Set<number>();
+			occurrencesInWindow.forEach((o) => {
+				const key = toBucketKey(o.timestamp);
+				if (key !== null) bucketKeys.add(key);
+			});
+
+			// Safe plates have all detections in a single 15m bucket; exclude those
+			if (bucketKeys.size < 2) return;
+
+			// Add to unique plates set
+			uniquePlates.add(plateKey);
+		});
+
+		return res.status(200).json({
+			success: true,
+			unique_plates_count: uniquePlates.size
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /suspicious-plates/chart
+ * Get chart data for unique suspicious plates over time
+ * Returns time-series data grouped by interval (hour, day, week)
+ */
+router.post('/suspicious-plates/chart', async (req: Request, res, next) => {
+	try {
+		const {
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			cameras,
+			timez,
+			plates,
+			plate_search_type,
+			window_hours: rawWindowHours,
+			min_time_span_hours: rawMinTimeSpanHours,
+			interval: rawInterval = 'hour' // 'hour', 'day', 'week'
+		} = req.body;
+
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const bucketIntervalMs = 15 * 60 * 1000;
+		const windowHours = Number(rawWindowHours) > 0 ? Number(rawWindowHours) : 24;
+		const minTimeSpanHours = Number(rawMinTimeSpanHours) > 0 ? Number(rawMinTimeSpanHours) : 1;
+		const plateAggSize = 10000;
+		const maxOccurrencesSize = 100;
+		const occurrencesSize = maxOccurrencesSize;
+
+		// Determine interval for histogram
+		let intervalStr: string;
+		switch (rawInterval) {
+			case 'day':
+				intervalStr = '1d';
+				break;
+			case 'week':
+				intervalStr = '1w';
+				break;
+			case 'hour':
+			default:
+				intervalStr = '1h';
+				break;
+		}
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build base query with must clauses
+		const mustClauses = [...time_constraints, ...camera_filter];
+		const mustNotClauses = [
+			{ wildcard: { 'plate_number.keyword': '*\\**' } },
+			{ wildcard: { 'plate_number.keyword': '*_*' } },
+			{ regexp: { 'plate_number.keyword': '.*[_*].*' } }
+		];
+
+		// Handle plate search
+		let plateSearchClauses: unknown[] = [];
+		if (plate_search_type === 'noplate') {
+			plateSearchClauses = [
+				{
+					bool: {
+						should: [
+							{ term: { 'plate_number.keyword': '********' } },
+							{ term: { 'plate_number.keyword': '' } },
+							{ bool: { must_not: [{ exists: { field: 'plate_number' } }] } }
+						],
+						minimum_should_match: 1
+					}
+				}
+			];
+			mustNotClauses.length = 0;
+		} else if (plates?.length) {
+			const plateStrings = platesToStrings(plates);
+			const searchType = plate_search_type ?? 'normal';
+			const tempQuery = {
+				bool: {
+					must: mustClauses,
+					must_not: [],
+					should: []
+				}
+			};
+			plateSearchClauses = [
+				{
+					bool: {
+						should: plateStrings
+							.map((plateString) =>
+								plateToQueryJSON(plateString, searchType, {
+									originalQueryToAlter: tempQuery
+								})
+							)
+							.flat(),
+						minimum_should_match: 1
+					}
+				}
+			];
+		}
+
+		if (plateSearchClauses.length > 0) {
+			mustClauses.push(...plateSearchClauses);
+		}
+
+		const query = {
+			index: process.env['PLATE_INDEX'] ?? 'plate_log',
+			size: 0,
+			query: {
+				bool: {
+					must: mustClauses,
+					must_not: mustNotClauses
+				}
+			},
+			aggs: {
+				by_time: {
+					date_histogram: {
+						field: 'timestamp',
+						fixed_interval: intervalStr,
+						time_zone: timezone,
+						min_doc_count: 1
+					},
+					aggs: {
+						plates: {
+							terms: {
+								field: 'plate_number.keyword',
+								size: plateAggSize,
+								order: { _count: 'desc' },
+								min_doc_count: 2
+							},
+							aggs: {
+								first_seen: { min: { field: 'timestamp' } },
+								last_seen: { max: { field: 'timestamp' } },
+								occurrences: {
+									top_hits: {
+										size: occurrencesSize,
+										_source: ['timestamp'],
+										sort: [{ timestamp: { order: 'asc' } }]
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esRes;
+		try {
+			esRes = await process.esclient.search(query);
+		} catch (err: unknown) {
+			if (isCustomTimeZoneUnsupportedError(err)) {
+				const byTimeHistogram = query.aggs?.by_time?.date_histogram as Record<string, unknown> | undefined;
+				if (byTimeHistogram?.time_zone) {
+					// Legacy indices store timestamp as a long; remove time_zone so ES accepts the histogram.
+					delete byTimeHistogram.time_zone;
+				}
+				try {
+					esRes = await process.esclient.search(query);
+				} catch (retryErr: unknown) {
+					if (isIndexNotFoundError(retryErr)) {
+						return res.status(200).json({
+							success: true,
+							data: [],
+							interval: rawInterval,
+							message: `Index ${query.index} not found. No data available.`
+						});
+					}
+					throw retryErr;
+				}
+			} else if (isIndexNotFoundError(err)) {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					interval: rawInterval,
+					message: `Index ${query.index} not found. No data available.`
+				});
+			} else {
+				throw err;
+			}
+		}
+
+		type OccurrenceHit = {
+			_source?: { timestamp?: string };
+		};
+		type PlateBucket = {
+			key: string;
+			doc_count: number;
+			first_seen?: { value?: number };
+			last_seen?: { value?: number };
+			occurrences?: { hits?: { hits?: OccurrenceHit[] } };
+		};
+		type TimeBucket = {
+			key: number;
+			doc_count: number;
+			plates?: { buckets?: PlateBucket[] };
+		};
+
+		const aggregations = esRes.aggregations as {
+			by_time?: { buckets?: TimeBucket[] };
+		};
+
+		if (!aggregations?.by_time?.buckets) {
+			return res.status(200).json({
+				success: true,
+				data: [],
+				interval: rawInterval
+			});
+		}
+
+		const toBucketKey = (ts: string | undefined | null): number | null => {
+			if (!ts) return null;
+			const n = new Date(ts).getTime();
+			return Number.isFinite(n) ? Math.floor(n / bucketIntervalMs) : null;
+		};
+
+		// Process each time bucket
+		const chartData = (aggregations.by_time.buckets ?? []).map((timeBucket) => {
+			const uniquePlates = new Set<string>();
+			const plateBuckets = timeBucket.plates?.buckets ?? [];
+
+			plateBuckets.forEach((plateBucket) => {
+				const plateKey = plateBucket.key;
+				const hits = plateBucket.occurrences?.hits?.hits ?? [];
+				if (!hits.length) return;
+
+				const allOccurrences = hits.map((hit) => ({
+					timestamp: hit._source?.timestamp ?? null
+				}));
+
+				// Convert timestamps and sort by time
+				const occurrencesWithTimestamps = allOccurrences
+					.map((o) => {
+						if (!o.timestamp) return null;
+						const ts =
+							typeof o.timestamp === 'string' ? new Date(o.timestamp).getTime() : Number(o.timestamp);
+						if (!Number.isFinite(ts) || ts <= 0) return null;
+						return { timestampMs: ts };
+					})
+					.filter((o): o is { timestampMs: number } => o !== null)
+					.sort((a, b) => a.timestampMs - b.timestampMs);
+
+				if (occurrencesWithTimestamps.length < 2) return;
+
+				// Filter occurrences to only include those within the configured time window
+				const firstTimestamp = occurrencesWithTimestamps[0].timestampMs;
+				const windowMs = windowHours * 60 * 60 * 1000;
+				const windowEnd = firstTimestamp + windowMs;
+
+				// Get all occurrences within the time window
+				const occurrencesInWindow = occurrencesWithTimestamps.filter((o) => o.timestampMs <= windowEnd);
+
+				if (occurrencesInWindow.length < 2) return;
+
+				// Calculate time span within the time window
+				const lastTimestampInWindow = occurrencesInWindow[occurrencesInWindow.length - 1].timestampMs;
+				const timeSpanMs = lastTimestampInWindow - firstTimestamp;
+				const timeSpanHours = timeSpanMs / (1000 * 60 * 60);
+
+				// Exclude plates with very short time spans (less than configured minimum)
+				if (timeSpanHours < minTimeSpanHours) return;
+
+				// Check if occurrences span multiple 15-minute buckets
+				const bucketKeys = new Set<number>();
+				occurrencesInWindow.forEach((o) => {
+					const key = toBucketKey(new Date(o.timestampMs).toISOString());
+					if (key !== null) bucketKeys.add(key);
+				});
+
+				// Safe plates have all detections in a single 15m bucket; exclude those
+				if (bucketKeys.size < 2) return;
+
+				// Add to unique plates set
+				uniquePlates.add(plateKey);
+			});
+
+			return {
+				time: new Date(timeBucket.key).toLocaleString('en-US', { timeZone: timezone }),
+				time_epoch: timeBucket.key,
+				unique_plates_count: uniquePlates.size,
+				total_detections: timeBucket.doc_count
+			};
+		});
+
+		return res.status(200).json({
+			success: true,
+			data: chartData,
+			interval: rawInterval,
+			total: chartData.length
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /suspicious-plates/summary
+ * Lightweight summary of suspicious plates (without occurrences array)
+ */
+router.post('/suspicious-plates/summary', async (req: Request, res, next) => {
+	try {
+		const {
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			cameras,
+			limit: rawLimit = 20,
+			page: rawPage,
+			timez,
+			plates,
+			plate_search_type,
+			window_hours: rawWindowHours,
+			min_time_span_hours: rawMinTimeSpanHours
+		} = req.body;
+
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const limit = Number(rawLimit) > 0 ? Number(rawLimit) : 20;
+		const page = Number(rawPage) > 0 ? Number(rawPage) : 1;
+		const bucketIntervalMs = 15 * 60 * 1000;
+
+		// Configurable suspicious plate detection parameters
+		// Window hours: Time window to check for occurrences (default: 24 hours)
+		// Min time span hours: Minimum time span between first and last occurrence to be considered suspicious (default: 1 hour)
+		const windowHours = Number(rawWindowHours) > 0 ? Number(rawWindowHours) : 24;
+		const minTimeSpanHours = Number(rawMinTimeSpanHours) > 0 ? Number(rawMinTimeSpanHours) : 1;
+		// Fetch a large number to get accurate total count (max 10000 for performance)
+		// We need all data to calculate the true total after filtering
+		const plateAggSize = 10000;
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build base query with must clauses
+		const mustClauses = [...time_constraints, ...camera_filter];
+		const mustNotClauses = [
+			{ wildcard: { 'plate_number.keyword': '*\\**' } },
+			{ wildcard: { 'plate_number.keyword': '*_*' } },
+			{ regexp: { 'plate_number.keyword': '.*[_*].*' } }
+		];
+
+		// Handle plate search (similar to similar-plates-15min)
+		// noplate mode: Search for logs without valid plate numbers
+		let plateSearchClauses: unknown[] = [];
+		if (plate_search_type === 'noplate') {
+			// For noplate, we want to include plates with masks, so we don't add them to must_not
+			// Instead, we add a specific query for masked plates
+			plateSearchClauses = [
+				{
+					bool: {
+						should: [
+							{ term: { 'plate_number.keyword': '********' } },
+							{ term: { 'plate_number.keyword': '' } },
+							{ bool: { must_not: [{ exists: { field: 'plate_number' } }] } }
+						],
+						minimum_should_match: 1
+					}
+				}
+			];
+			// Remove the mask exclusions for noplate mode
+			mustNotClauses.length = 0;
+		} else if (plates?.length) {
+			// Convert plate objects to string format
+			const plateStrings = platesToStrings(plates);
+			const searchType = plate_search_type ?? 'normal';
+
+			// Add plate search clauses (OR between different plates)
+			// Build a temporary query object for plateToQueryJSON
+			const tempQuery = {
+				bool: {
+					must: mustClauses,
+					must_not: [],
+					should: []
+				}
+			};
+			plateSearchClauses = [
+				{
+					bool: {
+						// Each plate pattern becomes a query clause
+						should: plateStrings
+							.map((plateString) =>
+								// plateToQueryJSON handles wildcards and search modes
+								plateToQueryJSON(plateString, searchType, {
+									originalQueryToAlter: tempQuery
+								})
+							)
+							.flat(),
+						minimum_should_match: 1
+					}
+				}
+			];
+		}
+
+		// Add plate search clauses to must clauses if any
+		if (plateSearchClauses.length > 0) {
+			mustClauses.push(...plateSearchClauses);
+		}
+
+		const query = {
+			index: process.env['PLATE_INDEX'] ?? 'plate_log',
+			size: 0,
+			query: {
+				bool: {
+					must: mustClauses,
+					must_not: mustNotClauses
+				}
+			},
+			aggs: {
+				plates: {
+					terms: {
+						field: 'plate_number.keyword',
+						size: plateAggSize,
+						order: { _count: 'desc' },
+						min_doc_count: 2
+					},
+					aggs: {
+						first_seen: { min: { field: 'timestamp' } },
+						last_seen: { max: { field: 'timestamp' } },
+						cameras: {
+							terms: {
+								field: 'camera_id.keyword',
+								size: 20
+							}
+						},
+						occurrences: {
+							top_hits: {
+								size: 100,
+								_source: ['timestamp'],
+								sort: [{ timestamp: { order: 'asc' } }]
+							}
+						},
+						sample: {
+							top_hits: {
+								size: 1,
+								_source: ['plate_number', 'crop', 'inner_crop']
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esRes;
+		try {
+			esRes = await process.esclient.search(query);
+		} catch (err: unknown) {
+			const error = err as { meta?: { body?: { error?: { type?: string } } }; message?: string };
+			if (error.meta?.body?.error?.type === 'index_not_found_exception') {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0,
+					message: `Index ${query.index} not found. No data available.`
+				});
+			}
+			throw err;
+		}
+
+		type OccurrenceHitSummary = {
+			_source?: { timestamp?: string };
+		};
+		type PlateAggBucketSummary = {
+			key: string;
+			doc_count: number;
+			first_seen?: { value?: number };
+			last_seen?: { value?: number };
+			cameras?: { buckets?: Array<{ key: string }> };
+			occurrences?: { hits?: { hits?: OccurrenceHitSummary[] } };
+			sample?: { hits?: { hits?: Array<{ _source?: { crop?: string; inner_crop?: string } }> } };
+		};
+
+		const aggregations = esRes.aggregations as {
+			plates?: { buckets?: PlateAggBucketSummary[] };
+		};
+
+		if (!aggregations?.plates?.buckets) {
+			return res.status(200).json({
+				success: true,
+				data: [],
+				total: 0
+			});
+		}
+
+		const allCameraIds = new Set<string>();
+		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
+			(plateBucket.cameras?.buckets ?? []).forEach((cam) => {
+				const camId = String(cam.key);
+				if (isValidObjectId(camId)) {
+					allCameraIds.add(camId);
+				}
+			});
+		});
+
+		const cameraMap = await Camera.find({ _id: { $in: Array.from(allCameraIds) } })
+			.exec()
+			.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc])));
+
+		const suspicious: Array<{
+			plate_number: unknown;
+			plate_number_string: string;
+			count: number;
+			first_seen: string;
+			last_seen: string;
+			camera_ids: string[];
+			cameras: Array<{ camera_id: string; camera_name: string }>;
+			sample_crop: string | null;
+			sample_inner_crop: string | null;
+		}> = [];
+
+		const toBucketKey = (ts: string | undefined | null): number | null => {
+			if (!ts) return null;
+			const n = new Date(ts).getTime();
+			return Number.isFinite(n) ? Math.floor(n / bucketIntervalMs) : null;
+		};
+
+		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
+			const plateKey = plateBucket.key;
+			const hits = plateBucket.occurrences?.hits?.hits ?? [];
+			if (!hits.length) return;
+
+			// Convert timestamps and sort by time
+			const occurrencesWithTimestamps = hits
+				.map((hit) => {
+					if (!hit._source?.timestamp) return null;
+					const ts =
+						typeof hit._source.timestamp === 'string'
+							? new Date(hit._source.timestamp).getTime()
+							: Number(hit._source.timestamp);
+					if (!Number.isFinite(ts) || ts <= 0) return null;
+					return { timestamp: hit._source.timestamp, timestampMs: ts };
+				})
+				.filter((o): o is { timestamp: string; timestampMs: number } => o !== null)
+				.sort((a, b) => a.timestampMs - b.timestampMs);
+
+			if (occurrencesWithTimestamps.length < 2) return;
+
+			// Filter occurrences to only include those within the configured time window
+			// Start from the first occurrence and include all occurrences within the window
+			const firstTimestamp = occurrencesWithTimestamps[0].timestampMs;
+			const windowMs = windowHours * 60 * 60 * 1000;
+			const windowEnd = firstTimestamp + windowMs;
+
+			// Get all occurrences within the time window
+			const occurrencesInWindow = occurrencesWithTimestamps.filter((o) => o.timestampMs <= windowEnd);
+
+			if (occurrencesInWindow.length < 2) return;
+
+			// Calculate time span within the time window
+			const lastTimestampInWindow = occurrencesInWindow[occurrencesInWindow.length - 1].timestampMs;
+			const timeSpanMs = lastTimestampInWindow - firstTimestamp;
+			const timeSpanHours = timeSpanMs / (1000 * 60 * 60);
+
+			// Exclude plates with very short time spans (less than configured minimum) as these are likely normal entry/exit patterns
+			// A normal visit (entry followed by exit) typically happens within minutes
+			// Consider plates suspicious if they have multiple occurrences spanning at least the configured minimum within the time window
+			// This catches vehicles that appear multiple times over an extended period (suspicious loitering/activity)
+			if (timeSpanHours < minTimeSpanHours) return;
+
+			// Check if occurrences span multiple 15-minute buckets
+			const bucketKeys = new Set<number>();
+			occurrencesInWindow.forEach((o) => {
+				const key = toBucketKey(o.timestamp);
+				if (key !== null) bucketKeys.add(key);
+			});
+
+			// Safe plates have all detections in a single 15m bucket; exclude those
+			if (bucketKeys.size < 2) return;
+
+			const sample = plateBucket.sample?.hits?.hits?.[0]?._source;
+			// Use timestamps from filtered occurrences within 24-hour window
+			const firstSeen = new Date(firstTimestamp);
+			const lastSeen = new Date(occurrencesInWindow[occurrencesInWindow.length - 1].timestampMs);
+
+			const cameraIds = (plateBucket.cameras?.buckets ?? []).map((c) => String(c.key));
+			const uniqueCameraIds = Array.from(new Set(cameraIds));
+			const camerasData = uniqueCameraIds.map((cid) => {
+				const cam = isValidObjectId(cid) ? cameraMap.get(cid) : undefined;
+				return { camera_id: cid, camera_name: cam?.name ?? 'Unknown' };
+			});
+
+			suspicious.push({
+				plate_number: stringPlateToJson(plateKey),
+				plate_number_string: plateKey,
+				count: plateBucket.doc_count,
+				first_seen: firstSeen.toLocaleString('en-US', { timeZone: timezone }),
+				last_seen: lastSeen.toLocaleString('en-US', { timeZone: timezone }),
+				camera_ids: uniqueCameraIds,
+				cameras: camerasData,
+				sample_crop: sample?.crop ?? null,
+				sample_inner_crop: sample?.inner_crop ?? null
+			});
+		});
+
+		const sorted = suspicious.sort((a, b) => b.count - a.count);
+		const total = sorted.length;
+		const start = (page - 1) * limit;
+		const pagedData = sorted.slice(start, start + limit);
+
+		return res.status(200).json({
+			success: true,
+			data: pagedData,
+			total,
+			page,
+			limit,
+			total_pages: Math.ceil(total / limit)
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /suspicious-plates/details
+ * Get detailed occurrences for a specific suspicious plate
+ */
+router.post('/suspicious-plates/details', async (req: Request, res, next) => {
+	try {
+		const { plate_number, date_start, date_end, time_start, time_end, cameras, timez, occurrence_limit } =
+			req.body;
+
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		if (!plate_number) {
+			return res.status(400).json({
+				success: false,
+				message: 'plate_number is required'
+			});
+		}
+		const size = Number(occurrence_limit) > 0 ? Number(occurrence_limit) : 200;
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		const query = {
+			index: process.env['PLATE_INDEX'] ?? 'plate_log',
+			size,
+			query: {
+				bool: {
+					must: [...time_constraints, ...camera_filter, { term: { 'plate_number.keyword': plate_number } }]
+				}
+			},
+			sort: [{ timestamp: { order: 'asc' } }],
+			_source: ['timestamp', 'camera_id', 'crop', 'inner_crop', 'plate_number']
+		};
+
+		let esRes;
+		try {
+			esRes = await process.esclient.search(query);
+		} catch (err: unknown) {
+			const error = err as { meta?: { body?: { error?: { type?: string } } }; message?: string };
+			if (error.meta?.body?.error?.type === 'index_not_found_exception') {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0,
+					message: `Index ${query.index} not found. No data available.`
+				});
+			}
+			throw err;
+		}
+
+		type DetailHit = {
+			_id?: string;
+			_source?: {
+				timestamp?: string;
+				camera_id?: string;
+				crop?: string;
+				inner_crop?: string;
+				plate_number?: string;
+			};
+		};
+		const hits = (esRes.hits?.hits ?? []) as DetailHit[];
+
+		if (hits.length === 0) {
+			return res.status(200).json({
+				success: true,
+				data: [],
+				total: 0
+			});
+		}
+
+		const bucketIntervalMs = 15 * 60 * 1000;
+		const toBucketKey = (ts: string | undefined | null): number | null => {
+			if (!ts) return null;
+			const n = new Date(ts).getTime();
+			return Number.isFinite(n) ? Math.floor(n / bucketIntervalMs) : null;
+		};
+
+		const bucketKeys = new Set<number>();
+		hits.forEach((hit) => {
+			const key = toBucketKey(hit._source?.timestamp);
+			if (key !== null) bucketKeys.add(key);
+		});
+
+		// If all detections are in a single 15m bucket, it's not suspicious
+		if (bucketKeys.size < 2) {
+			return res.status(200).json({
+				success: true,
+				data: [],
+				total: 0,
+				message: 'This plate is not suspicious (all detections within a single 15-minute window)'
+			});
+		}
+
+		const cameraIdsSet = new Set<string>();
+		hits.forEach((hit) => {
+			const camId = hit._source?.camera_id;
+			if (camId && isValidObjectId(camId)) {
+				cameraIdsSet.add(camId);
+			}
+		});
+
+		const cameraMap = await Camera.find({ _id: { $in: Array.from(cameraIdsSet) } })
+			.exec()
+			.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc])));
+
+		const occurrences = hits.map((hit) => ({
+			log_id: hit._id ?? null,
+			timestamp: hit._source?.timestamp ?? null,
+			camera_id: hit._source?.camera_id ?? null,
+			camera_name: hit._source?.camera_id
+				? (cameraMap.get(String(hit._source?.camera_id))?.name ?? 'Unknown')
+				: 'Unknown',
+			crop: hit._source?.crop ?? null,
+			inner_crop: hit._source?.inner_crop ?? null
+		}));
+
+		const timestamps = occurrences
+			.map((o) => (o.timestamp ? new Date(o.timestamp).getTime() : undefined))
+			.filter((t): t is number => typeof t === 'number');
+		const firstSeen = timestamps.length ? new Date(Math.min(...timestamps)) : new Date();
+		const lastSeen = timestamps.length ? new Date(Math.max(...timestamps)) : new Date();
+		const uniqueCameraIds = Array.from(
+			new Set(occurrences.map((o) => o.camera_id).filter((id): id is string => !!id))
+		);
+		const camerasData = uniqueCameraIds.map((cid) => {
+			const cam = isValidObjectId(cid) ? cameraMap.get(cid) : undefined;
+			return { camera_id: cid, camera_name: cam?.name ?? 'Unknown' };
+		});
+
+		return res.status(200).json({
+			success: true,
+			data: {
+				plate_number: stringPlateToJson(String(plate_number)),
+				plate_number_string: String(plate_number),
+				first_seen: firstSeen.toLocaleString('en-US', { timeZone: timezone }),
+				last_seen: lastSeen.toLocaleString('en-US', { timeZone: timezone }),
+				count: occurrences.length,
+				camera_ids: uniqueCameraIds,
+				cameras: camerasData,
+				occurrences
+			},
+			total: occurrences.length
 		});
 	} catch (err) {
 		return next(

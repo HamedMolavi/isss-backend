@@ -391,10 +391,12 @@ export const cancelBackupJob = async (req: Request, res: Response) => {
 			});
 		}
 
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.info(`Backup job cancelled: ${jobId}`, {
 			jobId,
 			userId: req.user?.id,
-			ip: getClientIP(req)
+			ip: getClientIP(req),
+			userAgent
 		});
 
 		return ApiRes(res, {
@@ -748,11 +750,13 @@ export const exportMinIOToExternalDrive = async (req: Request, res: Response) =>
 		const jobId = `export_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 		const jobManager = BackupJobManager.getInstance();
 
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.info('Starting MinIO export job', {
 			jobId,
 			externalDrivePath,
 			buckets: buckets?.length || 'all',
-			userId: req.user?.id
+			userId: req.user?.id,
+			userAgent
 		});
 
 		// Start export job (runs in background)
@@ -770,9 +774,11 @@ export const exportMinIOToExternalDrive = async (req: Request, res: Response) =>
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.error('MinIO export failed to start', {
 			error: errorMessage,
-			userId: req.user?.id
+			userId: req.user?.id,
+			userAgent
 		});
 
 		return ApiRes(res, {
@@ -888,7 +894,12 @@ export const listExternalBackups = async (req: Request, res: Response) => {
 		});
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-		Logger.error('Failed to list external backups', { error: errorMessage });
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to list external backups', {
+			error: errorMessage,
+			userAgent,
+			userId: req.user?.id
+		});
 
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,

@@ -107,8 +107,30 @@ export const ACTION_LABELS: Record<string, string> = {
 	system_operation: 'عملیات سیستمی',
 	config_changed: 'تغییر تنظیمات',
 	backup_created: 'ایجاد پشتیبان',
+	backup_create_failed: 'ایجاد پشتیبان ناموفق',
 	backup_restored: 'بازیابی پشتیبان',
+	backup_restore_failed: 'بازیابی پشتیبان ناموفق',
+	backup_uploaded: 'آپلود پشتیبان',
+	backup_upload_failed: 'آپلود پشتیبان ناموفق',
+	backup_downloaded: 'دانلود پشتیبان',
+	backup_download_failed: 'دانلود پشتیبان ناموفق',
 	backup_deleted: 'حذف پشتیبان',
+	backup_delete_failed: 'حذف پشتیبان ناموفق',
+	backup_cleanup: 'پاکسازی پشتیبان',
+	backup_cleanup_failed: 'پاکسازی پشتیبان ناموفق',
+	ttl_backup_started: 'شروع پشتیبان TTL',
+	ttl_backup_completed: 'اتمام پشتیبان TTL',
+	ttl_backup_failed: 'شکست پشتیبان TTL',
+	auto_backup_started: 'شروع پشتیبان خودکار',
+	auto_backup_completed: 'اتمام پشتیبان خودکار',
+	auto_backup_failed: 'شکست پشتیبان خودکار',
+	compressed_backup_created: 'ایجاد پشتیبان فشرده',
+	compressed_backup_failed: 'ایجاد پشتیبان فشرده ناموفق',
+	ftp_upload_completed: 'آپلود FTP موفق',
+	ftp_upload_failed: 'آپلود FTP ناموفق',
+	storage_warning_threshold_exceeded: 'تجاوز از آستانه هشدار ذخیره‌سازی',
+	storage_critical_threshold_exceeded: 'تجاوز از آستانه بحرانی ذخیره‌سازی',
+	storage_threshold_cleared: 'پاک شدن آستانه ذخیره‌سازی',
 
 	// Data events
 	data_created: 'ایجاد داده',
@@ -116,6 +138,16 @@ export const ACTION_LABELS: Record<string, string> = {
 	data_deleted: 'حذف داده',
 	data_exported: 'صادرات داده',
 	data_imported: 'واردات داده',
+	excel_export: 'صادرات اکسل',
+	csv_export: 'صادرات CSV',
+	report_export: 'صادرات گزارش',
+	video_download: 'دانلود ویدیو',
+	backup_export: 'صادرات پشتیبان',
+	snapshot_capture: 'گرفتن تصویر لحظه‌ای',
+	batch_import: 'واردات دسته‌ای',
+	bulk_personnel_import: 'واردات انبوه پرسنل',
+	plate_batch_import: 'واردات دسته‌ای پلاک',
+	file_upload: 'آپلود فایل',
 
 	// Request events
 	get_request: 'درخواست دریافت',
@@ -123,6 +155,9 @@ export const ACTION_LABELS: Record<string, string> = {
 	put_request: 'درخواست به‌روزرسانی',
 	patch_request: 'درخواست به‌روزرسانی ',
 	delete_request: 'درخواست حذف',
+	request_details: 'جزئیات درخواست',
+	route_error: 'خطای مسیر',
+	execute_root: 'اجرای ریشه',
 
 	// Log access events
 	logs_list: 'مشاهده لاگ‌ها',
@@ -142,8 +177,11 @@ export const ACTION_LABELS: Record<string, string> = {
 
 	// Personnel events
 	personnel_created: 'افزودن پرسنل',
+	personnel_create_failed: 'افزودن پرسنل ناموفق',
 	personnel_updated: 'به‌روزرسانی پرسنل',
-	personnel_deleted: 'حذف پرسنل'
+	personnel_update_failed: 'به‌روزرسانی پرسنل ناموفق',
+	personnel_deleted: 'حذف پرسنل',
+	personnel_delete_failed: 'حذف پرسنل ناموفق'
 };
 
 /**
@@ -888,12 +926,359 @@ export function parseUserAgent(userAgent: string): ParsedUserAgent {
 }
 
 /**
- * Clean and simplify details object
+ * Field name translations to Persian
  */
-function cleanDetails(details: Record<string, unknown> | null): Record<string, unknown> | null {
+const DETAILS_FIELD_LABELS: Record<string, string> = {
+	// User fields
+	newUserId: 'شناسه کاربر جدید',
+	newUsername: 'نام کاربری جدید',
+	targetUserId: 'شناسه کاربر هدف',
+	targetUsername: 'نام کاربری هدف',
+	deletedUserId: 'شناسه کاربر حذف شده',
+	deletedUsername: 'نام کاربری حذف شده',
+	userId: 'شناسه کاربر',
+	username: 'نام کاربری',
+	userRole: 'نقش کاربر',
+	createdBy: 'ایجاد شده توسط',
+	updatedBy: 'به‌روزرسانی شده توسط',
+	deletedBy: 'حذف شده توسط',
+	assignedBy: 'اختصاص داده شده توسط',
+	attemptedBy: 'تلاش شده توسط',
+	resetBy: 'بازنشانی شده توسط',
+
+	// Role and access
+	assignedRole: 'نقش اختصاص داده شده',
+	previousRole: 'نقش قبلی',
+	newRole: 'نقش جدید',
+	attemptedRole: 'نقش درخواستی',
+	assignedAccessLevel: 'سطح دسترسی اختصاص داده شده',
+	previousAccessLevel: 'سطح دسترسی قبلی',
+	newAccessLevel: 'سطح دسترسی جدید',
+	permission: 'مجوز',
+	resource: 'منبع',
+	requestedAction: 'عملیات درخواستی',
+
+	// Update fields
+	updatedFields: 'فیلدهای به‌روزرسانی شده',
+	changes: 'تغییرات',
+	before: 'قبل',
+	after: 'بعد',
+	beforeSnapshot: 'وضعیت قبل',
+	afterSnapshot: 'وضعیت بعد',
+
+	// Error and attempt fields
+	error: 'خطا',
+	attemptedUserData: 'داده کاربری درخواستی',
+	attemptedCredentials: 'اعتبارات درخواستی',
+	attemptedIP: 'آدرس IP درخواستی',
+	reason: 'دلیل',
+	failureReason: 'دلیل شکست',
+
+	// Operation fields
+	operation: 'عملیات',
+	operationType: 'نوع عملیات',
+	phase: 'مرحله',
+	checkType: 'نوع بررسی',
+	severity: 'شدت',
+	status: 'وضعیت',
+
+	// Session fields
+	sessionId: 'شناسه نشست',
+	sessionInfo: 'اطلاعات نشست',
+	terminatedSessionId: 'شناسه نشست خاتمه یافته',
+	terminatedUserId: 'شناسه کاربر خاتمه یافته',
+
+	// IP fields
+	ip: 'آدرس IP',
+	addedIP: 'IP اضافه شده',
+	removedIP: 'IP حذف شده',
+	currentIP: 'IP فعلی',
+	allowedIPs: 'IP های مجاز',
+
+	// Log integrity fields
+	logId: 'شناسه لاگ',
+	violationType: 'نوع تخلف',
+	integrityStatus: 'وضعیت یکپارچگی',
+	integrityValid: 'یکپارچگی معتبر',
+	hashMismatch: 'عدم تطابق هش',
+	missingHash: 'هش مفقود',
+	changeDetails: 'جزئیات تغییر',
+	documentBefore: 'سند قبل',
+	documentAfter: 'سند بعد',
+	field: 'فیلد',
+	originalValue: 'مقدار اصلی',
+	newValue: 'مقدار جدید',
+
+	// Backup fields
+	backupPath: 'مسیر پشتیبان',
+	backupType: 'نوع پشتیبان',
+	backupSize: 'اندازه پشتیبان',
+	restored: 'بازیابی شده',
+	totalRestored: 'کل بازیابی شده',
+
+	// Scheduler fields
+	checkIntervalHours: 'فاصله بررسی (ساعت)',
+	isAutoBackup: 'پشتیبان خودکار',
+	nextCheckIn: 'بررسی بعدی',
+	needsBackup: 'نیاز به پشتیبان',
+	logsToExpire: 'لاگ‌های منقضی شونده',
+
+	// Config fields
+	configType: 'نوع تنظیمات',
+	beforeConfig: 'تنظیمات قبل',
+	afterConfig: 'تنظیمات بعد',
+	newRequirements: 'الزامات جدید',
+	newTimeout: 'زمان‌بندی جدید',
+	timeoutMinutes: 'دقیقه زمان‌بندی',
+	newMaxSessions: 'حداکثر نشست جدید',
+	settings: 'تنظیمات',
+
+	// Security fields
+	limitType: 'نوع محدودیت',
+	attackType: 'نوع حمله',
+	requestData: 'داده درخواست',
+	blocked: 'مسدود شده',
+	sanitized: 'پاکسازی شده',
+	originalData: 'داده اصلی',
+	sanitizedKey: 'کلید پاکسازی شده',
+	activity: 'فعالیت',
+	behavior: 'رفتار',
+
+	// Kafka fields
+	alertType: 'نوع هشدار',
+	kafkaTopic: 'موضوع کافکا',
+
+	// Verification fields
+	logsToVerify: 'لاگ‌های بررسی',
+	verificationScope: 'محدوده بررسی',
+	totalChecked: 'کل بررسی شده',
+	validLogs: 'لاگ‌های معتبر',
+	invalidLogs: 'لاگ‌های نامعتبر',
+	validUsers: 'کاربران معتبر',
+	invalidUsers: 'کاربران نامعتبر',
+	missingHashes: 'هش‌های مفقود',
+	invalidUserIds: 'شناسه‌های کاربر نامعتبر',
+	invalidLogIds: 'شناسه‌های لاگ نامعتبر',
+
+	// Report fields
+	reportType: 'نوع گزارش',
+
+	// Other common fields
+	mustChangePassword: 'اجبار به تغییر رمز',
+	triggeredBy: 'اجرا شده توسط',
+
+	// Backup scheduler additional fields
+	daysUntilExpiry: 'روز تا انقضا',
+	daysSinceLastBackup: 'روز از آخرین پشتیبان',
+	nextBackupDue: 'پشتیبان بعدی موعد',
+	isRunning: 'در حال اجرا',
+	intervalHours: 'فاصله زمانی (ساعت)',
+	nextCheck: 'بررسی بعدی',
+	schedulerActive: 'زمان‌بند فعال',
+
+	// Backup service additional fields
+	backupSizeMB: 'اندازه پشتیبان (مگابایت)',
+	backupDate: 'تاریخ پشتیبان',
+	cleanedLogsCount: 'تعداد لاگ‌های پاک شده',
+	totalLogs: 'کل لاگ‌ها',
+	deletedCount: 'تعداد حذف شده',
+	ftpUpload: 'آپلود FTP',
+	duplicatesSkipped: 'تکرارهای رد شده',
+	errors: 'خطاها',
+	fileName: 'نام فایل',
+	ftpHost: 'میزبان FTP',
+	ftpPath: 'مسیر FTP',
+	fileSizeMB: 'اندازه فایل (مگابایت)',
+	retentionDays: 'روزهای نگهداری',
+	currentSizeMB: 'اندازه فعلی (مگابایت)',
+	maxSizeMB: 'حداکثر اندازه (مگابایت)',
+	usagePercent: 'درصد استفاده',
+	warningThreshold: 'آستانه هشدار',
+	previousUsagePercent: 'درصد استفاده قبلی',
+	recommendation: 'توصیه',
+	originalLogsToExpire: 'لاگ‌های منقضی شونده اصلی',
+	originalDaysUntilExpiry: 'روز تا انقضای اصلی',
+
+	// Log integrity additional fields
+	serviceActive: 'سرویس فعال',
+	triggerActive: 'تریگر فعال',
+	lastVerificationTime: 'زمان آخرین بررسی',
+	healthStatus: 'وضعیت سلامت',
+	automaticDetection: 'تشخیص خودکار',
+	alertSent: 'هشدار ارسال شده',
+	verificationTimeMs: 'زمان بررسی (میلی‌ثانیه)',
+	successRate: 'نرخ موفقیت',
+	invalidLogCount: 'تعداد لاگ نامعتبر',
+	logTimestamp: 'زمان‌برچسب لاگ',
+	logLevel: 'سطح لاگ',
+	logMessage: 'پیام لاگ',
+	modificationTimestamp: 'زمان‌برچسب تغییر',
+	integrityBeforeTampering: 'یکپارچگی قبل از دستکاری',
+	integrityAfterTampering: 'یکپارچگی بعد از دستکاری',
+	tamperingDetected: 'دستکاری تشخیص داده شده',
+	detectionMethod: 'روش تشخیص',
+	systemResponse: 'پاسخ سیستم',
+
+	// Data import/export fields
+	recordCount: 'تعداد رکورد',
+	format: 'فرمت',
+	purpose: 'هدف',
+	videoId: 'شناسه ویدیو',
+	cameraId: 'شناسه دوربین',
+	cameraIp: 'IP دوربین',
+	fileType: 'نوع فایل',
+	successCount: 'تعداد موفق',
+	failedCount: 'تعداد ناموفق',
+	totalProcessed: 'کل پردازش شده',
+	dataType: 'نوع داده',
+	source: 'منبع',
+	importedCount: 'تعداد وارد شده',
+
+	// Personnel fields
+	newPersonnelId: 'شناسه پرسنل جدید',
+	newPersonnelName: 'نام پرسنل جدید',
+	targetPersonnelId: 'شناسه پرسنل هدف',
+	targetPersonnelName: 'نام پرسنل هدف',
+	deletedPersonnelId: 'شناسه پرسنل حذف شده',
+	deletedPersonnelName: 'نام پرسنل حذف شده',
+	deletedPersonnelRole: 'نقش پرسنل حذف شده',
+	attemptedPersonnelData: 'داده پرسنل درخواستی'
+};
+
+/**
+ * Value translations for common values
+ */
+const DETAILS_VALUE_LABELS: Record<string, Record<string, string>> = {
+	severity: {
+		CRITICAL: 'بحرانی',
+		HIGH: 'بالا',
+		MEDIUM: 'متوسط',
+		LOW: 'پایین',
+		INFO: 'اطلاعاتی',
+		critical: 'بحرانی',
+		warning: 'هشدار',
+		info: 'اطلاعاتی'
+	},
+	status: {
+		INTACT: 'سالم',
+		TAMPERED: 'دستکاری شده',
+		VALID: 'معتبر',
+		INVALID: 'نامعتبر',
+		ACTIVE: 'فعال',
+		INACTIVE: 'غیرفعال',
+		SUCCESS: 'موفق',
+		FAILED: 'ناموفق'
+	},
+	operation: {
+		service_startup: 'شروع سرویس',
+		service_shutdown: 'توقف سرویس',
+		integrity_check: 'بررسی یکپارچگی',
+		hash_verification: 'تأیید هش',
+		modification_detection: 'تشخیص تغییر',
+		trigger_setup: 'راه‌اندازی تریگر',
+		kafka_alert: 'هشدار کافکا',
+		status_check: 'بررسی وضعیت',
+		modification_check: 'بررسی تغییر',
+		tampering_simulation: 'شبیه‌سازی دستکاری',
+		tampering_report: 'گزارش دستکاری',
+		start_scheduler: 'شروع زمان‌بند',
+		stop_scheduler: 'توقف زمان‌بند',
+		restart_scheduler: 'راه‌اندازی مجدد زمان‌بند',
+		scheduled_check: 'بررسی زمان‌بندی شده',
+		trigger_backup: 'اجرای پشتیبان',
+		manual_check: 'بررسی دستی',
+		complete_backup: 'تکمیل پشتیبان',
+		evaluate_backup_need: 'ارزیابی نیاز به پشتیبان',
+		ttl_evaluation: 'ارزیابی TTL',
+		restore: 'بازیابی',
+		ftp_upload: 'آپلود FTP',
+		download: 'دانلود',
+		cleanup: 'پاکسازی',
+		auto_backup: 'پشتیبان خودکار',
+		create_compressed: 'ایجاد پشتیبان فشرده',
+		create: 'ایجاد',
+		update: 'به‌روزرسانی',
+		delete: 'حذف',
+		read: 'خواندن',
+		partial_update: 'به‌روزرسانی جزئی'
+	},
+	phase: {
+		start: 'شروع',
+		complete: 'تکمیل',
+		failed: 'شکست خورده'
+	},
+	violationType: {
+		HASH_MISMATCH: 'عدم تطابق هش',
+		MISSING_HASH: 'هش مفقود',
+		UNAUTHORIZED_MODIFICATION: 'تغییر غیرمجاز'
+	},
+	checkType: {
+		automatic: 'خودکار',
+		manual: 'دستی',
+		individual_log: 'لاگ تکی',
+		recent_logs: 'لاگ‌های اخیر'
+	},
+	backupType: {
+		standard: 'استاندارد',
+		ttl_cleanup: 'پاکسازی TTL',
+		compressed: 'فشرده'
+	},
+	triggeredBy: {
+		scheduler: 'زمان‌بند',
+		system: 'سیستم'
+	},
+	reason: {
+		'Manual stop': 'توقف دستی',
+		'Configuration change or manual restart': 'تغییر تنظیمات یا راه‌اندازی مجدد دستی',
+		'TTL expiration approaching': 'نزدیک شدن به انقضای TTL',
+		'Service cleanup': 'پاکسازی سرویس',
+		'Insufficient permissions': 'مجوز ناکافی',
+		'No valid session': 'نشست معتبری وجود ندارد'
+	},
+	format: {
+		EXCEL: 'اکسل',
+		MP4: 'MP4',
+		BASE64_IMAGE: 'تصویر Base64'
+	},
+	purpose: {
+		backup_and_delete: 'پشتیبان‌گیری و حذف',
+		video_access: 'دسترسی به ویدیو',
+		camera_snapshot: 'تصویر لحظه‌ای دوربین',
+		data_processing: 'پردازش داده'
+	},
+	dataType: {
+		personnel: 'پرسنل',
+		car_plates: 'پلاک خودرو'
+	},
+	source: {
+		face_recognition: 'تشخیص چهره',
+		excel_file: 'فایل اکسل'
+	},
+	healthStatus: {
+		healthy: 'سالم',
+		degraded: 'تخریب شده'
+	},
+	detectionMethod: {
+		'SHA-256 hash verification': 'تأیید هش SHA-256'
+	},
+	systemResponse: {
+		'Tampering successfully detected by integrity system':
+			'دستکاری با موفقیت توسط سیستم یکپارچگی تشخیص داده شد',
+		'Warning: Tampering was not detected - investigate integrity system':
+			'هشدار: دستکاری تشخیص داده نشد - سیستم یکپارچگی را بررسی کنید'
+	},
+	reportType: {
+		detailed_tampering_analysis: 'تحلیل تفصیلی دستکاری'
+	}
+};
+
+/**
+ * Format and translate details object recursively
+ */
+function formatDetails(details: Record<string, unknown> | null): Record<string, unknown> | null {
 	if (!details) return null;
 
-	const cleaned: Record<string, unknown> = {};
+	const formatted: Record<string, unknown> = {};
 
 	for (const [key, value] of Object.entries(details)) {
 		// Skip internal/system keys
@@ -901,18 +1286,72 @@ function cleanDetails(details: Record<string, unknown> | null): Record<string, u
 			continue;
 		}
 
-		// Simplify nested objects
-		if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-			const nested = cleanDetails(value as Record<string, unknown>);
-			if (nested && Object.keys(nested).length > 0) {
-				cleaned[key] = nested;
+		// Translate field name
+		const translatedKey = DETAILS_FIELD_LABELS[key] || key;
+
+		// Handle different value types
+		if (value === null || value === undefined || value === '') {
+			continue;
+		}
+
+		if (Array.isArray(value)) {
+			// Format array items
+			const formattedArray = value.map((item) => {
+				if (typeof item === 'object' && item !== null) {
+					return formatDetails(item as Record<string, unknown>);
+				}
+				return translateValue(key, item);
+			});
+			if (formattedArray.length > 0) {
+				formatted[translatedKey] = formattedArray;
 			}
-		} else if (value !== undefined && value !== null && value !== '') {
-			cleaned[key] = value;
+		} else if (typeof value === 'object') {
+			// Recursively format nested objects
+			const nested = formatDetails(value as Record<string, unknown>);
+			if (nested && Object.keys(nested).length > 0) {
+				formatted[translatedKey] = nested;
+			}
+		} else {
+			// Translate simple values
+			formatted[translatedKey] = translateValue(key, value);
 		}
 	}
 
-	return Object.keys(cleaned).length > 0 ? cleaned : null;
+	return Object.keys(formatted).length > 0 ? formatted : null;
+}
+
+/**
+ * Translate a value based on its field name
+ */
+function translateValue(fieldName: string, value: unknown): unknown {
+	// Handle boolean values
+	if (typeof value === 'boolean') {
+		return value ? 'بله' : 'خیر';
+	}
+
+	// Handle string values that might need translation
+	if (typeof value === 'string') {
+		// Check if there's a translation for this field's values
+		const valueTranslations = DETAILS_VALUE_LABELS[fieldName];
+		if (valueTranslations && valueTranslations[value]) {
+			return valueTranslations[value];
+		}
+
+		// Check common value patterns
+		if (value === 'true' || value === 'True') return 'بله';
+		if (value === 'false' || value === 'False') return 'خیر';
+		if (value === 'success' || value === 'Success') return 'موفق';
+		if (value === 'failed' || value === 'Failed') return 'ناموفق';
+	}
+
+	return value;
+}
+
+/**
+ * Clean and simplify details object (legacy function, now uses formatDetails)
+ */
+function cleanDetails(details: Record<string, unknown> | null): Record<string, unknown> | null {
+	return formatDetails(details);
 }
 
 /**
