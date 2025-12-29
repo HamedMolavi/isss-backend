@@ -4,7 +4,7 @@ import { AuthLogger } from '../logger/auth.logger';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
 import { getSessionManager } from '../services/session.service';
-import { LoginRateLimiter } from '../middleware/login-rate-limit.middleware';
+import { parseUserAgent } from '../utils/logFormatter';
 
 /**
  * Get all active sessions
@@ -82,6 +82,57 @@ export const terminateAllSessions = async (req: Request, res: Response) => {
 };
 
 /**
+ * Terminate a specific session belonging to the current authenticated user
+ */
+export const terminateMySession = async (req: Request, res: Response) => {
+	const sessionId = req.params.id;
+	const userId = req.user._id.toString();
+	const currentSessionId = req.sessionID;
+
+	if (!sessionId) {
+		return ApiRes(res, {
+			status: HttpStatus.BAD_REQUEST,
+			msg: 'Session ID is required'
+		});
+	}
+
+	// Do not allow terminating the currently active session
+	if (sessionId === currentSessionId) {
+		return ApiRes(res, {
+			status: HttpStatus.BAD_REQUEST,
+			msg: 'Cannot terminate the current active session'
+		});
+	}
+
+	const sessionManager = await getSessionManager();
+
+	// Ensure the session belongs to the current user
+	const userSessions = await sessionManager.getUserSessions(userId).catch(() => []);
+	const targetSession = userSessions.find((s) => s.session_id === sessionId);
+
+	if (!targetSession) {
+		return ApiRes(res, {
+			status: HttpStatus.NOT_FOUND,
+			msg: 'Session not found'
+		});
+	}
+
+	const result = await sessionManager.terminateSessionById(sessionId).catch(() => false);
+
+	if (!result) {
+		return ApiRes(res, {
+			status: HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: 'Failed to terminate session'
+		});
+	}
+
+	return ApiRes(res, {
+		status: HttpStatus.OK,
+		msg: 'Session terminated successfully'
+	});
+};
+
+/**
  * Get sessions for a specific user
  */
 export const getUserSessions = async (req: Request, res: Response) => {
@@ -97,9 +148,20 @@ export const getUserSessions = async (req: Request, res: Response) => {
 
 	const sessions = await sessionManager.getUserSessions(userId).catch(() => null);
 
+	// Parse user agent for readability but keep the response shape the same
+	const formattedSessions = sessions
+		? sessions.map((session) => {
+				const parsedUA = parseUserAgent(session.userAgent ?? '');
+				return {
+					...session,
+					userAgent: parsedUA.summary
+				};
+			})
+		: null;
+
 	return ApiRes(res, {
 		status: sessions ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR,
-		data: sessions
+		data: formattedSessions
 	});
 };
 
@@ -109,12 +171,23 @@ export const getUserSessions = async (req: Request, res: Response) => {
 export const getCurrentUserSessions = async (req: Request, res: Response) => {
 	const userId = req.user._id.toString();
 	const sessionManager = await getSessionManager();
+	const currentSessionId = req.sessionID;
 
 	const sessions = await sessionManager.getUserSessions(userId).catch(() => null);
+	const formattedSessions = sessions
+		? sessions.map((session) => {
+				const parsedUA = parseUserAgent(session.userAgent ?? '');
+				return {
+					...session,
+					userAgent: parsedUA.summary,
+					isCurrent: session.session_id === currentSessionId
+				};
+			})
+		: null;
 
 	return ApiRes(res, {
 		status: sessions ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR,
-		data: sessions
+		data: formattedSessions
 	});
 };
 
@@ -163,45 +236,4 @@ export const terminateUserSessions = async (req: Request, res: Response) => {
 		msg: `Terminated ${userSessions.length} session(s) for user`,
 		data: { terminatedSessions: userSessions.length }
 	});
-};
-
-/**
- * Get login attempts for the current user
- */
-export const getCurrentUserLoginAttempts = async (req: Request, res: Response) => {
-	const username = req.user.username;
-
-	if (!username) {
-		return ApiRes(res, {
-			status: HttpStatus.BAD_REQUEST,
-			msg: 'Username not found in session'
-		});
-	}
-
-	try {
-		const loginInfo = await LoginRateLimiter.getUserInfo(username.toLowerCase().trim());
-
-		return ApiRes(res, {
-			status: HttpStatus.OK,
-			data: {
-				username: username,
-				summary: {
-					attempts: loginInfo.attempts,
-					isBlocked: loginInfo.isBlocked,
-					latestIP: loginInfo.latestIP,
-					blockedUntil: loginInfo.blockedUntil,
-					firstAttempt: loginInfo.firstAttempt,
-					lastAttempt: loginInfo.lastAttempt
-				},
-				allAttempts: loginInfo.allAttempts,
-				totalRecords: loginInfo.allAttempts.length
-			}
-		});
-	} catch (error) {
-		console.error('Error retrieving current user login attempts:', error);
-		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR,
-			msg: 'Failed to retrieve login attempts information'
-		});
-	}
 };

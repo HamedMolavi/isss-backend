@@ -10,12 +10,15 @@ export enum AuthEventType {
 	LOGIN_SUCCESS = 'login_success',
 	LOGIN_FAILED = 'login_failed',
 	LOGIN_ERROR = 'login_error',
+	LOGIN_BLOCKED = 'login_blocked',
 	LOGOUT = 'logout',
 	SESSION_EXPIRED = 'session_expired',
 	UNAUTHORIZED_ACCESS = 'unauthorized_access',
 	OTP_GENERATED = 'otp_generated',
 	OTP_ENABLED = 'otp_enabled',
 	OTP_DISABLED = 'otp_disabled',
+	OTP_VERIFICATION_FAILED = 'otp_verification_failed',
+	OTP_DISABLE_FAILED = 'otp_disable_failed',
 	IP_RESTRICTION_ENABLED = 'ip_restriction_enabled',
 	IP_RESTRICTION_DISABLED = 'ip_restriction_disabled',
 	IP_ADDED = 'ip_added',
@@ -23,10 +26,51 @@ export enum AuthEventType {
 	IP_ACCESS_DENIED = 'ip_access_denied'
 }
 
+const SENSITIVE_KEYS = ['password', 'secret', 'token', 'key', 'apiKey', 'apiSecret', 'privateKey', 'otp'];
+
 /**
  * Simplified authentication logger that works with LogType filtering
  */
 export class AuthLogger {
+	private static maskSensitiveFields(
+		obj: Record<string, unknown> | undefined
+	): Record<string, unknown> | undefined {
+		if (!obj) return obj;
+
+		const masked: Record<string, unknown> = {};
+		for (const [key, value] of Object.entries(obj)) {
+			const lowerKey = key.toLowerCase();
+			const isSensitive = SENSITIVE_KEYS.some((sk) => lowerKey.includes(sk.toLowerCase()));
+
+			if (isSensitive && value !== undefined && value !== null) {
+				masked[key] = '***MASKED***';
+			} else if (value && typeof value === 'object' && !Array.isArray(value)) {
+				masked[key] = this.maskSensitiveFields(value as Record<string, unknown>);
+			} else {
+				masked[key] = value;
+			}
+		}
+		return masked;
+	}
+
+	private static normalizeConfigSnapshot(
+		config?: Partial<{ allowed_ips?: unknown; ip_restricted?: unknown }>
+	): Record<string, unknown> | undefined {
+		if (!config) return undefined;
+
+		const snapshot: Record<string, unknown> = {};
+		if ('ip_restricted' in config) {
+			snapshot.ip_restricted = config.ip_restricted;
+		}
+		if ('allowed_ips' in config) {
+			const allowed = Array.isArray(config.allowed_ips) ? config.allowed_ips : [config.allowed_ips];
+			snapshot.allowed_ips = allowed
+				.filter((ip) => ip !== undefined && ip !== null)
+				.map((ip) => (typeof ip === 'string' ? ip : ip?.toString?.() ?? String(ip)));
+		}
+		return snapshot;
+	}
+
 	private static createBaseLogData(req: Request, action: string, success: boolean) {
 		const user_agent = get_user_agent(req);
 		return {
@@ -82,6 +126,19 @@ export class AuthLogger {
 			userid: userId, // Override with specific userId if provided
 			details: {
 				error
+			}
+		});
+	}
+
+	/**
+	 * Log login blocked due to rate limiting
+	 */
+	static loginBlocked(req: Request, reason: string, attemptedCredentials?: { username?: string }): void {
+		Logger.warn('Login blocked - rate limit exceeded', {
+			...this.createBaseLogData(req, AuthEventType.LOGIN_BLOCKED, false),
+			details: {
+				error: reason,
+				attemptedCredentials
 			}
 		});
 	}
@@ -182,11 +239,25 @@ export class AuthLogger {
 	/**
 	 * Log IP restriction enabled
 	 */
-	static ipRestrictionEnabled(req: Request): void {
+	static ipRestrictionEnabled(
+		req: Request,
+		beforeConfig?: Record<string, unknown>,
+		afterConfig?: Record<string, unknown>
+	): void {
+		const normalizedBefore = this.normalizeConfigSnapshot(beforeConfig);
+		const normalizedAfter =
+			this.normalizeConfigSnapshot(afterConfig) ??
+			this.normalizeConfigSnapshot({
+				...(beforeConfig ?? {}),
+				ip_restricted: true
+			});
+
 		Logger.info('IP restriction enabled', {
 			...this.createBaseLogData(req, AuthEventType.IP_RESTRICTION_ENABLED, true),
 			details: {
-				ip: get_user_agent(req).ip
+				ip: get_user_agent(req).ip,
+				before: this.maskSensitiveFields(normalizedBefore),
+				after: this.maskSensitiveFields(normalizedAfter)
 			}
 		});
 	}
@@ -194,11 +265,25 @@ export class AuthLogger {
 	/**
 	 * Log IP restriction disabled
 	 */
-	static ipRestrictionDisabled(req: Request): void {
+	static ipRestrictionDisabled(
+		req: Request,
+		beforeConfig?: Record<string, unknown>,
+		afterConfig?: Record<string, unknown>
+	): void {
+		const normalizedBefore = this.normalizeConfigSnapshot(beforeConfig);
+		const normalizedAfter =
+			this.normalizeConfigSnapshot(afterConfig) ??
+			this.normalizeConfigSnapshot({
+				...(beforeConfig ?? {}),
+				ip_restricted: false
+			});
+
 		Logger.info('IP restriction disabled', {
 			...this.createBaseLogData(req, AuthEventType.IP_RESTRICTION_DISABLED, true),
 			details: {
-				ip: get_user_agent(req).ip
+				ip: get_user_agent(req).ip,
+				before: this.maskSensitiveFields(normalizedBefore),
+				after: this.maskSensitiveFields(normalizedAfter)
 			}
 		});
 	}
@@ -206,12 +291,29 @@ export class AuthLogger {
 	/**
 	 * Log IP added to allowed list
 	 */
-	static ipAdded(req: Request, addedIP: string): void {
+	static ipAdded(
+		req: Request,
+		addedIP: string,
+		beforeConfig?: Record<string, unknown>,
+		afterConfig?: Record<string, unknown>
+	): void {
+		const normalizedBefore = this.normalizeConfigSnapshot(beforeConfig);
+		const afterSnapshot =
+			afterConfig ??
+			this.normalizeConfigSnapshot({
+				...(normalizedBefore ?? {}),
+				allowed_ips: Array.from(
+					new Set([...(normalizedBefore?.allowed_ips as string[] | undefined | unknown[]) ?? [], addedIP])
+				)
+			});
+
 		Logger.info('IP added to allowed list', {
 			...this.createBaseLogData(req, AuthEventType.IP_ADDED, true),
 			details: {
 				addedIP,
-				currentIP: get_user_agent(req).ip
+				currentIP: get_user_agent(req).ip,
+				before: this.maskSensitiveFields(normalizedBefore),
+				after: this.maskSensitiveFields(afterSnapshot)
 			}
 		});
 	}
@@ -219,12 +321,28 @@ export class AuthLogger {
 	/**
 	 * Log IP removed from allowed list
 	 */
-	static ipRemoved(req: Request, removedIP: string): void {
+	static ipRemoved(
+		req: Request,
+		removedIP: string,
+		beforeConfig?: Record<string, unknown>,
+		afterConfig?: Record<string, unknown>
+	): void {
+		const normalizedBefore = this.normalizeConfigSnapshot(beforeConfig);
+		const allowedBefore = (normalizedBefore?.allowed_ips as string[] | undefined) ?? [];
+		const afterSnapshot =
+			afterConfig ??
+			this.normalizeConfigSnapshot({
+				...(normalizedBefore ?? {}),
+				allowed_ips: allowedBefore.filter((ip) => ip !== removedIP)
+			});
+
 		Logger.info('IP removed from allowed list', {
 			...this.createBaseLogData(req, AuthEventType.IP_REMOVED, true),
 			details: {
 				removedIP,
-				currentIP: get_user_agent(req).ip
+				currentIP: get_user_agent(req).ip,
+				before: this.maskSensitiveFields(normalizedBefore),
+				after: this.maskSensitiveFields(afterSnapshot)
 			}
 		});
 	}

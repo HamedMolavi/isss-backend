@@ -1,6 +1,7 @@
 import RedisStore from 'connect-redis';
 import { Store } from 'express-session';
 import { createClient } from 'redis';
+import { getSessionTimeoutSeconds } from '../../config/security.config';
 
 export default function redisStore(): Store | undefined {
 	try {
@@ -34,11 +35,12 @@ export default function redisStore(): Store | undefined {
 			console.error('Failed to connect Redis session store:', err);
 		});
 
-		// Initialize store with better configuration
+		// Initialize store with dynamic TTL from security config
+		// Using a function for ttl allows it to be evaluated on each request
 		return new RedisStore({
 			client: redisClient,
 			prefix: 'Bearer ',
-			ttl: 1800, // 30 minutes in seconds
+			ttl: () => getSessionTimeoutSeconds(), // Dynamic TTL from security config
 			disableTouch: false, // Allow touch to reset TTL
 			disableTTL: false // Enable TTL
 		});

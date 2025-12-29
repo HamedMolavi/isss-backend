@@ -5,9 +5,15 @@ import AccessLevel from '../../db/mongo/models/accessLevel';
 import { CreateAccessLevelBody } from '../../validation/dto/accessLevel.dto';
 import { DoNotAllowOnDefault } from '../../tools/request.tools';
 import * as AccessLevelController from '../../controllers/accessLevel.controller';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to routes file
 const router: Router = Router();
+
+// Apply access check middleware to all access level routes
+// Only users with 'user' access (which controls user management) can manage access levels
+// Additionally, only admin role can modify access levels
+router.use(accessCheck('user'));
 
 //add route for register new AccessLevel
 router.post(

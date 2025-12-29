@@ -91,14 +91,15 @@ export async function unifiedSendFunction(log: any & { _id: string }, req: Reque
 					{ timeZone: req.query?.timez?.toString() ?? 'Asia/Tehran' }
 				)
 			: '',
-		timestamp: !!log?.timestamp,
-		plate_number: !!log.plate_number ? stringPlateToJson(log.plate_number) : '',
-		owner: car?.owner?.toName() ?? '',
-		color: color?.name ?? '',
-		brand: brand?.name ?? '',
-		department: department ?? '',
-		section: section ?? '',
-		allowed: log.allowed,
+	timestamp: !!log?.timestamp,
+	plate_number: !!log.plate_number ? stringPlateToJson(log.plate_number) : '',
+	owner: car?.owner?.toName() ?? '',
+	color: color?.name ?? '',
+	brand: brand?.name ?? '',
+	car_type: brand?.car_type ?? '',
+	department: department ?? '',
+	section: section ?? '',
+	allowed: log.allowed,
 		crop: log.plate_number !== undefined ? log?.crop : log?.inner_crop,
 		inner_crop: log.plate_number !== undefined ? log?.inner_crop : '',
 		video: camera?.url ?? ''

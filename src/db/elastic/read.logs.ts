@@ -58,9 +58,9 @@ export function readElasticMiddleware(
 		forceAll?: boolean;
 		send?: (doc: unknown, req: Request) => any | void | Promise<any | void>;
 		filter?: (doc: unknown, req: Request) => boolean | Promise<boolean>;
-		searchFromReq?: (req: Request) => SearchRequest;
-		searchFromParams?: (params: { [key: string]: any }) => SearchRequest;
-		searchFromQuery?: (query: { [key: string]: any }) => SearchRequest;
+		searchFromReq?: (req: Request) => SearchRequest | Promise<SearchRequest>;
+		searchFromParams?: (params: { [key: string]: any }) => SearchRequest | Promise<SearchRequest>;
+		searchFromQuery?: (query: { [key: string]: any }) => SearchRequest | Promise<SearchRequest>;
 	}
 ): RequestHandler {
 	return async function (req: Request, res: Response, next: NextFunction) {
@@ -71,6 +71,8 @@ export function readElasticMiddleware(
 			let page = parseInt(strPage) > 0 ? parseInt(strPage) : 1;
 			//get perPage from url
 			let strPerPage = req.query.perPage as string;
+			// Safety limit: cap perPage=all at 10000 to prevent memory overflow
+			// For larger datasets, clients should use pagination
 			let perPage =
 				strPerPage?.toLowerCase() === 'all' ? 10000 : parseInt(strPerPage) > 0 ? parseInt(strPerPage) : 1;
 			let index = typeof index_name === 'function' ? index_name(req) : index_name;
@@ -81,9 +83,12 @@ export function readElasticMiddleware(
 				track_total_hits: true,
 				sort: [{ timestamp: { order: 'desc' } }]
 			};
+			// Get search query from request (support both sync and async functions)
+			const searchQuery = options?.searchFromReq ?? options?.searchFromParams ?? options?.searchFromQuery;
+			const searchQueryResult = searchQuery ? await Promise.resolve(searchQuery(req)) : {};
 			let search: SearchRequest = {
 				...baseSearch,
-				...(options?.searchFromReq ?? options?.searchFromParams ?? options?.searchFromQuery)?.(req)
+				...searchQueryResult
 			}; // TODO: why req gets in no matter what we use?
 			const settings = await process.esclient.indices
 				.getSettings({ index })
@@ -103,21 +108,44 @@ export function readElasticMiddleware(
 				: await process.esclient.search(search);
 
 			if (!!options?.forceAll && !!esRes.hits.hits.length) {
-				while (true) {
+				// Safety limit: prevent infinite loop and memory overflow
+				// Maximum 100,000 documents when using forceAll to prevent server crash
+				const MAX_FORCE_ALL_RESULTS = 100000;
+				let fetchedCount = esRes.hits.hits.length;
+
+				while (fetchedCount < MAX_FORCE_ALL_RESULTS) {
 					let temp = await process.esclient.search({
 						...search,
 						size: maxResultWindow,
 						from: 0,
 						search_after: esRes.hits.hits.at(-1)?.sort
 					});
-					esRes.hits.hits.push(...temp.hits.hits);
+
 					if (!temp.hits.hits.length) break;
+
+					esRes.hits.hits.push(...temp.hits.hits);
+					fetchedCount += temp.hits.hits.length;
+
+					// Log warning if approaching limit
+					if (fetchedCount >= MAX_FORCE_ALL_RESULTS) {
+						console.warn(
+							`ForceAll reached maximum limit of ${MAX_FORCE_ALL_RESULTS} documents. Consider using pagination.`
+						);
+						break;
+					}
 				}
 			}
 
+			// Return empty result set when no data found (instead of 404 error)
 			if ((!esRes || !esRes.hits || !esRes.hits.hits.length) && !nextValue) {
-				req.flash(`error ,${index} data not found in DB`);
-				return next(new ApiError(404, `error ,${index} data not found in DB`));
+				return res.status(200).json({
+					success: true,
+					data: [],
+					page,
+					perPage,
+					total: 0,
+					pages: 0
+				});
 			}
 
 			if (!!Array.isArray(req.body['elasticsearchIndices'])) req.body['elasticsearchIndices'].push(index);

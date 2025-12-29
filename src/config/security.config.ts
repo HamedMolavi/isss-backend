@@ -17,7 +17,9 @@ const defaultConfig = {
 	MAX_CONCURRENT_SESSIONS: 5,
 	// Password requirements configuration
 	PASSWORD: {
+		MIN_LENGTH: 8,
 		REQUIREMENTS: [
+			{ re: /.{8,}/, label: 'At least 8 characters' },
 			{ re: /[0-9]/, label: 'Includes number' },
 			{ re: /[a-z]/, label: 'Includes lowercase letter' },
 			{ re: /[A-Z]/, label: 'Includes uppercase letter' },
@@ -29,6 +31,12 @@ const defaultConfig = {
 		CHECK_INTERVAL_HOURS: 24, // Default to 24 hours
 		CHECK_INTERVAL_MS: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
 		TTL_DAYS: 60, // Default retention period for logs
+		BACKUP_INTERVAL_DAYS: 30, // Default backup interval
+		MAX_SIZE_BYTES: 1024 * 1024 * 1024, // 1GB default
+		MAX_LOG_COUNT: 1000000, // 1 million logs default
+		WARNING_THRESHOLD: 0.8, // 80% warning threshold
+		AUTO_BACKUP: true,
+		AUTO_CLEANUP: false,
 		DEFAULT_CONFIG: {
 			TTL_DAYS: 60,
 			IS_AUTO_BACKUP: true
@@ -51,9 +59,28 @@ const defaultConfig = {
 		NAME: 'Bearer',
 		COOKIE: {
 			HTTP_ONLY: true,
-			SECURE: process.env.NODE_ENV === 'production',
-			SAME_SITE: 'lax' as const,
+			SECURE: process.env.NODE_ENV === 'production', // Secure cookies in production (HTTPS only)
+			SAME_SITE: (process.env.NODE_ENV === 'production' ? 'strict' : 'lax') as 'strict' | 'lax', // Strict in production
 			PATH: '/'
+		}
+	},
+
+	// Resource creation rate limiting (prevents race condition attacks)
+	RESOURCE_RATE_LIMIT: {
+		USER: {
+			WINDOW_MS: 60 * 1000, // 1 minute
+			MAX_REQUESTS: 5, // 5 users per minute
+			KEY_PREFIX: 'rate_limit:user_create:'
+		},
+		CAMERA: {
+			WINDOW_MS: 60 * 1000, // 1 minute
+			MAX_REQUESTS: 10, // 10 cameras per minute
+			KEY_PREFIX: 'rate_limit:camera_create:'
+		},
+		PERSONNEL: {
+			WINDOW_MS: 60 * 1000, // 1 minute
+			MAX_REQUESTS: 20, // 20 personnel per minute
+			KEY_PREFIX: 'rate_limit:personnel_create:'
 		}
 	}
 };
@@ -69,15 +96,25 @@ async function getSecurityConfig() {
 
 		// Convert database regex strings back to RegExp objects for password requirements
 		const passwordRequirements =
-			dbConfig.passwordRequirements?.map((requirement) => ({
-				re: new RegExp(requirement.re),
-				label: requirement.label
-			})) || defaultConfig.PASSWORD.REQUIREMENTS;
+			dbConfig.passwordRequirements?.map((requirement) => {
+				// Handle regex strings that may be stored with /.../ delimiters
+				let regexStr = requirement.re;
+				if (regexStr.startsWith('/') && regexStr.lastIndexOf('/') > 0) {
+					// Extract the pattern between the first and last /
+					const lastSlashIndex = regexStr.lastIndexOf('/');
+					regexStr = regexStr.slice(1, lastSlashIndex);
+				}
+				return {
+					re: new RegExp(regexStr),
+					label: requirement.label
+				};
+			}) || defaultConfig.PASSWORD.REQUIREMENTS;
 
 		return {
 			...defaultConfig,
 			MAX_CONCURRENT_SESSIONS: dbConfig.maxConcurrentSessions || defaultConfig.MAX_CONCURRENT_SESSIONS,
 			PASSWORD: {
+				MIN_LENGTH: defaultConfig.PASSWORD.MIN_LENGTH,
 				REQUIREMENTS: passwordRequirements
 			},
 			LOG_BACKUP: {
@@ -85,6 +122,19 @@ async function getSecurityConfig() {
 					dbConfig.logBackup?.checkIntervalHours || defaultConfig.LOG_BACKUP.CHECK_INTERVAL_HOURS,
 				CHECK_INTERVAL_MS: dbConfig.logBackup?.checkIntervalMs || defaultConfig.LOG_BACKUP.CHECK_INTERVAL_MS,
 				TTL_DAYS: dbConfig.logBackup?.ttlDays || defaultConfig.LOG_BACKUP.TTL_DAYS,
+				BACKUP_INTERVAL_DAYS:
+					dbConfig.logBackup?.backupIntervalDays || defaultConfig.LOG_BACKUP.BACKUP_INTERVAL_DAYS,
+				MAX_SIZE_BYTES: dbConfig.logBackup?.maxSizeBytes || defaultConfig.LOG_BACKUP.MAX_SIZE_BYTES,
+				MAX_LOG_COUNT: dbConfig.logBackup?.maxLogCount || defaultConfig.LOG_BACKUP.MAX_LOG_COUNT,
+				WARNING_THRESHOLD: dbConfig.logBackup?.warningThreshold || defaultConfig.LOG_BACKUP.WARNING_THRESHOLD,
+				AUTO_BACKUP:
+					dbConfig.logBackup?.autoBackup !== undefined
+						? dbConfig.logBackup.autoBackup
+						: defaultConfig.LOG_BACKUP.AUTO_BACKUP,
+				AUTO_CLEANUP:
+					dbConfig.logBackup?.autoCleanup !== undefined
+						? dbConfig.logBackup.autoCleanup
+						: defaultConfig.LOG_BACKUP.AUTO_CLEANUP,
 				DEFAULT_CONFIG: {
 					TTL_DAYS:
 						dbConfig.logBackup?.defaultConfig?.ttlDays || defaultConfig.LOG_BACKUP.DEFAULT_CONFIG.TTL_DAYS,
@@ -134,5 +184,27 @@ async function initializeSecurityConfig(): Promise<void> {
 	}
 }
 
+// Function to refresh security config (called after config updates)
+async function refreshSecurityConfig(): Promise<void> {
+	try {
+		const config = await getSecurityConfig();
+		SecurityConfigDefault = config;
+		console.log('Security configuration refreshed from database');
+	} catch (error) {
+		console.error('Failed to refresh security config from database:', error);
+	}
+}
+
+// Function to get current session timeout in seconds (for Redis store)
+function getSessionTimeoutSeconds(): number {
+	return Math.floor(SecurityConfigDefault.SESSION.TIMEOUT / 1000);
+}
+
 // Export the configuration and initialization function
-export { SecurityConfigDefault, initializeSecurityConfig, getSecurityConfig };
+export {
+	SecurityConfigDefault,
+	initializeSecurityConfig,
+	getSecurityConfig,
+	refreshSecurityConfig,
+	getSessionTimeoutSeconds
+};

@@ -1,6 +1,4 @@
 import { Router } from 'express';
-import { Log } from '../../db/mongo/models/secLog';
-import { readMiddleware } from '../../db/mongo/read.database';
 import * as LogController from '../../controllers/log.controller';
 import { accessCheck } from '../../authentication/accessCheck.auth';
 import LogIntegrityRouter from './logIntegrity.routes';
@@ -12,125 +10,81 @@ const route_prefix = '';
 // Include integrity routes
 LogRouter.use(LogIntegrityRouter);
 
-// Route for get log list with message search and sorting
-LogRouter.get(
-	`${route_prefix}`,
-	accessCheck('logs'),
-	readMiddleware(
-		Log,
-		(search) => {
-			if (!search) return {};
+// Allowed sort fields for log queries
+const ALLOWED_SORT_FIELDS = [
+	'created_at',
+	'timestamp',
+	'level',
+	'action',
+	'metadata.ip',
+	'metadata.username',
+	'metadata.type',
+	'metadata.success',
+	'message'
+];
 
-			// Escape special regex characters to prevent regex issues
-			const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-			const searchRegex = { $regex: escapeRegex(search), $options: 'i' };
-			const isBoolean = search.toLowerCase() === 'true' || search.toLowerCase() === 'false';
+// Main route for getting logs with filtering, sorting, searching and formatting
+// GET /api/v1/logs?page=1&limit=20&search=admin&action=login_success&format=readable
+// Query params:
+// - page, limit: Pagination
+// - search: Search across multiple fields
+// - sortBy, sortOrder: Sorting (e.g., sortBy=timestamp&sortOrder=desc)
+// - action, level, category: Filters
+// - username, ip: User filters
+// - startDate, endDate: Date range
+// - success: Filter by success status (true/false)
+// - format: 'readable' for human-readable format, 'raw' for raw data (default: readable)
+// - showHttpLogs: Show/hide HTTP request logs (default: true)
+// - httpMethod: Filter by HTTP method (GET,POST,PUT,DELETE)
+// - onlyHttpLogs: Show only HTTP request logs (default: false)
+LogRouter.get(`${route_prefix}`, accessCheck('logs'), LogController.getLogs);
 
-			return {
-				$or: [
-					{ message: searchRegex },
-					{ 'metadata.username': searchRegex },
-					{ 'metadata.userid': searchRegex },
-					{ 'metadata.ip': searchRegex },
-					{ 'metadata.type': searchRegex },
-					...(isBoolean ? [{ 'metadata.success': search.toLowerCase() === 'true' }] : []),
-					{ level: searchRegex }
-				]
-			};
-		},
-		{
-			populate: true,
-			defaultSort: { created_at: -1 },
-			defaultQuery: (queryParams) => {
-				const query = {} as {
-					action?: string;
-					level?: string;
-					created_at?: {
-						$gte?: Date;
-						$lte?: Date;
-					};
-					'metadata.username'?: {
-						$exists: boolean;
-						$nin?: string[];
-					};
-				};
-
-				// Filter out logs where username is not available or is system/unknown
-				query['metadata.username'] = {
-					$exists: true,
-					$nin: ['system', 'unknown']
-				};
-
-				// Filter by action if provided
-				if (queryParams.action) {
-					query.action = queryParams.action;
-				}
-
-				// Filter by level if provided
-				if (queryParams.level) {
-					query.level = queryParams.level;
-				}
-
-				// Filter by date range if provided
-				if (queryParams.startDate || queryParams.endDate) {
-					query.created_at = {};
-					if (queryParams.startDate) {
-						query.created_at.$gte = new Date(queryParams.startDate);
-					}
-					if (queryParams.endDate) {
-						query.created_at.$lte = new Date(queryParams.endDate);
-					}
-				}
-
-				return query;
-			}
+// Route to get available sort fields
+LogRouter.get(`${route_prefix}/sort-options`, accessCheck('logs'), (req, res) => {
+	return res.status(200).json({
+		success: true,
+		data: {
+			sortFields: ALLOWED_SORT_FIELDS.map((field) => ({
+				value: field,
+				label: field
+					.replace('metadata.', '')
+					.replace('_', ' ')
+					.replace(/\b\w/g, (c) => c.toUpperCase())
+			})),
+			sortOrders: [
+				{ value: 'asc', label: 'Ascending' },
+				{ value: 'desc', label: 'Descending' }
+			]
 		}
-	)
-);
+	});
+});
+
+// ==========================================
+// LOG HELPER ENDPOINTS
+// ==========================================
+
+// Route for getting filter options (actions, categories, levels, etc.)
+// GET /api/v1/logs/filter-options
+LogRouter.get(`${route_prefix}/filter-options`, accessCheck('logs'), LogController.getFilterOptions);
+
+// Route for getting log statistics
+// GET /api/v1/logs/stats?startDate=2024-01-01&endDate=2024-12-31
+LogRouter.get(`${route_prefix}/stats`, accessCheck('logs'), LogController.getLogStats);
+
+// ==========================================
 
 // Route for get log by id from DB
-LogRouter.get(`${route_prefix}/:id/info`, accessCheck('logs'), async (req, res) => {
-	try {
-		const id = req.params.id;
-
-		// Query with username filtering
-		const doc = await Log.findOne({
-			_id: id,
-			'metadata.username': {
-				$exists: true,
-				$nin: ['system', 'unknown']
-			}
-		}).exec();
-
-		if (!doc) {
-			return res.status(404).json({
-				success: false,
-				message: 'Log not found or not accessible'
-			});
-		}
-
-		return res.status(200).json({
-			success: true,
-			data: doc.toJSON()
-		});
-	} catch (err: unknown) {
-		if (err && typeof err === 'object' && 'kind' in err && err.kind === 'ObjectId') {
-			return res.status(400).json({
-				success: false,
-				message: `Invalid log ID: ${req.params.id}`
-			});
-		}
-		return res.status(500).json({
-			success: false,
-			message: 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error')
-		});
-	}
-});
+LogRouter.get(`${route_prefix}/:id/info`, accessCheck('logs'), LogController.getLogById);
 
 // Route for checking log status
 LogRouter.get(`${route_prefix}/monitor/status`, accessCheck('systemLog'), LogController.getMonitorStatus);
 
 // Route for getting logs grouped by actions
 LogRouter.get(`${route_prefix}/group/actions`, accessCheck('logs'), LogController.getGroupedActions);
+
+// Route for getting logged-in user's own logs
+// GET /api/v1/logs/my-logs?page=1&limit=20&action=login_success&format=readable
+// Any authenticated user can view their own logs
+LogRouter.get(`${route_prefix}/my-logs`, LogController.getMyLogs);
 
 export default LogRouter;

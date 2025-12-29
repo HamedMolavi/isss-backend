@@ -1,5 +1,6 @@
 import { Request } from 'express';
 import { Logger } from '.';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Personnel management event types
@@ -29,7 +30,7 @@ export class PersonnelLogger {
 			success,
 			userid: req.user?._id?.toString(),
 			username: req.user?.username,
-			ip: req.ip || req.socket.remoteAddress || 'unknown',
+			ip: getClientIP(req) || 'unknown',
 			userAgent: req.get('User-Agent') || 'unknown',
 			method: req.method,
 			url: req.originalUrl,

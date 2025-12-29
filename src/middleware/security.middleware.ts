@@ -217,19 +217,13 @@ export async function registerSecurityMiddleware(app: Application) {
 	// Input validation
 	app.use(inputValidation);
 
-	// Security headers middleware
-	app.use((req: Request, res: Response, next: NextFunction) => {
-		// Remove server information
-		res.removeHeader('X-Powered-By');
-
-		// Add custom security headers
-		res.setHeader('X-Content-Type-Options', 'nosniff');
-		res.setHeader('X-Frame-Options', 'DENY');
-		res.setHeader('X-XSS-Protection', '1; mode=block');
-		res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-		res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-
-		// Security headers are applied automatically - no need to log every request
+	// Additional security headers (complementing http-methods.middleware.ts)
+	// Note: Basic headers like X-Powered-By removal, X-Frame-Options, etc.
+	// are handled by httpSecurityMiddleware which runs first
+	app.use((_req: Request, res: Response, next: NextFunction) => {
+		// Add CSP and Permissions-Policy (not set in http-methods middleware)
+		res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+		res.setHeader('Permissions-Policy', 'geolocation=(), microphone=()');
 
 		next();
 	});

@@ -2,6 +2,7 @@ import { Request } from 'express';
 import { Logger } from '.';
 import { LogType } from '../db/mongo/models/logType';
 import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Backup scheduler event types
@@ -37,7 +38,7 @@ export class BackupSchedulerLogger {
 			success,
 			userid: req?.user?._id?.toString() || 'system',
 			username: req?.user?.username || 'system',
-			ip: req?.ip || req?.socket?.remoteAddress || 'system',
+			ip: (req ? getClientIP(req) : '') || 'system',
 			userAgent: req?.get('User-Agent') || 'system',
 			method: req?.method || 'SYSTEM',
 			url: req?.originalUrl || 'system_operation',

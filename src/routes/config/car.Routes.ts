@@ -12,9 +12,13 @@ import { deleteByIdMiddleware } from '../../db/mongo/delete.database';
 import { carSendFunction, stringifyPlate } from '../../tools/car.tools';
 import { injectDataMiddleware } from '../../tools/request.tools';
 import Time, { allowedPassConvert } from '../../tools/time.tools';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to routes file
 const router: Router = Router();
+
+// Apply access check middleware to all car routes
+router.use(accessCheck('car'));
 
 //add route for register new car
 router.post(

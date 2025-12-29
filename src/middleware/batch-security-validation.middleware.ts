@@ -356,26 +356,30 @@ export const fileUploadSecurityValidation = (req: Request, res: Response, next: 
 		// 1. File size and MIME type validation
 		if (req.files) {
 			const maxFileSize = 50 * 1024 * 1024; // 50MB limit
-			const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const files = Array.isArray(req.files) ? req.files : Object.values(req.files as any).flat();
 
 			for (const file of files) {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const uploadedFile = file as any;
+
 				// Check file size
-				if ('size' in file && file.size > maxFileSize) {
+				if ('size' in uploadedFile && uploadedFile.size > maxFileSize) {
 					SecurityLogger.maliciousInputBlocked(req, 'file_too_large', {
-						fileName: file.name,
-						fileSize: file.size,
+						fileName: uploadedFile.name,
+						fileSize: uploadedFile.size,
 						maxAllowed: maxFileSize
 					});
 					return res.status(413).json({
 						success: false,
-						message: `File ${file.name} is too large. Maximum allowed: ${maxFileSize / (1024 * 1024)}MB.`
+						message: `File ${uploadedFile.name} is too large. Maximum allowed: ${maxFileSize / (1024 * 1024)}MB.`
 					});
 				}
 
 				// Check MIME type based on file content
-				if ('data' in file && Buffer.isBuffer(file.data)) {
+				if ('data' in uploadedFile && Buffer.isBuffer(uploadedFile.data)) {
 					let allowedTypes: string[] = [];
-					const fileName = file.name.toLowerCase();
+					const fileName = uploadedFile.name.toLowerCase();
 
 					// Determine allowed MIME types based on context/file name
 					if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
@@ -387,26 +391,26 @@ export const fileUploadSecurityValidation = (req: Request, res: Response, next: 
 						allowedTypes = [...ALLOWED_MIME_TYPES.images, ...ALLOWED_MIME_TYPES.excel];
 					}
 
-					const mimeValidation = validateMimeType(file.data, file.name, allowedTypes);
+					const mimeValidation = validateMimeType(uploadedFile.data, uploadedFile.name, allowedTypes);
 
 					if (!mimeValidation.isValid) {
 						SecurityLogger.maliciousInputBlocked(req, 'invalid_mime_type', {
-							fileName: file.name,
+							fileName: uploadedFile.name,
 							detectedMimeType: mimeValidation.detectedType,
 							allowedMimeTypes: allowedTypes,
 							reason: mimeValidation.reason
 						});
 						return res.status(400).json({
 							success: false,
-							message: `File ${file.name} has invalid content type. ${mimeValidation.reason || 'File content does not match expected format.'}`
+							message: `File ${uploadedFile.name} has invalid content type. ${mimeValidation.reason || 'File content does not match expected format.'}`
 						});
 					}
 
 					// Log successful MIME type validation
-					SecurityLogger.suspiciousActivity(req, 'file_mime_type_validated', {
-						fileName: file.name,
+					SecurityLogger.securityCheckPassed(req, 'file_mime_type_validated', {
+						fileName: uploadedFile.name,
 						detectedMimeType: mimeValidation.detectedType,
-						fileSize: file.size,
+						fileSize: uploadedFile.size,
 						securityCheck: 'passed'
 					});
 				}
@@ -427,7 +431,7 @@ export const fileUploadSecurityValidation = (req: Request, res: Response, next: 
 		}
 
 		// 3. Log successful validation
-		SecurityLogger.suspiciousActivity(req, 'file_upload_security_validated', {
+		SecurityLogger.securityCheckPassed(req, 'file_upload_security_validated', {
 			fileCount: req.files ? Object.keys(req.files).length : 0,
 			userLevel: user.access_level?.toString(),
 			securityCheck: 'passed'

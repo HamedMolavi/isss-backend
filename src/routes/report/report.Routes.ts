@@ -12,9 +12,13 @@ import { ApiError } from '../../types/classes/error.class';
 import { dynamicRequestToElasticSearch } from '../../db/elastic/connect.database';
 import { englishPlateDict } from '../../tools/plate.tools';
 import { Clock } from '../../types/interfaces/time.interface';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to routes file
 const router: Router = Router();
+
+// Apply access check middleware to all report routes
+router.use(accessCheck('report'));
 
 //add error handler middleware
 router.use(function (req: Request, res: Response, next: NextFunction) {

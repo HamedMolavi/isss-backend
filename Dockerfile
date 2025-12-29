@@ -1,5 +1,6 @@
 ###################################################################### Stage 1: Build and obfuscate
 FROM node:22.11.0-slim as builder
+ENV TZ=Asia/Tehran
 
 WORKDIR /app
 
@@ -17,11 +18,13 @@ RUN javascript-obfuscator ./build --output ./obfuscated
 
 ###################################################################### Stage 2: Runtime only (lighter image)
 FROM node:22.11.0-alpine as runtime
+ENV TZ=Asia/Tehran
 
 WORKDIR /isss-backend
 
-RUN apk update && apk add --no-cache make gcc g++ python3
-    # && rm -rf /var/lib/apt/lists/*
+RUN apk update && \
+    apk add --no-cache make gcc g++ python3 tzdata && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Install dependencies
 COPY package*.json ./

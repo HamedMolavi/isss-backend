@@ -18,6 +18,8 @@ export interface IPlate {
 	confidence: number;
 	owner: string;
 	allowed: boolean;
+	direction?: string;
+	angle?: string;
 	type: 'plate';
 }
 
@@ -48,6 +50,8 @@ export class Plate {
 		plate_number: '',
 		schedule_id: '',
 		confidence: 0,
+		direction: '',
+		angle: '',
 		type: 'plate'
 	};
 	constructor(plateObj: {

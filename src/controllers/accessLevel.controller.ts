@@ -12,6 +12,19 @@ import { accessList } from '../types/interfaces/accessLevel.interface';
 export const create = async (req: Request, res: Response) => {
 	const payload = req.body;
 
+	// Prevent granting write permissions on read-only sections
+	const readOnlyKeys: Array<keyof typeof payload> = ['logs', 'systemLog'];
+	for (const key of readOnlyKeys) {
+		const perm = payload?.[key];
+		if (perm && (perm.create || perm.update || perm.delete)) {
+			req.flash('error', 'Logs access is read-only');
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Logs access is read-only and cannot include create/update/delete permissions'
+			});
+		}
+	}
+
 	// Transform access permissions to hex format
 	const transformedPayload: Record<string, unknown> = { name: payload.name };
 	for (const key of accessList) {
@@ -30,11 +43,13 @@ export const create = async (req: Request, res: Response) => {
 
 	const doc = new AccessLevel(transformedPayload);
 	const result = await doc.save().catch((err) => {
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.error('Failed to create access level', {
 			type: 'access_level',
 			action: 'create_failed',
 			userid: req.user?._id?.toString(),
 			username: req.user?.username,
+			userAgent,
 			details: { error: err.message, payload: transformedPayload }
 		});
 		return null;
@@ -48,11 +63,13 @@ export const create = async (req: Request, res: Response) => {
 	}
 
 	// Log successful access level creation
+	const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 	Logger.info('Access level created successfully', {
 		type: 'access_level',
 		action: 'create_success',
 		userid: req.user?._id?.toString(),
 		username: req.user?.username,
+		userAgent,
 		details: {
 			accessLevelId: result._id.toString(),
 			accessLevelName: result.name,
@@ -134,11 +151,13 @@ export const updateById = async (req: Request, res: Response) => {
 	const updatedAccessLevel = await AccessLevel.findByIdAndUpdate(id, { $set: updateObject }, { new: true })
 		.exec()
 		.catch((err) => {
+			const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 			Logger.error('Failed to update access level', {
 				type: 'access_level',
 				action: 'update_failed',
 				userid: req.user?._id?.toString(),
 				username: req.user?.username,
+				userAgent,
 				details: {
 					error: err.message,
 					accessLevelId: id,
@@ -157,11 +176,13 @@ export const updateById = async (req: Request, res: Response) => {
 	}
 
 	// Log successful access level update (role assignment change)
+	const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 	Logger.info('Access level updated successfully', {
 		type: 'access_level',
 		action: 'update_success',
 		userid: req.user?._id?.toString(),
 		username: req.user?.username,
+		userAgent,
 		details: {
 			accessLevelId: updatedAccessLevel._id.toString(),
 			accessLevelName: updatedAccessLevel.name,
@@ -199,11 +220,13 @@ export const deleteById = async (req: Request, res: Response) => {
 	const deletedAccessLevel = await AccessLevel.findByIdAndDelete(id)
 		.exec()
 		.catch((err) => {
+			const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 			Logger.error('Failed to delete access level', {
 				type: 'access_level',
 				action: 'delete_failed',
 				userid: req.user?._id?.toString(),
 				username: req.user?.username,
+				userAgent,
 				details: {
 					error: err.message,
 					accessLevelId: id,
@@ -221,11 +244,13 @@ export const deleteById = async (req: Request, res: Response) => {
 	}
 
 	// Log successful access level deletion
+	const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 	Logger.info('Access level deleted successfully', {
 		type: 'access_level',
 		action: 'delete_success',
 		userid: req.user?._id?.toString(),
 		username: req.user?.username,
+		userAgent,
 		details: {
 			accessLevelId: deletedAccessLevel._id.toString(),
 			accessLevelName: deletedAccessLevel.name,

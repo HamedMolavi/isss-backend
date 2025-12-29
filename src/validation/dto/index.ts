@@ -3,49 +3,92 @@ import {
 	ValidatorConstraintInterface,
 	ValidationArguments,
 	ValidationOptions,
-	registerDecorator,
 	ValidateIf
 } from 'class-validator';
 import Time from '../../tools/time.tools';
 import { RequestHandler, Request, Response, NextFunction } from 'express';
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
-// import { sanitize, Trim } from "class-sanitizer";
-import { ApiError } from '../../types/classes/error.class';
 import path from 'path';
 import { existsSync } from 'fs';
 import mongoose from 'mongoose';
 import { count, Pipeline } from '../../db/mongo/count.database';
+import { ApiRes } from '../../utils/api.response';
+import { HttpStatus } from '../../types/http_status';
 
+interface DtoValidationOptions {
+	skipMissingProperties?: boolean;
+	detailedMassage?: boolean;
+	info?: string;
+}
+
+/**
+ * Extract validation error messages from ValidationError array
+ */
+function extractValidationErrors(errors: ValidationError[]): string[] {
+	const messages: string[] = [];
+
+	for (const error of errors) {
+		if (error.constraints) {
+			messages.push(...Object.values(error.constraints));
+		}
+		// Handle nested validation errors
+		if (error.children && error.children.length > 0) {
+			messages.push(...extractValidationErrors(error.children));
+		}
+	}
+
+	return messages;
+}
+
+/**
+ * DTO Validation Middleware
+ *
+ * Validates request body against a DTO class using class-validator.
+ * Returns proper JSON response with appropriate HTTP status codes.
+ */
 export function dtoValidationMiddleware(
-	type: any,
-	options?: { skipMissingProperties?: boolean; detailedMassage?: boolean; info?: string }
+	type: new () => object,
+	options?: DtoValidationOptions
 ): RequestHandler {
-	let defaultOpt = {
+	const defaultOptions: DtoValidationOptions = {
 		skipMissingProperties: false,
-		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
+		detailedMassage: process.env['NODE_ENV'] === 'development',
 		info: undefined
 	};
-	//@ts-ignore
-	for (const key in options) defaultOpt[key] = options[key];
-	return async (req: Request, _res: Response, next: NextFunction) => {
-		await new Promise((resolve, _reject) => resolve(plainToInstance(type, req.body)))
-			.then((dtoObj: any) => validate(dtoObj, { skipMissingProperties: defaultOpt['skipMissingProperties'] }))
-			.then((errors: ValidationError[]) => {
-				if (errors.length > 0) {
-					const dtoErrorsString = defaultOpt['detailedMassage']
-						? errors.map((error: ValidationError) => (Object as any).values(error.constraints)).join(', ')
-						: 'Bad request!';
-					if (!!defaultOpt['info']) req.flash('error', defaultOpt['info']);
-					next(new ApiError(400, dtoErrorsString));
-				} else {
-					//TODO: sanitize the object and call the next middleware
-					// sanitize(dtoObj);
-					// req.body = dtoObj;
-					next();
-				}
-			})
-			.catch((err) => next(new ApiError(400, err)));
+
+	const mergedOptions = { ...defaultOptions, ...options };
+
+	return async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			// Transform plain object to DTO instance
+			const dtoInstance = plainToInstance(type, req.body);
+
+			// Validate the DTO instance
+			const errors = await validate(dtoInstance as object, {
+				skipMissingProperties: mergedOptions.skipMissingProperties
+			});
+
+			if (errors.length > 0) {
+				const errorMessages = extractValidationErrors(errors);
+				const errorMessage = mergedOptions.detailedMassage
+					? errorMessages.join(', ')
+					: mergedOptions.info || 'Validation failed';
+
+				return ApiRes(res, {
+					status: HttpStatus.BAD_REQUEST,
+					msg: errorMessage
+				});
+			}
+
+			// Validation passed, proceed to next middleware
+			next();
+		} catch {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Validation error occurred'
+			});
+		}
 	};
 }
 
@@ -66,149 +109,180 @@ export function dtoValidationMiddleware(
 
 @ValidatorConstraint({ name: 'isImageString', async: false })
 export class IsImageString implements ValidatorConstraintInterface {
-	validate(image_str: any, args: ValidationArguments & { object: any }) {
+	validate(image_str: unknown): boolean {
+		if (typeof image_str !== 'string') return false;
+
 		const jpegPrefix = 'data:image/jpeg;base64,';
 		const pngPrefix = 'data:image/png;base64,';
-		if (image_str?.startsWith(jpegPrefix)) {
-			image_str = image_str?.substring(jpegPrefix.length);
-		} else if (image_str?.startsWith(pngPrefix)) {
-			image_str = image_str?.substring(pngPrefix.length);
+
+		let processedStr = image_str;
+		if (processedStr.startsWith(jpegPrefix)) {
+			processedStr = processedStr.substring(jpegPrefix.length);
+		} else if (processedStr.startsWith(pngPrefix)) {
+			processedStr = processedStr.substring(pngPrefix.length);
 		}
-		const base64Regex = /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/;
-		return !!image_str && (image_str.length > 1024 * 1024 || base64Regex.test(image_str));
+
+		const base64Regex = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+		return processedStr.length > 0 && (processedStr.length > 1024 * 1024 || base64Regex.test(processedStr));
 	}
 
-	defaultMessage(args: ValidationArguments) {
+	defaultMessage(args: ValidationArguments): string {
 		return `${args.property} should be a valid JPG or PNG image encoded with base64.`;
 	}
 }
 
+interface DateTimeObject {
+	[key: string]: unknown;
+}
+
 @ValidatorConstraint({ name: 'timeAndDate', async: false })
 export class TimeAndDateValidator implements ValidatorConstraintInterface {
-	validate(time: string, args: ValidationArguments & { object: any }) {
-		const date = args.object[args.constraints[0]];
-		return time && date;
+	validate(time: string, args: ValidationArguments): boolean {
+		const obj = args.object as DateTimeObject;
+		const dateField = args.constraints[0] as string;
+		const date = obj[dateField];
+		return Boolean(time && date);
 	}
 
-	defaultMessage(args: ValidationArguments) {
+	defaultMessage(): string {
 		return 'Both time and date must be present.';
 	}
 }
 
+interface DateRangeObject {
+	date_start?: string;
+	date_end?: string;
+	time_start?: string;
+	time_end?: string;
+}
+
 @ValidatorConstraint({ name: 'endgtrStart', async: false })
 export class EndgtrStartValidator implements ValidatorConstraintInterface {
-	validate(value: any, args: ValidationArguments & { object: any }) {
-		if (!!args.object.date_start && !!args.object.date_end) {
-			const start = new Date(
-				args.object.date_start +
-					' ' +
-					args.object.time_start +
-					Time.getUtcOffset(process.env.TZ ?? 'Asia/Tehran')
-			).getTime();
-			const end = new Date(
-				args.object.date_end + ' ' + args.object.time_end + Time.getUtcOffset(process.env.TZ ?? 'Asia/Tehran')
-			).getTime();
+	validate(_value: unknown, args: ValidationArguments): boolean {
+		const obj = args.object as DateRangeObject;
+		if (obj.date_start && obj.date_end) {
+			const timezone = Time.getUtcOffset(process.env.TZ ?? 'Asia/Tehran');
+			const start = new Date(`${obj.date_start} ${obj.time_start || ''}${timezone}`).getTime();
+			const end = new Date(`${obj.date_end} ${obj.time_end || ''}${timezone}`).getTime();
 			return end >= start;
 		}
 		return true;
 	}
 
-	defaultMessage(args: ValidationArguments) {
-		return 'end time must be greater than start time.';
+	defaultMessage(): string {
+		return 'End time must be greater than start time.';
 	}
+}
+
+type ComparisonOperator = 'gt' | 'gte' | 'ls' | 'lse';
+
+interface ComparisonObject {
+	[key: string]: unknown;
 }
 
 @ValidatorConstraint({ name: 'comparison', async: false })
 export class Comparison implements ValidatorConstraintInterface {
-	validate(
-		value: any,
-		args: ValidationArguments & { object: any; constraints: ['gt' | 'gte' | 'ls' | 'lse', number] }
-	) {
-		if (typeof args.object[args.property] !== 'number') return false;
-		switch (args.constraints[0]) {
+	validate(_value: unknown, args: ValidationArguments): boolean {
+		const obj = args.object as ComparisonObject;
+		const propertyValue = obj[args.property];
+
+		if (typeof propertyValue !== 'number') return false;
+
+		const [operator, compareValue] = args.constraints as [ComparisonOperator, number];
+
+		switch (operator) {
 			case 'gt':
-				return args.object[args.property] > args.constraints[1];
+				return propertyValue > compareValue;
 			case 'gte':
-				return args.object[args.property] >= args.constraints[1];
+				return propertyValue >= compareValue;
 			case 'ls':
-				return args.object[args.property] < args.constraints[1];
+				return propertyValue < compareValue;
 			case 'lse':
-				return args.object[args.property] <= args.constraints[1];
+				return propertyValue <= compareValue;
+			default:
+				return false;
 		}
 	}
 
-	defaultMessage(args: ValidationArguments) {
-		return `${args.property} Must be ${args.constraints[0]} than ${args.constraints[1]}!`;
+	defaultMessage(args: ValidationArguments): string {
+		const [operator, compareValue] = args.constraints as [ComparisonOperator, number];
+		return `${args.property} must be ${operator} than ${compareValue}!`;
 	}
 }
 
 export function Or(thisName: string, propertyNames: string[], validationOptions?: ValidationOptions) {
-	return ValidateIf((object: any, value: any) => {
+	return ValidateIf((object: Record<string, unknown>, value: unknown) => {
 		// Check if the value is undefined or null
 		if (value !== undefined && value !== null) {
 			return true; // If the value is not undefined or null, proceed with validation
 		}
 		// If the value is undefined or null, check if any of the other properties are defined
-		if (propertyNames.some((name) => !!object[name])) {
+		if (propertyNames.some((name) => Boolean(object[name]))) {
 			return false; // pass this one
 		}
 		// If the value is undefined or null and none of the other properties are defined, the validation fails
-		throw new Error(`One of these must be defiend: ${[thisName].concat(propertyNames).join(' - ')}!`);
+		throw new Error(`One of these must be defined: ${[thisName].concat(propertyNames).join(' - ')}!`);
 	}, validationOptions);
 }
 
-@ValidatorConstraint({ name: 'timeAndDate', async: false })
+interface PathOptions {
+	prefix?: string;
+	postfix?: string;
+}
+
+@ValidatorConstraint({ name: 'fileOrDirExists', async: false })
 export class FileOrDirExists implements ValidatorConstraintInterface {
-	validate(p: string, args: ValidationArguments & { object: any }) {
-		const pathes: { prefix: string | undefined; postfix: string | undefined } = args.constraints[0] ?? {};
-		const wholePath = path.join(pathes.prefix ?? '', p, pathes.postfix ?? '');
-		if (existsSync(wholePath)) return true;
-		return false;
+	validate(p: string, args: ValidationArguments): boolean {
+		const pathOptions: PathOptions = (args.constraints[0] as PathOptions) ?? {};
+		const wholePath = path.join(pathOptions.prefix ?? '', p, pathOptions.postfix ?? '');
+		return existsSync(wholePath);
 	}
 
-	defaultMessage(args: ValidationArguments & { object: any }) {
-		return `No such file or directory: ${args.object[args.property]}`;
+	defaultMessage(args: ValidationArguments): string {
+		const obj = args.object as Record<string, unknown>;
+		return `No such file or directory: ${obj[args.property]}`;
 	}
 }
 
-@ValidatorConstraint({ name: 'countLicenseRestricion', async: false })
-export class CountLicenseRestricion implements ValidatorConstraintInterface {
-	async validate(
-		_p: string,
-		args: ValidationArguments & {
-			object: any;
-			constraints: [
-				{
-					model: mongoose.Model<{}, {}, {}, {}>;
-					env?: string | ((object: any) => string | Promise<string>);
-					defualtNumber?: number;
-					pipelines?: Pipeline[] | ((object: any) => Pipeline[] | Promise<Pipeline[]>);
-				}
-			];
-		}
-	) {
+type EnvResolver = string | ((obj: Record<string, unknown>) => string | Promise<string>);
+type PipelineResolver = Pipeline[] | ((obj: Record<string, unknown>) => Pipeline[] | Promise<Pipeline[]>);
+
+interface LicenseConstraint {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	model: mongoose.Model<any>;
+	env?: EnvResolver;
+	defaultNumber?: number;
+	pipelines?: PipelineResolver;
+}
+
+@ValidatorConstraint({ name: 'countLicenseRestriction', async: true })
+export class CountLicenseRestriction implements ValidatorConstraintInterface {
+	async validate(_p: string, args: ValidationArguments): Promise<boolean> {
 		try {
-			let {
-				object,
-				constraints: [{ model, env, defualtNumber, pipelines }]
-			} = args;
-			if (typeof pipelines === 'function') pipelines = await pipelines(object);
-			const c = await count(model, { pipelines });
-			const preValue =
-				process.env[(typeof env === 'function' ? await env(object) : env) ?? 'dummy-string-hamed'];
-			let value: number;
-			try {
-				value = parseInt(preValue ?? '4');
-			} catch (error) {
-				value = defualtNumber ?? 4;
+			const obj = args.object as Record<string, unknown>;
+			const constraint = args.constraints[0] as LicenseConstraint;
+			const { model, env, defaultNumber = 4 } = constraint;
+			let { pipelines } = constraint;
+
+			if (typeof pipelines === 'function') {
+				pipelines = await pipelines(obj);
 			}
-			return c < value;
-		} catch (error) {
+
+			const currentCount = await count(model, { pipelines });
+			const envKey = typeof env === 'function' ? await env(obj) : env;
+			const preValue = process.env[envKey ?? 'LICENSE_LIMIT'];
+
+			const limit = preValue ? parseInt(preValue, 10) : defaultNumber;
+			return currentCount < limit;
+		} catch {
 			return false;
 		}
 	}
 
-	defaultMessage(args: ValidationArguments & { object: any }) {
-		return `License violation!`;
+	defaultMessage(): string {
+		return 'License violation!';
 	}
 }
+
+// Keep old name for backward compatibility
+export { CountLicenseRestriction as CountLicenseRestricion };

@@ -52,22 +52,29 @@ export class SQLite {
 		);
 	}
 
-	static insert(table: string, data: { [key: string]: string }) {
-		if (!SQLite.instance) console.warn('Not affected: database is not initialized yet!');
-		let query = '';
-		const values = Object.values(data)
-			.map((el) => `'${el}'`)
-			.join(', ');
-		query = `INSERT INTO ${table} (${Object.keys(data).join(', ')}) VALUES (${values});`;
-		return SQLite.instance?.run(
-			query,
-			function (this: RunResult, err: { errno: number; code: string; message: string } | undefined) {
-				if (err) {
-					console.error(err.errno, 'Error executing query:', err.message);
-					// 19 Error executing query: SQLITE_CONSTRAINT: UNIQUE constraint failed: Log._id
-				}
+	static insert(table: string, data: { [key: string]: string }): Promise<void> {
+		return new Promise((resolve) => {
+			if (!SQLite.instance) {
+				console.warn('Not affected: database is not initialized yet!');
+				return resolve();
 			}
-		);
+			const values = Object.values(data)
+				.map((el) => `'${el}'`)
+				.join(', ');
+			// Use INSERT OR REPLACE to handle upsert (update if exists, insert if not)
+			const query = `INSERT OR REPLACE INTO ${table} (${Object.keys(data).join(', ')}) VALUES (${values});`;
+			SQLite.instance.run(
+				query,
+				function (this: RunResult, err: { errno: number; code: string; message: string } | undefined) {
+					if (err) {
+						console.error(err.errno, 'Error executing query:', err.message);
+						// Don't reject on constraint errors - just log and continue
+						// 19 Error executing query: SQLITE_CONSTRAINT: UNIQUE constraint failed: Log._id
+					}
+					resolve();
+				}
+			);
+		});
 	}
 
 	static insertMany(table: string, data: { [key: string]: string[] }) {

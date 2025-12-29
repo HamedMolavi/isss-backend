@@ -1,8 +1,7 @@
 import { Request } from 'express';
 import { IUserDocument } from '../types/interfaces/user.interface';
 import User from '../db/mongo/models/user';
-import { get_user_agent } from '../tools/user_agent.utility';
-import { formatToIPv4 } from '../tools/util.tools';
+import { getClientIP, formatToIPv4 } from '../tools/util.tools';
 
 class IPRestrictionService {
 	/**
@@ -106,19 +105,12 @@ class IPRestrictionService {
 	}
 
 	/**
-	 * Gets the client IP from the request
+	 * Gets the client IP from the request using centralized IP extraction
 	 * @param {Request} req - The Express request object
-	 * @returns {string} - The client IP address
+	 * @returns {string} - The client IP address (IPv4 formatted)
 	 */
 	static getClientIP(req: Request): string {
-		const user_agent = get_user_agent(req);
-
-		let ip = user_agent?.ip as string;
-		ip = formatToIPv4(ip) || '';
-		if (ip) {
-			return ip;
-		}
-		return '';
+		return getClientIP(req);
 	}
 }
 

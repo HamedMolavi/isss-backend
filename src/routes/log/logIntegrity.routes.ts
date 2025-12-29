@@ -3,7 +3,8 @@ import { accessCheck } from '../../authentication/accessCheck.auth';
 import {
 	verifyRecentLogsIntegrity,
 	checkLogModification,
-	getIntegrityStatus
+	getIntegrityStatus,
+	getTamperingReport
 } from '../../controllers/logIntegrity.controller';
 
 const LogIntegrityRouter: Router = Router();
@@ -18,5 +19,8 @@ LogIntegrityRouter.get(`${route_prefix}/verify`, accessCheck('systemLog'), verif
 
 // Check if a specific log has been modified
 LogIntegrityRouter.get(`${route_prefix}/check/:logId`, accessCheck('systemLog'), checkLogModification);
+
+// Get detailed tampering report for a specific log
+LogIntegrityRouter.get(`${route_prefix}/report/:logId`, accessCheck('systemLog'), getTamperingReport);
 
 export default LogIntegrityRouter;

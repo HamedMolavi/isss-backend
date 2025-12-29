@@ -118,6 +118,18 @@ export class CreatePersonnelBody {
 	@IsString()
 	@IsOptional()
 	date_end?: string;
+
+	@IsString()
+	@IsOptional()
+	file_key?: string;
+
+	@IsString()
+	@IsOptional()
+	hash_id?: string;
+
+	@IsArray()
+	@IsOptional()
+	embedding?: number[];
 }
 
 export class UpdatePersonnelBody {

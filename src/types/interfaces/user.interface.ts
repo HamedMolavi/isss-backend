@@ -13,6 +13,7 @@ export interface IUser {
 	created_date: Date;
 	camera_access?: Array<mongoose.Types.ObjectId>;
 	last_login: Date;
+	previous_last_login?: Date;
 	last_operation: object;
 	is_active: boolean;
 	otp_secret?: string;
@@ -20,6 +21,7 @@ export interface IUser {
 	otp_enabled?: boolean;
 	ip_restricted?: boolean;
 	allowed_ips?: string[];
+	must_change_password?: boolean;
 }
 
 export interface IAuthUserJSON {

@@ -4,12 +4,16 @@ import { ApiError } from '../../types/classes/error.class';
 import { Access } from '../../types/enums/access.enum';
 import Time from '../../tools/time.tools';
 import { Clock } from '../../types/interfaces/time.interface';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //get user role from enviroment variable
 const const_role = process.env.const_role || 'user';
 
 //create router for add to routes file
 const router: Router = Router();
+
+// Apply access check middleware to all department report routes
+router.use(accessCheck('report'));
 
 //add error handler middleware
 router.use(function (req: Request, res: Response, next: NextFunction) {

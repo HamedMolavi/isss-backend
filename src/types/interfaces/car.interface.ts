@@ -20,6 +20,7 @@ export interface ICarBrand extends Document {
 	_id: mongoose.Types.ObjectId;
 	name: string;
 	system: boolean;
+	car_type?: 'suv' | 'bus' | 'truck' | 'unknown';
 }
 //define car_color type
 export interface ICarColor extends Document {

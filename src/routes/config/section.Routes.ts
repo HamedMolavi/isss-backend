@@ -14,9 +14,13 @@ import mongoose from 'mongoose';
 import Personnel from '../../db/mongo/models/personnel';
 import { docSendMiddleware, makeSearchFnWithOr, makesearchFromBody } from '../../tools/request.tools';
 import Car from '../../db/mongo/models/car';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to routes file
 const router: Router = Router();
+
+// Apply access check middleware to all section routes
+router.use(accessCheck('section'));
 
 //add route for register new section
 router.post(

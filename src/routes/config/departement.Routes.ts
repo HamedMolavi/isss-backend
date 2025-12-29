@@ -19,9 +19,13 @@ import {
 	makeSearchFnWithOr,
 	makesearchFromBody
 } from '../../tools/request.tools';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to server file
 const router: Router = Router();
+
+// Apply access check middleware to all department routes
+router.use(accessCheck('department'));
 
 //add route for register new departement
 router.post(

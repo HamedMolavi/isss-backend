@@ -20,4 +20,26 @@ export interface IPersonnel extends Document {
 	alert: boolean;
 	person_type: 'normal' | 'guest' | 'hostile' | 'client_buyer' | 'client_seller';
 	toName: () => string;
+	toJSON: () => Promise<IPersonnelResponse>;
+}
+
+// Response type with computed fields
+export interface IPersonnelResponse {
+	_id: Schema.Types.ObjectId;
+	first_name: string;
+	last_name: string;
+	national_code: string;
+	email: string;
+	phone_number: string;
+	job_id: Schema.Types.ObjectId;
+	personnel_code: string;
+	camera_whitelist: Schema.Types.ObjectId[];
+	image_id?: Schema.Types.ObjectId;
+	create_date: Date;
+	tracked: boolean;
+	allowed_pass: { start: number; end: number } | undefined;
+	alert: boolean;
+	image_url: string; // Virtual field - computed from file system
+	avatar: string; // Virtual field - base64 image data
+	person_type: 'normal' | 'guest' | 'hostile' | 'client_buyer' | 'client_seller';
 }

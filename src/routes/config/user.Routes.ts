@@ -1,21 +1,28 @@
 import { Router } from 'express';
 import User from '../../db/mongo/models/user';
 import { dtoValidationMiddleware } from '../../validation/dto';
-import { CreateUserBody, UpdateUserBody, UpdatePasswordBody } from '../../validation/dto/user.dto';
+import {
+	CreateUserBody,
+	UpdateUserBody,
+	UpdatePasswordBody,
+	ResetPasswordBody
+} from '../../validation/dto/user.dto';
 import { existCheck } from '../../validation/db';
 import { passwordValidator } from '../../validation/password';
 import { passportGate } from '../../authentication/authorize.auth';
 import { accessCheck, userCanGetHisInfo, roleCheck } from '../../authentication/accessCheck.auth';
 import * as UserController from '../../controllers/user.controller';
+import { userCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 
 const UserRouter: Router = Router();
 
 const route_prefix = '';
 
-// Create user - requires user access level
+// Create user - requires user access level with rate limiting
 UserRouter.post(
 	`${route_prefix}`,
 	accessCheck('user'),
+	userCreationRateLimit, // Rate limit to prevent race condition attacks
 	dtoValidationMiddleware(CreateUserBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
@@ -80,7 +87,7 @@ UserRouter.patch(`${route_prefix}/:id/deactivate`, accessCheck('user'), UserCont
 UserRouter.patch(
 	`${route_prefix}/:id/reset-password`,
 	roleCheck('admin'),
-	dtoValidationMiddleware(UpdatePasswordBody, {
+	dtoValidationMiddleware(ResetPasswordBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
 		info: 'Please provide new password'

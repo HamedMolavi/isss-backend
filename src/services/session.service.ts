@@ -473,6 +473,126 @@ export class SessionManager {
 	}
 
 	/**
+	 * Update TTL (time-to-live) for all active sessions
+	 * This applies the new session timeout to all existing sessions
+	 *
+	 * @param newTimeoutMs - New timeout value in milliseconds
+	 * @returns Promise<{updated: number, failed: number}> Count of updated and failed sessions
+	 */
+	async updateAllSessionsTTL(newTimeoutMs: number): Promise<{ updated: number; failed: number }> {
+		let updated = 0;
+		let failed = 0;
+
+		try {
+			if (!this.redisClient) {
+				this.redisClient = await connect(process.env['REDIS_URL'] || '');
+			}
+
+			// Get all session keys from Redis
+			const sessionKeys = await this.redisClient.keys('Bearer *');
+			const newTTLSeconds = Math.floor(newTimeoutMs / 1000);
+
+			for (const key of sessionKeys) {
+				try {
+					// Get current TTL
+					const currentTTL = await this.redisClient.ttl(key);
+
+					// Only update if session is still active (TTL > 0) and new TTL is shorter
+					if (currentTTL > 0) {
+						// Apply new TTL - use the minimum of current remaining time and new timeout
+						// This ensures sessions don't get extended, only shortened if needed
+						const effectiveTTL = Math.min(currentTTL, newTTLSeconds);
+						await this.redisClient.expire(key, effectiveTTL);
+						updated++;
+					}
+				} catch (err) {
+					console.error(`Failed to update TTL for session ${key}:`, err);
+					failed++;
+				}
+			}
+
+			Logger.info('Updated session TTLs', {
+				type: 'session',
+				action: 'update_all_ttl',
+				details: {
+					newTimeoutMs,
+					newTTLSeconds,
+					updated,
+					failed,
+					totalSessions: sessionKeys.length
+				}
+			});
+
+			return { updated, failed };
+		} catch (error) {
+			Logger.error('Failed to update all session TTLs', {
+				type: 'session',
+				action: 'update_all_ttl',
+				details: {
+					error: error instanceof Error ? error.message : 'Unknown error'
+				}
+			});
+			return { updated, failed };
+		}
+	}
+
+	/**
+	 * Update TTL (time-to-live) for a specific session
+	 * This applies the new session timeout to a single session immediately
+	 *
+	 * @param sessionId - The session ID to update (without 'Bearer ' prefix)
+	 * @param newTimeoutMs - New timeout value in milliseconds
+	 * @returns Promise<boolean> True if session TTL was updated successfully
+	 */
+	async updateSessionTTL(sessionId: string, newTimeoutMs: number): Promise<boolean> {
+		try {
+			if (!this.redisClient) {
+				this.redisClient = await connect(process.env['REDIS_URL'] || '');
+			}
+
+			const key = `Bearer ${sessionId}`;
+			const newTTLSeconds = Math.floor(newTimeoutMs / 1000);
+
+			// Get current TTL
+			const currentTTL = await this.redisClient.ttl(key);
+
+			// Only update if session is still active (TTL > 0)
+			if (currentTTL > 0) {
+				// Apply new TTL - use the minimum of current remaining time and new timeout
+				// This ensures sessions don't get extended, only shortened if needed
+				const effectiveTTL = Math.min(currentTTL, newTTLSeconds);
+				await this.redisClient.expire(key, effectiveTTL);
+
+				Logger.info('Updated session TTL', {
+					type: 'session',
+					action: 'update_session_ttl',
+					details: {
+						sessionId,
+						newTimeoutMs,
+						newTTLSeconds,
+						previousTTL: currentTTL,
+						effectiveTTL
+					}
+				});
+
+				return true;
+			}
+
+			return false;
+		} catch (error) {
+			Logger.error('Failed to update session TTL', {
+				type: 'session',
+				action: 'update_session_ttl',
+				details: {
+					sessionId,
+					error: error instanceof Error ? error.message : 'Unknown error'
+				}
+			});
+			return false;
+		}
+	}
+
+	/**
 	 * Terminate all sessions for a specific user except the current one
 	 *
 	 * @param userId - The ID of the user

@@ -3,126 +3,249 @@ import { LogIntegrityService } from '../services/logIntegrity.service';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
 import { Logger } from '../logger';
+import { Log } from '../db/mongo/models/secLog';
 
 /**
- * Verify integrity of recent logs
+ * Get integrity service status - simple overview
  */
-export const verifyRecentLogsIntegrity = async (req: Request, res: Response) => {
+export const getIntegrityStatus = async (req: Request, res: Response) => {
 	try {
-		const count = parseInt(req.query.count as string) || 1000;
-
-		if (count < 1 || count > 10000) {
-			return ApiRes(res, {
-				status: HttpStatus.BAD_REQUEST,
-				msg: 'Count must be between 1 and 10000'
-			});
-		}
-
-		const integrityService = LogIntegrityService.getInstance();
-		const result = await integrityService.verifyRecentLogsIntegrity(count);
-
-		Logger.systemOperation('Log integrity verification requested via API', {
-			action: 'API_LOG_INTEGRITY_VERIFICATION',
-			userId: req.user?._id?.toString(),
-			count,
-			result
-		});
+		const service = LogIntegrityService.getInstance();
+		const status = service.getServiceStatus();
 
 		return ApiRes(res, {
 			status: HttpStatus.OK,
-			msg: 'Log integrity verification completed',
-			data: result
+			msg: 'وضعیت سرویس یکپارچگی',
+			data: {
+				active: status.serviceActive,
+				triggerActive: status.triggerActive,
+				lastCheck: status.lastVerificationTime,
+				alertTopic: status.kafkaTopic
+			}
 		});
 	} catch (error) {
-		Logger.error('Failed to verify log integrity via API', {
-			action: 'API_LOG_INTEGRITY_VERIFICATION_FAILED',
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to get integrity status', {
+			action: 'INTEGRITY_STATUS_FAILED',
+			error,
+			userAgent,
 			userId: req.user?._id?.toString(),
-			error: error instanceof Error ? error.message : 'Unknown error'
+			username: req.user?.username
 		});
-
-		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR,
-			msg: 'Failed to verify log integrity'
-		});
+		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در دریافت وضعیت' });
 	}
 };
 
 /**
- * Check if a specific log has been modified
+ * Verify integrity of recent logs - batch check
+ */
+export const verifyRecentLogsIntegrity = async (req: Request, res: Response) => {
+	try {
+		const count = Math.min(Math.max(parseInt(req.query.count as string) || 100, 1), 10000);
+
+		const service = LogIntegrityService.getInstance();
+		const result = await service.verifyRecentLogsIntegrity(count);
+
+		const successRate =
+			result.totalChecked > 0 ? Math.round((result.validLogs / result.totalChecked) * 100) : 100;
+
+		return ApiRes(res, {
+			status: HttpStatus.OK,
+			msg: 'بررسی یکپارچگی لاگ‌ها',
+			data: {
+				summary: {
+					total: result.totalChecked,
+					valid: result.validLogs,
+					invalid: result.invalidLogs,
+					missing: result.missingHashes,
+					successRate: `${successRate}%`,
+					duration: `${result.verificationTime}ms`
+				},
+				status: result.invalidLogs === 0 ? 'OK' : 'WARNING',
+				invalidLogIds: result.invalidLogIds.slice(0, 10) // Show first 10 only
+			}
+		});
+	} catch (error) {
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to verify logs', {
+			action: 'VERIFY_LOGS_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
+		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در بررسی یکپارچگی' });
+	}
+};
+
+/**
+ * Check single log integrity
  */
 export const checkLogModification = async (req: Request, res: Response) => {
 	try {
 		const { logId } = req.params;
-
 		if (!logId) {
-			return ApiRes(res, {
-				status: HttpStatus.BAD_REQUEST,
-				msg: 'Log ID is required'
-			});
+			return ApiRes(res, { status: HttpStatus.BAD_REQUEST, msg: 'شناسه لاگ الزامی است' });
 		}
 
-		const integrityService = LogIntegrityService.getInstance();
-		const isValid = await integrityService.checkLogModification(logId);
+		const log = await Log.findById(logId).lean();
+		if (!log) {
+			return ApiRes(res, { status: HttpStatus.NOT_FOUND, msg: 'لاگ یافت نشد' });
+		}
 
-		Logger.systemOperation('Log modification check requested via API', {
-			action: 'API_LOG_MODIFICATION_CHECK',
-			userId: req.user?._id?.toString(),
-			logId,
-			isValid
-		});
+		const isIntact = await Log.verifyIntegrity(logId);
 
 		return ApiRes(res, {
 			status: HttpStatus.OK,
-			msg: 'Log modification check completed',
+			msg: isIntact ? 'لاگ سالم است' : 'لاگ دستکاری شده است',
 			data: {
 				logId,
-				isValid,
-				status: isValid ? 'INTACT' : 'MODIFIED'
+				status: isIntact ? 'INTACT' : 'TAMPERED',
+				isIntact,
+				log: {
+					level: log.level,
+					action: log.action,
+					message: log.message.substring(0, 100),
+					timestamp: log.timestamp
+				}
 			}
 		});
 	} catch (error) {
-		Logger.error('Failed to check log modification via API', {
-			action: 'API_LOG_MODIFICATION_CHECK_FAILED',
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to check log', {
+			action: 'CHECK_LOG_FAILED',
+			error,
+			userAgent,
 			userId: req.user?._id?.toString(),
-			logId: req.params.logId,
-			error: error instanceof Error ? error.message : 'Unknown error'
+			username: req.user?.username
 		});
-
-		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR,
-			msg: 'Failed to check log modification'
-		});
+		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در بررسی لاگ' });
 	}
 };
 
 /**
- * Get integrity service status
+ * Get tampering report for a log - shows system reaction
  */
-export const getIntegrityStatus = async (req: Request, res: Response) => {
+export const getTamperingReport = async (req: Request, res: Response) => {
 	try {
-		const integrityService = LogIntegrityService.getInstance();
-		const status = integrityService.getServiceStatus();
+		const { logId } = req.params;
+		if (!logId) {
+			return ApiRes(res, { status: HttpStatus.BAD_REQUEST, msg: 'شناسه لاگ الزامی است' });
+		}
 
-		Logger.systemOperation('Integrity service status requested via API', {
-			action: 'API_INTEGRITY_STATUS',
-			userId: req.user?._id?.toString()
-		});
+		const log = await Log.findById(logId).lean();
+		if (!log) {
+			return ApiRes(res, { status: HttpStatus.NOT_FOUND, msg: 'لاگ یافت نشد' });
+		}
+
+		const isIntact = await Log.verifyIntegrity(logId);
+		const service = LogIntegrityService.getInstance();
+		const serviceStatus = service.getServiceStatus();
 
 		return ApiRes(res, {
 			status: HttpStatus.OK,
-			msg: 'Integrity service status retrieved',
-			data: status
+			msg: isIntact ? 'گزارش یکپارچگی - سالم' : 'گزارش یکپارچگی - دستکاری شده',
+			data: {
+				logId,
+				integrity: {
+					status: isIntact ? 'INTACT' : 'TAMPERED',
+					method: 'SHA-256',
+					checkedAt: new Date().toISOString()
+				},
+				log: {
+					level: log.level,
+					action: log.action,
+					message: log.message,
+					timestamp: log.timestamp
+				},
+				reaction: isIntact
+					? {
+							severity: 'INFO',
+							action: 'هیچ اقدامی نیاز نیست',
+							alertSent: false
+						}
+					: {
+							severity: 'CRITICAL',
+							action: 'هشدار ارسال شد',
+							alertSent: serviceStatus.serviceActive,
+							alertChannel: 'Kafka',
+							recommendations: [
+								'بررسی منبع تغییرات',
+								'بررسی لاگ‌های دسترسی پایگاه داده',
+								'بازیابی از نسخه پشتیبان در صورت نیاز'
+							]
+						}
+			}
 		});
 	} catch (error) {
-		Logger.error('Failed to get integrity service status via API', {
-			action: 'API_INTEGRITY_STATUS_FAILED',
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to generate report', {
+			action: 'REPORT_FAILED',
+			error,
+			userAgent,
 			userId: req.user?._id?.toString(),
-			error: error instanceof Error ? error.message : 'Unknown error'
+			username: req.user?.username
 		});
+		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در تولید گزارش' });
+	}
+};
+
+/**
+ * Restore a tampered log
+ */
+export const restoreTamperedLog = async (req: Request, res: Response) => {
+	try {
+		const { logId } = req.params;
+		const { field, originalValue } = req.body;
+
+		if (!logId) {
+			return ApiRes(res, { status: HttpStatus.BAD_REQUEST, msg: 'شناسه لاگ الزامی است' });
+		}
+
+		const allowedFields = ['message', 'level', 'action'];
+		if (!field || !allowedFields.includes(field)) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: `فیلد باید یکی از: ${allowedFields.join(', ')}`
+			});
+		}
+
+		if (originalValue === undefined) {
+			return ApiRes(res, { status: HttpStatus.BAD_REQUEST, msg: 'مقدار اصلی الزامی است' });
+		}
+
+		const log = await Log.findById(logId);
+		if (!log) {
+			return ApiRes(res, { status: HttpStatus.NOT_FOUND, msg: 'لاگ یافت نشد' });
+		}
+
+		const beforeRestore = await Log.verifyIntegrity(logId);
+		(log as unknown as Record<string, unknown>)[field] = originalValue;
+		await log.save();
+		const afterRestore = await Log.verifyIntegrity(logId);
+
+		Logger.systemOperation('Log restored', { action: 'LOG_RESTORED', logId, field });
 
 		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR,
-			msg: 'Failed to get integrity service status'
+			status: HttpStatus.OK,
+			msg: afterRestore ? 'لاگ با موفقیت بازیابی شد' : 'بازیابی ناموفق',
+			data: {
+				logId,
+				field,
+				beforeRestore: beforeRestore ? 'INTACT' : 'TAMPERED',
+				afterRestore: afterRestore ? 'INTACT' : 'TAMPERED',
+				success: afterRestore
+			}
 		});
+	} catch (error) {
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to restore log', {
+			action: 'RESTORE_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
+		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در بازیابی لاگ' });
 	}
 };

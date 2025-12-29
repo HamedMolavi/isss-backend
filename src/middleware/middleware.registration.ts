@@ -4,7 +4,6 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import flash from 'connect-flash';
 import passport from 'passport';
-import fileUpload from 'express-fileupload';
 import localVarMiddleware from './localVar.middleware';
 import { setupLogger } from './logger.middleware';
 import { sessionMiddleware } from './session.middleware';
@@ -12,12 +11,17 @@ import { authHeaderExtraction } from './auth.middleware';
 import { errorLoggerMiddleware, routeLoggerMiddleware } from './routeLogger.middleware';
 import { registerSecurityMiddleware } from './security.middleware';
 import { BaseConfig } from '../config/base.config';
-import { verifyLogIntegrityMiddleware } from './logIntegrity.middleware';
-import { verifyUserIntegrityMiddleware } from './userIntegrity.middleware';
+// import { verifyUserIntegrityMiddleware } from './userIntegrity.middleware';
+import { inputSanitizationMiddleware } from './input-sanitization.middleware';
+import { httpSecurityMiddleware } from './http-methods.middleware';
 
-export function RegisterMiddleware(app: Application) {
-	// Register security middleware
-	registerSecurityMiddleware(app);
+export async function RegisterMiddleware(app: Application) {
+	// HTTP Security - Handle OPTIONS, validate methods, sanitize headers
+	// Must be registered FIRST before any other middleware
+	app.use(httpSecurityMiddleware);
+
+	// Register security middleware (must be awaited as it's async)
+	await registerSecurityMiddleware(app);
 
 	///////////////////////////////////////////////////////////////////////////////// Credentials and authentication
 
@@ -47,22 +51,37 @@ export function RegisterMiddleware(app: Application) {
 
 	///////////////////////////////////////////////////////////////////////////////// Parsing & Logger
 
-	// Body Parser JSON - Parse JSON payloads up to 50mb
-	app.use(bodyParser.json({ limit: '50mb' }));
+	// Body Parser JSON - Parse JSON payloads up to 50mb (skips multipart/form-data)
+	app.use((req: Request, res: Response, next: NextFunction) => {
+		if (req.headers['content-type']?.includes('multipart/form-data')) {
+			// Skip body parsing for multipart requests - let multer handle them
+			return next();
+		}
+		bodyParser.json({ limit: '50mb' })(req, res, next);
+	});
 
-	// Body Parser URL-encoded - Parse URL-encoded payloads up to 50mb
-	app.use(
+	// Body Parser URL-encoded - Parse URL-encoded payloads up to 50mb (skips multipart/form-data)
+	app.use((req: Request, res: Response, next: NextFunction) => {
+		if (req.headers['content-type']?.includes('multipart/form-data')) {
+			// Skip body parsing for multipart requests - let multer handle them
+			return next();
+		}
 		bodyParser.urlencoded({
 			limit: '50mb',
 			extended: true
-		})
-	);
+		})(req, res, next);
+	});
 
 	// Body Parser Text - Parse text payloads up to 200mb
 	app.use(bodyParser.text({ limit: '200mb' }));
 
+	// Input Sanitization - Validate and sanitize all inputs
+	// Protects against CRLF injection and enforces input length limits
+	app.use(inputSanitizationMiddleware);
+
 	// File Upload - Handle multipart/form-data file uploads
-	app.use(fileUpload());
+	// COMMENTED OUT: Conflicts with multer - use multer in routes instead
+	// app.use(fileUpload());
 
 	// Flash Messages - Enable flash messaging for user feedback
 	app.use(flash());
@@ -77,10 +96,11 @@ export function RegisterMiddleware(app: Application) {
 	app.use(routeLoggerMiddleware());
 
 	// Log Integrity Verification - Verify log integrity for GET requests
-	app.use(verifyLogIntegrityMiddleware);
+	// DISABLED: Log integrity check is currently disabled
+	// app.use(verifyLogIntegrityMiddleware);
 
 	// User Integrity Verification - Verify user integrity for user-related routes
-	app.use(verifyUserIntegrityMiddleware);
+	// app.use(verifyUserIntegrityMiddleware);
 
 	// Error Logger - Log application errors
 	app.use(errorLoggerMiddleware());

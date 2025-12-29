@@ -1,19 +1,21 @@
-import { NextFunction, Router, Request, Response } from 'express';
+import { Router } from 'express';
 import { dtoValidationMiddleware } from '../../validation/dto';
-import { readMiddleware, readByIdMiddleware } from '../../db/mongo/read.database';
-import mongoose, { Document, FilterQuery, Model, Types } from 'mongoose';
+import { readMiddleware } from '../../db/mongo/read.database';
+import { FilterQuery } from 'mongoose';
 import Track from '../../db/mongo/models/track';
 import { ReadTrackBody } from '../../validation/dto/track.dto';
 import Time from '../../tools/time.tools';
-import { ITrackLog } from '../../types/interfaces/track.interface';
-import { ApiError } from '../../types/classes/error.class';
 import Camera from '../../db/mongo/models/camera';
-import { range } from '../../tools/utils.tools';
 import { cumulativeSendFunction, daySendFunction } from '../../tools/track.tools';
 import { sendDataMiddleware } from '../../tools/middleware.tools';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to server
 const router: Router = Router();
+
+// Apply access check middleware to all track report routes
+router.use(accessCheck('report'));
+
 // get track data
 router.post(
 	'/cumulative',

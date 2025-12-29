@@ -3,126 +3,122 @@ import { UserIntegrityService } from '../services/userIntegrity.service';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
 import { Logger } from '../logger';
-
-/**
- * Verify integrity of usernames
- */
-export const verifyUsernamesIntegrity = async (req: Request, res: Response) => {
-	try {
-		const count = req.query.count ? parseInt(req.query.count as string) : undefined;
-
-		if (count && (count < 1 || count > 10000)) {
-			return ApiRes(res, {
-				status: HttpStatus.BAD_REQUEST,
-				msg: 'Count must be between 1 and 10000'
-			});
-		}
-
-		const integrityService = UserIntegrityService.getInstance();
-		const result = await integrityService.verifyUsernamesIntegrity(count);
-
-		Logger.systemOperation('Username integrity verification requested via API', {
-			action: 'API_USERNAME_INTEGRITY_VERIFICATION',
-			userId: req.user?._id?.toString(),
-			count: count || 'all',
-			result
-		});
-
-		return ApiRes(res, {
-			status: HttpStatus.OK,
-			msg: 'Username integrity verification completed',
-			data: result
-		});
-	} catch (error) {
-		Logger.error('Failed to verify username integrity via API', {
-			action: 'API_USERNAME_INTEGRITY_VERIFICATION_FAILED',
-			userId: req.user?._id?.toString(),
-			error: error instanceof Error ? error.message : 'Unknown error'
-		});
-
-		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR,
-			msg: 'Failed to verify username integrity'
-		});
-	}
-};
-
-/**
- * Check if a specific user's username has been modified
- */
-export const checkUsernameModification = async (req: Request, res: Response) => {
-	try {
-		const { userId } = req.params;
-
-		if (!userId) {
-			return ApiRes(res, {
-				status: HttpStatus.BAD_REQUEST,
-				msg: 'User ID is required'
-			});
-		}
-
-		const integrityService = UserIntegrityService.getInstance();
-		const isValid = await integrityService.checkUsernameModification(userId);
-
-		Logger.systemOperation('Username modification check requested via API', {
-			action: 'API_USERNAME_MODIFICATION_CHECK',
-			userId: req.user?._id?.toString(),
-			targetUserId: userId,
-			isValid
-		});
-
-		return ApiRes(res, {
-			status: HttpStatus.OK,
-			msg: 'Username modification check completed',
-			data: {
-				userId,
-				isValid,
-				status: isValid ? 'INTACT' : 'MODIFIED'
-			}
-		});
-	} catch (error) {
-		Logger.error('Failed to check username modification via API', {
-			action: 'API_USERNAME_MODIFICATION_CHECK_FAILED',
-			userId: req.user?._id?.toString(),
-			targetUserId: req.params.userId,
-			error: error instanceof Error ? error.message : 'Unknown error'
-		});
-
-		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR,
-			msg: 'Failed to check username modification'
-		});
-	}
-};
+import User from '../db/mongo/models/user';
 
 /**
  * Get user integrity service status
  */
 export const getUserIntegrityStatus = async (req: Request, res: Response) => {
 	try {
-		const integrityService = UserIntegrityService.getInstance();
-		const status = await integrityService.getServiceStatus();
-
-		Logger.systemOperation('User integrity service status requested via API', {
-			action: 'API_USER_INTEGRITY_STATUS',
-			userId: req.user?._id?.toString()
-		});
+		const service = UserIntegrityService.getInstance();
+		const status = service.getServiceStatus();
 
 		return ApiRes(res, {
 			status: HttpStatus.OK,
-			msg: 'User integrity service status retrieved',
-			data: status
+			msg: 'وضعیت سرویس یکپارچگی کاربران',
+			data: {
+				active: status.serviceActive,
+				lastCheck: status.lastVerificationTime,
+				alertTopic: status.kafkaTopic
+			}
 		});
 	} catch (error) {
-		Logger.error('Failed to get user integrity service status via API', {
-			action: 'API_USER_INTEGRITY_STATUS_FAILED',
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to get user integrity status', {
+			action: 'USER_INTEGRITY_STATUS_FAILED',
+			error,
+			userAgent,
 			userId: req.user?._id?.toString(),
-			error: error instanceof Error ? error.message : 'Unknown error'
+			username: req.user?.username
 		});
+		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در دریافت وضعیت' });
+	}
+};
+
+/**
+ * Verify integrity of usernames - batch check
+ */
+export const verifyUsernamesIntegrity = async (req: Request, res: Response) => {
+	try {
+		const count = req.query.count
+			? Math.min(Math.max(parseInt(req.query.count as string), 1), 10000)
+			: undefined;
+
+		const service = UserIntegrityService.getInstance();
+		const result = await service.verifyUsernamesIntegrity(count);
+
+		const successRate =
+			result.totalChecked > 0 ? Math.round((result.validUsers / result.totalChecked) * 100) : 100;
 
 		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR,
-			msg: 'Failed to get user integrity service status'
+			status: HttpStatus.OK,
+			msg: 'بررسی یکپارچگی نام‌های کاربری',
+			data: {
+				summary: {
+					total: result.totalChecked,
+					valid: result.validUsers,
+					invalid: result.invalidUsers,
+					missing: result.missingHashes,
+					successRate: `${successRate}%`,
+					duration: `${result.verificationTime}ms`
+				},
+				status: result.invalidUsers === 0 ? 'OK' : 'WARNING',
+				invalidUserIds: result.invalidUserIds.slice(0, 10)
+			}
 		});
+	} catch (error) {
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to verify usernames', {
+			action: 'VERIFY_USERNAMES_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
+		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در بررسی یکپارچگی' });
+	}
+};
+
+/**
+ * Check single user integrity
+ */
+export const checkUsernameModification = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+		if (!userId) {
+			return ApiRes(res, { status: HttpStatus.BAD_REQUEST, msg: 'شناسه کاربر الزامی است' });
+		}
+
+		const user = await User.findById(userId).lean();
+		if (!user) {
+			return ApiRes(res, { status: HttpStatus.NOT_FOUND, msg: 'کاربر یافت نشد' });
+		}
+
+		const isIntact = await User.verifyUsernameIntegrity(userId);
+
+		return ApiRes(res, {
+			status: HttpStatus.OK,
+			msg: isIntact ? 'نام کاربری سالم است' : 'نام کاربری دستکاری شده است',
+			data: {
+				userId,
+				status: isIntact ? 'INTACT' : 'TAMPERED',
+				isIntact,
+				user: {
+					username: user.username,
+					role: user.role,
+					createdAt: user.created_date
+				}
+			}
+		});
+	} catch (error) {
+		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
+		Logger.error('Failed to check username', {
+			action: 'CHECK_USERNAME_FAILED',
+			error,
+			userAgent,
+			userId: req.user?._id?.toString(),
+			username: req.user?.username
+		});
+		return ApiRes(res, { status: HttpStatus.INTERNAL_SERVER_ERROR, msg: 'خطا در بررسی کاربر' });
 	}
 };

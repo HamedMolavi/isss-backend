@@ -2,6 +2,7 @@ import { Request } from 'express';
 import { Logger } from '.';
 import { LogType } from '../db/mongo/models/logType';
 import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Data export event types
@@ -41,7 +42,7 @@ export class DataImportExportLogger {
 			success,
 			userid: req.user?._id?.toString(),
 			username: req.user?.username,
-			ip: req.ip || req.socket.remoteAddress || 'unknown',
+			ip: getClientIP(req) || 'unknown',
 			userAgent: req.get('User-Agent') || 'unknown',
 			method: req.method,
 			url: req.originalUrl,

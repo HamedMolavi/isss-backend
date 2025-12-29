@@ -5,9 +5,9 @@ import seedSetup from './seed.setup';
 import { initBalancer } from '../tools/loadBalancer.tools';
 import { SignalConsumer } from '../tools/systemSignal.tools';
 import { setupLogger } from './logger.setup';
-import { BackupSchedulerService } from '../services/backupScheduler.service';
-import { LogIntegrityService } from '../services/logIntegrity.service';
 import { initializeSecurityConfig } from '../config/security.config';
+import { LogIntegrityService } from '../services/logIntegrity.service';
+import { BackupSchedulerService } from '../services/backupScheduler.service';
 
 export default async function setup() {
 	await setupInteractive();
@@ -36,7 +36,7 @@ export default async function setup() {
 		console.error('Failed to start backup scheduler:', error);
 	}
 
-	// Initialize log integrity service and setup modification trigger
+	// // Initialize log integrity service and setup modification trigger
 	try {
 		const logIntegrityService = LogIntegrityService.getInstance();
 		logIntegrityService.setupLogModificationTrigger();

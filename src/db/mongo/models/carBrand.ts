@@ -6,7 +6,8 @@ import Car from './car';
 const CarBrandSchema: Schema<ICarBrand> = new Schema(
 	{
 		name: { type: String, required: true },
-		system: { type: Boolean, default: false }
+		system: { type: Boolean, default: false },
+		car_type: { type: String, enum: ['suv', 'bus', 'truck', 'unknown'], default: 'unknown' }
 	},
 	{
 		collection: 'Car_Brand'

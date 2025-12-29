@@ -31,6 +31,9 @@ declare global {
 			MODELS: string;
 			LOG_COLLECTION_SIZE: string;
 			SQLITE_PATH: string;
+			MINIO_ROOT_USER: string;
+			MINIO_ROOT_PASSWORD: string;
+			MINIO_ENDPOINT: string;
 		}
 	}
 	namespace Express {
@@ -39,9 +42,36 @@ declare global {
 				username: string;
 				ip: string;
 			};
+			loginFailed?: {
+				error?: string;
+				attemptedCredentials?: {
+					username?: string;
+					password?: string;
+				};
+			};
 		}
 		interface Response {
 			responseBody?: unknown;
 		}
 	}
+
+	namespace RestApi {
+		interface ObjectResInterface {
+			is_success: boolean;
+			data?: unknown;
+			msg?: string;
+		}
+	}
 }
+
+declare module 'express-session' {
+	interface SessionData {
+		captcha?: {
+			id: string;
+			hash: string;
+			expiresAt: number;
+		};
+	}
+}
+
+declare module 'svg-captcha-fixed';

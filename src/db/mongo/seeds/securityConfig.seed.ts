@@ -14,13 +14,19 @@ export const seedSecurityConfig = async () => {
 		const securityConfig = new SecurityConfig({
 			maxConcurrentSessions: SecurityConfigValues.MAX_CONCURRENT_SESSIONS,
 			passwordRequirements: SecurityConfigValues.PASSWORD.REQUIREMENTS.map((req) => ({
-				re: req.re.toString(),
+				re: req.re.source, // Use .source to get the regex pattern without delimiters
 				label: req.label
 			})),
 			logBackup: {
 				checkIntervalHours: SecurityConfigValues.LOG_BACKUP.CHECK_INTERVAL_HOURS,
 				checkIntervalMs: SecurityConfigValues.LOG_BACKUP.CHECK_INTERVAL_MS,
 				ttlDays: SecurityConfigValues.LOG_BACKUP.TTL_DAYS,
+				backupIntervalDays: SecurityConfigValues.LOG_BACKUP.BACKUP_INTERVAL_DAYS,
+				maxSizeBytes: SecurityConfigValues.LOG_BACKUP.MAX_SIZE_BYTES,
+				maxLogCount: SecurityConfigValues.LOG_BACKUP.MAX_LOG_COUNT,
+				warningThreshold: SecurityConfigValues.LOG_BACKUP.WARNING_THRESHOLD,
+				autoBackup: SecurityConfigValues.LOG_BACKUP.AUTO_BACKUP,
+				autoCleanup: SecurityConfigValues.LOG_BACKUP.AUTO_CLEANUP,
 				defaultConfig: {
 					ttlDays: SecurityConfigValues.LOG_BACKUP.DEFAULT_CONFIG.TTL_DAYS,
 					isAutoBackup: SecurityConfigValues.LOG_BACKUP.DEFAULT_CONFIG.IS_AUTO_BACKUP

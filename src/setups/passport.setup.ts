@@ -41,17 +41,22 @@ export function setUpPassport() {
 						return user;
 					})
 					.then(async (user) => {
-						if (!!user)
+						if (!!user) {
+							// Store previous last_login before updating
+							const previousLastLogin = user.last_login;
 							await User.updateOne(
 								{ _id: user._id },
 								{ $set: { last_login: new Date() } },
 								{ new: false, returnDocument: 'after' }
 							);
+							// Attach previous last_login to user object for response
+							(user as any).previous_last_login = previousLastLogin;
+						}
 						return user;
 					}) // examine the password
 					.then((user) =>
 						user
-							? done(null, user.toJSON())
+							? done(null, { ...user.toJSON(), previous_last_login: (user as any).previous_last_login })
 							: done(null, false, { message: 'username or password incorrect.' })
 					)
 					.catch((err) => done(err));

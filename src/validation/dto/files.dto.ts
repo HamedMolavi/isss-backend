@@ -1,8 +1,6 @@
 import {
-	IsEmail,
 	IsString,
 	IsDefined,
-	MinLength,
 	IsBoolean,
 	IsOptional,
 	Validate,
@@ -65,13 +63,18 @@ export class AddPersonImage {
 export class AddHostilePerson {
 	@Validate(IsImageString, { each: true })
 	@IsString({ each: true })
+	@IsArray()
+	@IsOptional()
 	public image_str?: Array<string>;
+
 	@IsBoolean()
 	@IsOptional()
 	public tracked?: boolean;
+
 	@IsBoolean()
 	@IsOptional()
 	public alert?: boolean;
+
 	@IsString()
 	@IsOptional()
 	public first_name?: string;
@@ -83,6 +86,22 @@ export class AddHostilePerson {
 	@IsString()
 	@IsOptional()
 	public national_code?: string;
+
+	@IsString()
+	@IsOptional()
+	public personnel_code?: string;
+}
+
+export class AddBulkHostilePerson {
+	@IsArray()
+	@IsNotEmpty()
+	public hostiles!: Array<{
+		first_name?: string;
+		last_name?: string;
+		national_code?: string;
+		tracked?: boolean;
+		alert?: boolean;
+	}>;
 }
 
 export class AddBatchPersonnel {

@@ -15,15 +15,27 @@ export function passwordValidator(passwordFieldName: string = 'password') {
 		try {
 			// Get password requirements from security config
 			const securityConfig = await getSecurityConfig();
-			const passwordValidator = new ValidatePassword(securityConfig.PASSWORD.REQUIREMENTS);
+			const requirements = securityConfig.PASSWORD.REQUIREMENTS;
+			const passwordValidatorInstance = new ValidatePassword(requirements);
 
-			const resultVerifyPassword = passwordValidator.getStrength(req.body[passwordFieldName]);
+			const password = req.body[passwordFieldName];
+			const resultVerifyPassword = passwordValidatorInstance.getStrength(password);
 
 			if (resultVerifyPassword < 99) {
-				req.flash('error', 'Password is not strong enough');
+				// Find which requirements failed for better error messaging
+				const failedRequirements = requirements
+					.filter((req: { re: RegExp; label: string }) => !req.re.test(password))
+					.map((req: { re: RegExp; label: string }) => req.label);
+
+				const errorMsg =
+					failedRequirements.length > 0
+						? `Password requirements not met: ${failedRequirements.join(', ')}`
+						: 'Password is not strong enough';
+
+				req.flash('error', errorMsg);
 				return ApiRes(res, {
 					status: HttpStatus.BAD_REQUEST,
-					msg: 'Password is not strong enough'
+					msg: errorMsg
 				});
 			}
 

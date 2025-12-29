@@ -3,6 +3,7 @@ import { connect } from '../db/redis/connect.database';
 import { AuthLogger } from '../logger/auth.logger';
 import { ApiRes } from '../utils/api.response';
 import { getSecurityConfig } from '../config/security.config';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Simple Login Rate Limiter
@@ -27,7 +28,8 @@ export class LoginRateLimiter {
 			}
 
 			const username = req.body.username.toLowerCase().trim();
-			const ip = req.ip || 'unknown';
+			// Use centralized IP extraction for consistency
+			const ip = getClientIP(req) || 'unknown';
 			const key = await this.getKey(username);
 
 			try {
@@ -37,7 +39,7 @@ export class LoginRateLimiter {
 				if (data.blockedUntil && Date.now() < parseInt(data.blockedUntil)) {
 					const remainingMinutes = Math.ceil((parseInt(data.blockedUntil) - Date.now()) / (60 * 1000));
 
-					AuthLogger.loginFailed(req, `Login blocked - too many attempts from ${ip}`, { username });
+					AuthLogger.loginBlocked(req, `Login blocked - too many attempts from ${ip}`, { username });
 
 					return ApiRes(res, {
 						status: 429, // Too Many Requests
@@ -61,6 +63,14 @@ export class LoginRateLimiter {
 	static recordAttempt() {
 		return async (req: Request, res: Response, next: NextFunction) => {
 			if (!req.loginRateLimit) {
+				// If no rate limit info but login failed, still send error response
+				if (req.loginFailed) {
+					AuthLogger.loginFailed(req, req.loginFailed.error, req.loginFailed.attemptedCredentials);
+					return ApiRes(res, {
+						status: 401,
+						msg: 'Invalid credentials'
+					});
+				}
 				return next();
 			}
 
@@ -68,7 +78,8 @@ export class LoginRateLimiter {
 			const config = await getSecurityConfig();
 			const key = await this.getKey(username);
 			const historyKey = `${config.LOGIN_RATE_LIMIT.ATTEMPTS_HISTORY_PREFIX}${username}`;
-			const isSuccess = !!req.user;
+			// Check if login failed via req.loginFailed flag (set by assignPassport)
+			const isSuccess = !!req.user && !req.loginFailed;
 			const now = Date.now();
 
 			try {
@@ -94,7 +105,7 @@ export class LoginRateLimiter {
 				if (isSuccess) {
 					// Clear rate limit attempts on successful login but keep history
 					await client.del(key);
-					AuthLogger.loginSuccess(req);
+					// Note: logging is handled by assignPassport middleware
 				} else {
 					// Increment failed attempts
 					const attempts = await client.hIncrBy(key, 'attempts', 1);
@@ -114,7 +125,7 @@ export class LoginRateLimiter {
 						const blockUntil = now + config.LOGIN_RATE_LIMIT.BLOCK_DURATION_MINUTES * 60 * 1000;
 						await client.hSet(key, 'blockedUntil', blockUntil.toString());
 
-						AuthLogger.loginFailed(req, `User blocked after ${attempts} failed attempts from ${ip}`, {
+						AuthLogger.loginBlocked(req, `User blocked after ${attempts} failed attempts from ${ip}`, {
 							username
 						});
 					} else {
@@ -133,6 +144,14 @@ export class LoginRateLimiter {
 				}
 			} catch (error) {
 				console.error('Rate limit record error:', error);
+			}
+
+			// If login failed, send error response instead of continuing to next middleware
+			if (req.loginFailed) {
+				return ApiRes(res, {
+					status: 401,
+					msg: 'Invalid credentials'
+				});
 			}
 
 			next();

@@ -392,14 +392,6 @@ export const restoreFromBackup = async (req: Request, res: Response) => {
 
 		await BackupLogger.backupRestored(backupPath, result, req);
 
-		// Log backup import
-		await DataImportExportLogger.batchPersonnelImported(
-			req,
-			result.totalRestored || 0,
-			result.duplicatesSkipped || 0,
-			true
-		);
-
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: 'Backup restored successfully',
@@ -419,9 +411,6 @@ export const restoreFromBackup = async (req: Request, res: Response) => {
 			error instanceof Error ? error.message : 'Unknown error',
 			req
 		);
-
-		// Log failed backup import
-		await DataImportExportLogger.batchPersonnelImported(req, 0, 0, false, errorMessage);
 
 		return ApiRes(res, {
 			status: HttpStatus.INTERNAL_SERVER_ERROR,

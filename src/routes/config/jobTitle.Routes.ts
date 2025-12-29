@@ -10,9 +10,13 @@ import { deleteByIdMiddleware } from '../../db/mongo/delete.database';
 import Personnel from '../../db/mongo/models/personnel';
 import mongoose from 'mongoose';
 import { DoNotAllowOnDefault } from '../../tools/request.tools';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to server file
 const router: Router = Router();
+
+// Apply access check middleware to all job title routes
+router.use(accessCheck('job'));
 
 //add route for register new jobTitle
 router.post(

@@ -15,9 +15,13 @@ import { injectDataMiddleware } from '../../tools/request.tools';
 import { updateByIdMiddleware, updateByListMiddleware } from '../../db/mongo/update.database';
 import { deleteByIdMiddleware } from '../../db/mongo/delete.database';
 import { isObjectIdOrHexString } from 'mongoose';
+import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to server file
 const router: Router = Router();
+
+// Apply access check middleware to all schedule routes
+router.use(accessCheck('schedule'));
 
 //add route for register new schedule
 router.post(
