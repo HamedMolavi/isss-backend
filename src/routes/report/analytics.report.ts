@@ -1239,6 +1239,7 @@ router.post('/similar-plates-15min/chart', async (req: Request, res, next) => {
 		const chartData = (aggregations.by_time.buckets ?? []).map((timeBucket) => {
 			const uniquePlates = new Set<string>();
 			const plateBuckets = timeBucket.plates?.buckets ?? [];
+			let totalDetections = 0;
 
 			plateBuckets.forEach((plateBucket) => {
 				const plateKey = plateBucket.key as string;
@@ -1258,6 +1259,8 @@ router.post('/similar-plates-15min/chart', async (req: Request, res, next) => {
 				const histogramBuckets = plateBucket.by_15m?.buckets ?? [];
 				if (histogramBuckets.length >= 1) {
 					uniquePlates.add(plateKey);
+					// Count detections only for plates that meet the criteria
+					totalDetections += plateBucket.doc_count;
 				}
 			});
 
@@ -1265,7 +1268,7 @@ router.post('/similar-plates-15min/chart', async (req: Request, res, next) => {
 				time: new Date(timeBucket.key).toLocaleString('en-US', { timeZone: timezone }),
 				time_epoch: timeBucket.key,
 				unique_plates_count: uniquePlates.size,
-				total_detections: timeBucket.doc_count
+				total_detections: totalDetections
 			};
 		});
 
@@ -2183,9 +2186,12 @@ router.post('/suspicious-plates/chart', async (req: Request, res, next) => {
 			return Number.isFinite(n) ? Math.floor(n / bucketIntervalMs) : null;
 		};
 
-		// Process each time bucket
-		const chartData = (aggregations.by_time.buckets ?? []).map((timeBucket) => {
-			const uniquePlates = new Set<string>();
+		// First, collect all occurrences for each plate across all time buckets
+		// This matches the logic from the non-chart /suspicious-plates endpoint
+		const plateOccurrencesMap = new Map<string, Array<{ timestampMs: number }>>();
+
+		// Collect occurrences from all time buckets for each plate
+		(aggregations.by_time.buckets ?? []).forEach((timeBucket) => {
 			const plateBuckets = timeBucket.plates?.buckets ?? [];
 
 			plateBuckets.forEach((plateBucket) => {
@@ -2197,7 +2203,7 @@ router.post('/suspicious-plates/chart', async (req: Request, res, next) => {
 					timestamp: hit._source?.timestamp ?? null
 				}));
 
-				// Convert timestamps and sort by time
+				// Convert timestamps
 				const occurrencesWithTimestamps = allOccurrences
 					.map((o) => {
 						if (!o.timestamp) return null;
@@ -2206,48 +2212,122 @@ router.post('/suspicious-plates/chart', async (req: Request, res, next) => {
 						if (!Number.isFinite(ts) || ts <= 0) return null;
 						return { timestampMs: ts };
 					})
-					.filter((o): o is { timestampMs: number } => o !== null)
-					.sort((a, b) => a.timestampMs - b.timestampMs);
+					.filter((o): o is { timestampMs: number } => o !== null);
 
-				if (occurrencesWithTimestamps.length < 2) return;
+				// Add occurrences to the plate's collection (may span multiple time buckets)
+				if (!plateOccurrencesMap.has(plateKey)) {
+					plateOccurrencesMap.set(plateKey, []);
+				}
+				plateOccurrencesMap.get(plateKey)!.push(...occurrencesWithTimestamps);
+			});
+		});
 
-				// Filter occurrences to only include those within the configured time window
-				const firstTimestamp = occurrencesWithTimestamps[0].timestampMs;
-				const windowMs = windowHours * 60 * 60 * 1000;
-				const windowEnd = firstTimestamp + windowMs;
+		// Now evaluate suspiciousness for each plate using all occurrences
+		const allSuspiciousPlates = new Map<
+			string,
+			{
+				plateKey: string;
+				firstTimestamp: number;
+			}
+		>();
 
-				// Get all occurrences within the time window
-				const occurrencesInWindow = occurrencesWithTimestamps.filter((o) => o.timestampMs <= windowEnd);
+		plateOccurrencesMap.forEach((occurrences, plateKey) => {
+			// Sort all occurrences by time
+			const sortedOccurrences = occurrences.sort((a, b) => a.timestampMs - b.timestampMs);
 
-				if (occurrencesInWindow.length < 2) return;
+			if (sortedOccurrences.length < 2) return;
 
-				// Calculate time span within the time window
-				const lastTimestampInWindow = occurrencesInWindow[occurrencesInWindow.length - 1].timestampMs;
-				const timeSpanMs = lastTimestampInWindow - firstTimestamp;
-				const timeSpanHours = timeSpanMs / (1000 * 60 * 60);
+			// Filter occurrences to only include those within the configured time window
+			const firstTimestamp = sortedOccurrences[0].timestampMs;
+			const windowMs = windowHours * 60 * 60 * 1000;
+			const windowEnd = firstTimestamp + windowMs;
 
-				// Exclude plates with very short time spans (less than configured minimum)
-				if (timeSpanHours < minTimeSpanHours) return;
+			// Get all occurrences within the time window
+			const occurrencesInWindow = sortedOccurrences.filter((o) => o.timestampMs <= windowEnd);
 
-				// Check if occurrences span multiple 15-minute buckets
-				const bucketKeys = new Set<number>();
-				occurrencesInWindow.forEach((o) => {
-					const key = toBucketKey(new Date(o.timestampMs).toISOString());
-					if (key !== null) bucketKeys.add(key);
-				});
+			if (occurrencesInWindow.length < 2) return;
 
-				// Safe plates have all detections in a single 15m bucket; exclude those
-				if (bucketKeys.size < 2) return;
+			// Calculate time span within the time window
+			const lastTimestampInWindow = occurrencesInWindow[occurrencesInWindow.length - 1].timestampMs;
+			const timeSpanMs = lastTimestampInWindow - firstTimestamp;
+			const timeSpanHours = timeSpanMs / (1000 * 60 * 60);
 
-				// Add to unique plates set
-				uniquePlates.add(plateKey);
+			// Exclude plates with very short time spans (less than configured minimum)
+			if (timeSpanHours < minTimeSpanHours) return;
+
+			// Check if occurrences span multiple 15-minute buckets
+			const bucketKeys = new Set<number>();
+			occurrencesInWindow.forEach((o) => {
+				const key = toBucketKey(new Date(o.timestampMs).toISOString());
+				if (key !== null) bucketKeys.add(key);
+			});
+
+			// Safe plates have all detections in a single 15m bucket; exclude those
+			if (bucketKeys.size < 2) return;
+
+			// This plate is suspicious - store it with its first timestamp
+			allSuspiciousPlates.set(plateKey, {
+				plateKey,
+				firstTimestamp
+			});
+		});
+
+		// Now assign each suspicious plate to the appropriate time bucket based on first occurrence
+		// Create a map of time bucket key -> set of plate keys
+		const timeBucketPlateMap = new Map<number, Set<string>>();
+
+		// Calculate bucket duration in milliseconds based on interval
+		let bucketDurationMs: number;
+		switch (rawInterval) {
+			case 'day':
+				bucketDurationMs = 24 * 60 * 60 * 1000;
+				break;
+			case 'week':
+				bucketDurationMs = 7 * 24 * 60 * 60 * 1000;
+				break;
+			case 'hour':
+			default:
+				bucketDurationMs = 60 * 60 * 1000;
+				break;
+		}
+
+		allSuspiciousPlates.forEach((plateData) => {
+			// Find which time bucket this plate's first occurrence falls into
+			const firstOccurrenceTime = plateData.firstTimestamp;
+			const timeBucket = (aggregations.by_time?.buckets ?? []).find((tb) => {
+				const bucketStart = tb.key;
+				const bucketEnd = bucketStart + bucketDurationMs;
+				return firstOccurrenceTime >= bucketStart && firstOccurrenceTime < bucketEnd;
+			});
+
+			if (timeBucket) {
+				const timeBucketKey = timeBucket.key;
+				if (!timeBucketPlateMap.has(timeBucketKey)) {
+					timeBucketPlateMap.set(timeBucketKey, new Set());
+				}
+				timeBucketPlateMap.get(timeBucketKey)!.add(plateData.plateKey);
+			}
+		});
+
+		// Build chart data by iterating through time buckets
+		const chartData = (aggregations.by_time.buckets ?? []).map((timeBucket) => {
+			const uniquePlates = timeBucketPlateMap.get(timeBucket.key) ?? new Set<string>();
+			const uniquePlatesCount = uniquePlates.size;
+
+			// Calculate total detections for suspicious plates in this time bucket
+			let totalDetections = 0;
+			const plateBuckets = timeBucket.plates?.buckets ?? [];
+			plateBuckets.forEach((plateBucket) => {
+				if (uniquePlates.has(plateBucket.key)) {
+					totalDetections += plateBucket.doc_count;
+				}
 			});
 
 			return {
 				time: new Date(timeBucket.key).toLocaleString('en-US', { timeZone: timezone }),
 				time_epoch: timeBucket.key,
-				unique_plates_count: uniquePlates.size,
-				total_detections: timeBucket.doc_count
+				unique_plates_count: uniquePlatesCount,
+				total_detections: totalDetections
 			};
 		});
 
