@@ -164,6 +164,12 @@ export const ACTION_LABELS: Record<string, string> = {
 	log_read: 'مشاهده لاگ',
 	auth_history_view: 'مشاهده تاریخچه احراز هویت',
 	auth_summary_view: 'مشاهده خلاصه احراز هویت',
+	read_log: 'مشاهده لاگ',
+	read_config_user_models: 'مشاهده تنظیمات مدل‌های کاربر',
+	read_config_user_sections: 'مشاهده تنظیمات بخش‌های کاربر',
+	'read_config_user_auth-hist': 'مشاهده تاریخچه احراز هویت',
+	read_config_cameras: 'مشاهده تنظیمات دوربین‌ها',
+	'read_config_user_auth-sum': 'مشاهده خلاصه احراز هویت',
 
 	// Access level events
 	access_level_created: 'ایجاد سطح دسترسی',
@@ -240,14 +246,35 @@ export const RESOURCE_LABELS: Record<string, string> = {
 	logout: 'خروج',
 	users: 'کاربران',
 	user: 'کاربر',
+	admin: 'مدیر',
+	models: 'مدل‌ها',
+	'model-to-cameras': 'مدل به دوربین',
+	sections: 'بخش‌ها',
+	departments: 'دپارتمان‌ها',
+	departements: 'دپارتمان‌ها',
+	'department-files': 'فایل‌های دپارتمان',
+	'job-titles': 'عنوان‌های شغلی',
+	'manual-logs': 'لاگ‌های دستی',
+	healthcheck: 'بررسی سلامت',
+	'test-email': 'تست ایمیل',
+	'test-sms': 'تست پیامک',
+	'user-integrity': 'یکپارچگی کاربر',
+	'user-access-levels': 'سطوح دسترسی کاربر',
 	config: 'تنظیمات',
 	logs: 'لاگ‌ها',
+	'log-types': 'انواع لاگ',
 	sessions: 'نشست‌ها',
 	cameras: 'دوربین‌ها',
 	camera: 'دوربین',
 	personnel: 'پرسنل',
 	report: 'گزارش',
 	reports: 'گزارش‌ها',
+	analytics: 'تحلیل‌ها',
+	newreports: 'گزارش‌های جدید',
+	similar: 'گزارش مشابه',
+	'report-departments': 'گزارش دپارتمان‌ها',
+	'schedules-report': 'گزارش زمان‌بندی',
+	'track-reports': 'پیگیری گزارش‌ها',
 	backup: 'پشتیبان',
 	system: 'سیستم',
 	security: 'امنیت',
@@ -256,9 +283,64 @@ export const RESOURCE_LABELS: Record<string, string> = {
 	accessLevels: 'سطوح دسترسی',
 	file: 'فایل',
 	snapshot: 'تصویر لحظه‌ای',
+	files: 'فایل‌ها',
 	password: 'رمز عبور',
-	ip: 'آدرس IP'
+	ip: 'آدرس IP',
+	'ip-restriction': 'محدودیت IP',
+	'auth-hist': 'تاریخچه احراز هویت',
+	'auth-sum': 'خلاصه احراز هویت',
+	'auth-history': 'تاریخچه احراز هویت',
+	modelToCameras: 'مدل به دوربین',
+	notifications: 'اعلان‌ها',
+	'person-images': 'تصاویر اشخاص',
+	products: 'محصولات',
+	schedules: 'زمان‌بندی‌ها',
+	cars: 'خودروها',
+	car: 'خودرو',
+	'car-colors': 'رنگ‌های خودرو',
+	'car-brands': 'برندهای خودرو',
+	'download-video': 'دانلود ویدیو',
+	videoDownload: 'دانلود ویدیو',
+	time: 'زمان'
 };
+
+/**
+ * Operation labels for dynamically generated actions (route logger)
+ */
+const OPERATION_LABELS: Record<string, string> = {
+	read: 'مشاهده',
+	create: 'ایجاد',
+	update: 'به‌روزرسانی',
+	delete: 'حذف',
+	partial_update: 'به‌روزرسانی جزئی',
+	execute: 'اجرا'
+};
+
+/**
+ * Translate action label dynamically when not explicitly mapped
+ */
+function translateActionLabel(action: string): string {
+	if (!action) return 'عملیات ناشناخته';
+	if (ACTION_LABELS[action]) return ACTION_LABELS[action];
+
+	const parts = action.split('_').filter(Boolean);
+	if (parts.length === 0) return action;
+
+	let startIndex = 0;
+	let operationLabel = '';
+
+	if (OPERATION_LABELS[parts[0]]) {
+		operationLabel = OPERATION_LABELS[parts[0]];
+		startIndex = 1;
+	}
+
+	const resourceParts = parts.slice(startIndex).map((segment) => RESOURCE_LABELS[segment] || segment);
+	if (operationLabel) {
+		return `${operationLabel} ${resourceParts.join(' ')}`.trim();
+	}
+
+	return resourceParts.join(' ');
+}
 
 /**
  * Action categories for grouping
@@ -638,7 +720,7 @@ function generateSummary(log: RawLog): string {
 	}
 
 	// Default summary
-	const actionLabel = ACTION_LABELS[action] || action;
+	const actionLabel = translateActionLabel(action);
 	const successText = success === true ? ' (موفق)' : success === false ? ' (ناموفق)' : '';
 	return `${actionLabel} توسط ${username}${successText}`;
 }
@@ -736,7 +818,7 @@ export function formatLog(log: RawLog): FormattedLog {
 		},
 		action: {
 			value: action,
-			label: ACTION_LABELS[action] || action,
+			label: translateActionLabel(action),
 			category,
 			categoryLabel: CATEGORY_LABELS[category] || 'سایر'
 		},
