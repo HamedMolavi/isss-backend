@@ -118,6 +118,9 @@ export class AnalyticsBody {
 	@IsOptional()
 	@IsBoolean()
 	time_filter?: boolean;
+	@IsOptional()
+	@IsString()
+	sort_by?: string;
 }
 
 export class ReportObjectBody {

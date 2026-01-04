@@ -1342,7 +1342,8 @@ router.post('/suspicious-plates', async (req: Request, res, next) => {
 			plates,
 			plate_search_type,
 			window_hours: rawWindowHours,
-			min_time_span_hours: rawMinTimeSpanHours
+			min_time_span_hours: rawMinTimeSpanHours,
+			sort_by
 		} = req.body;
 
 		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
@@ -1603,7 +1604,7 @@ router.post('/suspicious-plates', async (req: Request, res, next) => {
 				inner_crop: hit._source?.inner_crop ?? null
 			}));
 
-			// Convert timestamps and sort by time (newest first)
+			// Convert timestamps and sort by time (oldest first) so window checks start from first detection
 			const occurrencesWithTimestamps = allOccurrences
 				.map((o) => {
 					if (!o.timestamp) return null;
@@ -1612,7 +1613,7 @@ router.post('/suspicious-plates', async (req: Request, res, next) => {
 					return { ...o, timestampMs: ts };
 				})
 				.filter((o): o is (typeof allOccurrences)[0] & { timestampMs: number } => o !== null)
-				.sort((a, b) => b.timestampMs - a.timestampMs);
+				.sort((a, b) => a.timestampMs - b.timestampMs);
 
 			if (occurrencesWithTimestamps.length < 2) return;
 
@@ -1673,7 +1674,7 @@ router.post('/suspicious-plates', async (req: Request, res, next) => {
 			suspicious.push({
 				plate_number: stringPlateToJson(plateKey),
 				plate_number_string: plateKey,
-				count: plateBucket.doc_count,
+				count: occurrences.length, // Use actual occurrences count instead of doc_count
 				first_seen: firstSeen.toLocaleString('en-US', { timeZone: timezone }),
 				last_seen: lastSeen.toLocaleString('en-US', { timeZone: timezone }),
 				last_seen_timestamp: lastSeen.getTime(),
@@ -1685,8 +1686,30 @@ router.post('/suspicious-plates', async (req: Request, res, next) => {
 			});
 		});
 
-		// Sort suspicious plates by latest report timestamp descending
-		const sorted = suspicious.sort((a, b) => b.last_seen_timestamp - a.last_seen_timestamp);
+		// Sort suspicious plates based on sort_by parameter
+		// Default: sort by latest occurrence (last_seen_timestamp descending)
+		// Options: 'last_seen' (default), 'count', 'first_seen'
+		let sorted;
+		switch (sort_by) {
+			case 'count':
+				// Sort by number of occurrences (count descending)
+				sorted = suspicious.sort((a, b) => b.count - a.count);
+				break;
+			case 'first_seen':
+				// Sort by first occurrence timestamp (oldest first)
+				sorted = suspicious.sort((a, b) => {
+					const aFirst = new Date(a.first_seen).getTime();
+					const bFirst = new Date(b.first_seen).getTime();
+					return aFirst - bFirst;
+				});
+				break;
+			case 'last_seen':
+			default:
+				// Sort by latest occurrence timestamp (newest first) - default behavior
+				sorted = suspicious.sort((a, b) => b.last_seen_timestamp - a.last_seen_timestamp);
+				break;
+		}
+
 		const total = sorted.length;
 		const start = (page - 1) * limit;
 		const pagedData = sorted.slice(start, start + limit).map((item) => {
@@ -1701,7 +1724,58 @@ router.post('/suspicious-plates', async (req: Request, res, next) => {
 			total,
 			page,
 			limit,
-			total_pages: Math.ceil(total / limit)
+			total_pages: Math.ceil(total / limit),
+			filters_applied: {
+				time_range: {
+					date_start: date_start || 'مشخص نشده',
+					date_end: date_end || 'مشخص نشده',
+					time_start: time_start || '00:00',
+					time_end: time_end || '23:59',
+					timezone: timezone,
+					description: 'بازه زمانی جستجو برای یافتن پلاک‌های مشکوک'
+				},
+				cameras: {
+					selected: cameras ?? [],
+					count: cameras?.length ?? 0,
+					description: cameras?.length
+						? `جستجو فقط در ${cameras.length} دوربین انتخاب شده`
+						: 'جستجو در همه دوربین‌های قابل دسترس'
+				},
+				suspicious_detection: {
+					window_hours: windowHours,
+					min_time_span_hours: minTimeSpanHours,
+					description: `پلاک‌هایی که در بازه ${windowHours} ساعته چندین بار مشاهده شده و فاصله زمانی حداقل ${minTimeSpanHours} ساعت داشته باشند، مشکوک محسوب می‌شوند`
+				},
+				occurrence_limit: {
+					value: occurrencesSize,
+					description: `حداکثر تعداد تصاویر مشاهده برای هر پلاک (حداکثر مجاز: 100)`
+				},
+				sorting: {
+					sort_by: sort_by ?? 'last_seen',
+					options: {
+						last_seen: 'آخرین مشاهده (جدیدترین)',
+						count: 'تعداد مشاهده (بیشترین)',
+						first_seen: 'اولین مشاهده (قدیمی‌ترین)'
+					},
+					current: sort_by ?? 'last_seen',
+					description: 'مرتب‌سازی نتایج بر اساس مورد انتخابی'
+				},
+				plate_filter: {
+					plates: plates ?? [],
+					plate_search_type: plate_search_type || 'normal',
+					description: plates?.length ? `جستجو برای ${plates.length} پلاک خاص` : 'جستجو در همه پلاک‌ها'
+				}
+			},
+			explanation: {
+				what_is_suspicious:
+					'پلاکی مشکوک است که در بازه‌های زمانی 15 دقیقه‌ای مختلف، چندین بار مشاهده شده باشد',
+				how_it_works: `1️⃣ سیستم همه پلاک‌های موجود در بازه زمانی را می‌یابد | 2️⃣ برای هر پلاک، بررسی می‌کند که آیا در بازه ${windowHours} ساعته چندین بار مشاهده شده؟ | 3️⃣ پلاک‌هایی با فاصله زمانی کمتر از ${minTimeSpanHours} ساعت حذف می‌شوند (ورود و خروج عادی) | 4️⃣ پلاک‌هایی که فقط در یک بازه 15 دقیقه‌ای ظاهر شده‌اند حذف می‌شوند | 5️⃣ پلاک‌های باقیمانده به عنوان مشکوک برگردانده می‌شوند`,
+				count_meaning: 'عدد "تعداد مشاهده" دقیقاً با تعداد تصاویری که دریافت می‌کنید برابر است',
+				occurrence_limit_note:
+					occurrencesSize < 100
+						? `طبق درخواست شما، حداکثر ${occurrencesSize} تصویر برای هر پلاک نمایش داده می‌شود`
+						: 'حداکثر 100 تصویر برای هر پلاک نمایش داده می‌شود (محدودیت Elasticsearch)'
+			}
 		});
 	} catch (err) {
 		return next(
