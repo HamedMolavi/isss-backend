@@ -15,10 +15,20 @@ export function passwordValidator(passwordFieldName: string = 'password') {
 		try {
 			// Get password requirements from security config
 			const securityConfig = await getSecurityConfig();
+			const minLength = securityConfig.PASSWORD.MIN_LENGTH;
 			const requirements = securityConfig.PASSWORD.REQUIREMENTS;
 			const passwordValidatorInstance = new ValidatePassword(requirements);
 
 			const password = req.body[passwordFieldName];
+
+			// Check minimum length first
+			if (password.length < minLength) {
+				return ApiRes(res, {
+					status: HttpStatus.BAD_REQUEST,
+					msg: `Password must be at least ${minLength} characters long`
+				});
+			}
+
 			const resultVerifyPassword = passwordValidatorInstance.getStrength(password);
 
 			if (resultVerifyPassword < 99) {

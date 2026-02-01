@@ -1,4 +1,4 @@
-import { Request, Router } from 'express';
+import { Request, Response, NextFunction, Router } from 'express';
 import {
 	readByIdElastic,
 	readByIdElasticMiddleware,
@@ -288,6 +288,140 @@ router.get(
 		next();
 	}
 );
+
+/**
+ * GET /human/:id
+ * Retrieve a single human log by ID with face details
+ * Fetches the human log and related face logs from the same camera and time window
+ * Returns enriched human log with all face detection details
+ */
+router.get('/human/:id', async (req: Request, res: Response, next: NextFunction) => {
+	try {
+		const humanIndex = process.env['HUMAN_INDEX'] ?? 'human_log';
+		const faceIndex = process.env['FACE_INDEX'] ?? 'face_log';
+		const humanLogId = req.params.id;
+
+		// Fetch the human log by ID
+		const humanLog = await readByIdElastic(humanIndex, humanLogId);
+
+		if (!humanLog || !humanLog._id) {
+			return next(new ApiError(404, 'Human log not found'));
+		}
+
+		// Get camera access filter
+		const accessList =
+			req.user.role === 'admin'
+				? []
+				: req.user.camera_access?.length
+					? req.user.camera_access
+					: ["who's daddy"];
+
+		// Check if user has access to this camera
+		if (accessList.length > 0 && !accessList.includes(humanLog.camera_id?.toString())) {
+			return next(new ApiError(403, 'Access denied to this camera'));
+		}
+
+		// Calculate time window (±10 seconds) to find related face logs
+		const humanTimestamp = humanLog.timestamp;
+		if (!humanTimestamp) {
+			// If no timestamp, just return the human log without face details
+			const enrichedLog = await sendFunction(humanLog, req);
+			return res.status(200).json({
+				success: true,
+				data: enrichedLog,
+				faces: []
+			});
+		}
+
+		const timeWindow = 10; // seconds
+		const timeStart = new Date(new Date(humanTimestamp).getTime() - timeWindow * 1000).toISOString();
+		const timeEnd = new Date(new Date(humanTimestamp).getTime() + timeWindow * 1000).toISOString();
+
+		// Query face logs from the same camera and time window
+		const faceQuery = {
+			index: faceIndex,
+			size: 100, // Limit to 100 face detections
+			query: {
+				bool: {
+					must: [
+						{
+							match: {
+								camera_id: humanLog.camera_id?.toString() ?? ''
+							}
+						},
+						{
+							range: {
+								timestamp: {
+									gte: timeStart,
+									lte: timeEnd
+								}
+							}
+						},
+						// Camera access control
+						...(accessList.length > 0
+							? [
+									{
+										bool: {
+											should: accessList.map((value) => ({
+												match: {
+													camera_id: value.toString()
+												}
+											})),
+											minimum_should_match: 1
+										}
+									}
+								]
+							: [])
+					]
+				}
+			},
+			sort: [{ timestamp: { order: 'desc' } }]
+		} as SearchRequest;
+
+		const faceLogsResponse = await process.esclient.search(faceQuery);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const faceLogs = faceLogsResponse.hits.hits.map((hit: any) => ({
+			_id: hit._id,
+			...(hit._source ?? {})
+		}));
+
+		// Set elasticsearch index context for face logs
+		const originalIndices = req.body['elasticsearchIndices'];
+		req.body['elasticsearchIndices'] = [faceIndex];
+
+		// Enrich face logs with personnel and other details
+		const enrichedFaces = await Promise.all(
+			faceLogs.map(async (faceLog) => {
+				return await sendFunction(faceLog, req);
+			})
+		);
+
+		// Set elasticsearch index context for human log
+		req.body['elasticsearchIndices'] = [humanIndex];
+
+		// Enrich the human log
+		const enrichedHumanLog = await sendFunction(humanLog, req);
+
+		// Restore original indices if they existed
+		if (originalIndices) {
+			req.body['elasticsearchIndices'] = originalIndices;
+		} else {
+			delete req.body['elasticsearchIndices'];
+		}
+
+		// Return human log with face details
+		return res.status(200).json({
+			success: true,
+			data: {
+				...enrichedHumanLog,
+				faces: enrichedFaces.filter((face) => face !== undefined) // Filter out any undefined faces
+			}
+		});
+	} catch (err: unknown) {
+		const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+		return next(new ApiError(500, 'Internal server error: ' + errorMessage));
+	}
+});
 
 /**
  * ===================================

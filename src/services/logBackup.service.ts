@@ -1,5 +1,4 @@
 import { Log } from '../db/mongo/models/secLog';
-import { LogType } from '../db/mongo/models/logType';
 import { BackupLogger } from '../logger/backup.logger';
 import { Response } from 'express';
 import * as fs from 'fs';
@@ -170,17 +169,21 @@ export class LogBackupService {
 			const totalLogs = await Log.countDocuments();
 			const logCountUsagePercent = maxLogCount > 0 ? (totalLogs / maxLogCount) * 100 : 0;
 
+			// Critical threshold is 95% (0.95 * 100 = 95)
 			const storageCritical =
 				storageUsagePercent >= criticalThreshold * 100 || logCountUsagePercent >= criticalThreshold * 100;
+			// Warning threshold is 80% (0.8 * 100 = 80)
 			const storageWarning =
 				storageUsagePercent >= warningThreshold * 100 || logCountUsagePercent >= warningThreshold * 100;
 
 			// Backup is needed if:
-			// 1. Storage/log count is at critical threshold (force backup/cleanup)
-			// 2. OR storage/log count is at warning threshold (proactive backup)
+			// 1. Storage/log count is at critical threshold (force backup/cleanup) - immediate action
+			// 2. OR storage/log count is at warning threshold (proactive backup) - immediate action
 			// 3. OR logs will expire within the backup interval AND interval passed
+			// 4. OR log count reached maxLogCount (100% usage) - immediate action
 			const intervalPassed = !lastBackupInfo.date || daysSinceLastBackup >= (config.backupIntervalDays || 30);
-			const needsBackup = storageCritical || storageWarning || (logsToExpire > 0 && intervalPassed);
+			const logCountReached = totalLogs >= maxLogCount;
+			const needsBackup = storageCritical || storageWarning || logCountReached || (logsToExpire > 0 && intervalPassed);
 
 			await BackupLogger.ttlBackupCompleted(
 				'system_check',
@@ -686,20 +689,16 @@ export class LogBackupService {
 	 */
 	public async getBackupConfig(): Promise<BackupConfig> {
 		try {
-			const logType = await LogType.findOne({ isActive: true });
-
-			if (!logType) {
-				throw new Error('No active LogType configuration found');
-			}
-
-			// Get TTL days from security configuration in database
 			const securityConfig = await getSecurityConfig();
-			const ttlDays = securityConfig.LOG_BACKUP.TTL_DAYS;
+			const logBackupConfig = securityConfig.LOG_BACKUP;
 
 			const config: BackupConfig = {
-				ttlDays,
-				isAutoBackup: ((logType.toObject() as Record<string, unknown>).isAutoBackup as boolean) || false,
-				backupIntervalDays: process.env.BACKUP_INTERVAL_DAYS ? parseInt(process.env.BACKUP_INTERVAL_DAYS) : 30
+				ttlDays: logBackupConfig.TTL_DAYS,
+				isAutoBackup: logBackupConfig.AUTO_BACKUP,
+				backupIntervalDays: logBackupConfig.BACKUP_INTERVAL_DAYS,
+				maxSizeBytes: logBackupConfig.MAX_SIZE_BYTES,
+				maxLogCount: logBackupConfig.MAX_LOG_COUNT,
+				warningThreshold: logBackupConfig.WARNING_THRESHOLD
 			};
 
 			// Add FTP config if environment variables are set
@@ -799,14 +798,23 @@ export class LogBackupService {
 	public async setAutoBackupStatus(isEnabled: boolean): Promise<void> {
 		try {
 			const { LogType } = await import('../db/mongo/models/logType');
+			const { SecurityConfig } = await import('../db/mongo/models/securityConfig');
 
 			const logType = await LogType.findOne({ isActive: true });
 
-			if (!logType) {
-				throw new Error('No active LogType configuration found');
+			if (logType) {
+				await LogType.updateOne({ isActive: true }, { $set: { isAutoBackup: isEnabled } });
 			}
-
-			await LogType.updateOne({ isActive: true }, { $set: { isAutoBackup: isEnabled } });
+			await SecurityConfig.updateOne(
+				{},
+				{
+					$set: {
+						'logBackup.autoBackup': isEnabled,
+						'logBackup.defaultConfig.isAutoBackup': isEnabled
+					}
+				},
+				{ upsert: true }
+			);
 
 			// Log the status change
 			if (isEnabled) {

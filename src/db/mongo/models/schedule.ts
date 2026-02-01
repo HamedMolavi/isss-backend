@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import { ISchedule } from '../../../types/interfaces/schedule.interface';
 
 //create Schedule with schema for save in DB
@@ -26,6 +26,37 @@ const ScheduleSchema: Schema<ISchedule> = new Schema(
 						[0, 1]
 					]
 				]
+			},
+			lines: {
+				type: [
+					{
+						points: {
+							type: [[Number, Number]],
+							required: false
+						},
+						count_mode: {
+							type: String,
+							enum: ['zone_exit', 'two_line'],
+							default: 'zone_exit'
+						},
+						enabled: { type: Boolean, default: true },
+						entry_line: {
+							type: {
+								start: { type: [Number, Number], required: true },
+								end: { type: [Number, Number], required: true }
+							},
+							required: false
+						},
+						exit_line: {
+							type: {
+								start: { type: [Number, Number], required: true },
+								end: { type: [Number, Number], required: true }
+							},
+							required: false
+						}
+					}
+				],
+				default: []
 			},
 			justHuman: { type: Boolean, default: false },
 			with_full_frame: { type: Boolean, default: true },
@@ -66,6 +97,7 @@ ScheduleSchema.methods.toJSON = function () {
 			timeDuplicationDiagnoses: this.config.timeDuplicationDiagnoses ?? 0,
 			threshold: this.config?.threshold != 0 ? this.config?.threshold * 100 : 0,
 			zones: this.config.zones ?? null,
+			lines: this.config.lines ?? [],
 			min_people: this.config.min_people ?? 0,
 			max_people: this.config.max_people ?? 0,
 			justHuman: this.config.justHuman,

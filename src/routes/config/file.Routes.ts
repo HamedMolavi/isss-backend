@@ -1019,10 +1019,15 @@ router.post(
 		const hasData = kafkaResponse?.data && kafkaResponse.data.length > 0;
 
 		if (!hasMatches && !hasData) {
-			return res.status(406).send({
-				message: 'No face found or no matching personnel',
-				has_face: kafkaResponse?.has_face || false,
-				multi_face: kafkaResponse?.multi_face || false
+			return res.status(200).send({
+				success: true,
+				message: 'کاربری شبیه عکس یافت نشد',
+				data: {
+					has_face: kafkaResponse?.has_face || false,
+					multi_face: kafkaResponse?.multi_face || false,
+					total_matches: 0,
+					results: []
+				}
 			});
 		}
 

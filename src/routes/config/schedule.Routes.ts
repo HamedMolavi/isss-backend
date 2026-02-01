@@ -103,6 +103,7 @@ router.patch(
 					Time.toCronDay(Time.toCron(payload.stop as Clock), payload.dayOfWeek.toString() as DayOfWeek)
 			},
 			zones: { name: 'config.zones' },
+			lines: { name: 'config.lines' },
 			timeDuplicationDiagnoses: { name: 'config.timeDuplicationDiagnoses' },
 			threshold: {
 				name: 'config.threshold',
@@ -137,6 +138,7 @@ function convertPlaiBodyToSchedule(body: any) {
 		montionDetection,
 		threshold,
 		zones,
+		lines,
 		min_people,
 		max_people,
 		timeDuplicationDiagnoses,
@@ -168,6 +170,7 @@ function convertPlaiBodyToSchedule(body: any) {
 								[0, 1]
 							]
 						],
+			lines: lines ?? [],
 			min_people: min_people ?? 0,
 			max_people: max_people ?? 0,
 			justHuman: justHuman ?? false

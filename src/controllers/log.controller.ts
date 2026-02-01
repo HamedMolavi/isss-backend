@@ -15,6 +15,13 @@ import {
 import { Logger } from '../logger';
 import { getClientIP } from '../tools/util.tools';
 
+const DEFAULT_HIDDEN_ACTIONS = new Set<string>([
+	'permission_check_success',
+	'permission_check_failed',
+	...(ACTION_CATEGORIES.log_integrity || []),
+	...(ACTION_CATEGORIES.backup_scheduler || [])
+]);
+
 /**
  * Check log status
  */
@@ -194,8 +201,8 @@ export const getLogs = async (req: Request, res: Response) => {
 
 		// Hide HTTP logs and show only actions with labels when showHttpLogs is false
 		if (!showHttpLogs) {
-			// Get all actions that have labels defined (exclude log viewing and permission check actions)
-			const labeledActions = Object.keys(ACTION_LABELS).filter((a) => a !== 'permission_check_success');
+			// Get all actions that have labels defined (exclude permission checks and technical-only actions)
+			const labeledActions = Object.keys(ACTION_LABELS).filter((a) => !DEFAULT_HIDDEN_ACTIONS.has(a));
 
 			actionSet = intersectOrSet(actionSet, labeledActions);
 		}
@@ -261,7 +268,7 @@ export const getLogs = async (req: Request, res: Response) => {
 
 		// Format logs based on format parameter
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const outputLogs = format === 'raw' ? logs : formatLogs(logs as any);
+		const outputLogs = format === 'raw' ? logs : await formatLogs(logs as any);
 
 		// Log access to logs listing
 		const clientIp = getClientIP(req);
@@ -417,7 +424,7 @@ export const getFilterOptions = async (req: Request, res: Response) => {
 		// HTTP visibility
 		const showHttpLogs = req.query.showHttpLogs === 'true';
 		if (!showHttpLogs) {
-			const labeledActions = Object.keys(ACTION_LABELS).filter((a) => a !== 'permission_check_success');
+			const labeledActions = Object.keys(ACTION_LABELS).filter((a) => !DEFAULT_HIDDEN_ACTIONS.has(a));
 			actionSet = intersectOrSet(actionSet, labeledActions);
 		}
 
@@ -753,8 +760,8 @@ export const getMyLogs = async (req: Request, res: Response) => {
 
 		// Hide HTTP logs and show only actions with labels when showHttpLogs is false
 		if (!showHttpLogs) {
-			// Same behavior as getLogs, excluding permission check action
-			const labeledActions = Object.keys(ACTION_LABELS).filter((a) => a !== 'permission_check_success');
+			// Same behavior as getLogs, excluding permission checks and technical-only actions
+			const labeledActions = Object.keys(ACTION_LABELS).filter((a) => !DEFAULT_HIDDEN_ACTIONS.has(a));
 			actionSet = intersectOrSet(actionSet, labeledActions);
 		}
 
@@ -815,7 +822,7 @@ export const getMyLogs = async (req: Request, res: Response) => {
 		]);
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const outputLogs = format === 'raw' ? logs : formatLogs(logs as any);
+		const outputLogs = format === 'raw' ? logs : await formatLogs(logs as any);
 
 		const clientIp = getClientIP(req);
 		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
@@ -912,7 +919,8 @@ export const getLogById = async (req: Request, res: Response) => {
 		}
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const outputLog = format === 'raw' ? doc : formatLogs([doc as any])[0];
+		const formattedLogs = format === 'raw' ? [doc] : await formatLogs([doc as any]);
+		const outputLog = format === 'raw' ? doc : formattedLogs[0];
 
 		const response = ApiRes(res, {
 			status: HttpStatus.OK,

@@ -2,6 +2,7 @@ import { Document } from 'mongoose';
 
 export interface ISecurityConfig extends Document {
 	maxConcurrentSessions: number;
+	passwordMinLength: number;
 	passwordRequirements: Array<{
 		re: string;
 		label: string;

@@ -28,8 +28,8 @@ const defaultConfig = {
 	},
 	// Log backup configuration
 	LOG_BACKUP: {
-		CHECK_INTERVAL_HOURS: 24, // Default to 24 hours
-		CHECK_INTERVAL_MS: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+		CHECK_INTERVAL_HOURS: 1, // Default to 1 hour (check more frequently)
+		CHECK_INTERVAL_MS: 60 * 60 * 1000, // 1 hour in milliseconds
 		TTL_DAYS: 60, // Default retention period for logs
 		BACKUP_INTERVAL_DAYS: 30, // Default backup interval
 		MAX_SIZE_BYTES: 1024 * 1024 * 1024, // 1GB default
@@ -94,8 +94,14 @@ async function getSecurityConfig() {
 			return defaultConfig;
 		}
 
+		// Get password min length from database (ensure minimum 8)
+		const passwordMinLength = Math.max(
+			dbConfig.passwordMinLength || defaultConfig.PASSWORD.MIN_LENGTH,
+			8
+		);
+
 		// Convert database regex strings back to RegExp objects for password requirements
-		const passwordRequirements =
+		let passwordRequirements =
 			dbConfig.passwordRequirements?.map((requirement) => {
 				// Handle regex strings that may be stored with /.../ delimiters
 				let regexStr = requirement.re;
@@ -110,11 +116,27 @@ async function getSecurityConfig() {
 				};
 			}) || defaultConfig.PASSWORD.REQUIREMENTS;
 
+		// Update or add length requirement based on passwordMinLength
+		const lengthRequirementIndex = passwordRequirements.findIndex((req) =>
+			req.re.source.includes('.{') && req.label.toLowerCase().includes('character')
+		);
+
+		const lengthRequirement = {
+			re: new RegExp(`.{${passwordMinLength},}`),
+			label: `At least ${passwordMinLength} characters`
+		};
+
+		if (lengthRequirementIndex >= 0) {
+			passwordRequirements[lengthRequirementIndex] = lengthRequirement;
+		} else {
+			passwordRequirements = [lengthRequirement, ...passwordRequirements];
+		}
+
 		return {
 			...defaultConfig,
 			MAX_CONCURRENT_SESSIONS: dbConfig.maxConcurrentSessions || defaultConfig.MAX_CONCURRENT_SESSIONS,
 			PASSWORD: {
-				MIN_LENGTH: defaultConfig.PASSWORD.MIN_LENGTH,
+				MIN_LENGTH: passwordMinLength,
 				REQUIREMENTS: passwordRequirements
 			},
 			LOG_BACKUP: {

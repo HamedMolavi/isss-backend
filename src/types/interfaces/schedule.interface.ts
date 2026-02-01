@@ -21,6 +21,19 @@ interface IConfig {
 	min_people: number;
 	max_people: number;
 	zones: Array<[[number, number], [number, number], [number, number], [number, number]]>;
+	lines: Array<{
+		points?: [[number, number], [number, number], [number, number], [number, number]]; // Polygon zone (required for zone_exit)
+		count_mode: 'zone_exit' | 'two_line'; // 'zone_exit' for exit-only counting, 'two_line' for entry/exit lines
+		enabled: boolean;
+		entry_line?: {
+			start: [number, number];
+			end: [number, number];
+		}; // Required for two_line mode
+		exit_line?: {
+			start: [number, number];
+			end: [number, number];
+		}; // Required for two_line mode
+	}>;
 	justHuman: boolean;
 	state: string;
 	with_full_frame: boolean;

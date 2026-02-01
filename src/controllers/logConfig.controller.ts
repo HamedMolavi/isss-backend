@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { SecurityConfig } from '../db/mongo/models/securityConfig';
 import { Log } from '../db/mongo/models/secLog';
 import { LogBackupService } from '../services/logBackup.service';
+import { BackupSchedulerService } from '../services/backupScheduler.service';
 import { BackupLogger } from '../logger/backup.logger';
 import { SecurityLogger } from '../logger/security.logger';
 import { ApiRes } from '../utils/api.response';
@@ -111,6 +112,29 @@ export const updateLogTTLConfig = async (req: Request, res: Response, next: Next
 			{ $set: updateData },
 			{ new: true, upsert: true }
 		);
+		
+		// Restart scheduler if critical config values change
+		// These values affect when backup is needed, so we should check immediately
+		const criticalConfigChanged =
+			checkIntervalHours !== undefined ||
+			autoBackup !== undefined ||
+			maxLogCount !== undefined ||
+			maxSizeBytes !== undefined ||
+			ttlDays !== undefined ||
+			backupIntervalDays !== undefined ||
+			warningThreshold !== undefined;
+
+		if (criticalConfigChanged) {
+			const scheduler = BackupSchedulerService.getInstance();
+			const shouldRun = autoBackup !== undefined ? !!autoBackup : config?.logBackup?.autoBackup ?? true;
+
+			if (!shouldRun) {
+				await scheduler.stop();
+			} else {
+				// Restart scheduler to pick up new config values and perform immediate check
+				await scheduler.restart();
+			}
+		}
 
 		// Log the configuration change
 		SecurityLogger.logBackupConfigUpdated(req, {

@@ -8,6 +8,12 @@ const SecurityConfigSchema = new Schema<ISecurityConfig>(
 			required: true,
 			default: 5
 		},
+		passwordMinLength: {
+			type: Number,
+			required: true,
+			default: 8,
+			min: 8
+		},
 		passwordRequirements: [
 			{
 				re: {

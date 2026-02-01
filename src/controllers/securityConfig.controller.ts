@@ -27,7 +27,9 @@ export const getConfig = async (req: Request, res: Response, next: NextFunction)
 			// Create default config if none exists
 			config = new SecurityConfig({
 				maxConcurrentSessions: 5,
+				passwordMinLength: 8,
 				passwordRequirements: [
+					{ re: '.{8,}', label: 'At least 8 characters' },
 					{ re: '[0-9]', label: 'Includes number' },
 					{ re: '[a-z]', label: 'Includes lowercase letter' },
 					{ re: '[A-Z]', label: 'Includes uppercase letter' },
@@ -150,6 +152,9 @@ export const updatePasswordRequirements = async (req: Request, res: Response, ne
 			{ passwordRequirements },
 			{ new: true, upsert: true }
 		);
+
+		// Refresh the in-memory security config
+		await refreshSecurityConfig();
 
 		SecurityLogger.securityConfigUpdated(
 			req,

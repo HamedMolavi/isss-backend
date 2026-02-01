@@ -1,7 +1,6 @@
 import { Request, Router } from 'express';
-import { dtoValidationMiddleware } from '../../validation/dto';
-import { AnalyticsBody } from '../../validation/dto/report.dto';
-import Time from '../../tools/time.tools';
+import { getAnalyticsCacheService } from '../../services/analyticsCache.service';
+import { Logger } from '../../logger';
 import { ApiError } from '../../types/classes/error.class';
 import Camera from '../../db/mongo/models/camera';
 import Personnel from '../../db/mongo/models/personnel';
@@ -10,7 +9,7 @@ import CarColor from '../../db/mongo/models/carColor';
 import { isValidObjectId } from 'mongoose';
 import { stringPlateToJson } from '../../tools/plate.tools';
 import { Clock } from '../../types/interfaces/time.interface';
-import { cosineSimilarity } from '../../tools/utils.tools';
+import Time from '../../tools/time.tools';
 import { platesToStrings } from '../../tools/car.tools';
 import { plateToQueryJSON } from '../../tools/elastic.tools';
 
@@ -42,6 +41,7 @@ import { plateToQueryJSON } from '../../tools/elastic.tools';
  */
 
 const router: Router = Router();
+const logger = new Logger({ serviceName: 'AnalyticsReport' });
 
 /**
  * ===================================
@@ -50,88 +50,12 @@ const router: Router = Router();
  */
 
 /**
- * DBSCAN clustering algorithm for face vectors
- * Groups similar face vectors together based on cosine similarity
- *
- * @param vectors - Array of face vectors with metadata
- * @param eps - Maximum distance threshold (1 - cosine similarity)
- * @param minPts - Minimum points to form a cluster
- * @returns Array of clusters, each containing similar faces
+ * Load camera map for enriching responses
  */
-function dbscanClustering(
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	vectors: Array<{ vector: number[]; data: any }>,
-	eps = 0.4,
-	minPts = 1
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Array<any[]> {
-	if (!Array.isArray(vectors) || vectors.length === 0) {
-		return [];
-	}
-	const n = vectors.length;
-	const visited = new Array(n).fill(false);
-	const clusters: number[][] = [];
-	const noise: number[] = [];
-
-	// Calculate cosine distance (1 - cosine similarity)
-	const distance = (i: number, j: number): number => {
-		return 1 - cosineSimilarity(vectors[i].vector, vectors[j].vector);
-	};
-
-	// Find neighbors within eps distance
-	const regionQuery = (pointIdx: number): number[] => {
-		const neighbors: number[] = [];
-		for (let i = 0; i < n; i++) {
-			if (distance(pointIdx, i) <= eps) {
-				neighbors.push(i);
-			}
-		}
-		return neighbors;
-	};
-
-	// Expand cluster from seed point
-	const expandCluster = (pointIdx: number, neighbors: number[], cluster: number[]): boolean => {
-		cluster.push(pointIdx);
-
-		for (let i = 0; i < neighbors.length; i++) {
-			const neighborIdx = neighbors[i];
-
-			if (!visited[neighborIdx]) {
-				visited[neighborIdx] = true;
-				const newNeighbors = regionQuery(neighborIdx);
-
-				if (newNeighbors.length >= minPts) {
-					neighbors.push(...newNeighbors.filter((n) => !neighbors.includes(n)));
-				}
-			}
-
-			// Add to cluster if not already in any cluster
-			if (!clusters.some((c) => c.includes(neighborIdx)) && !cluster.includes(neighborIdx)) {
-				cluster.push(neighborIdx);
-			}
-		}
-
-		return true;
-	};
-
-	// Main DBSCAN loop
-	for (let i = 0; i < n; i++) {
-		if (visited[i]) continue;
-
-		visited[i] = true;
-		const neighbors = regionQuery(i);
-
-		if (neighbors.length < minPts) {
-			noise.push(i);
-		} else {
-			const cluster: number[] = [];
-			expandCluster(i, neighbors, cluster);
-			clusters.push(cluster);
-		}
-	}
-
-	// Convert cluster indices to actual data
-	return clusters.map((clusterIndices) => clusterIndices.map((idx) => vectors[idx].data));
+async function loadCameraMap(cameraIds: string[]): Promise<Map<string, typeof Camera.prototype>> {
+	const validIds = cameraIds.filter((id) => isValidObjectId(id));
+	const cameras = await Camera.find({ _id: { $in: validIds } }).exec();
+	return new Map(cameras.map((cam) => [cam._id.toString(), cam]));
 }
 
 type ElasticsearchSearchError = {
@@ -181,851 +105,148 @@ const isCustomTimeZoneUnsupportedError = (error: unknown): boolean => {
 };
 
 /**
- * ===================================
- * INPUT VALIDATION
- * ===================================
- */
-
-/**
- * POST /most-repeated-plates
- * POST /most-repeated-known-faces
  * POST /most-repeated-unknown-faces
- * POST /most-active-cameras
- * POST /brand-statistics
- * POST /color-statistics
  *
- * Validate request body for analytics endpoints
+ * IMPORTANT: This route ONLY reads from cache
+ * - Cache is updated by background job every 15 minutes
+ * - This route NEVER updates the cache
+ * - Always returns cached data or empty result
+ * - Non-blocking, instant response
  */
-router.post(
-	'/:type(most-repeated-plates|most-repeated-known-faces|most-repeated-unknown-faces|most-active-cameras|brand-statistics|color-statistics|plate-statistics-by-camera|people-counting-summary|people-counting-by-camera|people-counting-hourly|similar-plates-15min|suspicious-plates)',
-	dtoValidationMiddleware(AnalyticsBody, {
-		skipMissingProperties: false,
-		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
-		info: 'please fill all required fields'
-	}),
-	// Validate that start time is before stop time
-	Time.compareTimeMiddleware('start', 'stop')
-);
-
-router.post(
-	'/similar-plates-15min/summary',
-	dtoValidationMiddleware(AnalyticsBody, {
-		skipMissingProperties: false,
-		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
-		info: 'please fill all required fields'
-	}),
-	Time.compareTimeMiddleware('start', 'stop')
-);
-
-router.post(
-	'/similar-plates-15min/details',
-	dtoValidationMiddleware(AnalyticsBody, {
-		skipMissingProperties: false,
-		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
-		info: 'please fill all required fields'
-	}),
-	Time.compareTimeMiddleware('start', 'stop')
-);
-
-router.post(
-	'/suspicious-plates/summary',
-	dtoValidationMiddleware(AnalyticsBody, {
-		skipMissingProperties: false,
-		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
-		info: 'please fill all required fields'
-	}),
-	Time.compareTimeMiddleware('start', 'stop')
-);
-
-router.post(
-	'/suspicious-plates/details',
-	dtoValidationMiddleware(AnalyticsBody, {
-		skipMissingProperties: false,
-		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
-		info: 'please fill all required fields'
-	}),
-	Time.compareTimeMiddleware('start', 'stop')
-);
-
-/**
- * ===================================
- * ANALYTICS ENDPOINTS
- * ===================================
- */
-
-/**
- * POST /most-repeated-plates
- * Get the most frequently detected license plates within a time range
- *
- * Returns:
- * - plate_number: License plate
- * - count: Number of detections
- * - first_seen: First detection timestamp
- * - last_seen: Last detection timestamp
- * - cameras: List of cameras where detected
- * - owner: Vehicle owner information (if available)
- */
-router.post('/most-repeated-plates', async (req: Request, res, next) => {
+router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 	try {
-		const { date_start, date_end, time_start, time_end, cameras, limit = 10, timez } = req.body;
+		const { date_start, date_end, time_start, time_end, cameras, camera_ids, timez } = req.body;
 		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
 
-		// Build time range constraints
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-
-		// Build camera access filter
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		// Elasticsearch aggregation query for most repeated plates
-		// Exclude masked plates (containing * or _)
-		const query = {
-			index: process.env['PLATE_INDEX'] ?? 'plate_log',
-			size: 0,
-			query: {
-				bool: {
-					must: [...time_constraints, ...camera_filter],
-					must_not: [
-						{ wildcard: { 'plate_number.keyword': '*\\**' } }, // Exclude plates with asterisks
-						{ wildcard: { 'plate_number.keyword': '*_*' } }, // Exclude plates with underscores
-						{ regexp: { 'plate_number.keyword': '.*[_*].*' } } // Exclude any plate containing _ or *
-					]
-				}
-			},
-			aggs: {
-				repeated_plates: {
-					terms: {
-						field: 'plate_number.keyword',
-						size: limit,
-						order: { _count: 'desc' }
-					},
-					aggs: {
-						first_seen: { min: { field: 'timestamp' } },
-						last_seen: { max: { field: 'timestamp' } },
-						cameras: {
-							terms: {
-								field: 'camera_id.keyword',
-								size: 10
-							}
-						},
-						owner: {
-							terms: {
-								field: 'owner.keyword',
-								size: 1
-							}
-						},
-						sample: {
-							top_hits: {
-								size: 1,
-								_source: ['plate_number', 'owner', 'brand', 'color', 'allowed', 'crop', 'inner_crop']
-							}
-						},
-						crops: {
-							top_hits: {
-								size: 10,
-								_source: ['crop', 'inner_crop', 'timestamp', 'camera_id'],
-								sort: [{ timestamp: { order: 'desc' } }]
-							}
-						}
-					}
-				}
-			}
+		// Use simplified cache params to match background job
+		// Background job uses a static key for rolling 24-hour window
+		const cacheParams = {
+			window: 'rolling_24h',
+			timez: 'Asia/Tehran',
+			cameras: undefined,
+			user_id: 'system'
 		};
 
-		let esRes;
+		logger.info('Fetching cached analytics data', {
+			endpoint: 'most-repeated-unknown-faces',
+			user: req.user._id
+		});
+
+		// ONLY READ FROM CACHE - Never compute or update
 		try {
-			esRes = await process.esclient.search(query);
-		} catch (err: unknown) {
-			const error = err as { meta?: { body?: { error?: { type?: string } } }; message?: string };
-			if (error.meta?.body?.error?.type === 'index_not_found_exception') {
+			const cacheService = await getAnalyticsCacheService();
+			let cachedData = await cacheService.getCachedData('most-repeated-unknown-faces', cacheParams);
+
+			// Non-blocking: If no cached data, return immediately with status
+			// Background job will populate cache - don't block the request
+
+			if (cachedData) {
+				logger.info('Cache hit - returning cached data', {
+					endpoint: 'most-repeated-unknown-faces'
+				});
+
+				// Get the cached data array
+				let data = (cachedData as { data: any[]; total: number }).data || [];
+
+				// Apply date/time filter if provided
+				if (date_start || date_end) {
+					const startMs = date_start ? new Date(date_start).getTime() : 0;
+					const endMs = date_end ? new Date(date_end).getTime() : Date.now();
+
+					data = data.filter((item: any) => {
+						// Use raw timestamps if available, otherwise parse formatted strings
+						let itemFirstSeen = item.first_seen_timestamp;
+						let itemLastSeen = item.last_seen_timestamp;
+
+						// Fallback: parse formatted date strings for old cache entries
+						if (!itemFirstSeen && item.first_seen) {
+							itemFirstSeen = new Date(item.first_seen).getTime();
+						}
+						if (!itemLastSeen && item.last_seen) {
+							itemLastSeen = new Date(item.last_seen).getTime();
+						}
+
+						// Default to full range if timestamps are invalid
+						itemFirstSeen = itemFirstSeen || 0;
+						itemLastSeen = itemLastSeen || Date.now();
+
+						// Include if cluster's time range overlaps with requested range
+						return itemLastSeen >= startMs && itemFirstSeen <= endMs;
+					});
+				}
+
+				// Apply camera filter if provided
+				const cameraFilter = camera_ids || cameras;
+				if (cameraFilter && Array.isArray(cameraFilter) && cameraFilter.length > 0) {
+					const filterSet = new Set(cameraFilter.map(String));
+					data = data.filter((item: any) => {
+						const itemCameraIds = item.camera_ids || [];
+						return itemCameraIds.some((cid: string) => filterSet.has(String(cid)));
+					});
+				}
+
+				// Resolve camera names from database
+				const allCameraIds = new Set<string>();
+				data.forEach((item: any) => {
+					(item.camera_ids || []).forEach((cid: string) => {
+						if (cid) allCameraIds.add(String(cid));
+					});
+				});
+
+				const cameraMap = await loadCameraMap(Array.from(allCameraIds));
+
+				// Enrich data with resolved camera names
+				data = data.map((item: any) => {
+					const cameraIds = item.camera_ids || [];
+					const camerasData = cameraIds.map((cid: string) => {
+						const cam = isValidObjectId(cid) ? cameraMap.get(cid) : undefined;
+						return { camera_id: cid, camera_name: cam?.name ?? 'Unknown' };
+					});
+					return {
+						...item,
+						cameras: camerasData
+					};
+				});
+
+				return res.status(200).json({
+					success: true,
+					data,
+					total: data.length,
+					cached: true,
+					message: 'Data from cache (updated every 15 minutes by background job)'
+				});
+			} else {
+				logger.info('Cache miss - returning empty result', {
+					endpoint: 'most-repeated-unknown-faces',
+					message: 'Background job will populate cache soon'
+				});
+
 				return res.status(200).json({
 					success: true,
 					data: [],
 					total: 0,
-					message: `Index ${query.index} not found. No data available.`
+					cached: false,
+					message: 'Cache is being populated by background job. Please try again in a few moments.'
 				});
 			}
-			throw err;
-		}
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const aggregations = esRes.aggregations as any;
+		} catch (cacheError) {
+			logger.error('Cache service error', { error: cacheError });
 
-		if (!aggregations?.repeated_plates?.buckets) {
 			return res.status(200).json({
 				success: true,
 				data: [],
-				total: 0
+				total: 0,
+				cached: false,
+				message: 'Cache service temporarily unavailable'
 			});
 		}
-
-		// Collect all unique IDs first to batch fetch
-		const allPersonnelIds = new Set<string>();
-		const allCameraIds = new Set<string>();
-		const allBrandIds = new Set<string>();
-		const allColorIds = new Set<string>();
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(aggregations.repeated_plates?.buckets ?? []).forEach((bucket: any) => {
-			const sample = bucket.sample?.hits?.hits?.[0]?._source;
-			const owner = bucket.owner?.buckets?.[0]?.key;
-
-			if (owner && isValidObjectId(owner)) {
-				allPersonnelIds.add(owner);
-			}
-			if (sample?.brand && isValidObjectId(sample.brand)) {
-				allBrandIds.add(sample.brand);
-			}
-			if (sample?.color && isValidObjectId(sample.color)) {
-				allColorIds.add(sample.color);
-			}
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(bucket.cameras?.buckets ?? []).forEach((c: any) => {
-				if (isValidObjectId(c.key)) {
-					allCameraIds.add(c.key);
-				}
-			});
-		});
-
-		// Batch fetch all data
-		const [personnelMap, cameraMap, brandMap, colorMap] = await Promise.all([
-			Personnel.find({ _id: { $in: Array.from(allPersonnelIds) } })
-				.exec()
-				.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc]))),
-			Camera.find({ _id: { $in: Array.from(allCameraIds) } })
-				.exec()
-				.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc]))),
-			CarBrand.find({ _id: { $in: Array.from(allBrandIds) } })
-				.exec()
-				.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc]))),
-			CarColor.find({ _id: { $in: Array.from(allColorIds) } })
-				.exec()
-				.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc])))
-		]);
-
-		// Process results without nested database calls
-		const data = (aggregations.repeated_plates?.buckets ?? [])
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			.filter((bucket: any) => {
-				// Filter out plates containing underscores or asterisks
-				const plateKey = bucket.key;
-				return plateKey && !plateKey.includes('_') && !plateKey.includes('*');
-			})
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			.map((bucket: any) => {
-				const sample = bucket.sample?.hits?.hits?.[0]?._source;
-				const owner = bucket.owner?.buckets?.[0]?.key;
-
-				// Get data from cache
-				const personnel = owner && isValidObjectId(owner) ? personnelMap.get(owner) : undefined;
-				const brand = sample?.brand && isValidObjectId(sample.brand) ? brandMap.get(sample.brand) : undefined;
-				const color = sample?.color && isValidObjectId(sample.color) ? colorMap.get(sample.color) : undefined;
-
-				// Get camera names from cache
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const cameraIds = (bucket.cameras?.buckets ?? []).map((c: any) => c.key);
-				const camerasData = cameraIds.map((cid: string) => {
-					const cam = isValidObjectId(cid) ? cameraMap.get(cid) : undefined;
-					return { camera_id: cid, camera_name: cam?.name ?? 'Unknown' };
-				});
-
-				// Extract crop images
-				const crops =
-					bucket.crops?.hits?.hits?.map(
-						(hit: {
-							_id?: string;
-							_source?: { crop?: string; inner_crop?: string; timestamp?: string; camera_id?: string };
-						}) => ({
-							log_id: hit._id ?? null,
-							crop: hit._source?.crop ?? null,
-							inner_crop: hit._source?.inner_crop ?? null,
-							timestamp: hit._source?.timestamp ?? null,
-							camera_id: hit._source?.camera_id ?? null
-						})
-					) ?? [];
-
-				return {
-					plate_number: stringPlateToJson(bucket.key),
-					plate_number_string: bucket.key,
-					count: bucket.doc_count,
-					first_seen: new Date(bucket.first_seen.value).toLocaleString('en-US', { timeZone: timezone }),
-					last_seen: new Date(bucket.last_seen.value).toLocaleString('en-US', { timeZone: timezone }),
-					cameras: camerasData,
-					owner: personnel?.toName() ?? 'Unknown',
-					owner_id: owner ?? '',
-					brand: brand?.name ?? '',
-					car_type: brand?.car_type ?? '',
-					color: color?.name ?? '',
-					fa_color: color?.fa_name ?? '',
-					allowed: sample?.allowed ?? null,
-					crop: sample?.crop ?? null,
-					inner_crop: sample?.inner_crop ?? null,
-					crops: crops
-				};
-			});
-
-		return res.status(200).json({
-			success: true,
-			data,
-			total: data.length
-		});
 	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /similar-plates-15min
- *
- * Detects plates that appear across multiple cameras within configurable time windows.
- * Groups identical plate numbers into time-based buckets to identify potential security concerns.
- *
- * Use Case:
- * - Track vehicles moving between different camera zones
- * - Identify patterns of movement across facility areas
- * - Detect coordinated vehicle activity
- *
- * Request Body Parameters:
- * @param {string} date_start - Start date for search range
- * @param {string} date_end - End date for search range
- * @param {string} time_start - Start time filter (optional)
- * @param {string} time_end - End time filter (optional)
- * @param {string[]} cameras - Array of camera IDs to filter (optional)
- * @param {number} limit - Results per page (default: 20)
- * @param {number} page - Page number for pagination (default: 1)
- * @param {number} bucket_interval_minutes - Time window in minutes for grouping detections (default: 15)
- * @param {string} timez - Timezone for date/time processing (default: 'Asia/Tehran')
- * @param {Array} plates - Array of plate numbers to search for (optional)
- * @param {string} plate_search_type - Search mode: 'normal', 'fuzzy', 'noplate' (optional)
- *
- * Response:
- * Returns plates grouped by time buckets, showing all occurrences within each bucket,
- * including camera details, timestamps, and image crops.
- */
-router.post('/similar-plates-15min', async (req: Request, res, next) => {
-	try {
-		const {
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			cameras,
-			limit: rawLimit = 20,
-			bucket_interval_minutes,
-			page: rawPage,
-			timez,
-			plates,
-			plate_search_type
-		} = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const limit = Number(rawLimit) > 0 ? Number(rawLimit) : 20;
-		const page = Number(rawPage) > 0 ? Number(rawPage) : 1;
-		// bucket_interval_minutes: interval in minutes for grouping detections (default: 15 minutes)
-		const bucketIntervalMinutes = Number(bucket_interval_minutes) > 0 ? Number(bucket_interval_minutes) : 15;
-		const bucketIntervalMs = bucketIntervalMinutes * 60 * 1000;
-		const bucketIntervalStr = `${bucketIntervalMinutes}m`;
-		// Fetch a large number to get accurate total count (max 10000 for performance)
-		// We need all data to calculate the true total after filtering
-		const plateAggSize = 10000;
-
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		// Build base query with must clauses
-		const mustClauses = [...time_constraints, ...camera_filter];
-		const mustNotClauses = [
-			{ wildcard: { 'plate_number.keyword': '*\\**' } },
-			{ wildcard: { 'plate_number.keyword': '*_*' } },
-			{ regexp: { 'plate_number.keyword': '.*[_*].*' } }
-		];
-
-		// Handle plate search (similar to new.report.ts)
-		// noplate mode: Search for logs without valid plate numbers
-		let plateSearchClauses: unknown[] = [];
-		if (plate_search_type === 'noplate') {
-			// For noplate, we want to include plates with masks, so we don't add them to must_not
-			// Instead, we add a specific query for masked plates
-			plateSearchClauses = [
-				{
-					bool: {
-						should: [
-							{ term: { 'plate_number.keyword': '********' } },
-							{ term: { 'plate_number.keyword': '' } },
-							{ bool: { must_not: [{ exists: { field: 'plate_number' } }] } }
-						],
-						minimum_should_match: 1
-					}
-				}
-			];
-			// Remove the mask exclusions for noplate mode
-			mustNotClauses.length = 0;
-		} else if (plates?.length) {
-			// Convert plate objects to string format
-			const plateStrings = platesToStrings(plates);
-			const searchType = plate_search_type ?? 'normal';
-
-			// Add plate search clauses (OR between different plates)
-			// Build a temporary query object for plateToQueryJSON
-			const tempQuery = {
-				bool: {
-					must: mustClauses,
-					must_not: [],
-					should: []
-				}
-			};
-			plateSearchClauses = [
-				{
-					bool: {
-						// Each plate pattern becomes a query clause
-						should: plateStrings
-							.map((plateString) =>
-								// plateToQueryJSON handles wildcards and search modes
-								plateToQueryJSON(plateString, searchType, {
-									originalQueryToAlter: tempQuery
-								})
-							)
-							.flat(),
-						minimum_should_match: 1
-					}
-				}
-			];
-		}
-
-		// Add plate search clauses to must clauses if any
-		if (plateSearchClauses.length > 0) {
-			mustClauses.push(...plateSearchClauses);
-		}
-
-		const query = {
-			index: process.env['PLATE_INDEX'] ?? 'plate_log',
-			size: 0,
-			query: {
-				bool: {
-					must: mustClauses,
-					must_not: mustNotClauses
-				}
-			},
-			aggs: {
-				plates: {
-					terms: {
-						field: 'plate_number.keyword',
-						size: plateAggSize,
-						order: { _count: 'desc' }
-					},
-					aggs: {
-						by_15m: {
-							date_histogram: {
-								field: 'timestamp',
-								fixed_interval: bucketIntervalStr,
-								min_doc_count: 2,
-								order: { _count: 'desc' }
-							},
-							aggs: {
-								first_seen: { min: { field: 'timestamp' } },
-								last_seen: { max: { field: 'timestamp' } },
-								cameras: {
-									terms: {
-										field: 'camera_id.keyword',
-										size: 20
-									}
-								},
-								occurrences: {
-									top_hits: {
-										size: 30,
-										_source: ['timestamp', 'camera_id', 'crop', 'inner_crop'],
-										sort: [{ timestamp: { order: 'asc' } }]
-									}
-								},
-								sample: {
-									top_hits: {
-										size: 1,
-										_source: ['plate_number', 'crop', 'inner_crop']
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		};
-
-		let esRes;
-		try {
-			esRes = await process.esclient.search(query);
-		} catch (err: unknown) {
-			const error = err as { meta?: { body?: { error?: { type?: string } } }; message?: string };
-			if (error.meta?.body?.error?.type === 'index_not_found_exception') {
-				return res.status(200).json({
-					success: true,
-					data: [],
-					total: 0,
-					message: `Index ${query.index} not found. No data available.`
-				});
-			}
-			throw err;
-		}
-
-		type OccurrenceHit = {
-			_id?: string;
-			_source?: { timestamp?: string; camera_id?: string; crop?: string; inner_crop?: string };
-		};
-		type HistogramBucket = {
-			key: number;
-			doc_count: number;
-			first_seen?: { value?: number };
-			last_seen?: { value?: number };
-			cameras?: { buckets?: Array<{ key: string }> };
-			occurrences?: { hits?: { hits?: OccurrenceHit[] } };
-			sample?: { hits?: { hits?: Array<{ _source?: { crop?: string; inner_crop?: string } }> } };
-		};
-		type PlateAggBucket = {
-			key: string;
-			doc_count: number;
-			by_15m?: { buckets?: HistogramBucket[] };
-		};
-
-		const aggregations = esRes.aggregations as {
-			plates?: { buckets?: PlateAggBucket[] };
-		};
-		if (!aggregations?.plates?.buckets) {
-			return res.status(200).json({
-				success: true,
-				data: [],
-				total: 0
-			});
-		}
-
-		// Collect camera IDs once for enrichment
-		const allCameraIds = new Set<string>();
-		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
-			(plateBucket.by_15m?.buckets ?? []).forEach((bucket) => {
-				(bucket.cameras?.buckets ?? []).forEach((cam) => {
-					const camId = String(cam.key);
-					if (isValidObjectId(camId)) {
-						allCameraIds.add(camId);
-					}
-				});
-			});
+		logger.error('Route error', { error: err });
+		return res.status(500).json({
+			success: false,
+			message: 'Internal server error',
+			error: err instanceof Error ? err.message : String(err)
 		});
-
-		const cameraMap = await Camera.find({ _id: { $in: Array.from(allCameraIds) } })
-			.exec()
-			.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc])));
-
-		// Build response clusters
-		const clusters: Array<{
-			plate_number: unknown;
-			plate_number_string: string;
-			bucket_start: string;
-			bucket_end: string;
-			count: number;
-			first_seen: string;
-			last_seen: string;
-			last_seen_timestamp: number;
-			camera_ids: string[];
-			cameras: Array<{ camera_id: string; camera_name: string }>;
-			occurrences: Array<{
-				log_id: string | null;
-				timestamp: string | null;
-				camera_id: string | null;
-				crop: string | null;
-				inner_crop: string | null;
-			}>;
-			sample_crop: string | null;
-			sample_inner_crop: string | null;
-		}> = [];
-
-		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
-			const plateKey = plateBucket.key as string;
-
-			// Filter out unrecognized/invalid plates
-			if (
-				!plateKey ||
-				plateKey.trim() === '' ||
-				plateKey === '********' ||
-				plateKey.includes('*') ||
-				plateKey.includes('_')
-			) {
-				return;
-			}
-
-			const histogramBuckets = (plateBucket.by_15m?.buckets ?? []).sort((a, b) => b.doc_count - a.doc_count);
-
-			histogramBuckets.forEach((bucket) => {
-				const cameraIds = (bucket.cameras?.buckets ?? []).map((c) => String(c.key));
-				const uniqueCameraIds: string[] = Array.from(new Set(cameraIds));
-
-				const camerasData = uniqueCameraIds.map((cid: string) => {
-					const cam = isValidObjectId(cid) ? cameraMap.get(cid) : undefined;
-					return { camera_id: cid, camera_name: cam?.name ?? 'Unknown' };
-				});
-
-				const occurrences =
-					bucket.occurrences?.hits?.hits?.map((hit: OccurrenceHit) => ({
-						log_id: hit._id ?? null,
-						timestamp: hit._source?.timestamp ?? null,
-						camera_id: hit._source?.camera_id ?? null,
-						crop: hit._source?.crop ?? null,
-						inner_crop: hit._source?.inner_crop ?? null
-					})) ?? [];
-
-				const sample = bucket.sample?.hits?.hits?.[0]?._source;
-
-				const firstSeen = bucket.first_seen?.value ? new Date(bucket.first_seen.value) : new Date(bucket.key);
-				const lastSeen = bucket.last_seen?.value ? new Date(bucket.last_seen.value) : new Date(bucket.key);
-
-				clusters.push({
-					plate_number: stringPlateToJson(plateKey),
-					plate_number_string: plateKey,
-					bucket_start: new Date(bucket.key).toLocaleString('en-US', { timeZone: timezone }),
-					bucket_end: new Date(bucket.key + bucketIntervalMs).toLocaleString('en-US', { timeZone: timezone }),
-					count: bucket.doc_count ?? occurrences.length,
-					first_seen: firstSeen.toLocaleString('en-US', { timeZone: timezone }),
-					last_seen: lastSeen.toLocaleString('en-US', { timeZone: timezone }),
-					last_seen_timestamp: lastSeen.getTime(),
-					camera_ids: uniqueCameraIds,
-					cameras: camerasData,
-					occurrences,
-					sample_crop: sample?.crop ?? null,
-					sample_inner_crop: sample?.inner_crop ?? null
-				});
-			});
-		});
-
-		// Sort clusters by latest report timestamp descending
-		const sortedClusters = clusters.sort((a, b) => b.last_seen_timestamp - a.last_seen_timestamp);
-		const total = sortedClusters.length;
-		const start = (page - 1) * limit;
-		const pagedData = sortedClusters.slice(start, start + limit).map((cluster) => {
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			const { last_seen_timestamp, ...rest } = cluster;
-			return rest;
-		});
-
-		return res.status(200).json({
-			success: true,
-			data: pagedData,
-			total,
-			page,
-			limit,
-			total_pages: Math.ceil(total / limit)
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /similar-plates-15min/unique-count
- * Get count of unique plates in similar-plates-15min results
- */
-router.post('/similar-plates-15min/unique-count', async (req: Request, res, next) => {
-	try {
-		const { date_start, date_end, time_start, time_end, cameras, timez, plates, plate_search_type } =
-			req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const bucketIntervalMinutes = 15;
-		const bucketIntervalStr = `${bucketIntervalMinutes}m`;
-		const plateAggSize = 10000;
-
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		// Build base query with must clauses
-		const mustClauses = [...time_constraints, ...camera_filter];
-		const mustNotClauses = [
-			{ wildcard: { 'plate_number.keyword': '*\\**' } },
-			{ wildcard: { 'plate_number.keyword': '*_*' } },
-			{ regexp: { 'plate_number.keyword': '.*[_*].*' } }
-		];
-
-		// Handle plate search
-		let plateSearchClauses: unknown[] = [];
-		if (plate_search_type === 'noplate') {
-			plateSearchClauses = [
-				{
-					bool: {
-						should: [
-							{ term: { 'plate_number.keyword': '********' } },
-							{ term: { 'plate_number.keyword': '' } },
-							{ bool: { must_not: [{ exists: { field: 'plate_number' } }] } }
-						],
-						minimum_should_match: 1
-					}
-				}
-			];
-			mustNotClauses.length = 0;
-		} else if (plates?.length) {
-			const plateStrings = platesToStrings(plates);
-			const searchType = plate_search_type ?? 'normal';
-			const tempQuery = {
-				bool: {
-					must: mustClauses,
-					must_not: [],
-					should: []
-				}
-			};
-			plateSearchClauses = [
-				{
-					bool: {
-						should: plateStrings
-							.map((plateString) =>
-								plateToQueryJSON(plateString, searchType, {
-									originalQueryToAlter: tempQuery
-								})
-							)
-							.flat(),
-						minimum_should_match: 1
-					}
-				}
-			];
-		}
-
-		if (plateSearchClauses.length > 0) {
-			mustClauses.push(...plateSearchClauses);
-		}
-
-		const query = {
-			index: process.env['PLATE_INDEX'] ?? 'plate_log',
-			size: 0,
-			query: {
-				bool: {
-					must: mustClauses,
-					must_not: mustNotClauses
-				}
-			},
-			aggs: {
-				plates: {
-					terms: {
-						field: 'plate_number.keyword',
-						size: plateAggSize,
-						order: { _count: 'desc' }
-					},
-					aggs: {
-						by_15m: {
-							date_histogram: {
-								field: 'timestamp',
-								fixed_interval: bucketIntervalStr,
-								min_doc_count: 2,
-								order: { _count: 'desc' }
-							},
-							aggs: {
-								first_seen: { min: { field: 'timestamp' } },
-								last_seen: { max: { field: 'timestamp' } },
-								cameras: {
-									terms: {
-										field: 'camera_id.keyword',
-										size: 20
-									}
-								},
-								occurrences: {
-									top_hits: {
-										size: 30,
-										_source: ['timestamp', 'camera_id', 'crop', 'inner_crop'],
-										sort: [{ timestamp: { order: 'asc' } }]
-									}
-								},
-								sample: {
-									top_hits: {
-										size: 1,
-										_source: ['plate_number', 'crop', 'inner_crop']
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		};
-
-		let esRes;
-		try {
-			esRes = await process.esclient.search(query);
-		} catch (err: unknown) {
-			const error = err as { meta?: { body?: { error?: { type?: string } } }; message?: string };
-			if (error.meta?.body?.error?.type === 'index_not_found_exception') {
-				return res.status(200).json({
-					success: true,
-					unique_plates_count: 0,
-					message: `Index ${query.index} not found. No data available.`
-				});
-			}
-			throw err;
-		}
-
-		type PlateAggBucket = {
-			key: string;
-			doc_count: number;
-			by_15m?: { buckets?: Array<{ key: number }> };
-		};
-
-		const aggregations = esRes.aggregations as {
-			plates?: { buckets?: PlateAggBucket[] };
-		};
-
-		if (!aggregations?.plates?.buckets) {
-			return res.status(200).json({
-				success: true,
-				unique_plates_count: 0
-			});
-		}
-
-		// Calculate unique plates count
-		// Count all unique plates that have at least one bucket (same logic as main endpoint)
-		const uniquePlates = new Set<string>();
-		(aggregations.plates.buckets ?? []).forEach((plateBucket) => {
-			const plateKey = plateBucket.key as string;
-
-			// Filter out unrecognized/invalid plates (same as main endpoint)
-			if (
-				!plateKey ||
-				plateKey.trim() === '' ||
-				plateKey === '********' ||
-				plateKey.includes('*') ||
-				plateKey.includes('_')
-			) {
-				return;
-			}
-
-			// Count all plates that have at least one bucket (with min_doc_count: 2, this means at least 2 detections in that bucket)
-			// This matches the main endpoint logic where all buckets are shown
-			const histogramBuckets = plateBucket.by_15m?.buckets ?? [];
-			if (histogramBuckets.length > 0) {
-				uniquePlates.add(plateKey);
-			}
-		});
-
-		return res.status(200).json({
-			success: true,
-			unique_plates_count: uniquePlates.size
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
 	}
 });
 
@@ -3097,36 +2318,24 @@ router.post('/most-repeated-known-faces', async (req: Request, res, next) => {
 });
 
 /**
- * POST /most-repeated-unknown-faces
- * Get the most frequently detected unknown/unrecognized faces within a time range
- * Groups unknown faces by their face image to show unique unrecognized individuals
+<<<<<<< /home/mohammad-kavosi/Desktop/project/ariapa/isss-backend/src/routes/report/analytics.report.ts
+=======
+ * OLD IMPLEMENTATION REMOVED (duplicate route handler removed)
+ * The route previously computed clusters inline, which caused:
+ * - Blocking requests (30-120 seconds)
+ * - Exponential time complexity as data grows
+ * - High memory usage
  *
- * Request Parameters:
- * - date_start, date_end: Date range filter
- * - time_start, time_end: Time range filter (optional, for recurring time windows)
- * - cameras: Array of camera IDs to filter (optional, admin only)
- * - camera_ids: Alternative parameter for camera filtering (optional)
- * - limit: Maximum number of clusters to return (default: 10)
- * - timez: Timezone for date formatting (default: Asia/Tehran)
- *
- * Returns:
- * - personnel_id: Always 'unknown'
- * - name: Identifier based on face hash
- * - count: Number of detections
- * - first_seen: First detection timestamp
- * - last_seen: Last detection timestamp
- * - camera_ids: Array of camera IDs where detected
- * - cameras: List of cameras with details (id and name)
- * - inner_crop: Representative face image
- * - crops: Array of crop images (up to 10)
+ * NEW IMPLEMENTATION:
+ * - Route only reads from Redis cache (instant response)
+ * - Background job computes clusters every 15 minutes
+ * - Incremental updates (only processes new faces)
+ * - See: src/config/analyticsCacheJobs.config.ts
  */
-router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
-	try {
-		const { date_start, date_end, time_start, time_end, cameras, camera_ids, limit = 10, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
 
-		// Build time range constraints
-		const time_constraints = buildTimeConstraints(
+/*
+// START OF REMOVED CODE
+const time_constraints = buildTimeConstraints(
 			date_start,
 			date_end,
 			time_start,
@@ -3135,45 +2344,69 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 			req.body.time_filter
 		);
 
-		// Build camera access filter (supports both 'cameras' and 'camera_ids' parameters)
 		const cameraFilter = cameras || camera_ids;
 		const camera_filter = buildCameraFilter(req, cameraFilter);
 
-		// Query for unknown faces - fetch with vectors for clustering
-		const query = {
-			index: process.env['FACE_INDEX'] ?? 'face_log',
-			size: 1000, // Fetch more for clustering analysis
-			query: {
-				bool: {
-					must: [
-						...time_constraints,
-						...camera_filter,
-						{ exists: { field: 'vector' } } // Ensure vector exists for clustering
-					],
-					should: [
-						{ term: { 'personnel_id.keyword': 'unknown' } },
-						{ bool: { must_not: [{ exists: { field: 'personnel_id' } }] } }
-					],
-					minimum_should_match: 1
-				}
-			},
-			sort: [{ timestamp: { order: 'desc' } }],
-			_source: [
-				'personnel_id',
-				'name',
-				'allowed',
-				'personnel_code',
-				'inner_crop',
-				'timestamp',
-				'camera_id',
-				'track_id',
-				'vector'
-			]
-		};
+		const indexName = process.env['FACE_INDEX'] ?? 'face_log';
+		const pageSize = 3000;
+		const scrollTimeout = '3m';
 
-		let esRes;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		let allHits: any[] = [];
+		let scrollId: string | undefined;
+
 		try {
-			esRes = await process.esclient.search(query);
+			const searchParams = {
+				index: indexName,
+				size: pageSize,
+				scroll: scrollTimeout,
+				body: {
+					query: {
+						bool: {
+							must: [...time_constraints, ...camera_filter, { exists: { field: 'vector' } }],
+							should: [
+								{ term: { 'personnel_id.keyword': 'unknown' } },
+								{ bool: { must_not: [{ exists: { field: 'personnel_id' } }] } }
+							],
+							minimum_should_match: 1
+						}
+					},
+					sort: [{ timestamp: { order: 'desc' } }],
+					_source: [
+						'personnel_id',
+						'name',
+						'allowed',
+						'personnel_code',
+						'inner_crop',
+						'timestamp',
+						'camera_id',
+						'track_id',
+						'vector'
+					]
+				},
+				preference: '_local'
+			};
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			let searchResult = await process.esclient.search(searchParams as any);
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			allHits = (searchResult.hits?.hits as any[]) || [];
+			scrollId = searchResult._scroll_id as string | undefined;
+
+			while (scrollId && searchResult.hits?.hits && searchResult.hits.hits.length > 0) {
+				searchResult = await process.esclient.scroll({
+					scroll_id: scrollId,
+					scroll: scrollTimeout
+				});
+
+				if (searchResult.hits?.hits && searchResult.hits.hits.length > 0) {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					allHits = allHits.concat(searchResult.hits.hits as any[]);
+					scrollId = searchResult._scroll_id as string | undefined;
+				} else {
+					break;
+				}
+			}
 		} catch (err: unknown) {
 			const error = err as { meta?: { body?: { error?: { type?: string } } }; message?: string };
 			if (error.meta?.body?.error?.type === 'index_not_found_exception') {
@@ -3181,13 +2414,19 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 					success: true,
 					data: [],
 					total: 0,
-					message: `Index ${query.index} not found. No data available.`
+					message: `Index ${indexName} not found. No data available.`
 				});
 			}
 			throw err;
+		} finally {
+			if (scrollId) {
+				await process.esclient.clearScroll({ scroll_id: scrollId }).catch((error) => {
+					console.warn(`Failed to clear scroll for index ${indexName}`, error);
+				});
+			}
 		}
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const hits = (esRes.hits?.hits ?? []) as any[];
+
+		const hits = allHits;
 
 		if (hits.length === 0) {
 			return res.status(200).json({
@@ -3197,10 +2436,17 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 			});
 		}
 
-		// Prepare vectors for clustering
 		const faceVectors = hits
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			.filter((hit: any) => hit._source?.vector && Array.isArray(hit._source.vector))
+			.filter((hit: any) => {
+				const vec = hit._source?.vector;
+				return (
+					vec &&
+					Array.isArray(vec) &&
+					vec.length > 0 &&
+					vec.every((v: number) => typeof v === 'number' && !isNaN(v))
+				);
+			})
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			.map((hit: any) => ({
 				vector: hit._source.vector,
@@ -3210,32 +2456,140 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 				}
 			}));
 
-		// Apply DBSCAN clustering with cosine distance
-		// eps=0.4 means faces with >60% similarity (1-0.4=0.6) are grouped together
-		// minPts=1 allows single detections to form their own cluster
-		const clusters = dbscanClustering(faceVectors, 0.4, 1);
+		let clusters: any[][];
 
-		// Sort clusters by size (most detections first), then by earliest timestamp for deterministic ordering
-		const sortedClusters = clusters
-			.sort((a, b) => {
-				// Primary: sort by cluster size (descending)
-				if (b.length !== a.length) return b.length - a.length;
-				// Secondary: sort by earliest timestamp in cluster (ascending) for deterministic ordering
-				const aMinTime = Math.min(
-					...a.map((log: { timestamp?: string }) => new Date(log.timestamp ?? 0).getTime())
-				);
-				const bMinTime = Math.min(
-					...b.map((log: { timestamp?: string }) => new Date(log.timestamp ?? 0).getTime())
-				);
-				return aMinTime - bMinTime;
-			})
-			.slice(0, limit);
+		const sampleSize = Math.min(10000, Math.max(5000, Math.floor(faceVectors.length * 0.1)));
 
-		// Filter clusters by camera_ids if specified
+		if (faceVectors.length <= sampleSize) {
+			clusters = dbscanClustering(faceVectors, 0.4, 1);
+		} else {
+			const sampleVectors = faceVectors.slice(0, sampleSize);
+			const sampleClusters = dbscanClustering(sampleVectors, 0.4, 1);
+
+			const clusterCentroids = sampleClusters
+				.map((cluster) => {
+					const vectors = cluster
+						.map((item: any) => {
+							const matchingVector = sampleVectors.find((v) => v.data._id === item._id);
+							return matchingVector?.vector;
+						})
+						.filter((v): v is number[] => v !== undefined);
+
+					if (vectors.length === 0) return null;
+
+					const centroid = new Array(vectors[0].length).fill(0);
+					for (const vec of vectors) {
+						for (let i = 0; i < vec.length; i++) {
+							centroid[i] += vec[i];
+						}
+					}
+					for (let i = 0; i < centroid.length; i++) {
+						centroid[i] /= vectors.length;
+					}
+					return { centroid, cluster };
+				})
+				.filter((c): c is { centroid: number[]; cluster: any[] } => c !== null);
+
+			const remainingVectors = faceVectors.slice(sampleSize);
+			const batchSize = 1000;
+			const unmatchedVectors: Array<{ vector: number[]; data: any }> = [];
+
+			for (let i = 0; i < remainingVectors.length; i += batchSize) {
+				const batch = remainingVectors.slice(i, i + batchSize);
+
+				for (const faceVector of batch) {
+					let bestClusterIdx = -1;
+					let bestSimilarity = -1;
+
+					for (let j = 0; j < clusterCentroids.length; j++) {
+						const similarity = cosineSimilarity(faceVector.vector, clusterCentroids[j].centroid);
+						if (similarity > bestSimilarity) {
+							bestSimilarity = similarity;
+							bestClusterIdx = j;
+						}
+					}
+
+					if (bestClusterIdx !== -1 && bestSimilarity >= 0.6) {
+						clusterCentroids[bestClusterIdx].cluster.push(faceVector.data);
+					} else {
+						unmatchedVectors.push(faceVector);
+					}
+				}
+			}
+
+			clusters = clusterCentroids.map((c) => c.cluster);
+
+			if (unmatchedVectors.length > 0) {
+				if (unmatchedVectors.length <= 5000) {
+					const unmatchedClusters = dbscanClustering(unmatchedVectors, 0.4, 1);
+					clusters.push(...unmatchedClusters);
+				} else {
+					const unmatchedSample = unmatchedVectors.slice(0, 2000);
+					const unmatchedSampleClusters = dbscanClustering(unmatchedSample, 0.4, 1);
+
+					const unmatchedCentroids = unmatchedSampleClusters
+						.map((cluster) => {
+							const vectors = cluster
+								.map((item: any) => {
+									const matchingVector = unmatchedSample.find((v) => v.data._id === item._id);
+									return matchingVector?.vector;
+								})
+								.filter((v): v is number[] => v !== undefined);
+
+							if (vectors.length === 0) return null;
+
+							const centroid = new Array(vectors[0].length).fill(0);
+							for (const vec of vectors) {
+								for (let i = 0; i < vec.length; i++) {
+									centroid[i] += vec[i];
+								}
+							}
+							for (let i = 0; i < centroid.length; i++) {
+								centroid[i] /= vectors.length;
+							}
+							return { centroid, cluster };
+						})
+						.filter((c): c is { centroid: number[]; cluster: any[] } => c !== null);
+
+					const remainingUnmatched = unmatchedVectors.slice(2000);
+					for (const faceVector of remainingUnmatched) {
+						let bestIdx = -1;
+						let bestSim = -1;
+
+						for (let j = 0; j < unmatchedCentroids.length; j++) {
+							const sim = cosineSimilarity(faceVector.vector, unmatchedCentroids[j].centroid);
+							if (sim > bestSim) {
+								bestSim = sim;
+								bestIdx = j;
+							}
+						}
+
+						if (bestIdx !== -1 && bestSim >= 0.6) {
+							unmatchedCentroids[bestIdx].cluster.push(faceVector.data);
+						} else {
+							clusters.push([faceVector.data]);
+						}
+					}
+
+					clusters.push(...unmatchedCentroids.map((c) => c.cluster));
+				}
+			}
+		}
+
+		const sortedClusters = clusters.sort((a, b) => {
+			if (b.length !== a.length) return b.length - a.length;
+			const aMinTime = Math.min(
+				...a.map((log: { timestamp?: string }) => new Date(log.timestamp ?? 0).getTime())
+			);
+			const bMinTime = Math.min(
+				...b.map((log: { timestamp?: string }) => new Date(log.timestamp ?? 0).getTime())
+			);
+			return aMinTime - bMinTime;
+		});
+
 		let filteredClusters = sortedClusters.filter((cluster) => Array.isArray(cluster) && cluster.length > 0);
 		if (camera_ids && Array.isArray(camera_ids) && camera_ids.length > 0) {
 			filteredClusters = filteredClusters.filter((clusterLogs) => {
-				// Check if cluster has any detections from the specified cameras
 				return (
 					Array.isArray(clusterLogs) &&
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -3244,7 +2598,6 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 			});
 		}
 
-		// Collect all unique camera IDs for batch fetching
 		const allCameraIds = new Set<string>();
 		filteredClusters.forEach((clusterLogs) => {
 			const logsArray = Array.isArray(clusterLogs) ? clusterLogs : [];
@@ -3256,36 +2609,29 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 			});
 		});
 
-		// Batch fetch all cameras at once
 		const cameraMap = await Camera.find({ _id: { $in: Array.from(allCameraIds) } })
 			.exec()
 			.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc])));
 
-		// Process each cluster without nested database calls
 		const data = filteredClusters
 			.filter((clusterLogs) => Array.isArray(clusterLogs) && clusterLogs.length > 0)
 			.map((clusterLogs, clusterIdx: number) => {
-				// Get unique cameras from cache
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const cameraSet = new Set(clusterLogs.map((log: any) => log?.camera_id).filter(Boolean));
 				const cameraIds = Array.from(cameraSet);
 
-				// Get camera details from cache
 				const camerasData = cameraIds.map((cid: string) => {
 					const cam = isValidObjectId(cid) ? cameraMap.get(cid) : undefined;
 					return { camera_id: cid, camera_name: cam?.name ?? 'Unknown' };
 				});
 
-				// Get first and last seen
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const timestamps = clusterLogs.map((log: any) => new Date(log.timestamp).getTime());
 				const firstSeen = timestamps.length > 0 ? new Date(Math.min(...timestamps)) : new Date();
 				const lastSeen = timestamps.length > 0 ? new Date(Math.max(...timestamps)) : new Date();
 
-				// Use the most recent face image as representative
 				const representativeFace = clusterLogs[0];
 
-				// Extract up to 10 crop images (raw timestamps for speed)
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const crops = clusterLogs.slice(0, 10).map((log: any) => ({
 					log_id: log._id ?? null,
@@ -3311,19 +2657,26 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 				};
 			});
 
+		const result = { data, total: data.length };
+
+		if (cacheService) {
+			try {
+				await cacheService.setCachedData('most-repeated-unknown-faces', cacheParams, result, 400);
+			} catch (cacheError) {
+				console.warn('Failed to cache result:', cacheError);
+			}
+		}
+
 		return res.status(200).json({
 			success: true,
-			data,
-			total: data.length
+			...result,
+			cached: false
 		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
+*/
+// END OF REMOVED CODE - All above computation logic moved to background job
 
 /**
+>>>>>>> /home/mohammad-kavosi/.windsurf/worktrees/isss-backend/isss-backend-6dc1b61f/src/routes/report/analytics.report.ts
  * POST /most-active-cameras
  * Get cameras with the most detections within a time range
  *
@@ -4427,6 +3780,2220 @@ router.post('/people-counting-hourly', async (req: Request, res, next) => {
 		);
 	}
 });
+
+/**
+ * POST /unknown-face-counting
+ * Get unknown face counting statistics from face_count index
+ *
+ * Returns:
+ * - unique_faces: Number of unique unknown persons (by global_virtual_id)
+ * - total_visits: Total face detections/visits in time range
+ * - cameras: Array of per-camera breakdown with unique and total counts
+ *
+ * Request body (AnalyticsBody):
+ * - date_start, date_end, time_start, time_end: Time range filters
+ * - cameras: Optional array of camera IDs to filter
+ * - timez: Timezone (default: Asia/Tehran)
+ * - time_filter: Boolean to enable time-of-day filtering
+ */
+router.post('/unknown-face-counting', async (req: Request, res, next) => {
+	try {
+		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+
+		// Build time range constraints
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+
+		// Build camera access filter
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build Elasticsearch query with aggregations
+		const query = {
+			index: faceCountIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [...time_constraints, ...camera_filter]
+				}
+			},
+			aggs: {
+				unique_faces: {
+					cardinality: {
+						field: 'global_virtual_id'
+					}
+				},
+				total_visits: {
+					value_count: {
+						field: 'timestamp'
+					}
+				},
+				by_camera: {
+					terms: {
+						field: 'camera_id.keyword',
+						size: 1000
+					},
+					aggs: {
+						unique_faces: {
+							cardinality: {
+								field: 'global_virtual_id'
+							}
+						}
+					}
+				}
+			}
+		};
+
+		// Execute query
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				// Index doesn't exist yet, return zeros
+				return res.status(200).json({
+					success: true,
+					data: {
+						unique_faces: 0,
+						total_visits: 0,
+						cameras: []
+					}
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const aggs = esResponse.aggregations as any;
+
+		// Get camera names
+		const cameraIds = (aggs?.by_camera?.buckets ?? []).map((b: any) => b.key);
+		const cameraDocs = await Camera.find({ _id: { $in: cameraIds } })
+			.exec()
+			.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc])));
+
+		// Format per-camera breakdown
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const cameraBreakdown = (aggs?.by_camera?.buckets ?? []).map((bucket: any) => {
+			const cameraId = String(bucket.key);
+			const camera = cameraDocs.get(cameraId);
+			return {
+				camera_id: cameraId,
+				camera_name: camera?.name ?? 'Unknown',
+				unique_faces: bucket.unique_faces?.value ?? 0,
+				total_visits: bucket.doc_count ?? 0
+			};
+		});
+
+		return res.status(200).json({
+			success: true,
+			data: {
+				unique_faces: aggs?.unique_faces?.value ?? 0,
+				total_visits: aggs?.total_visits?.value ?? 0,
+				cameras: cameraBreakdown
+			}
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /unknown-faces-list
+ * Get paginated list of unknown face records from face_count index
+ */
+router.post('/unknown-faces-list', async (req: Request, res, next) => {
+	try {
+		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+
+		const page = Math.max(1, Number(req.body.page) || 1);
+		const size = Math.min(1000, Number(req.body.limit) || 50);
+		const from = (page - 1) * size;
+
+		const allowedSortFields = new Set(['timestamp', 'visit_number', 'match_score']);
+		const sortByRaw = typeof req.body.sort_by === 'string' ? req.body.sort_by : 'timestamp';
+		const sortBy = allowedSortFields.has(sortByRaw) ? sortByRaw : 'timestamp';
+		const sortDirection = req.body.sort_dir === 'asc' ? 'asc' : 'desc';
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		const visitMin = Number(req.body.visit_number_min);
+		const visitMax = Number(req.body.visit_number_max);
+		const visitRange: Record<string, number> = {};
+		if (!Number.isNaN(visitMin) && req.body.visit_number_min !== undefined) visitRange.gte = visitMin;
+		if (!Number.isNaN(visitMax) && req.body.visit_number_max !== undefined) visitRange.lte = visitMax;
+
+		const visitConstraint =
+			Object.keys(visitRange).length > 0 ? [{ range: { visit_number: visitRange } }] : [];
+
+		const query = {
+			index: faceCountIndex,
+			size,
+			from,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [...time_constraints, ...camera_filter, ...visitConstraint]
+				}
+			},
+			sort: [{ [sortBy]: { order: sortDirection } }],
+			_source: {
+				excludes: ['vector'] // Exclude vector field to reduce response size
+			}
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0,
+					page,
+					size
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const hits = (esResponse.hits?.hits ?? []) as any[];
+		const data = hits.map((hit) => ({
+			_id: hit._id,
+			...(hit._source ?? {})
+		}));
+
+		const cameraIds = Array.from(
+			new Set(data.map((item) => String(item.camera_id)).filter((id) => id && id !== 'undefined'))
+		);
+		const cameraMap = await loadCameraMap(cameraIds);
+
+		const enriched = data.map((item) => ({
+			...item,
+			camera_name: cameraMap.get(String(item.camera_id))?.name ?? 'Unknown'
+		}));
+
+		return res.status(200).json({
+			success: true,
+			data: enriched,
+			total:
+				esResponse.hits?.total &&
+				typeof esResponse.hits.total === 'object' &&
+				'value' in esResponse.hits.total
+					? esResponse.hits.total.value
+					: enriched.length,
+			page,
+			size
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /unknown-faces-hourly
+ * Get hourly breakdown of unknown faces from face_count index
+ */
+router.post('/unknown-faces-hourly', async (req: Request, res, next) => {
+	try {
+		const requestedInterval = Number(req.body.interval) || 1;
+		const allowedIntervals = [1, 2, 4, 12, 24];
+		const intervalHours = allowedIntervals.includes(requestedInterval) ? requestedInterval : 1;
+		const intervalMs = intervalHours * 3600000;
+
+		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		const query = {
+			index: faceCountIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [...time_constraints, ...camera_filter]
+				}
+			},
+			aggs: {
+				by_hour: {
+					histogram: {
+						field: 'timestamp',
+						interval: intervalMs
+					},
+					aggs: {
+						unique_faces: { cardinality: { field: 'global_virtual_id' } },
+						total_visits: { value_count: { field: 'timestamp' } },
+						by_camera: {
+							terms: { field: 'camera_id.keyword', size: 1000 },
+							aggs: {
+								unique_faces: { cardinality: { field: 'global_virtual_id' } },
+								total_visits: { value_count: { field: 'timestamp' } }
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0,
+					interval_hours: intervalHours
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const buckets = (esResponse.aggregations as any)?.by_hour?.buckets ?? [];
+		const cameraIdSet = new Set<string>();
+		buckets.forEach((bucket: any) => {
+			(bucket.by_camera?.buckets ?? []).forEach((camBucket: any) => {
+				cameraIdSet.add(String(camBucket.key));
+			});
+		});
+		const cameraMap = await loadCameraMap(Array.from(cameraIdSet));
+
+		const data = buckets.map((bucket: any) => ({
+			time: new Date(Number(bucket.key)).toLocaleString('en-US', { timeZone: timezone }),
+			time_epoch: Number(bucket.key),
+			unique_faces: bucket.unique_faces?.value ?? 0,
+			total_visits: bucket.total_visits?.value ?? bucket.doc_count ?? 0,
+			cameras: (bucket.by_camera?.buckets ?? []).map((camBucket: any) => ({
+				camera_id: String(camBucket.key),
+				camera_name: cameraMap.get(String(camBucket.key))?.name ?? 'Unknown',
+				unique_faces: camBucket.unique_faces?.value ?? 0,
+				total_visits: camBucket.total_visits?.value ?? camBucket.doc_count ?? 0
+			}))
+		}));
+
+		return res.status(200).json({
+			success: true,
+			data,
+			total: data.length,
+			interval_hours: intervalHours
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /unknown-faces-daily
+ * Get daily trend of unknown faces from face_count index
+ */
+router.post('/unknown-faces-daily', async (req: Request, res, next) => {
+	try {
+		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		const query = {
+			index: faceCountIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [...time_constraints, ...camera_filter]
+				}
+			},
+			aggs: {
+				by_day: {
+					date_histogram: {
+						field: 'timestamp',
+						calendar_interval: '1d',
+						time_zone: timezone
+					},
+					aggs: {
+						unique_faces: { cardinality: { field: 'global_virtual_id' } },
+						total_visits: { value_count: { field: 'timestamp' } },
+						by_camera: {
+							terms: { field: 'camera_id.keyword', size: 1000 },
+							aggs: {
+								unique_faces: { cardinality: { field: 'global_virtual_id' } },
+								total_visits: { value_count: { field: 'timestamp' } }
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const buckets = (esResponse.aggregations as any)?.by_day?.buckets ?? [];
+		const cameraIdSet = new Set<string>();
+		buckets.forEach((bucket: any) => {
+			(bucket.by_camera?.buckets ?? []).forEach((camBucket: any) => {
+				cameraIdSet.add(String(camBucket.key));
+			});
+		});
+		const cameraMap = await loadCameraMap(Array.from(cameraIdSet));
+
+		const data = buckets.map((bucket: any) => ({
+			date: new Date(Number(bucket.key)).toLocaleDateString('en-CA', { timeZone: timezone }),
+			date_epoch: Number(bucket.key),
+			unique_faces: bucket.unique_faces?.value ?? 0,
+			total_visits: bucket.total_visits?.value ?? bucket.doc_count ?? 0,
+			cameras: (bucket.by_camera?.buckets ?? []).map((camBucket: any) => ({
+				camera_id: String(camBucket.key),
+				camera_name: cameraMap.get(String(camBucket.key))?.name ?? 'Unknown',
+				unique_faces: camBucket.unique_faces?.value ?? 0,
+				total_visits: camBucket.total_visits?.value ?? camBucket.doc_count ?? 0
+			}))
+		}));
+
+		return res.status(200).json({
+			success: true,
+			data,
+			total: data.length
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /unknown-faces-by-camera
+ * Compare unknown faces per camera
+ */
+router.post('/unknown-faces-by-camera', async (req: Request, res, next) => {
+	try {
+		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+		const limit = Math.min(1000, Number(req.body.limit) || 1000);
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		const query = {
+			index: faceCountIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [...time_constraints, ...camera_filter]
+				}
+			},
+			aggs: {
+				by_camera: {
+					terms: { field: 'camera_id.keyword', size: limit },
+					aggs: {
+						unique_faces: { cardinality: { field: 'global_virtual_id' } },
+						total_visits: { value_count: { field: 'timestamp' } }
+					}
+				}
+			}
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const buckets = (esResponse.aggregations as any)?.by_camera?.buckets ?? [];
+		const cameraMap = await loadCameraMap(buckets.map((bucket: any) => String(bucket.key)));
+
+		const data = buckets.map((bucket: any) => {
+			const uniqueFaces = bucket.unique_faces?.value ?? 0;
+			const totalVisits = bucket.total_visits?.value ?? bucket.doc_count ?? 0;
+			return {
+				camera_id: String(bucket.key),
+				camera_name: cameraMap.get(String(bucket.key))?.name ?? 'Unknown',
+				unique_faces: uniqueFaces,
+				total_visits: totalVisits,
+				avg_visits_per_person: uniqueFaces > 0 ? Number((totalVisits / uniqueFaces).toFixed(2)) : 0
+			};
+		});
+
+		return res.status(200).json({
+			success: true,
+			data,
+			total: data.length
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /unknown-faces-visit-frequency
+ * Histogram of visit counts per unknown person
+ */
+router.post('/unknown-faces-visit-frequency', async (req: Request, res, next) => {
+	try {
+		const { date_start, date_end, time_start, time_end, cameras: requestCameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+		const includeCameras = Boolean(req.body.include_cameras);
+		const personLimit = Math.min(10000, Number(req.body.person_limit) || 10000);
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, requestCameras);
+
+		const aggs: Record<string, unknown> = {
+			by_person: {
+				terms: {
+					field: 'global_virtual_id',
+					size: personLimit
+				}
+			}
+		};
+
+		if (includeCameras) {
+			aggs.by_camera = {
+				terms: { field: 'camera_id.keyword', size: 1000 },
+				aggs: {
+					by_person: {
+						terms: {
+							field: 'global_virtual_id',
+							size: personLimit
+						}
+					}
+				}
+			};
+		}
+
+		const query = {
+			index: faceCountIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [...time_constraints, ...camera_filter]
+				}
+			},
+			aggs
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: { distribution: [], total_people: 0, cameras: [] }
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const baseAggs = esResponse.aggregations as any;
+		const distributionMap = new Map<number, number>();
+		(baseAggs?.by_person?.buckets ?? []).forEach((bucket: any) => {
+			const visitCount = bucket.doc_count ?? 0;
+			distributionMap.set(visitCount, (distributionMap.get(visitCount) ?? 0) + 1);
+		});
+
+		const distribution = Array.from(distributionMap.entries())
+			.sort((a, b) => a[0] - b[0])
+			.map(([visits, people]) => ({ visits, people }));
+
+		let cameras: Array<{
+			camera_id: string;
+			camera_name: string;
+			distribution: Array<{ visits: number; people: number }>;
+		}> = [];
+
+		if (includeCameras) {
+			const cameraBuckets = baseAggs?.by_camera?.buckets ?? [];
+			const cameraMap = await loadCameraMap(cameraBuckets.map((b: any) => String(b.key)));
+
+			cameras = cameraBuckets.map((bucket: any) => {
+				const cameraDistribution = new Map<number, number>();
+				(bucket.by_person?.buckets ?? []).forEach((personBucket: any) => {
+					const visitCount = personBucket.doc_count ?? 0;
+					cameraDistribution.set(visitCount, (cameraDistribution.get(visitCount) ?? 0) + 1);
+				});
+				return {
+					camera_id: String(bucket.key),
+					camera_name: cameraMap.get(String(bucket.key))?.name ?? 'Unknown',
+					distribution: Array.from(cameraDistribution.entries())
+						.sort((a, b) => a[0] - b[0])
+						.map(([visits, people]) => ({ visits, people }))
+				};
+			});
+		}
+
+		return res.status(200).json({
+			success: true,
+			data: {
+				distribution,
+				total_people: (baseAggs?.by_person?.buckets ?? []).length,
+				cameras
+			}
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /unknown-faces-repeat-visitors
+ * List repeat unknown visitors and their detections
+ */
+router.post('/unknown-faces-repeat-visitors', async (req: Request, res, next) => {
+	try {
+		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+		const minVisits = Math.max(2, Number(req.body.min_visits) || 3);
+		const limit = Math.min(1000, Number(req.body.limit) || 100);
+		const maxRecords = Math.min(20000, Number(req.body.max_records) || 10000);
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		const repeatQuery = {
+			index: faceCountIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [...time_constraints, ...camera_filter]
+				}
+			},
+			aggs: {
+				repeat_persons: {
+					terms: {
+						field: 'global_virtual_id',
+						size: limit,
+						min_doc_count: minVisits,
+						order: { _count: 'desc' }
+					}
+				}
+			}
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(repeatQuery);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const buckets = (esResponse.aggregations as any)?.repeat_persons?.buckets ?? [];
+		const repeatIds = buckets.map((b: any) => String(b.key));
+
+		if (repeatIds.length === 0) {
+			return res.status(200).json({
+				success: true,
+				data: [],
+				total: 0
+			});
+		}
+
+		const detectionsQuery = {
+			index: faceCountIndex,
+			size: maxRecords,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [
+						...time_constraints,
+						...camera_filter,
+						{
+							bool: {
+								should: repeatIds.map((id: string) => ({ term: { global_virtual_id: id } })),
+								minimum_should_match: 1
+							}
+						}
+					]
+				}
+			},
+			sort: [{ timestamp: { order: 'asc' } }]
+		};
+
+		const detectionsRes = await process.esclient.search(detectionsQuery);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const hits = (detectionsRes.hits?.hits ?? []) as any[];
+		const detections = hits.map((hit) => ({
+			_id: hit._id,
+			...(hit._source ?? {})
+		}));
+
+		const cameraIds = Array.from(
+			new Set(detections.map((item) => String(item.camera_id)).filter((id) => id && id !== 'undefined'))
+		);
+		const cameraMap = await loadCameraMap(cameraIds);
+
+		const grouped = new Map<
+			string,
+			{
+				global_virtual_id: string;
+				total_visits: number;
+				first_seen: string | undefined;
+				last_seen: string | undefined;
+				detections: Array<Record<string, unknown>>;
+			}
+		>();
+
+		detections.forEach((item) => {
+			const gvId = String(item.global_virtual_id);
+			const existing = grouped.get(gvId) || {
+				global_virtual_id: gvId,
+				total_visits: 0,
+				first_seen: undefined,
+				last_seen: undefined,
+				detections: []
+			};
+			existing.total_visits += 1;
+			const ts = item.timestamp;
+			if (!existing.first_seen || (ts && ts < existing.first_seen)) existing.first_seen = ts;
+			if (!existing.last_seen || (ts && ts > existing.last_seen)) existing.last_seen = ts;
+			existing.detections.push({
+				...item,
+				camera_name: cameraMap.get(String(item.camera_id))?.name ?? 'Unknown'
+			});
+			grouped.set(gvId, existing);
+		});
+
+		const data = Array.from(grouped.values());
+
+		return res.status(200).json({
+			success: true,
+			data,
+			total: data.length,
+			truncated:
+				detectionsRes.hits?.total &&
+				typeof detectionsRes.hits.total === 'object' &&
+				'value' in detectionsRes.hits.total
+					? detectionsRes.hits.total.value > maxRecords
+					: false
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * ===================================
+ * FACE COUNTING ROUTES
+ * ===================================
+ */
+
+/**
+ * POST /face-count/unique-today
+ * Get count of unique unknown faces detected today
+ *
+ * Returns:
+ * - unique_faces: Number of unique unknown faces detected today
+ * - total_visits: Total number of face detections/visits today
+ * - cameras: Array of per-camera breakdown
+ */
+router.post('/face-count/unique-today', async (req: Request, res, next) => {
+	try {
+		const { cameras } = req.body;
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+
+		// Get today's date range
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const todayStart = today.getTime();
+		const todayEnd = todayStart + 24 * 60 * 60 * 1000 - 1;
+
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		const query = {
+			index: faceCountIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [{ range: { timestamp: { gte: todayStart, lte: todayEnd } } }, ...camera_filter]
+				}
+			},
+			aggs: {
+				unique_faces: {
+					cardinality: {
+						field: 'global_virtual_id'
+					}
+				},
+				total_visits: {
+					value_count: {
+						field: 'timestamp'
+					}
+				},
+				by_camera: {
+					terms: {
+						field: 'camera_id.keyword',
+						size: 1000
+					},
+					aggs: {
+						unique_faces: {
+							cardinality: {
+								field: 'global_virtual_id'
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: {
+						unique_faces: 0,
+						total_visits: 0,
+						cameras: []
+					}
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const aggs = esResponse.aggregations as any;
+
+		// Get camera names
+		const cameraIds = (aggs?.by_camera?.buckets ?? []).map((b: any) => b.key);
+		const cameraMap = await loadCameraMap(cameraIds);
+
+		// Format per-camera breakdown
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const cameraBreakdown = (aggs?.by_camera?.buckets ?? []).map((bucket: any) => {
+			const cameraId = String(bucket.key);
+			const camera = cameraMap.get(cameraId);
+			return {
+				camera_id: cameraId,
+				camera_name: camera?.name ?? 'Unknown',
+				unique_faces: bucket.unique_faces?.value ?? 0,
+				total_visits: bucket.doc_count ?? 0
+			};
+		});
+
+		return res.status(200).json({
+			success: true,
+			data: {
+				unique_faces: aggs?.unique_faces?.value ?? 0,
+				total_visits: aggs?.total_visits?.value ?? 0,
+				cameras: cameraBreakdown
+			}
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /face-count/person-visits
+ * Get visit count for a specific unknown person (identified by global_virtual_id)
+ *
+ * Request body:
+ * - global_virtual_id: Required - ID of the unknown person to count visits for
+ * - date_start, date_end: Optional - Date range filter
+ * - time_start, time_end: Optional - Time range filter
+ * - cameras: Optional - Array of camera IDs to filter
+ * - timez: Optional - Timezone (default: Asia/Tehran)
+ *
+ * Returns:
+ * - global_virtual_id: The person's virtual ID
+ * - visit_count: Total number of visits/detections
+ * - first_seen: First detection timestamp
+ * - last_seen: Last detection timestamp
+ * - cameras: Array of per-camera visit counts
+ */
+router.post('/face-count/person-visits', async (req: Request, res, next) => {
+	try {
+		const { global_virtual_id, date_start, date_end, time_start, time_end, cameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+
+		if (!global_virtual_id) {
+			return res.status(400).json({
+				success: false,
+				message: 'global_virtual_id is required'
+			});
+		}
+
+		// Build time range constraints
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		const query = {
+			index: faceCountIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: [
+						...time_constraints,
+						...camera_filter,
+						{ term: { global_virtual_id: String(global_virtual_id) } }
+					]
+				}
+			},
+			aggs: {
+				first_seen: { min: { field: 'timestamp' } },
+				last_seen: { max: { field: 'timestamp' } },
+				by_camera: {
+					terms: {
+						field: 'camera_id.keyword',
+						size: 1000
+					}
+				}
+			}
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: {
+						global_virtual_id: String(global_virtual_id),
+						visit_count: 0,
+						first_seen: null,
+						last_seen: null,
+						cameras: []
+					}
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const aggs = esResponse.aggregations as any;
+		const totalHits =
+			esResponse.hits?.total && typeof esResponse.hits.total === 'object' && 'value' in esResponse.hits.total
+				? esResponse.hits.total.value
+				: 0;
+
+		// Get camera names
+		const cameraIds = (aggs?.by_camera?.buckets ?? []).map((b: any) => b.key);
+		const cameraMap = await loadCameraMap(cameraIds);
+
+		// Format per-camera breakdown
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const cameraBreakdown = (aggs?.by_camera?.buckets ?? []).map((bucket: any) => {
+			const cameraId = String(bucket.key);
+			const camera = cameraMap.get(cameraId);
+			return {
+				camera_id: cameraId,
+				camera_name: camera?.name ?? 'Unknown',
+				visit_count: bucket.doc_count ?? 0
+			};
+		});
+
+		const firstSeen = aggs?.first_seen?.value
+			? new Date(aggs.first_seen.value).toLocaleString('en-US', { timeZone: timezone })
+			: null;
+		const lastSeen = aggs?.last_seen?.value
+			? new Date(aggs.last_seen.value).toLocaleString('en-US', { timeZone: timezone })
+			: null;
+
+		return res.status(200).json({
+			success: true,
+			data: {
+				global_virtual_id: String(global_virtual_id),
+				visit_count: totalHits,
+				first_seen: firstSeen,
+				last_seen: lastSeen,
+				cameras: cameraBreakdown
+			}
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /face-count/visits-by-global-virtual-id
+ * Get all paginated visit records for a specific global_virtual_id
+ *
+ * Request body:
+ * - global_virtual_id: Required - ID of the unknown person to get visits for
+ * - date_start, date_end: Optional - Date range filter
+ * - time_start, time_end: Optional - Time range filter
+ * - cameras: Optional - Array of camera IDs to filter
+ * - page: Optional - Page number (default: 1)
+ * - limit: Optional - Results per page (default: 50, max: 1000)
+ * - sort_by: Optional - Sort field: 'timestamp', 'visit_number', 'match_score' (default: 'timestamp')
+ * - sort_dir: Optional - Sort direction: 'asc' or 'desc' (default: 'desc')
+ * - timez: Optional - Timezone (default: Asia/Tehran)
+ *
+ * Returns:
+ * - data: Array of all visit records for the given global_virtual_id
+ * - total: Total number of records
+ * - page: Current page number
+ * - size: Results per page
+ */
+router.post('/face-count/visits-by-global-virtual-id', async (req: Request, res, next) => {
+	try {
+		const { global_virtual_id, date_start, date_end, time_start, time_end, cameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+
+		if (!global_virtual_id) {
+			return res.status(400).json({
+				success: false,
+				message: 'global_virtual_id is required'
+			});
+		}
+
+		const page = Math.max(1, Number(req.body.page) || 1);
+		const size = Math.min(1000, Number(req.body.limit) || 50);
+		const from = (page - 1) * size;
+
+		const allowedSortFields = new Set(['timestamp', 'visit_number', 'match_score']);
+		const sortByRaw = typeof req.body.sort_by === 'string' ? req.body.sort_by : 'timestamp';
+		const sortBy = allowedSortFields.has(sortByRaw) ? sortByRaw : 'timestamp';
+		const sortDirection = req.body.sort_dir === 'asc' ? 'asc' : 'desc';
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build must clauses
+		const mustClauses = [...time_constraints, { term: { global_virtual_id: String(global_virtual_id) } }];
+		if (camera_filter && camera_filter.length > 0) {
+			mustClauses.push(...camera_filter);
+		}
+
+		const visitMin = Number(req.body.visit_number_min);
+		const visitMax = Number(req.body.visit_number_max);
+		const visitRange: Record<string, number> = {};
+		if (!Number.isNaN(visitMin) && req.body.visit_number_min !== undefined) visitRange.gte = visitMin;
+		if (!Number.isNaN(visitMax) && req.body.visit_number_max !== undefined) visitRange.lte = visitMax;
+
+		const visitConstraint =
+			Object.keys(visitRange).length > 0 ? [{ range: { visit_number: visitRange } }] : [];
+
+		if (visitConstraint.length > 0) {
+			mustClauses.push(...visitConstraint);
+		}
+
+		const query = {
+			index: faceCountIndex,
+			size,
+			from,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: mustClauses
+				}
+			},
+			sort: [{ [sortBy]: { order: sortDirection } }]
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0,
+					page,
+					size
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const hits = (esResponse.hits?.hits ?? []) as any[];
+		const data = hits.map((hit) => ({
+			_id: hit._id,
+			...(hit._source ?? {})
+		}));
+
+		const cameraIds = Array.from(
+			new Set(data.map((item) => String(item.camera_id)).filter((id) => id && id !== 'undefined'))
+		);
+		const cameraMap = await loadCameraMap(cameraIds);
+
+		const enriched = data.map((item) => ({
+			...item,
+			camera_name: cameraMap.get(String(item.camera_id))?.name ?? 'Unknown'
+		}));
+
+		const total =
+			esResponse.hits?.total && typeof esResponse.hits.total === 'object' && 'value' in esResponse.hits.total
+				? esResponse.hits.total.value
+				: enriched.length;
+
+		return res.status(200).json({
+			success: true,
+			data: enriched,
+			total,
+			page,
+			size,
+			total_pages: Math.ceil(total / size)
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /face-count/list-unknown-faces
+ * Get paginated list of unknown face records from face_count index
+ * Can filter by global_virtual_id to see details of a specific person
+ *
+ * Request body:
+ * - global_virtual_id: Optional - Filter by specific unknown person's virtual ID
+ * - date_start, date_end: Optional - Date range filter
+ * - time_start, time_end: Optional - Time range filter
+ * - cameras: Optional - Array of camera IDs to filter
+ * - page: Optional - Page number (default: 1)
+ * - limit: Optional - Results per page (default: 50, max: 1000)
+ * - sort_by: Optional - Sort field: 'timestamp', 'visit_number', 'match_score' (default: 'timestamp')
+ * - sort_dir: Optional - Sort direction: 'asc' or 'desc' (default: 'desc')
+ * - timez: Optional - Timezone (default: Asia/Tehran)
+ *
+ * Returns:
+ * - data: Array of face detection records
+ * - total: Total number of records
+ * - page: Current page number
+ * - size: Results per page
+ */
+router.post('/face-count/list-unknown-faces', async (req: Request, res, next) => {
+	try {
+		const { global_virtual_id, date_start, date_end, time_start, time_end, cameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+
+		const page = Math.max(1, Number(req.body.page) || 1);
+		const size = Math.min(1000, Number(req.body.limit) || 50);
+		const from = (page - 1) * size;
+
+		const allowedSortFields = new Set(['timestamp', 'visit_number', 'match_score']);
+		const sortByRaw = typeof req.body.sort_by === 'string' ? req.body.sort_by : 'timestamp';
+		const sortBy = allowedSortFields.has(sortByRaw) ? sortByRaw : 'timestamp';
+		const sortDirection = req.body.sort_dir === 'asc' ? 'asc' : 'desc';
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build must clauses
+		const mustClauses = [...time_constraints];
+		if (camera_filter && camera_filter.length > 0) {
+			mustClauses.push(...camera_filter);
+		}
+
+		// Add global_virtual_id filter if provided
+		if (global_virtual_id) {
+			mustClauses.push({ term: { global_virtual_id: String(global_virtual_id) } });
+		}
+
+		const visitMin = Number(req.body.visit_number_min);
+		const visitMax = Number(req.body.visit_number_max);
+		const visitRange: Record<string, number> = {};
+		if (!Number.isNaN(visitMin) && req.body.visit_number_min !== undefined) visitRange.gte = visitMin;
+		if (!Number.isNaN(visitMax) && req.body.visit_number_max !== undefined) visitRange.lte = visitMax;
+
+		const visitConstraint =
+			Object.keys(visitRange).length > 0 ? [{ range: { visit_number: visitRange } }] : [];
+
+		if (visitConstraint.length > 0) {
+			mustClauses.push(...visitConstraint);
+		}
+
+		// Use aggregations to group by global_virtual_id and get latest record for each group
+		const query = {
+			index: faceCountIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: mustClauses
+				}
+			},
+			aggs: {
+				by_global_virtual_id: {
+					terms: {
+						field: 'global_virtual_id',
+						size: 10000, // Get all unique global_virtual_ids
+						order: { _key: 'asc' }
+					},
+					aggs: {
+						latest_record: {
+							top_hits: {
+								size: 1,
+								sort: [{ visit_number: { order: 'desc' } }, { timestamp: { order: 'desc' } }]
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: [],
+					total: 0,
+					page,
+					size
+				});
+			}
+			throw searchErr;
+		}
+
+		// Extract data from aggregations
+		const aggs = esResponse.aggregations as any;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const buckets = (aggs?.by_global_virtual_id?.buckets ?? []) as any[];
+
+		// Extract the latest record from each bucket
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const allData: any[] = [];
+		for (const bucket of buckets) {
+			const latestHits = bucket.latest_record?.hits?.hits ?? [];
+			if (latestHits.length > 0) {
+				const hit = latestHits[0];
+				allData.push({
+					_id: hit._id,
+					...(hit._source ?? {})
+				});
+			}
+		}
+
+		// Apply sorting to the grouped results
+		allData.sort((a, b) => {
+			const aVal = a[sortBy];
+			const bVal = b[sortBy];
+			if (aVal === undefined || aVal === null) return 1;
+			if (bVal === undefined || bVal === null) return -1;
+			if (sortDirection === 'asc') {
+				return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+			} else {
+				return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+			}
+		});
+
+		// Apply pagination
+		const total = allData.length;
+		const paginatedData = allData.slice(from, from + size);
+
+		const cameraIds = Array.from(
+			new Set(paginatedData.map((item) => String(item.camera_id)).filter((id) => id && id !== 'undefined'))
+		);
+		const cameraMap = await loadCameraMap(cameraIds);
+
+		const enriched = paginatedData.map((item) => ({
+			...item,
+			camera_name: cameraMap.get(String(item.camera_id))?.name ?? 'Unknown'
+		}));
+
+		return res.status(200).json({
+			success: true,
+			data: enriched,
+			total,
+			page,
+			size,
+			total_pages: Math.ceil(total / size)
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /face-count/realtime-per-camera
+ * Get real-time unknown face count per camera (last 1 hour)
+ *
+ * Returns:
+ * - cameras: Array of camera breakdowns with:
+ *   - camera_id, camera_name
+ *   - unique_faces: Number of unique unknown faces in last hour
+ *   - total_visits: Total visits/detections in last hour
+ *   - last_detection: Timestamp of most recent detection
+ */
+router.post('/face-count/realtime-per-camera', async (req: Request, res, next) => {
+	try {
+		const { cameras, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
+
+		// Last 1 hour
+		const now = Date.now();
+		const oneHourAgo = now - 60 * 60 * 1000;
+
+		const camera_filter = buildCameraFilter(req, cameras);
+
+		// Build must clauses - ensure camera_filter is not empty or causing issues
+		const mustClauses = [{ range: { timestamp: { gte: oneHourAgo, lte: now } } }];
+		if (camera_filter && camera_filter.length > 0) {
+			mustClauses.push(...camera_filter);
+		}
+
+		const query = {
+			index: faceCountIndex,
+			size: 0,
+			track_total_hits: true,
+			query: {
+				bool: {
+					must: mustClauses
+				}
+			},
+			aggs: {
+				by_camera: {
+					terms: {
+						field: 'camera_id.keyword',
+						size: 1000
+					},
+					aggs: {
+						unique_faces: {
+							cardinality: {
+								field: 'global_virtual_id'
+							}
+						},
+						last_detection: {
+							max: {
+								field: 'timestamp'
+							}
+						}
+					}
+				}
+			}
+		};
+
+		let esResponse;
+		try {
+			esResponse = await process.esclient.search(query);
+		} catch (searchErr: unknown) {
+			if (isIndexNotFoundError(searchErr)) {
+				return res.status(200).json({
+					success: true,
+					data: {
+						cameras: [],
+						time_range: {
+							start: new Date(oneHourAgo).toLocaleString('en-US', { timeZone: timezone }),
+							end: new Date(now).toLocaleString('en-US', { timeZone: timezone })
+						}
+					}
+				});
+			}
+			throw searchErr;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const aggs = esResponse.aggregations as any;
+
+		if (!aggs?.by_camera?.buckets || aggs.by_camera.buckets.length === 0) {
+			return res.status(200).json({
+				success: true,
+				data: {
+					cameras: [],
+					time_range: {
+						start: new Date(oneHourAgo).toLocaleString('en-US', { timeZone: timezone }),
+						end: new Date(now).toLocaleString('en-US', { timeZone: timezone })
+					}
+				}
+			});
+		}
+
+		// Get camera names
+		const cameraIds = (aggs.by_camera.buckets ?? []).map((b: any) => b.key);
+		const cameraMap = await loadCameraMap(cameraIds);
+
+		// Format camera breakdown
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const cameraBreakdown = (aggs.by_camera.buckets ?? []).map((bucket: any) => {
+			const cameraId = String(bucket.key);
+			const camera = cameraMap.get(cameraId);
+			const lastDetection = bucket.last_detection?.value
+				? new Date(bucket.last_detection.value).toLocaleString('en-US', { timeZone: timezone })
+				: null;
+
+			return {
+				camera_id: cameraId,
+				camera_name: camera?.name ?? 'Unknown',
+				unique_faces: bucket.unique_faces?.value ?? 0,
+				total_visits: bucket.doc_count ?? 0,
+				last_detection: lastDetection
+			};
+		});
+
+		return res.status(200).json({
+			success: true,
+			data: {
+				cameras: cameraBreakdown,
+				time_range: {
+					start: new Date(oneHourAgo).toLocaleString('en-US', { timeZone: timezone }),
+					end: new Date(now).toLocaleString('en-US', { timeZone: timezone })
+				}
+			}
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * ===================================
+ * HUMAN COUNT ANALYTICS ENDPOINTS
+ * ===================================
+ */
+
+/**
+ * POST /human-count/realtime-occupancy
+ * Get real-time occupancy data from human_count index
+ *
+ * Returns:
+ * - current_occupancy: Net count over last 2 hours
+ * - entries_last_hour: Entries in last hour
+ * - exits_last_hour: Exits in last hour
+ * - net_last_hour: Net change in last hour
+ */
+router.post('/human-count/realtime-occupancy', async (req: Request, res, next) => {
+	try {
+		const { cameras, line_ids } = req.body;
+		const humanCountIndex = process.env['HUMAN_COUNT_INDEX'] ?? 'human_count';
+
+		const camera_filter = buildCameraFilter(req, cameras);
+		const line_filter =
+			line_ids && line_ids.length > 0
+				? [
+						{
+							bool: {
+								should: line_ids.map((id: string) => ({ term: { 'line_id.keyword': id } })),
+								minimum_should_match: 1
+							}
+						}
+					]
+				: [];
+
+		const data = await getHumanCountRealTimeOccupancy(humanCountIndex, camera_filter, line_filter);
+
+		return res.status(200).json({
+			success: true,
+			data
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /human-count/hourly-traffic
+ * Get hourly traffic summary (last 24 hours)
+ *
+ * Returns array of hourly buckets with:
+ * - time: Formatted time string
+ * - time_epoch: Epoch milliseconds
+ * - entries: Entry count
+ * - exits: Exit count
+ * - net: Net change (entries - exits)
+ */
+router.post('/human-count/hourly-traffic', async (req: Request, res, next) => {
+	try {
+		const { date_start, date_end, time_start, time_end, cameras, line_ids, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const humanCountIndex = process.env['HUMAN_COUNT_INDEX'] ?? 'human_count';
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+		const line_filter =
+			line_ids && line_ids.length > 0
+				? [
+						{
+							bool: {
+								should: line_ids.map((id: string) => ({ term: { 'line_id.keyword': id } })),
+								minimum_should_match: 1
+							}
+						}
+					]
+				: [];
+
+		const base_must = [...time_constraints, ...camera_filter, ...line_filter];
+		const data = await getHumanCountHourlyTraffic(humanCountIndex, base_must, timezone);
+
+		return res.status(200).json({
+			success: true,
+			data,
+			total: data.length
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /human-count/camera-comparison
+ * Get daily camera comparison (last 7 days)
+ *
+ * Returns:
+ * - cameras: Array of camera breakdowns with daily traffic
+ * Each camera includes:
+ *   - camera_id, camera_name
+ *   - total_entries, total_exits, total_count
+ *   - week_trend_pct: Week-over-week trend percentage
+ *   - daily_breakdown: Array of daily data
+ */
+router.post('/human-count/camera-comparison', async (req: Request, res, next) => {
+	try {
+		const { date_start, date_end, time_start, time_end, cameras, line_ids, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const humanCountIndex = process.env['HUMAN_COUNT_INDEX'] ?? 'human_count';
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+		const line_filter =
+			line_ids && line_ids.length > 0
+				? [
+						{
+							bool: {
+								should: line_ids.map((id: string) => ({ term: { 'line_id.keyword': id } })),
+								minimum_should_match: 1
+							}
+						}
+					]
+				: [];
+
+		const base_must = [...time_constraints, ...camera_filter, ...line_filter];
+		const data = await getHumanCountDailyCameraComparison(humanCountIndex, base_must, timezone);
+
+		return res.status(200).json({
+			success: true,
+			data
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /human-count/peak-hours
+ * Get peak hours analysis
+ *
+ * Returns:
+ * - busiest_hours: Top 10 busiest hours with traffic counts
+ * - avg_by_hour: Traffic by hour (0-23) sorted
+ * - average_per_hour: Overall average traffic per hour
+ */
+router.post('/human-count/peak-hours', async (req: Request, res, next) => {
+	try {
+		const { date_start, date_end, time_start, time_end, cameras, line_ids, timez } = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const humanCountIndex = process.env['HUMAN_COUNT_INDEX'] ?? 'human_count';
+
+		const time_constraints = buildTimeConstraints(
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			req.body.time_filter
+		);
+		const camera_filter = buildCameraFilter(req, cameras);
+		const line_filter =
+			line_ids && line_ids.length > 0
+				? [
+						{
+							bool: {
+								should: line_ids.map((id: string) => ({ term: { 'line_id.keyword': id } })),
+								minimum_should_match: 1
+							}
+						}
+					]
+				: [];
+
+		const base_must = [...time_constraints, ...camera_filter, ...line_filter];
+		const data = await getHumanCountPeakHours(humanCountIndex, base_must, timezone);
+
+		return res.status(200).json({
+			success: true,
+			data
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * POST /human-count/time-comparisons
+ * Get time range comparisons
+ *
+ * Compares current period with:
+ * - Previous period (same duration before)
+ * - Previous year (optional, if compare_basis = 'year')
+ *
+ * Returns:
+ * - this_period: Current period stats
+ * - previous_period: Previous period stats
+ * - change_pct: Percentage change
+ * - yoy_change_pct: Year-over-year change (if applicable)
+ */
+router.post('/human-count/time-comparisons', async (req: Request, res, next) => {
+	try {
+		const {
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			cameras,
+			line_ids,
+			timez,
+			compare_basis = 'week'
+		} = req.body;
+		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const humanCountIndex = process.env['HUMAN_COUNT_INDEX'] ?? 'human_count';
+
+		const camera_filter = buildCameraFilter(req, cameras);
+		const line_filter =
+			line_ids && line_ids.length > 0
+				? [
+						{
+							bool: {
+								should: line_ids.map((id: string) => ({ term: { 'line_id.keyword': id } })),
+								minimum_should_match: 1
+							}
+						}
+					]
+				: [];
+
+		const data = await getHumanCountTimeComparisons(
+			humanCountIndex,
+			date_start,
+			date_end,
+			time_start,
+			time_end,
+			timezone,
+			compare_basis,
+			camera_filter,
+			line_filter
+		);
+
+		return res.status(200).json({
+			success: true,
+			data
+		});
+	} catch (err) {
+		return next(
+			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
+		);
+	}
+});
+
+/**
+ * Helper: Get real-time occupancy (last 2 hours)
+ */
+async function getHumanCountRealTimeOccupancy(
+	index: string,
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	camera_filter: any[],
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	line_filter: any[]
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+	const now = Date.now();
+	const twoHoursAgo = now - 2 * 3600000;
+	const oneHourAgo = now - 3600000;
+
+	const query = {
+		index,
+		size: 0,
+		query: {
+			bool: {
+				must: [{ range: { timestamp: { gte: twoHoursAgo } } }, ...camera_filter, ...line_filter]
+			}
+		},
+		aggs: {
+			all_entries: {
+				filter: { term: { 'event_type.keyword': 'entry' } },
+				aggs: { count: { value_count: { field: 'event_type.keyword' } } }
+			},
+			all_exits: {
+				filter: { term: { 'event_type.keyword': 'exit' } },
+				aggs: { count: { value_count: { field: 'event_type.keyword' } } }
+			},
+			last_hour: {
+				filter: { range: { timestamp: { gte: oneHourAgo } } },
+				aggs: {
+					entries: {
+						filter: { term: { 'event_type.keyword': 'entry' } },
+						aggs: { count: { value_count: { field: 'event_type.keyword' } } }
+					},
+					exits: {
+						filter: { term: { 'event_type.keyword': 'exit' } },
+						aggs: { count: { value_count: { field: 'event_type.keyword' } } }
+					}
+				}
+			}
+		}
+	};
+
+	try {
+		const esRes = await process.esclient.search(query);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const aggs = esRes.aggregations as any;
+
+		const allEntries = aggs?.all_entries?.count?.value ?? 0;
+		const allExits = aggs?.all_exits?.count?.value ?? 0;
+		const lastHourEntries = aggs?.last_hour?.entries?.count?.value ?? 0;
+		const lastHourExits = aggs?.last_hour?.exits?.count?.value ?? 0;
+
+		return {
+			current_occupancy: allEntries - allExits,
+			entries_last_hour: lastHourEntries,
+			exits_last_hour: lastHourExits,
+			net_last_hour: lastHourEntries - lastHourExits
+		};
+	} catch (err: unknown) {
+		if (isIndexNotFoundError(err)) {
+			return { current_occupancy: 0, entries_last_hour: 0, exits_last_hour: 0, net_last_hour: 0 };
+		}
+		throw err;
+	}
+}
+
+/**
+ * Helper: Get hourly traffic summary (last 24 hours)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getHumanCountHourlyTraffic(index: string, base_must: any[], timezone: string): Promise<any[]> {
+	const now = Date.now();
+	const twentyFourHoursAgo = now - 24 * 3600000;
+
+	const query = {
+		index,
+		size: 0,
+		query: {
+			bool: {
+				must: [...base_must, { range: { timestamp: { gte: twentyFourHoursAgo } } }]
+			}
+		},
+		aggs: {
+			by_hour: {
+				date_histogram: {
+					field: 'timestamp',
+					fixed_interval: '1h',
+					time_zone: timezone,
+					min_doc_count: 0,
+					extended_bounds: {
+						min: twentyFourHoursAgo,
+						max: now
+					}
+				},
+				aggs: {
+					entries: {
+						filter: { term: { 'event_type.keyword': 'entry' } }
+					},
+					exits: {
+						filter: { term: { 'event_type.keyword': 'exit' } }
+					}
+				}
+			}
+		}
+	};
+
+	try {
+		const esRes = await process.esclient.search(query);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const aggs = esRes.aggregations as any;
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		return (aggs?.by_hour?.buckets ?? []).map((bucket: any) => ({
+			time: new Date(bucket.key).toLocaleString('en-US', { timeZone: timezone }),
+			time_epoch: bucket.key,
+			entries: bucket.entries?.doc_count ?? 0,
+			exits: bucket.exits?.doc_count ?? 0,
+			net: (bucket.entries?.doc_count ?? 0) - (bucket.exits?.doc_count ?? 0)
+		}));
+	} catch (err: unknown) {
+		if (isIndexNotFoundError(err)) {
+			return [];
+		}
+		throw err;
+	}
+}
+
+/**
+ * Helper: Get daily camera comparison (last 7 days)
+ */
+async function getHumanCountDailyCameraComparison(
+	index: string,
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	base_must: any[],
+	timezone: string
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+	const now = Date.now();
+	const sevenDaysAgo = now - 7 * 24 * 3600000;
+
+	const query = {
+		index,
+		size: 0,
+		query: {
+			bool: {
+				must: [...base_must, { range: { timestamp: { gte: sevenDaysAgo } } }]
+			}
+		},
+		aggs: {
+			by_camera: {
+				terms: {
+					field: 'camera_id.keyword',
+					size: 50
+				},
+				aggs: {
+					by_day: {
+						date_histogram: {
+							field: 'timestamp',
+							fixed_interval: '1d',
+							time_zone: timezone,
+							min_doc_count: 0
+						},
+						aggs: {
+							entries: {
+								filter: { term: { 'event_type.keyword': 'entry' } }
+							},
+							exits: {
+								filter: { term: { 'event_type.keyword': 'exit' } }
+							}
+						}
+					},
+					total_entries: {
+						filter: { term: { 'event_type.keyword': 'entry' } }
+					},
+					total_exits: {
+						filter: { term: { 'event_type.keyword': 'exit' } }
+					}
+				}
+			}
+		}
+	};
+
+	try {
+		const esRes = await process.esclient.search(query);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const aggs = esRes.aggregations as any;
+
+		// Fetch camera names
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const cameraIds = (aggs?.by_camera?.buckets ?? []).map((b: any) => b.key);
+		const cameraMap = new Map<string, string>();
+		if (cameraIds.length > 0) {
+			const cameraDocs = await Camera.find({ _id: { $in: cameraIds } }).exec();
+			cameraDocs.forEach((cam) => cameraMap.set(cam._id.toString(), cam.name));
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const cameras = (aggs?.by_camera?.buckets ?? []).map((bucket: any) => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const dailyData = (bucket.by_day?.buckets ?? []).map((dayBucket: any) => ({
+				date: new Date(dayBucket.key).toLocaleDateString('en-US', { timeZone: timezone }),
+				date_epoch: dayBucket.key,
+				entries: dayBucket.entries?.doc_count ?? 0,
+				exits: dayBucket.exits?.doc_count ?? 0,
+				net: (dayBucket.entries?.doc_count ?? 0) - (dayBucket.exits?.doc_count ?? 0)
+			}));
+
+			// Week-over-week trend: compare first 3 days vs last 3 days
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const firstThree = dailyData.slice(0, 3).reduce((sum: any, d: any) => sum + d.entries + d.exits, 0);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const lastThree = dailyData.slice(-3).reduce((sum: any, d: any) => sum + d.entries + d.exits, 0);
+			const trend = firstThree > 0 ? ((lastThree - firstThree) / firstThree) * 100 : 0;
+
+			return {
+				camera_id: bucket.key,
+				camera_name: cameraMap.get(bucket.key) ?? 'Unknown',
+				total_entries: bucket.total_entries?.doc_count ?? 0,
+				total_exits: bucket.total_exits?.doc_count ?? 0,
+				total_count: (bucket.total_entries?.doc_count ?? 0) + (bucket.total_exits?.doc_count ?? 0),
+				week_trend_pct: Math.round(trend * 100) / 100,
+				daily_breakdown: dailyData
+			};
+		});
+
+		return { cameras };
+	} catch (err: unknown) {
+		if (isIndexNotFoundError(err)) {
+			return { cameras: [] };
+		}
+		throw err;
+	}
+}
+
+/**
+ * Helper: Get peak hours analysis
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getHumanCountPeakHours(index: string, base_must: any[], timezone: string): Promise<any> {
+	const query = {
+		index,
+		size: 0,
+		query: {
+			bool: {
+				must: base_must
+			}
+		},
+		aggs: {
+			by_hour_of_day: {
+				terms: {
+					script: {
+						source:
+							"ZonedDateTime.ofInstant(Instant.ofEpochMilli(doc['timestamp'].value), ZoneId.of(params.tz)).getHour()",
+						params: { tz: timezone }
+					},
+					size: 24,
+					order: { _count: 'desc' }
+				},
+				aggs: {
+					entries: {
+						filter: { term: { 'event_type.keyword': 'entry' } }
+					},
+					exits: {
+						filter: { term: { 'event_type.keyword': 'exit' } }
+					}
+				}
+			}
+		}
+	};
+
+	try {
+		const esRes = await process.esclient.search(query);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const aggs = esRes.aggregations as any;
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const hourlyData = (aggs?.by_hour_of_day?.buckets ?? []).map((bucket: any) => ({
+			hour: bucket.key,
+			total_count: bucket.doc_count,
+			entries: bucket.entries?.doc_count ?? 0,
+			exits: bucket.exits?.doc_count ?? 0,
+			net: (bucket.entries?.doc_count ?? 0) - (bucket.exits?.doc_count ?? 0)
+		}));
+
+		// Sort by hour for average display
+		const sortedByHour = [...hourlyData].sort((a, b) => a.hour - b.hour);
+
+		// Calculate average per hour
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const totalEvents = hourlyData.reduce((sum: any, h: any) => sum + h.total_count, 0);
+		const avgPerHour = hourlyData.length > 0 ? Math.round(totalEvents / 24) : 0;
+
+		return {
+			busiest_hours: hourlyData.slice(0, 10), // Top 10 busiest
+			avg_by_hour: sortedByHour,
+			average_per_hour: avgPerHour
+		};
+	} catch (err: unknown) {
+		if (isIndexNotFoundError(err)) {
+			return { busiest_hours: [], avg_by_hour: [], average_per_hour: 0 };
+		}
+		throw err;
+	}
+}
+
+/**
+ * Helper: Get time range comparisons
+ */
+async function getHumanCountTimeComparisons(
+	index: string,
+	date_start: string | undefined,
+	date_end: string | undefined,
+	time_start: string | undefined,
+	time_end: string | undefined,
+	timezone: string,
+	compare_basis: string,
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	camera_filter: any[],
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	line_filter: any[]
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+	if (!date_start || !date_end) {
+		return null;
+	}
+
+	// Calculate time ranges
+	const currentRange = Time.getSingleTimeRange(
+		date_start,
+		date_end,
+		time_start ?? '00:00',
+		time_end ?? '23:59',
+		timezone
+	);
+
+	const duration = Number(currentRange.lte) - Number(currentRange.gte);
+
+	// Calculate previous period
+	const prevEnd = Number(currentRange.gte) - 1;
+	const prevStart = prevEnd - duration;
+
+	// Calculate year-over-year if requested
+	let yoyStart = 0;
+	let yoyEnd = 0;
+	if (compare_basis === 'year') {
+		yoyStart = Number(currentRange.gte) - 365 * 24 * 3600000;
+		yoyEnd = Number(currentRange.lte) - 365 * 24 * 3600000;
+	}
+
+	const query = {
+		index,
+		size: 0,
+		query: {
+			bool: {
+				must: [...camera_filter, ...line_filter]
+			}
+		},
+		aggs: {
+			this_period: {
+				filter: { range: { timestamp: { gte: currentRange.gte, lte: currentRange.lte } } },
+				aggs: {
+					entries: { filter: { term: { 'event_type.keyword': 'entry' } } },
+					exits: { filter: { term: { 'event_type.keyword': 'exit' } } }
+				}
+			},
+			previous_period: {
+				filter: { range: { timestamp: { gte: prevStart, lte: prevEnd } } },
+				aggs: {
+					entries: { filter: { term: { 'event_type.keyword': 'entry' } } },
+					exits: { filter: { term: { 'event_type.keyword': 'exit' } } }
+				}
+			},
+			...(compare_basis === 'year'
+				? {
+						previous_year: {
+							filter: { range: { timestamp: { gte: yoyStart, lte: yoyEnd } } },
+							aggs: {
+								entries: { filter: { term: { 'event_type.keyword': 'entry' } } },
+								exits: { filter: { term: { 'event_type.keyword': 'exit' } } }
+							}
+						}
+					}
+				: {})
+		}
+	};
+
+	try {
+		const esRes = await process.esclient.search(query);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const aggs = esRes.aggregations as any;
+
+		const thisEntries = aggs?.this_period?.entries?.doc_count ?? 0;
+		const thisExits = aggs?.this_period?.exits?.doc_count ?? 0;
+		const prevEntries = aggs?.previous_period?.entries?.doc_count ?? 0;
+		const prevExits = aggs?.previous_period?.exits?.doc_count ?? 0;
+
+		const thisTotal = thisEntries + thisExits;
+		const prevTotal = prevEntries + prevExits;
+		const changePct = prevTotal > 0 ? ((thisTotal - prevTotal) / prevTotal) * 100 : 0;
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const result: any = {
+			this_period: {
+				entries: thisEntries,
+				exits: thisExits,
+				total: thisTotal,
+				net: thisEntries - thisExits
+			},
+			previous_period: {
+				entries: prevEntries,
+				exits: prevExits,
+				total: prevTotal,
+				net: prevEntries - prevExits
+			},
+			change_pct: Math.round(changePct * 100) / 100,
+			compare_basis
+		};
+
+		if (compare_basis === 'year' && aggs?.previous_year) {
+			const yoyEntries = aggs.previous_year.entries?.doc_count ?? 0;
+			const yoyExits = aggs.previous_year.exits?.doc_count ?? 0;
+			const yoyTotal = yoyEntries + yoyExits;
+			const yoyChangePct = yoyTotal > 0 ? ((thisTotal - yoyTotal) / yoyTotal) * 100 : 0;
+
+			result.previous_year = {
+				entries: yoyEntries,
+				exits: yoyExits,
+				total: yoyTotal,
+				net: yoyEntries - yoyExits
+			};
+			result.yoy_change_pct = Math.round(yoyChangePct * 100) / 100;
+		}
+
+		return result;
+	} catch (err: unknown) {
+		if (isIndexNotFoundError(err)) {
+			return null;
+		}
+		throw err;
+	}
+}
 
 /**
  * POST /color-statistics

@@ -3,6 +3,84 @@
  * Transforms raw log data into human-readable format for frontend display
  */
 
+import mongoose from 'mongoose';
+
+// Cache for access level ID to name mapping
+const accessLevelCache = new Map<string, string>();
+
+/**
+ * Check if a string is a valid MongoDB ObjectId
+ */
+function isValidObjectId(id: string): boolean {
+	return mongoose.Types.ObjectId.isValid(id) && id.length === 24;
+}
+
+/**
+ * Async function to resolve access level IDs to names
+ * This should be called before formatting logs
+ */
+export async function resolveAccessLevelsInDetails(
+	details: Record<string, unknown> | null
+): Promise<Record<string, unknown> | null> {
+	if (!details) return null;
+
+	const { default: AccessLevel } = await import('../db/mongo/models/accessLevel');
+	const accessLevelFields = [
+		'previousAccessLevel',
+		'newAccessLevel',
+		'assignedAccessLevel',
+		'accessLevel',
+		'oldAccessLevel',
+		'access_level'
+	];
+
+	const resolved: Record<string, unknown> = { ...details };
+
+	// Resolve access level fields
+	for (const field of accessLevelFields) {
+		if (resolved[field] && typeof resolved[field] === 'string') {
+			const accessLevelId = resolved[field] as string;
+
+			// Check if it's a valid ObjectId
+			if (isValidObjectId(accessLevelId)) {
+				// Check cache first
+				if (accessLevelCache.has(accessLevelId)) {
+					resolved[field] = accessLevelCache.get(accessLevelId) || accessLevelId;
+				} else {
+					// Fetch from database
+					try {
+						const accessLevel = await AccessLevel.findById(accessLevelId).lean().exec();
+						if (accessLevel?.name) {
+							accessLevelCache.set(accessLevelId, accessLevel.name);
+							resolved[field] = accessLevel.name;
+						}
+					} catch (error) {
+						// If fetch fails, keep the ID
+						console.error(`Failed to resolve access level ${accessLevelId}:`, error);
+					}
+				}
+			}
+		}
+	}
+
+	// Recursively resolve nested objects
+	for (const [key, value] of Object.entries(resolved)) {
+		if (value && typeof value === 'object' && !Array.isArray(value) && value !== null) {
+			resolved[key] = await resolveAccessLevelsInDetails(value as Record<string, unknown>);
+		} else if (Array.isArray(value)) {
+			resolved[key] = await Promise.all(
+				value.map((item) =>
+					item && typeof item === 'object' && item !== null
+						? resolveAccessLevelsInDetails(item as Record<string, unknown>)
+						: item
+				)
+			);
+		}
+	}
+
+	return resolved;
+}
+
 /**
  * Action type mappings for human-readable display
  */
@@ -128,8 +206,8 @@ export const ACTION_LABELS: Record<string, string> = {
 	compressed_backup_failed: 'ایجاد پشتیبان فشرده ناموفق',
 	ftp_upload_completed: 'آپلود FTP موفق',
 	ftp_upload_failed: 'آپلود FTP ناموفق',
-	storage_warning_threshold_exceeded: 'تجاوز از آستانه هشدار ذخیره‌سازی',
-	storage_critical_threshold_exceeded: 'تجاوز از آستانه بحرانی ذخیره‌سازی',
+	storage_warning_threshold_exceeded: 'تجاوز از آستانه هشدار ذخیره‌سازی لاگ',
+	storage_critical_threshold_exceeded: 'تجاوز از آستانه بحرانی ذخیره‌سازی لاگ',
 	storage_threshold_cleared: 'پاک شدن آستانه ذخیره‌سازی',
 
 	// Data events
@@ -138,6 +216,7 @@ export const ACTION_LABELS: Record<string, string> = {
 	data_deleted: 'حذف داده',
 	data_exported: 'صادرات داده',
 	data_imported: 'واردات داده',
+	create_config_files_search: 'جستجوی پرسنل با عکس',
 	excel_export: 'صادرات اکسل',
 	csv_export: 'صادرات CSV',
 	report_export: 'صادرات گزارش',
@@ -165,11 +244,23 @@ export const ACTION_LABELS: Record<string, string> = {
 	auth_history_view: 'مشاهده تاریخچه احراز هویت',
 	auth_summary_view: 'مشاهده خلاصه احراز هویت',
 	read_log: 'مشاهده لاگ',
+	read_log_my_logs: 'مشاهده لاگ‌های من',
+	log_status_check: 'بررسی وضعیت لاگ',
+	log_ttl_cleanup: 'پاکسازی TTL لاگ',
 	read_config_user_models: 'مشاهده تنظیمات مدل‌های کاربر',
 	read_config_user_sections: 'مشاهده تنظیمات بخش‌های کاربر',
 	'read_config_user_auth-hist': 'مشاهده تاریخچه احراز هویت',
-	read_config_cameras: 'مشاهده تنظیمات دوربین‌ها',
 	'read_config_user_auth-sum': 'مشاهده خلاصه احراز هویت',
+	'read_config_user_department-files': 'مشاهده فایل‌های دپارتمان',
+	'read_config_user_car-brands': 'مشاهده برندهای خودرو',
+	'read_config_user_cars': 'مشاهده خودروها',
+	'read_config_user_cameras': 'مشاهده دوربین‌ها',
+	'read_config_user_model-to-cameras': 'مشاهده مدل به دوربین',
+	'partial_update_config_user_cars': 'به‌روزرسانی جزئی خودروها',
+	read_config_cameras: 'مشاهده تنظیمات دوربین‌ها',
+	read_newreport_plate: 'مشاهده گزارش پلاک',
+	create_newreport_face: 'ایجاد گزارش چهره',
+	read_newreport_human: 'مشاهده گزارش انسان',
 
 	// Access level events
 	access_level_created: 'ایجاد سطح دسترسی',
@@ -262,7 +353,11 @@ export const RESOURCE_LABELS: Record<string, string> = {
 	'user-access-levels': 'سطوح دسترسی کاربر',
 	config: 'تنظیمات',
 	logs: 'لاگ‌ها',
+	'my-logs': 'لاگ‌های من',
 	'log-types': 'انواع لاگ',
+	status: 'وضعیت',
+	ttl: 'TTL',
+	cleanup: 'پاکسازی',
 	sessions: 'نشست‌ها',
 	cameras: 'دوربین‌ها',
 	camera: 'دوربین',
@@ -271,6 +366,10 @@ export const RESOURCE_LABELS: Record<string, string> = {
 	reports: 'گزارش‌ها',
 	analytics: 'تحلیل‌ها',
 	newreports: 'گزارش‌های جدید',
+	newreport: 'گزارش جدید',
+	plate: 'پلاک',
+	face: 'چهره',
+	human: 'انسان',
 	similar: 'گزارش مشابه',
 	'report-departments': 'گزارش دپارتمان‌ها',
 	'schedules-report': 'گزارش زمان‌بندی',
@@ -445,12 +544,30 @@ export const ACTION_CATEGORIES: Record<string, string[]> = {
 		'backup_restored',
 		'backup_deleted',
 		'logs_list',
-		'log_read'
+		'log_read',
+		'read_log_my_logs',
+		'log_status_check',
+		'log_ttl_cleanup',
+		'read_config_user_department-files',
+		'read_config_user_car-brands',
+		'read_config_user_model-to-cameras'
 	],
-	data: ['data_created', 'data_updated', 'data_deleted', 'data_exported', 'data_imported'],
+	data: [
+		'data_created',
+		'data_updated',
+		'data_deleted',
+		'data_exported',
+		'data_imported',
+		'read_config_user_cars',
+		'read_config_user_cameras',
+		'partial_update_config_user_cars',
+		'read_newreport_plate',
+		'create_newreport_face',
+		'read_newreport_human'
+	],
 	access_level: ['access_level_created', 'access_level_updated', 'access_level_deleted'],
 	camera: ['camera_created', 'camera_updated', 'camera_deleted'],
-	personnel: ['personnel_created', 'personnel_updated', 'personnel_deleted'],
+	personnel: ['personnel_created', 'personnel_updated', 'personnel_deleted', 'create_config_files_search'],
 	http_request: [] // Will be dynamically populated
 };
 
@@ -644,6 +761,24 @@ function generateSummary(log: RawLog): string {
 	const username = log.metadata?.username || 'کاربر ناشناس';
 	const ip = log.metadata?.ip || '';
 	const success = log.metadata?.success;
+	const usagePercentRaw = log.metadata?.details?.usagePercent;
+	const usagePercent =
+		typeof usagePercentRaw === 'number'
+			? Math.round(usagePercentRaw * 100) / 100
+			: typeof usagePercentRaw === 'string'
+				? Number(usagePercentRaw)
+				: null;
+
+	// Storage threshold summaries should override HTTP request summaries
+	if (action === 'storage_warning_threshold_exceeded') {
+		return `هشدار پر شدن فضای لاگ${usagePercent ? ` (${usagePercent}٪)` : ''}`;
+	}
+	if (action === 'storage_critical_threshold_exceeded') {
+		return `هشدار بحرانی فضای لاگ${usagePercent ? ` (${usagePercent}٪)` : ''}`;
+	}
+	if (action === 'storage_threshold_cleared') {
+		return `بازگشت وضعیت فضای لاگ به حالت عادی${usagePercent ? ` (${usagePercent}٪)` : ''}`;
+	}
 
 	// Check if this is an HTTP request log
 	const method = log.metadata?.method || log.metadata?.httpMethod;
@@ -759,8 +894,9 @@ function extractHttpRequestInfo(log: RawLog): HttpRequestInfo | null {
 
 /**
  * Format a single log entry for frontend display
+ * Note: This function is async to support access level resolution
  */
-export function formatLog(log: RawLog): FormattedLog {
+export async function formatLog(log: RawLog): Promise<FormattedLog> {
 	const timestamp = new Date(log.timestamp || log.created_at || new Date());
 	const action = log.action || 'unknown';
 	const level = log.level || 'info';
@@ -834,7 +970,7 @@ export function formatLog(log: RawLog): FormattedLog {
 		message: log.message || '',
 		summary: generateSummary(log),
 		success: log.metadata?.success ?? null,
-		details: cleanDetails(log.metadata?.details || null)
+		details: cleanDetails(await resolveAccessLevelsInDetails(log.metadata?.details || null))
 	};
 }
 
@@ -1355,6 +1491,20 @@ const DETAILS_VALUE_LABELS: Record<string, Record<string, string>> = {
 };
 
 /**
+ * Fields to exclude from log details (not relevant to the system)
+ */
+const EXCLUDED_FIELDS = new Set([
+	'accountType',
+	'account_type',
+	'userType',
+	'user_type',
+	'accountTypeName',
+	'account_type_name',
+	'userTypeName',
+	'user_type_name'
+]);
+
+/**
  * Format and translate details object recursively
  */
 function formatDetails(details: Record<string, unknown> | null): Record<string, unknown> | null {
@@ -1365,6 +1515,11 @@ function formatDetails(details: Record<string, unknown> | null): Record<string, 
 	for (const [key, value] of Object.entries(details)) {
 		// Skip internal/system keys
 		if (key.startsWith('_') || key === 'headers' || key === 'stack') {
+			continue;
+		}
+
+		// Skip account type fields (not relevant - system uses role-based access)
+		if (EXCLUDED_FIELDS.has(key)) {
 			continue;
 		}
 
@@ -1438,9 +1593,10 @@ function cleanDetails(details: Record<string, unknown> | null): Record<string, u
 
 /**
  * Format multiple logs
+ * Note: This function is async to support access level resolution
  */
-export function formatLogs(logs: RawLog[]): FormattedLog[] {
-	return logs.map(formatLog);
+export async function formatLogs(logs: RawLog[]): Promise<FormattedLog[]> {
+	return Promise.all(logs.map((log) => formatLog(log)));
 }
 
 /**

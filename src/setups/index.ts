@@ -8,6 +8,9 @@ import { setupLogger } from './logger.setup';
 import { initializeSecurityConfig } from '../config/security.config';
 import { LogIntegrityService } from '../services/logIntegrity.service';
 import { BackupSchedulerService } from '../services/backupScheduler.service';
+import { AnalyticsCacheSchedulerService } from '../services/analyticsCacheScheduler.service';
+import { initializeAnalyticsCacheJobs } from '../config/analyticsCacheJobs.config';
+import { getIncrementalClusterCache } from '../services/incrementalClusterCache.service';
 
 export default async function setup() {
 	await setupInteractive();
@@ -44,4 +47,50 @@ export default async function setup() {
 	} catch (error) {
 		console.error('Failed to initialize log integrity service:', error);
 	}
+
+	// Initialize analytics cache background jobs (non-blocking)
+	initializeAnalyticsCacheJobs()
+		.then(() => {
+			console.log('Analytics cache background jobs initialized successfully');
+		})
+		.catch((error) => {
+			console.error('Failed to initialize analytics cache jobs:', error);
+		});
+
+	// Setup cleanup for analytics cache scheduler on shutdown
+	process.on('SIGTERM', async () => {
+		try {
+			const analyticsCacheScheduler = AnalyticsCacheSchedulerService.getInstance();
+			await analyticsCacheScheduler.cleanup();
+			console.log('Analytics cache scheduler cleaned up successfully');
+		} catch (error) {
+			console.error('Failed to cleanup analytics cache scheduler:', error);
+		}
+
+		try {
+			const incrementalClusterCache = getIncrementalClusterCache();
+			await incrementalClusterCache.cleanup();
+			console.log('Incremental cluster cache worker cleaned up successfully');
+		} catch (error) {
+			console.error('Failed to cleanup incremental cluster cache worker:', error);
+		}
+	});
+
+	process.on('SIGINT', async () => {
+		try {
+			const analyticsCacheScheduler = AnalyticsCacheSchedulerService.getInstance();
+			await analyticsCacheScheduler.cleanup();
+			console.log('Analytics cache scheduler cleaned up successfully');
+		} catch (error) {
+			console.error('Failed to cleanup analytics cache scheduler:', error);
+		}
+
+		try {
+			const incrementalClusterCache = getIncrementalClusterCache();
+			await incrementalClusterCache.cleanup();
+			console.log('Incremental cluster cache worker cleaned up successfully');
+		} catch (error) {
+			console.error('Failed to cleanup incremental cluster cache worker:', error);
+		}
+	});
 }

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { LogBackupService } from '../services/logBackup.service';
+import { BackupSchedulerService } from '../services/backupScheduler.service';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
 import { BackupLogger } from '../logger/backup.logger';
@@ -467,6 +468,8 @@ export const enableAutoBackup = async (req: Request, res: Response) => {
 		await backupService.setAutoBackupStatus(true);
 
 		const config = await backupService.getBackupConfig();
+		const scheduler = BackupSchedulerService.getInstance();
+		await scheduler.start();
 
 		await BackupLogger.autoBackupStarted(config, req);
 
@@ -503,6 +506,8 @@ export const disableAutoBackup = async (req: Request, res: Response) => {
 		await backupService.setAutoBackupStatus(false);
 
 		const config = await backupService.getBackupConfig();
+		const scheduler = BackupSchedulerService.getInstance();
+		await scheduler.stop();
 
 		await BackupLogger.autoBackupCompleted(
 			{

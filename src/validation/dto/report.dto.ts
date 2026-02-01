@@ -140,3 +140,46 @@ export class ReportObjectBody {
 	@IsArray()
 	cameras?: string[];
 }
+
+export class HumanCountAnalyticsBody {
+	@IsString()
+	time_start?: string;
+	@IsString()
+	time_end?: string;
+	@IsOptional()
+	@IsString()
+	date_start?: string;
+	@IsOptional()
+	@IsString()
+	date_end?: string;
+	@IsOptional()
+	@IsArray()
+	cameras?: string[];
+	@IsOptional()
+	@IsArray()
+	line_ids?: string[];
+	@IsOptional()
+	@IsString()
+	timez?: string;
+	@IsOptional()
+	@IsString()
+	compare_basis?: 'week' | 'month' | 'year';
+	@IsOptional()
+	@IsBoolean()
+	time_filter?: boolean;
+	@IsOptional()
+	@IsBoolean()
+	include_realtime?: boolean;
+	@IsOptional()
+	@IsBoolean()
+	include_hourly?: boolean;
+	@IsOptional()
+	@IsBoolean()
+	include_camera_comparison?: boolean;
+	@IsOptional()
+	@IsBoolean()
+	include_peak_hours?: boolean;
+	@IsOptional()
+	@IsBoolean()
+	include_comparisons?: boolean;
+}

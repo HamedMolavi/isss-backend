@@ -429,7 +429,7 @@ export class BackupLogger {
 			Logger.warn('Storage warning threshold exceeded', {
 				...this.createBaseLogData(
 					BackupEventType.STORAGE_WARNING_THRESHOLD_EXCEEDED,
-					false,
+					true,
 					req,
 					'storage_warning'
 				),
@@ -461,10 +461,10 @@ export class BackupLogger {
 		req?: Request
 	): Promise<void> {
 		try {
-			Logger.error('Storage critical threshold exceeded', {
+			Logger.warn('Storage critical threshold exceeded', {
 				...this.createBaseLogData(
 					BackupEventType.STORAGE_CRITICAL_THRESHOLD_EXCEEDED,
-					false,
+					true,
 					req,
 					'storage_critical'
 				),
