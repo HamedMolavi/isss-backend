@@ -195,17 +195,33 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 
 				const cameraMap = await loadCameraMap(Array.from(allCameraIds));
 
-				// Enrich data with resolved camera names
+				// Enrich data with resolved camera names and sort crops
 				data = data.map((item: any) => {
 					const cameraIds = item.camera_ids || [];
 					const camerasData = cameraIds.map((cid: string) => {
 						const cam = isValidObjectId(cid) ? cameraMap.get(cid) : undefined;
 						return { camera_id: cid, camera_name: cam?.name ?? 'Unknown' };
 					});
+
+					// Sort crops by timestamp (newest first)
+					const sortedCrops = (item.crops || []).sort((a: any, b: any) => {
+						const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+						const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+						return bTime - aTime;
+					});
+
 					return {
 						...item,
-						cameras: camerasData
+						cameras: camerasData,
+						crops: sortedCrops
 					};
+				});
+
+				// Sort by latest seen time (newest first)
+				data.sort((a: any, b: any) => {
+					const aTime = a.last_seen_timestamp || 0;
+					const bTime = b.last_seen_timestamp || 0;
+					return bTime - aTime;
 				});
 
 				return res.status(200).json({
@@ -2630,10 +2646,17 @@ const time_constraints = buildTimeConstraints(
 				const firstSeen = timestamps.length > 0 ? new Date(Math.min(...timestamps)) : new Date();
 				const lastSeen = timestamps.length > 0 ? new Date(Math.max(...timestamps)) : new Date();
 
-				const representativeFace = clusterLogs[0];
+				// Sort by timestamp (newest first) before selecting crops
+				const sortedLogs = clusterLogs.sort((a: any, b: any) => {
+					const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+					const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+					return bTime - aTime;
+				});
+
+				const representativeFace = sortedLogs[0];
 
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const crops = clusterLogs.slice(0, 10).map((log: any) => ({
+				const crops = sortedLogs.slice(0, 10).map((log: any) => ({
 					log_id: log._id ?? null,
 					inner_crop: log.inner_crop ?? null,
 					timestamp: log.timestamp ?? null,
