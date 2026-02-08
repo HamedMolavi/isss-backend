@@ -63,7 +63,39 @@ interface FaceVectorData {
 	personnel_id?: string;
 }
 
-const SIMILARITY_THRESHOLD = 0.6;
+/**
+ * Parse and validate clustering config from environment variables
+ */
+function getClusteringConfig(): { similarityThreshold: number; minPts: number } {
+	// Parse similarity threshold (default 0.6, clamp between 0 and 1)
+	let similarityThreshold = 0.6;
+	const envThreshold = process.env['FACE_CLUSTER_SIMILARITY_THRESHOLD'];
+	if (envThreshold) {
+		const parsed = parseFloat(envThreshold);
+		if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+			similarityThreshold = parsed;
+		}
+	}
+
+	// Parse minPts (default 1, minimum 1)
+	let minPts = 1;
+	const envMinPts = process.env['FACE_CLUSTER_MIN_PTS'];
+	if (envMinPts) {
+		const parsed = parseInt(envMinPts, 10);
+		if (!isNaN(parsed) && parsed >= 1) {
+			minPts = parsed;
+		}
+	}
+
+	return { similarityThreshold, minPts };
+}
+
+// Load config once at worker startup
+const clusteringConfig = getClusteringConfig();
+const SIMILARITY_THRESHOLD = clusteringConfig.similarityThreshold;
+const MIN_PTS = clusteringConfig.minPts;
+
+console.log(`[Worker] Clustering config: similarityThreshold=${SIMILARITY_THRESHOLD}, minPts=${MIN_PTS}`);
 
 function cosineSimilarity(vec1: number[], vec2: number[]): number {
 	if (vec1.length !== vec2.length) return 0;
@@ -174,7 +206,10 @@ function processClustering(existingClusters: ClusterState[], newFaces: FaceVecto
 }
 
 function formatClustersForResponse(clusters: ClusterState[], timezone: string): any[] {
-	return clusters
+	// Filter clusters by minPts before formatting
+	const filteredClusters = clusters.filter((cluster) => cluster.memberCount >= MIN_PTS);
+
+	return filteredClusters
 		.sort((a, b) => b.memberCount - a.memberCount)
 		.map((cluster, index) => ({
 			personnel_id: 'unknown',

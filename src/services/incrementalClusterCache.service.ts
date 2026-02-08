@@ -5,6 +5,33 @@ import { Worker } from 'worker_threads';
 import * as path from 'path';
 
 /**
+ * Parse and validate clustering config from environment variables
+ */
+function getClusteringConfig(): { similarityThreshold: number; minPts: number } {
+	// Parse similarity threshold (default 0.65, clamp between 0 and 1)
+	let similarityThreshold = 0.65;
+	const envThreshold = process.env['FACE_CLUSTER_SIMILARITY_THRESHOLD'];
+	if (envThreshold) {
+		const parsed = parseFloat(envThreshold);
+		if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+			similarityThreshold = parsed;
+		}
+	}
+
+	// Parse minPts (default 1, minimum 1)
+	let minPts = 1;
+	const envMinPts = process.env['FACE_CLUSTER_MIN_PTS'];
+	if (envMinPts) {
+		const parsed = parseInt(envMinPts, 10);
+		if (!isNaN(parsed) && parsed >= 1) {
+			minPts = parsed;
+		}
+	}
+
+	return { similarityThreshold, minPts };
+}
+
+/**
  * Cluster state stored in Redis for incremental updates
  */
 interface ClusterState {
@@ -54,11 +81,19 @@ interface FaceVectorData {
 
 export class IncrementalClusterCacheService {
 	private logger: Logger;
-	private readonly SIMILARITY_THRESHOLD = 0.6; // Cosine similarity threshold for cluster assignment
+	private readonly similarityThreshold: number;
+	private readonly minPts: number;
 	private worker: Worker | null = null;
 
 	constructor() {
 		this.logger = new Logger({ serviceName: 'IncrementalClusterCache' });
+		const config = getClusteringConfig();
+		this.similarityThreshold = config.similarityThreshold;
+		this.minPts = config.minPts;
+		this.logger.info('Clustering config loaded', {
+			similarityThreshold: this.similarityThreshold,
+			minPts: this.minPts
+		});
 	}
 
 	/**
@@ -132,12 +167,12 @@ export class IncrementalClusterCacheService {
 			worker.on('message', messageHandler);
 			worker.on('error', errorHandler);
 
-			worker.postMessage({
-				type: 'process',
-				existingClusters,
-				newFaces,
-				similarityThreshold: this.SIMILARITY_THRESHOLD
-			});
+		worker.postMessage({
+			type: 'process',
+			existingClusters,
+			newFaces,
+			similarityThreshold: this.similarityThreshold
+		});
 		});
 	}
 
@@ -306,9 +341,13 @@ export class IncrementalClusterCacheService {
 
 	/**
 	 * Convert cluster state to API response format
+	 * Filters out clusters that don't meet minPts threshold
 	 */
 	formatClustersForResponse(clusters: ClusterState[], timezone: string = 'Asia/Tehran'): any[] {
-		return clusters
+		// Filter clusters by minPts before formatting
+		const filteredClusters = clusters.filter((cluster) => cluster.memberCount >= this.minPts);
+
+		return filteredClusters
 			.sort((a, b) => b.memberCount - a.memberCount) // Sort by cluster size
 			.map((cluster, index) => ({
 				personnel_id: 'unknown',
