@@ -1,4 +1,4 @@
-import { parentPort, workerData } from 'worker_threads';
+import { parentPort } from 'worker_threads';
 import { Client } from '@elastic/elasticsearch';
 import { createClient } from 'redis';
 
@@ -179,13 +179,17 @@ function assignToCluster(
 	return { cluster: newCluster, isNew: true };
 }
 
-function processClustering(existingClusters: ClusterState[], newFaces: FaceVectorData[]): {
+function processClustering(
+	existingClusters: ClusterState[],
+	newFaces: FaceVectorData[]
+): {
 	clusters: ClusterState[];
 	newClustersCreated: number;
 	facesAssignedToExisting: number;
 } {
 	const clusters = [...existingClusters];
-	let nextClusterId = existingClusters.length > 0 ? Math.max(...existingClusters.map((c) => c.clusterId)) + 1 : 1;
+	let nextClusterId =
+		existingClusters.length > 0 ? Math.max(...existingClusters.map((c) => c.clusterId)) + 1 : 1;
 
 	let newClustersCreated = 0;
 	let facesAssignedToExisting = 0;
@@ -360,7 +364,9 @@ async function performRefresh(request: RefreshRequest): Promise<any> {
 				hasMore = false;
 			}
 
-			console.log(`[Worker] Fetched batch: ${hits.length}, total: ${totalFetched}, valid faces: ${newFaces.length}`);
+			console.log(
+				`[Worker] Fetched batch: ${hits.length}, total: ${totalFetched}, valid faces: ${newFaces.length}`
+			);
 		}
 
 		console.log(`[Worker] Total faces fetched: ${newFaces.length}`);

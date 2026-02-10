@@ -1,4 +1,4 @@
-import { parentPort, workerData } from 'worker_threads';
+import { parentPort } from 'worker_threads';
 
 /**
  * Worker thread for CPU-intensive face clustering operations
@@ -48,8 +48,6 @@ interface ClusteringResult {
 	newClustersCreated: number;
 	facesAssignedToExisting: number;
 }
-
-const SIMILARITY_THRESHOLD = 0.6;
 
 function cosineSimilarity(vec1: number[], vec2: number[]): number {
 	if (vec1.length !== vec2.length) return 0;
