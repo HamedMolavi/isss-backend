@@ -63,6 +63,43 @@ interface FaceVectorData {
 	personnel_id?: string;
 }
 
+function parseTimestampToMs(timestamp: unknown): number {
+	if (typeof timestamp === 'number') {
+		return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : 0;
+	}
+
+	if (typeof timestamp !== 'string') return 0;
+	const trimmed = timestamp.trim();
+	if (!trimmed) return 0;
+
+	const numericTimestamp = Number(trimmed);
+	if (Number.isFinite(numericTimestamp) && numericTimestamp > 0) {
+		return numericTimestamp;
+	}
+
+	const parsed = new Date(trimmed).getTime();
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function deduplicateFacesByLogId(faces: FaceVectorData[]): FaceVectorData[] {
+	const uniqueFaces = new Map<string, FaceVectorData>();
+
+	for (const face of faces) {
+		const current = uniqueFaces.get(face._id);
+		if (!current) {
+			uniqueFaces.set(face._id, face);
+			continue;
+		}
+
+		// Keep the newest document per log_id when duplicates appear.
+		if (parseTimestampToMs(face.timestamp) >= parseTimestampToMs(current.timestamp)) {
+			uniqueFaces.set(face._id, face);
+		}
+	}
+
+	return Array.from(uniqueFaces.values());
+}
+
 /**
  * Parse and validate clustering config from environment variables
  */
@@ -280,38 +317,26 @@ async function performRefresh(request: RefreshRequest): Promise<any> {
 
 		console.log(`[Worker] Retrieved cluster state: ${existingClusters.length} clusters`);
 
-		// Fetch faces from Elasticsearch (24-hour rolling window)
-		const now = Date.now();
-		const windowStart = now - 24 * 60 * 60 * 1000;
-		const windowStartEpoch = String(windowStart);
-		const windowEndEpoch = String(now);
+		const baseClusters: ClusterState[] = [];
 
 		const indexName = process.env['FACE_INDEX'] ?? 'face_log';
 		const BATCH_SIZE = 10000;
 		const newFaces: FaceVectorData[] = [];
+		const queryMust: any[] = [{ exists: { field: 'vector' } }];
+		console.log('[Worker] Fetch mode: full_rebuild (all matching documents)');
 
-		let searchAfter: any[] | undefined = undefined;
-		let hasMore = true;
 		let totalFetched = 0;
+		let scrollId: string | undefined;
 
-		while (hasMore) {
+		try {
 			const searchParams: any = {
 				index: indexName,
 				size: BATCH_SIZE,
+				scroll: '2m',
 				body: {
 					query: {
 						bool: {
-							must: [
-								{
-									range: {
-										timestamp: {
-											gte: windowStartEpoch,
-											lte: windowEndEpoch
-										}
-									}
-								},
-								{ exists: { field: 'vector' } }
-							],
+							must: queryMust,
 							should: [
 								{ term: { 'personnel_id.keyword': 'unknown' } },
 								{ bool: { must_not: [{ exists: { field: 'personnel_id' } }] } }
@@ -319,62 +344,82 @@ async function performRefresh(request: RefreshRequest): Promise<any> {
 							minimum_should_match: 1
 						}
 					},
-					sort: [{ timestamp: { order: 'asc' } }],
+					// Use _doc sort for efficient scroll pagination (no _id fielddata needed).
+					sort: [{ _doc: { order: 'asc' } }],
 					_source: ['vector', 'timestamp', 'camera_id', 'inner_crop', 'allowed', 'personnel_id']
 				}
 			};
+			let searchResult: any = await esClient.search(searchParams);
 
-			if (searchAfter) {
-				searchParams.body.search_after = searchAfter;
-			}
+			scrollId = searchResult._scroll_id as string | undefined;
+			let hits = (searchResult.hits?.hits ?? []) as any[];
 
-			const searchResult = await esClient.search(searchParams);
-			const hits = searchResult.hits?.hits || [];
+			while (hits.length > 0) {
+				for (const hit of hits) {
+					const source = hit._source;
 
-			if (hits.length === 0) {
-				hasMore = false;
-				break;
-			}
+					if (source?.vector && Array.isArray(source.vector) && source.vector.length > 0) {
+						const isValidVector = source.vector.every((v: number) => typeof v === 'number' && !isNaN(v));
 
-			for (const hit of hits as any[]) {
-				const source = hit._source;
-
-				if (source?.vector && Array.isArray(source.vector) && source.vector.length > 0) {
-					const isValidVector = source.vector.every((v: number) => typeof v === 'number' && !isNaN(v));
-
-					if (isValidVector) {
-						newFaces.push({
-							vector: source.vector,
-							_id: hit._id,
-							timestamp: source.timestamp || new Date().toISOString(),
-							camera_id: source.camera_id,
-							inner_crop: source.inner_crop,
-							allowed: source.allowed,
-							personnel_id: source.personnel_id
-						});
+						if (isValidVector) {
+							const timestampMs = parseTimestampToMs(source.timestamp);
+							newFaces.push({
+								vector: source.vector,
+								_id: hit._id,
+								timestamp: timestampMs > 0 ? new Date(timestampMs).toISOString() : new Date().toISOString(),
+								camera_id: source.camera_id,
+								inner_crop: source.inner_crop,
+								allowed: source.allowed,
+								personnel_id: source.personnel_id
+							});
+						}
 					}
 				}
+
+				totalFetched += hits.length;
+				console.log(
+					`[Worker] Fetched batch: ${hits.length}, total: ${totalFetched}, valid faces: ${newFaces.length}`
+				);
+
+				if (!scrollId) {
+					break;
+				}
+
+				searchResult = await esClient.scroll({
+					scroll_id: scrollId,
+					scroll: '2m'
+				});
+				scrollId = searchResult._scroll_id as string | undefined;
+				hits = (searchResult.hits?.hits ?? []) as any[];
 			}
-
-			totalFetched += hits.length;
-			const lastHit = hits[hits.length - 1];
-			searchAfter = lastHit.sort;
-
-			if (hits.length < BATCH_SIZE) {
-				hasMore = false;
+		} finally {
+			if (scrollId) {
+				try {
+					await esClient.clearScroll({ scroll_id: scrollId });
+				} catch (clearErr) {
+					console.warn('[Worker] Failed to clear scroll context:', clearErr);
+				}
 			}
-
-			console.log(
-				`[Worker] Fetched batch: ${hits.length}, total: ${totalFetched}, valid faces: ${newFaces.length}`
-			);
 		}
 
 		console.log(`[Worker] Total faces fetched: ${newFaces.length}`);
+		const uniqueNewFaces = deduplicateFacesByLogId(newFaces);
+		const duplicateCount = newFaces.length - uniqueNewFaces.length;
+		const uniqueLogIdsCount = new Set(uniqueNewFaces.map((face) => face._id)).size;
+		const hasUniqueLogIds = uniqueLogIdsCount === uniqueNewFaces.length;
+		if (duplicateCount > 0) {
+			console.log(
+				`[Worker] Removed duplicate faces by log_id: ${duplicateCount} duplicates (unique: ${uniqueNewFaces.length})`
+			);
+		}
+		console.log(
+			`[Worker] Unique log_id check: ${hasUniqueLogIds ? 'PASS' : 'FAIL'} (${uniqueLogIdsCount}/${uniqueNewFaces.length})`
+		);
 
 		// Process clustering
 		const { clusters, newClustersCreated, facesAssignedToExisting } = processClustering(
-			existingClusters,
-			newFaces
+			baseClusters,
+			uniqueNewFaces
 		);
 
 		console.log(`[Worker] Clustering complete: ${clusters.length} clusters (${newClustersCreated} new)`);
@@ -383,18 +428,18 @@ async function performRefresh(request: RefreshRequest): Promise<any> {
 		const defaultTimestamp = new Date().toISOString();
 		let latestTimestamp = defaultTimestamp;
 
-		if (newFaces.length > 0) {
-			const validTimestamps = newFaces
-				.map((face) => face.timestamp)
-				.filter((ts) => ts && typeof ts === 'string' && !isNaN(new Date(ts).getTime()));
-
-			if (validTimestamps.length > 0) {
-				latestTimestamp = validTimestamps.reduce((max, ts) => (ts > max ? ts : max), validTimestamps[0]);
+		if (uniqueNewFaces.length > 0) {
+			const latestTimestampMs = uniqueNewFaces.reduce(
+				(max, face) => Math.max(max, parseTimestampToMs(face.timestamp)),
+				0
+			);
+			if (latestTimestampMs > 0) {
+				latestTimestamp = new Date(latestTimestampMs).toISOString();
 			}
 		} else if (existingMetadata?.lastProcessedTimestamp) {
-			const parsedDate = new Date(existingMetadata.lastProcessedTimestamp);
-			if (!isNaN(parsedDate.getTime()) && existingMetadata.lastProcessedTimestamp.trim() !== '') {
-				latestTimestamp = existingMetadata.lastProcessedTimestamp;
+			const previousTimestampMs = parseTimestampToMs(existingMetadata.lastProcessedTimestamp);
+			if (previousTimestampMs > 0) {
+				latestTimestamp = new Date(previousTimestampMs).toISOString();
 			}
 		}
 
@@ -402,7 +447,7 @@ async function performRefresh(request: RefreshRequest): Promise<any> {
 			lastProcessedTimestamp: latestTimestamp,
 			lastRefreshTime: new Date().toISOString(),
 			totalClusters: clusters.length,
-			totalFacesProcessed: (existingMetadata?.totalFacesProcessed || 0) + newFaces.length,
+			totalFacesProcessed: uniqueNewFaces.length,
 			version: (existingMetadata?.version || 0) + 1
 		};
 
@@ -426,7 +471,9 @@ async function performRefresh(request: RefreshRequest): Promise<any> {
 			total: data.length,
 			stats: {
 				durationMs: duration,
-				newFacesProcessed: newFaces.length,
+				newFacesProcessed: uniqueNewFaces.length,
+				duplicateLogIdsSkipped: duplicateCount,
+				uniqueLogIds: uniqueLogIdsCount,
 				totalClusters: clusters.length,
 				newClustersCreated,
 				facesAssignedToExisting,

@@ -42,6 +42,7 @@ import { plateToQueryJSON } from '../../tools/elastic.tools';
 
 const router: Router = Router();
 const logger = new Logger({ serviceName: 'AnalyticsReport' });
+const UNKNOWN_FACE_HOURLY_INTERVALS = [1, 4, 12, 24] as const;
 
 /**
  * ===================================
@@ -117,6 +118,132 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 	try {
 		const { date_start, date_end, time_start, time_end, cameras, camera_ids, timez } = req.body;
 		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
+		const normalizedDateEndForAnchor = normalizeDateInput(date_end);
+		const normalizedTimeEndForAnchor = normalizeClockInput(time_end, '23:59');
+		const anchorEpochCandidate = normalizedDateEndForAnchor
+			? Number(
+					Time.getSingleTimeRange(
+						normalizedDateEndForAnchor,
+						normalizedDateEndForAnchor,
+						normalizedTimeEndForAnchor,
+						normalizedTimeEndForAnchor,
+						timezone
+					).lte
+				)
+			: Date.now();
+		const anchorEpoch =
+			Number.isFinite(anchorEpochCandidate) && anchorEpochCandidate > 0 ? anchorEpochCandidate : Date.now();
+
+		const hasTimeOverlap = (startA: number, endA: number, startB: number, endB: number): boolean => {
+			return endA >= startB && startA <= endB;
+		};
+
+		const parseEpochMs = (value: unknown): number | undefined => {
+			const numeric = Number(value);
+			if (Number.isFinite(numeric) && numeric > 0) {
+				return numeric;
+			}
+
+			if (typeof value === 'string' && value.trim() !== '') {
+				const parsed = new Date(value).getTime();
+				if (Number.isFinite(parsed) && parsed > 0) {
+					return parsed;
+				}
+			}
+
+			return undefined;
+		};
+
+		const resolveItemSeenRange = (item: any): { firstSeenMs: number; lastSeenMs: number } => {
+			const firstSeenMs = parseEpochMs(item?.first_seen_timestamp) ?? parseEpochMs(item?.first_seen) ?? 0;
+			const lastSeenMs = parseEpochMs(item?.last_seen_timestamp) ?? parseEpochMs(item?.last_seen) ?? anchorEpoch;
+			return {
+				firstSeenMs: Math.min(firstSeenMs, lastSeenMs),
+				lastSeenMs: Math.max(firstSeenMs, lastSeenMs)
+			};
+		};
+
+		const deduplicateCropsByLogId = (crops: any[]): any[] => {
+			const cropArray = Array.isArray(crops) ? crops : [];
+			const uniqueByLogId = new Map<string, any>();
+			const cropsWithoutLogId: any[] = [];
+
+			cropArray.forEach((crop) => {
+				const logId = typeof crop?.log_id === 'string' ? crop.log_id.trim() : '';
+				if (!logId) {
+					cropsWithoutLogId.push(crop);
+					return;
+				}
+
+				const existing = uniqueByLogId.get(logId);
+				if (!existing) {
+					uniqueByLogId.set(logId, crop);
+					return;
+				}
+
+				// Keep the latest timestamp per log_id when duplicates exist.
+				const existingTs = parseEpochMs(existing?.timestamp) ?? 0;
+				const currentTs = parseEpochMs(crop?.timestamp) ?? 0;
+				if (currentTs > existingTs) {
+					uniqueByLogId.set(logId, crop);
+				}
+			});
+
+			return [...uniqueByLogId.values(), ...cropsWithoutLogId];
+		};
+
+		const getBucketPresence = (firstSeenMs: number, lastSeenMs: number) => {
+			const inBucket = (minutes: number): boolean => {
+				const startEpoch = anchorEpoch - minutes * 60 * 1000;
+				return hasTimeOverlap(firstSeenMs, lastSeenMs, startEpoch, anchorEpoch);
+			};
+
+			return {
+				in_15m: inBucket(15),
+				in_1h: inBucket(60),
+				in_4h: inBucket(4 * 60),
+				in_12h: inBucket(12 * 60),
+				in_24h: inBucket(24 * 60)
+			};
+		};
+
+		const bucketAnchor = {
+			time_epoch: anchorEpoch,
+			time: new Date(anchorEpoch).toLocaleString('en-US', { timeZone: timezone }),
+			timezone
+		};
+
+		const buildBucketCounts = (items: any[]) => {
+			const bucketDefinitions: Array<{
+				interval_minutes: number;
+				interval_hours: number;
+				bucket_key: 'in_15m' | 'in_1h' | 'in_4h' | 'in_12h' | 'in_24h';
+			}> = [
+				{ interval_minutes: 15, interval_hours: 0.25, bucket_key: 'in_15m' },
+				{ interval_minutes: 60, interval_hours: 1, bucket_key: 'in_1h' },
+				{ interval_minutes: 4 * 60, interval_hours: 4, bucket_key: 'in_4h' },
+				{ interval_minutes: 12 * 60, interval_hours: 12, bucket_key: 'in_12h' },
+				{ interval_minutes: 24 * 60, interval_hours: 24, bucket_key: 'in_24h' }
+			];
+
+			return bucketDefinitions.map((bucketDefinition) => {
+				const startEpoch = anchorEpoch - bucketDefinition.interval_minutes * 60 * 1000;
+				const repeatedFacesCount = items.reduce(
+					(sum, item) => sum + (item?.bucket_presence?.[bucketDefinition.bucket_key] ? 1 : 0),
+					0
+				);
+
+				return {
+					interval_minutes: bucketDefinition.interval_minutes,
+					interval_hours: bucketDefinition.interval_hours,
+					start_epoch: startEpoch,
+					end_epoch: anchorEpoch,
+					start: new Date(startEpoch).toLocaleString('en-US', { timeZone: timezone }),
+					end: new Date(anchorEpoch).toLocaleString('en-US', { timeZone: timezone }),
+					repeated_faces_count: repeatedFacesCount
+				};
+			});
+		};
 
 		// Use simplified cache params to match background job
 		// Background job uses a static key for rolling 24-hour window
@@ -135,7 +262,7 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 		// ONLY READ FROM CACHE - Never compute or update
 		try {
 			const cacheService = await getAnalyticsCacheService();
-			let cachedData = await cacheService.getCachedData('most-repeated-unknown-faces', cacheParams);
+			const cachedData = await cacheService.getCachedData('most-repeated-unknown-faces', cacheParams);
 
 			// Non-blocking: If no cached data, return immediately with status
 			// Background job will populate cache - don't block the request
@@ -149,35 +276,53 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 				let data = (cachedData as { data: any[]; total: number }).data || [];
 
 				// Apply date/time filter if provided
-				if (date_start || date_end) {
-					const startMs = date_start ? new Date(date_start).getTime() : 0;
-					const endMs = date_end ? new Date(date_end).getTime() : Date.now();
+				const normalizedDateStart = normalizeDateInput(date_start);
+				const normalizedDateEnd = normalizeDateInput(date_end);
+				const normalizedTimeStart = normalizeClockInput(time_start, '00:00');
+				const normalizedTimeEnd = normalizeClockInput(time_end, '23:59');
+				const useSingleRange = parseBooleanInput(req.body.time_filter, true);
+
+				if (normalizedDateStart && normalizedDateEnd) {
+					const singleRange = Time.getSingleTimeRange(
+						normalizedDateStart,
+						normalizedDateEnd,
+						normalizedTimeStart,
+						normalizedTimeEnd,
+						timezone
+					);
+					const startMs = Number(singleRange.gte);
+					const endMs = Number(singleRange.lte);
+					const dailyRanges = !useSingleRange
+						? Time.getEpochList(
+								normalizedDateStart,
+								normalizedDateEnd,
+								normalizedTimeStart as Clock,
+								normalizedTimeEnd as Clock,
+								timezone
+							).map((range) => ({
+								start: Number(range.gte),
+								end: Number(range.lte)
+							}))
+						: [];
 
 					data = data.filter((item: any) => {
-						// Use raw timestamps if available, otherwise parse formatted strings
-						let itemFirstSeen = item.first_seen_timestamp;
-						let itemLastSeen = item.last_seen_timestamp;
+						const { firstSeenMs, lastSeenMs } = resolveItemSeenRange(item);
 
-						// Fallback: parse formatted date strings for old cache entries
-						if (!itemFirstSeen && item.first_seen) {
-							itemFirstSeen = new Date(item.first_seen).getTime();
-						}
-						if (!itemLastSeen && item.last_seen) {
-							itemLastSeen = new Date(item.last_seen).getTime();
+						if (useSingleRange) {
+							// Include if cluster's time range overlaps with requested range
+							return hasTimeOverlap(firstSeenMs, lastSeenMs, startMs, endMs);
 						}
 
-						// Default to full range if timestamps are invalid
-						itemFirstSeen = itemFirstSeen || 0;
-						itemLastSeen = itemLastSeen || Date.now();
-
-						// Include if cluster's time range overlaps with requested range
-						return itemLastSeen >= startMs && itemFirstSeen <= endMs;
+						// Recurring daily time windows
+						return dailyRanges.some(
+							(dailyRange) => hasTimeOverlap(firstSeenMs, lastSeenMs, dailyRange.start, dailyRange.end)
+						);
 					});
 				}
 
 				// Apply camera filter if provided
-				const cameraFilter = camera_ids || cameras;
-				if (cameraFilter && Array.isArray(cameraFilter) && cameraFilter.length > 0) {
+				const cameraFilter = resolveRequestedCameras(req, camera_ids ?? cameras);
+				if (cameraFilter && cameraFilter.length > 0) {
 					const filterSet = new Set(cameraFilter.map(String));
 					data = data.filter((item: any) => {
 						const itemCameraIds = item.camera_ids || [];
@@ -202,9 +347,14 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 						const cam = isValidObjectId(cid) ? cameraMap.get(cid) : undefined;
 						return { camera_id: cid, camera_name: cam?.name ?? 'Unknown' };
 					});
+					const { firstSeenMs, lastSeenMs } = resolveItemSeenRange(item);
+					const bucketPresence = getBucketPresence(firstSeenMs, lastSeenMs);
+					const uniqueCrops = deduplicateCropsByLogId(item.crops || []);
+					const sourceCount = Number(item?.count);
+					const resolvedCount = Number.isFinite(sourceCount) && sourceCount >= 0 ? sourceCount : uniqueCrops.length;
 
 					// Sort crops by timestamp (newest first)
-					const sortedCrops = (item.crops || []).sort((a: any, b: any) => {
+					const sortedCrops = uniqueCrops.sort((a: any, b: any) => {
 						const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
 						const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
 						return bTime - aTime;
@@ -212,10 +362,14 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 
 					return {
 						...item,
+						count: resolvedCount,
 						cameras: camerasData,
-						crops: sortedCrops
+						crops: sortedCrops,
+						bucket_presence: bucketPresence
 					};
 				});
+
+				const bucketCounts = buildBucketCounts(data);
 
 				// Sort by latest seen time (newest first)
 				data.sort((a: any, b: any) => {
@@ -228,6 +382,8 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 					success: true,
 					data,
 					total: data.length,
+					bucket_anchor: bucketAnchor,
+					bucket_counts: bucketCounts,
 					cached: true,
 					message: 'Data from cache (updated every 15 minutes by background job)'
 				});
@@ -241,6 +397,8 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 					success: true,
 					data: [],
 					total: 0,
+					bucket_anchor: bucketAnchor,
+					bucket_counts: buildBucketCounts([]),
 					cached: false,
 					message: 'Cache is being populated by background job. Please try again in a few moments.'
 				});
@@ -252,6 +410,8 @@ router.post('/most-repeated-unknown-faces', async (req: Request, res, next) => {
 				success: true,
 				data: [],
 				total: 0,
+				bucket_anchor: bucketAnchor,
+				bucket_counts: buildBucketCounts([]),
 				cached: false,
 				message: 'Cache service temporarily unavailable'
 			});
@@ -3439,1504 +3599,6 @@ router.post('/people-counting-hourly', async (req: Request, res, next) => {
 });
 
 /**
- * POST /unknown-face-counting
- * Get unknown face counting statistics from face_count index
- *
- * Returns:
- * - unique_faces: Number of unique unknown persons (by global_virtual_id)
- * - total_visits: Total face detections/visits in time range
- * - cameras: Array of per-camera breakdown with unique and total counts
- *
- * Request body (AnalyticsBody):
- * - date_start, date_end, time_start, time_end: Time range filters
- * - cameras: Optional array of camera IDs to filter
- * - timez: Timezone (default: Asia/Tehran)
- * - time_filter: Boolean to enable time-of-day filtering
- */
-router.post('/unknown-face-counting', async (req: Request, res, next) => {
-	try {
-		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-
-		// Build time range constraints
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-
-		// Build camera access filter
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		// Build Elasticsearch query with aggregations
-		const query = {
-			index: faceCountIndex,
-			size: 0,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: [...time_constraints, ...camera_filter]
-				}
-			},
-			aggs: {
-				unique_faces: {
-					cardinality: {
-						field: 'global_virtual_id'
-					}
-				},
-				total_visits: {
-					value_count: {
-						field: 'timestamp'
-					}
-				},
-				by_camera: {
-					terms: {
-						field: 'camera_id.keyword',
-						size: 1000
-					},
-					aggs: {
-						unique_faces: {
-							cardinality: {
-								field: 'global_virtual_id'
-							}
-						}
-					}
-				}
-			}
-		};
-
-		// Execute query
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				// Index doesn't exist yet, return zeros
-				return res.status(200).json({
-					success: true,
-					data: {
-						unique_faces: 0,
-						total_visits: 0,
-						cameras: []
-					}
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const aggs = esResponse.aggregations as any;
-
-		// Get camera names
-		const cameraIds = (aggs?.by_camera?.buckets ?? []).map((b: any) => b.key);
-		const cameraDocs = await Camera.find({ _id: { $in: cameraIds } })
-			.exec()
-			.then((docs) => new Map(docs.map((doc) => [doc._id.toString(), doc])));
-
-		// Format per-camera breakdown
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const cameraBreakdown = (aggs?.by_camera?.buckets ?? []).map((bucket: any) => {
-			const cameraId = String(bucket.key);
-			const camera = cameraDocs.get(cameraId);
-			return {
-				camera_id: cameraId,
-				camera_name: camera?.name ?? 'Unknown',
-				unique_faces: bucket.unique_faces?.value ?? 0,
-				total_visits: bucket.doc_count ?? 0
-			};
-		});
-
-		return res.status(200).json({
-			success: true,
-			data: {
-				unique_faces: aggs?.unique_faces?.value ?? 0,
-				total_visits: aggs?.total_visits?.value ?? 0,
-				cameras: cameraBreakdown
-			}
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /unknown-faces-list
- * Get paginated list of unknown face records from face_count index
- */
-router.post('/unknown-faces-list', async (req: Request, res, next) => {
-	try {
-		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-
-		const page = Math.max(1, Number(req.body.page) || 1);
-		const size = Math.min(1000, Number(req.body.limit) || 50);
-		const from = (page - 1) * size;
-
-		const allowedSortFields = new Set(['timestamp', 'visit_number', 'match_score']);
-		const sortByRaw = typeof req.body.sort_by === 'string' ? req.body.sort_by : 'timestamp';
-		const sortBy = allowedSortFields.has(sortByRaw) ? sortByRaw : 'timestamp';
-		const sortDirection = req.body.sort_dir === 'asc' ? 'asc' : 'desc';
-
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		const visitMin = Number(req.body.visit_number_min);
-		const visitMax = Number(req.body.visit_number_max);
-		const visitRange: Record<string, number> = {};
-		if (!Number.isNaN(visitMin) && req.body.visit_number_min !== undefined) visitRange.gte = visitMin;
-		if (!Number.isNaN(visitMax) && req.body.visit_number_max !== undefined) visitRange.lte = visitMax;
-
-		const visitConstraint =
-			Object.keys(visitRange).length > 0 ? [{ range: { visit_number: visitRange } }] : [];
-
-		const query = {
-			index: faceCountIndex,
-			size,
-			from,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: [...time_constraints, ...camera_filter, ...visitConstraint]
-				}
-			},
-			sort: [{ [sortBy]: { order: sortDirection } }],
-			_source: {
-				excludes: ['vector'] // Exclude vector field to reduce response size
-			}
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: [],
-					total: 0,
-					page,
-					size
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const hits = (esResponse.hits?.hits ?? []) as any[];
-		const data = hits.map((hit) => ({
-			_id: hit._id,
-			...(hit._source ?? {})
-		}));
-
-		const cameraIds = Array.from(
-			new Set(data.map((item) => String(item.camera_id)).filter((id) => id && id !== 'undefined'))
-		);
-		const cameraMap = await loadCameraMap(cameraIds);
-
-		const enriched = data.map((item) => ({
-			...item,
-			camera_name: cameraMap.get(String(item.camera_id))?.name ?? 'Unknown'
-		}));
-
-		return res.status(200).json({
-			success: true,
-			data: enriched,
-			total:
-				esResponse.hits?.total &&
-				typeof esResponse.hits.total === 'object' &&
-				'value' in esResponse.hits.total
-					? esResponse.hits.total.value
-					: enriched.length,
-			page,
-			size
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /unknown-faces-hourly
- * Get hourly breakdown of unknown faces from face_count index
- */
-router.post('/unknown-faces-hourly', async (req: Request, res, next) => {
-	try {
-		const requestedInterval = Number(req.body.interval) || 1;
-		const allowedIntervals = [1, 2, 4, 12, 24];
-		const intervalHours = allowedIntervals.includes(requestedInterval) ? requestedInterval : 1;
-		const intervalMs = intervalHours * 3600000;
-
-		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		const query = {
-			index: faceCountIndex,
-			size: 0,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: [...time_constraints, ...camera_filter]
-				}
-			},
-			aggs: {
-				by_hour: {
-					histogram: {
-						field: 'timestamp',
-						interval: intervalMs
-					},
-					aggs: {
-						unique_faces: { cardinality: { field: 'global_virtual_id' } },
-						total_visits: { value_count: { field: 'timestamp' } },
-						by_camera: {
-							terms: { field: 'camera_id.keyword', size: 1000 },
-							aggs: {
-								unique_faces: { cardinality: { field: 'global_virtual_id' } },
-								total_visits: { value_count: { field: 'timestamp' } }
-							}
-						}
-					}
-				}
-			}
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: [],
-					total: 0,
-					interval_hours: intervalHours
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const buckets = (esResponse.aggregations as any)?.by_hour?.buckets ?? [];
-		const cameraIdSet = new Set<string>();
-		buckets.forEach((bucket: any) => {
-			(bucket.by_camera?.buckets ?? []).forEach((camBucket: any) => {
-				cameraIdSet.add(String(camBucket.key));
-			});
-		});
-		const cameraMap = await loadCameraMap(Array.from(cameraIdSet));
-
-		const data = buckets.map((bucket: any) => ({
-			time: new Date(Number(bucket.key)).toLocaleString('en-US', { timeZone: timezone }),
-			time_epoch: Number(bucket.key),
-			unique_faces: bucket.unique_faces?.value ?? 0,
-			total_visits: bucket.total_visits?.value ?? bucket.doc_count ?? 0,
-			cameras: (bucket.by_camera?.buckets ?? []).map((camBucket: any) => ({
-				camera_id: String(camBucket.key),
-				camera_name: cameraMap.get(String(camBucket.key))?.name ?? 'Unknown',
-				unique_faces: camBucket.unique_faces?.value ?? 0,
-				total_visits: camBucket.total_visits?.value ?? camBucket.doc_count ?? 0
-			}))
-		}));
-
-		return res.status(200).json({
-			success: true,
-			data,
-			total: data.length,
-			interval_hours: intervalHours
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /unknown-faces-daily
- * Get daily trend of unknown faces from face_count index
- */
-router.post('/unknown-faces-daily', async (req: Request, res, next) => {
-	try {
-		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		const query = {
-			index: faceCountIndex,
-			size: 0,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: [...time_constraints, ...camera_filter]
-				}
-			},
-			aggs: {
-				by_day: {
-					date_histogram: {
-						field: 'timestamp',
-						calendar_interval: '1d',
-						time_zone: timezone
-					},
-					aggs: {
-						unique_faces: { cardinality: { field: 'global_virtual_id' } },
-						total_visits: { value_count: { field: 'timestamp' } },
-						by_camera: {
-							terms: { field: 'camera_id.keyword', size: 1000 },
-							aggs: {
-								unique_faces: { cardinality: { field: 'global_virtual_id' } },
-								total_visits: { value_count: { field: 'timestamp' } }
-							}
-						}
-					}
-				}
-			}
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: [],
-					total: 0
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const buckets = (esResponse.aggregations as any)?.by_day?.buckets ?? [];
-		const cameraIdSet = new Set<string>();
-		buckets.forEach((bucket: any) => {
-			(bucket.by_camera?.buckets ?? []).forEach((camBucket: any) => {
-				cameraIdSet.add(String(camBucket.key));
-			});
-		});
-		const cameraMap = await loadCameraMap(Array.from(cameraIdSet));
-
-		const data = buckets.map((bucket: any) => ({
-			date: new Date(Number(bucket.key)).toLocaleDateString('en-CA', { timeZone: timezone }),
-			date_epoch: Number(bucket.key),
-			unique_faces: bucket.unique_faces?.value ?? 0,
-			total_visits: bucket.total_visits?.value ?? bucket.doc_count ?? 0,
-			cameras: (bucket.by_camera?.buckets ?? []).map((camBucket: any) => ({
-				camera_id: String(camBucket.key),
-				camera_name: cameraMap.get(String(camBucket.key))?.name ?? 'Unknown',
-				unique_faces: camBucket.unique_faces?.value ?? 0,
-				total_visits: camBucket.total_visits?.value ?? camBucket.doc_count ?? 0
-			}))
-		}));
-
-		return res.status(200).json({
-			success: true,
-			data,
-			total: data.length
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /unknown-faces-by-camera
- * Compare unknown faces per camera
- */
-router.post('/unknown-faces-by-camera', async (req: Request, res, next) => {
-	try {
-		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-		const limit = Math.min(1000, Number(req.body.limit) || 1000);
-
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		const query = {
-			index: faceCountIndex,
-			size: 0,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: [...time_constraints, ...camera_filter]
-				}
-			},
-			aggs: {
-				by_camera: {
-					terms: { field: 'camera_id.keyword', size: limit },
-					aggs: {
-						unique_faces: { cardinality: { field: 'global_virtual_id' } },
-						total_visits: { value_count: { field: 'timestamp' } }
-					}
-				}
-			}
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: [],
-					total: 0
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const buckets = (esResponse.aggregations as any)?.by_camera?.buckets ?? [];
-		const cameraMap = await loadCameraMap(buckets.map((bucket: any) => String(bucket.key)));
-
-		const data = buckets.map((bucket: any) => {
-			const uniqueFaces = bucket.unique_faces?.value ?? 0;
-			const totalVisits = bucket.total_visits?.value ?? bucket.doc_count ?? 0;
-			return {
-				camera_id: String(bucket.key),
-				camera_name: cameraMap.get(String(bucket.key))?.name ?? 'Unknown',
-				unique_faces: uniqueFaces,
-				total_visits: totalVisits,
-				avg_visits_per_person: uniqueFaces > 0 ? Number((totalVisits / uniqueFaces).toFixed(2)) : 0
-			};
-		});
-
-		return res.status(200).json({
-			success: true,
-			data,
-			total: data.length
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /unknown-faces-visit-frequency
- * Histogram of visit counts per unknown person
- */
-router.post('/unknown-faces-visit-frequency', async (req: Request, res, next) => {
-	try {
-		const { date_start, date_end, time_start, time_end, cameras: requestCameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-		const includeCameras = Boolean(req.body.include_cameras);
-		const personLimit = Math.min(10000, Number(req.body.person_limit) || 10000);
-
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, requestCameras);
-
-		const aggs: Record<string, unknown> = {
-			by_person: {
-				terms: {
-					field: 'global_virtual_id',
-					size: personLimit
-				}
-			}
-		};
-
-		if (includeCameras) {
-			aggs.by_camera = {
-				terms: { field: 'camera_id.keyword', size: 1000 },
-				aggs: {
-					by_person: {
-						terms: {
-							field: 'global_virtual_id',
-							size: personLimit
-						}
-					}
-				}
-			};
-		}
-
-		const query = {
-			index: faceCountIndex,
-			size: 0,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: [...time_constraints, ...camera_filter]
-				}
-			},
-			aggs
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: { distribution: [], total_people: 0, cameras: [] }
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const baseAggs = esResponse.aggregations as any;
-		const distributionMap = new Map<number, number>();
-		(baseAggs?.by_person?.buckets ?? []).forEach((bucket: any) => {
-			const visitCount = bucket.doc_count ?? 0;
-			distributionMap.set(visitCount, (distributionMap.get(visitCount) ?? 0) + 1);
-		});
-
-		const distribution = Array.from(distributionMap.entries())
-			.sort((a, b) => a[0] - b[0])
-			.map(([visits, people]) => ({ visits, people }));
-
-		let cameras: Array<{
-			camera_id: string;
-			camera_name: string;
-			distribution: Array<{ visits: number; people: number }>;
-		}> = [];
-
-		if (includeCameras) {
-			const cameraBuckets = baseAggs?.by_camera?.buckets ?? [];
-			const cameraMap = await loadCameraMap(cameraBuckets.map((b: any) => String(b.key)));
-
-			cameras = cameraBuckets.map((bucket: any) => {
-				const cameraDistribution = new Map<number, number>();
-				(bucket.by_person?.buckets ?? []).forEach((personBucket: any) => {
-					const visitCount = personBucket.doc_count ?? 0;
-					cameraDistribution.set(visitCount, (cameraDistribution.get(visitCount) ?? 0) + 1);
-				});
-				return {
-					camera_id: String(bucket.key),
-					camera_name: cameraMap.get(String(bucket.key))?.name ?? 'Unknown',
-					distribution: Array.from(cameraDistribution.entries())
-						.sort((a, b) => a[0] - b[0])
-						.map(([visits, people]) => ({ visits, people }))
-				};
-			});
-		}
-
-		return res.status(200).json({
-			success: true,
-			data: {
-				distribution,
-				total_people: (baseAggs?.by_person?.buckets ?? []).length,
-				cameras
-			}
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /unknown-faces-repeat-visitors
- * List repeat unknown visitors and their detections
- */
-router.post('/unknown-faces-repeat-visitors', async (req: Request, res, next) => {
-	try {
-		const { date_start, date_end, time_start, time_end, cameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-		const minVisits = Math.max(2, Number(req.body.min_visits) || 3);
-		const limit = Math.min(1000, Number(req.body.limit) || 100);
-		const maxRecords = Math.min(20000, Number(req.body.max_records) || 10000);
-
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		const repeatQuery = {
-			index: faceCountIndex,
-			size: 0,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: [...time_constraints, ...camera_filter]
-				}
-			},
-			aggs: {
-				repeat_persons: {
-					terms: {
-						field: 'global_virtual_id',
-						size: limit,
-						min_doc_count: minVisits,
-						order: { _count: 'desc' }
-					}
-				}
-			}
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(repeatQuery);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: [],
-					total: 0
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const buckets = (esResponse.aggregations as any)?.repeat_persons?.buckets ?? [];
-		const repeatIds = buckets.map((b: any) => String(b.key));
-
-		if (repeatIds.length === 0) {
-			return res.status(200).json({
-				success: true,
-				data: [],
-				total: 0
-			});
-		}
-
-		const detectionsQuery = {
-			index: faceCountIndex,
-			size: maxRecords,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: [
-						...time_constraints,
-						...camera_filter,
-						{
-							bool: {
-								should: repeatIds.map((id: string) => ({ term: { global_virtual_id: id } })),
-								minimum_should_match: 1
-							}
-						}
-					]
-				}
-			},
-			sort: [{ timestamp: { order: 'asc' } }]
-		};
-
-		const detectionsRes = await process.esclient.search(detectionsQuery);
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const hits = (detectionsRes.hits?.hits ?? []) as any[];
-		const detections = hits.map((hit) => ({
-			_id: hit._id,
-			...(hit._source ?? {})
-		}));
-
-		const cameraIds = Array.from(
-			new Set(detections.map((item) => String(item.camera_id)).filter((id) => id && id !== 'undefined'))
-		);
-		const cameraMap = await loadCameraMap(cameraIds);
-
-		const grouped = new Map<
-			string,
-			{
-				global_virtual_id: string;
-				total_visits: number;
-				first_seen: string | undefined;
-				last_seen: string | undefined;
-				detections: Array<Record<string, unknown>>;
-			}
-		>();
-
-		detections.forEach((item) => {
-			const gvId = String(item.global_virtual_id);
-			const existing = grouped.get(gvId) || {
-				global_virtual_id: gvId,
-				total_visits: 0,
-				first_seen: undefined,
-				last_seen: undefined,
-				detections: []
-			};
-			existing.total_visits += 1;
-			const ts = item.timestamp;
-			if (!existing.first_seen || (ts && ts < existing.first_seen)) existing.first_seen = ts;
-			if (!existing.last_seen || (ts && ts > existing.last_seen)) existing.last_seen = ts;
-			existing.detections.push({
-				...item,
-				camera_name: cameraMap.get(String(item.camera_id))?.name ?? 'Unknown'
-			});
-			grouped.set(gvId, existing);
-		});
-
-		const data = Array.from(grouped.values());
-
-		return res.status(200).json({
-			success: true,
-			data,
-			total: data.length,
-			truncated:
-				detectionsRes.hits?.total &&
-				typeof detectionsRes.hits.total === 'object' &&
-				'value' in detectionsRes.hits.total
-					? detectionsRes.hits.total.value > maxRecords
-					: false
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * ===================================
- * FACE COUNTING ROUTES
- * ===================================
- */
-
-/**
- * POST /face-count/unique-today
- * Get count of unique unknown faces detected today
- *
- * Returns:
- * - unique_faces: Number of unique unknown faces detected today
- * - total_visits: Total number of face detections/visits today
- * - cameras: Array of per-camera breakdown
- */
-router.post('/face-count/unique-today', async (req: Request, res, next) => {
-	try {
-		const { cameras } = req.body;
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-
-		// Get today's date range
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
-		const todayStart = today.getTime();
-		const todayEnd = todayStart + 24 * 60 * 60 * 1000 - 1;
-
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		const query = {
-			index: faceCountIndex,
-			size: 0,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: [{ range: { timestamp: { gte: todayStart, lte: todayEnd } } }, ...camera_filter]
-				}
-			},
-			aggs: {
-				unique_faces: {
-					cardinality: {
-						field: 'global_virtual_id'
-					}
-				},
-				total_visits: {
-					value_count: {
-						field: 'timestamp'
-					}
-				},
-				by_camera: {
-					terms: {
-						field: 'camera_id.keyword',
-						size: 1000
-					},
-					aggs: {
-						unique_faces: {
-							cardinality: {
-								field: 'global_virtual_id'
-							}
-						}
-					}
-				}
-			}
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: {
-						unique_faces: 0,
-						total_visits: 0,
-						cameras: []
-					}
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const aggs = esResponse.aggregations as any;
-
-		// Get camera names
-		const cameraIds = (aggs?.by_camera?.buckets ?? []).map((b: any) => b.key);
-		const cameraMap = await loadCameraMap(cameraIds);
-
-		// Format per-camera breakdown
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const cameraBreakdown = (aggs?.by_camera?.buckets ?? []).map((bucket: any) => {
-			const cameraId = String(bucket.key);
-			const camera = cameraMap.get(cameraId);
-			return {
-				camera_id: cameraId,
-				camera_name: camera?.name ?? 'Unknown',
-				unique_faces: bucket.unique_faces?.value ?? 0,
-				total_visits: bucket.doc_count ?? 0
-			};
-		});
-
-		return res.status(200).json({
-			success: true,
-			data: {
-				unique_faces: aggs?.unique_faces?.value ?? 0,
-				total_visits: aggs?.total_visits?.value ?? 0,
-				cameras: cameraBreakdown
-			}
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /face-count/person-visits
- * Get visit count for a specific unknown person (identified by global_virtual_id)
- *
- * Request body:
- * - global_virtual_id: Required - ID of the unknown person to count visits for
- * - date_start, date_end: Optional - Date range filter
- * - time_start, time_end: Optional - Time range filter
- * - cameras: Optional - Array of camera IDs to filter
- * - timez: Optional - Timezone (default: Asia/Tehran)
- *
- * Returns:
- * - global_virtual_id: The person's virtual ID
- * - visit_count: Total number of visits/detections
- * - first_seen: First detection timestamp
- * - last_seen: Last detection timestamp
- * - cameras: Array of per-camera visit counts
- */
-router.post('/face-count/person-visits', async (req: Request, res, next) => {
-	try {
-		const { global_virtual_id, date_start, date_end, time_start, time_end, cameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-
-		if (!global_virtual_id) {
-			return res.status(400).json({
-				success: false,
-				message: 'global_virtual_id is required'
-			});
-		}
-
-		// Build time range constraints
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		const query = {
-			index: faceCountIndex,
-			size: 0,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: [
-						...time_constraints,
-						...camera_filter,
-						{ term: { global_virtual_id: String(global_virtual_id) } }
-					]
-				}
-			},
-			aggs: {
-				first_seen: { min: { field: 'timestamp' } },
-				last_seen: { max: { field: 'timestamp' } },
-				by_camera: {
-					terms: {
-						field: 'camera_id.keyword',
-						size: 1000
-					}
-				}
-			}
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: {
-						global_virtual_id: String(global_virtual_id),
-						visit_count: 0,
-						first_seen: null,
-						last_seen: null,
-						cameras: []
-					}
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const aggs = esResponse.aggregations as any;
-		const totalHits =
-			esResponse.hits?.total && typeof esResponse.hits.total === 'object' && 'value' in esResponse.hits.total
-				? esResponse.hits.total.value
-				: 0;
-
-		// Get camera names
-		const cameraIds = (aggs?.by_camera?.buckets ?? []).map((b: any) => b.key);
-		const cameraMap = await loadCameraMap(cameraIds);
-
-		// Format per-camera breakdown
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const cameraBreakdown = (aggs?.by_camera?.buckets ?? []).map((bucket: any) => {
-			const cameraId = String(bucket.key);
-			const camera = cameraMap.get(cameraId);
-			return {
-				camera_id: cameraId,
-				camera_name: camera?.name ?? 'Unknown',
-				visit_count: bucket.doc_count ?? 0
-			};
-		});
-
-		const firstSeen = aggs?.first_seen?.value
-			? new Date(aggs.first_seen.value).toLocaleString('en-US', { timeZone: timezone })
-			: null;
-		const lastSeen = aggs?.last_seen?.value
-			? new Date(aggs.last_seen.value).toLocaleString('en-US', { timeZone: timezone })
-			: null;
-
-		return res.status(200).json({
-			success: true,
-			data: {
-				global_virtual_id: String(global_virtual_id),
-				visit_count: totalHits,
-				first_seen: firstSeen,
-				last_seen: lastSeen,
-				cameras: cameraBreakdown
-			}
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /face-count/visits-by-global-virtual-id
- * Get all paginated visit records for a specific global_virtual_id
- *
- * Request body:
- * - global_virtual_id: Required - ID of the unknown person to get visits for
- * - date_start, date_end: Optional - Date range filter
- * - time_start, time_end: Optional - Time range filter
- * - cameras: Optional - Array of camera IDs to filter
- * - page: Optional - Page number (default: 1)
- * - limit: Optional - Results per page (default: 50, max: 1000)
- * - sort_by: Optional - Sort field: 'timestamp', 'visit_number', 'match_score' (default: 'timestamp')
- * - sort_dir: Optional - Sort direction: 'asc' or 'desc' (default: 'desc')
- * - timez: Optional - Timezone (default: Asia/Tehran)
- *
- * Returns:
- * - data: Array of all visit records for the given global_virtual_id
- * - total: Total number of records
- * - page: Current page number
- * - size: Results per page
- */
-router.post('/face-count/visits-by-global-virtual-id', async (req: Request, res, next) => {
-	try {
-		const { global_virtual_id, date_start, date_end, time_start, time_end, cameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-
-		if (!global_virtual_id) {
-			return res.status(400).json({
-				success: false,
-				message: 'global_virtual_id is required'
-			});
-		}
-
-		const page = Math.max(1, Number(req.body.page) || 1);
-		const size = Math.min(1000, Number(req.body.limit) || 50);
-		const from = (page - 1) * size;
-
-		const allowedSortFields = new Set(['timestamp', 'visit_number', 'match_score']);
-		const sortByRaw = typeof req.body.sort_by === 'string' ? req.body.sort_by : 'timestamp';
-		const sortBy = allowedSortFields.has(sortByRaw) ? sortByRaw : 'timestamp';
-		const sortDirection = req.body.sort_dir === 'asc' ? 'asc' : 'desc';
-
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		// Build must clauses
-		const mustClauses = [...time_constraints, { term: { global_virtual_id: String(global_virtual_id) } }];
-		if (camera_filter && camera_filter.length > 0) {
-			mustClauses.push(...camera_filter);
-		}
-
-		const visitMin = Number(req.body.visit_number_min);
-		const visitMax = Number(req.body.visit_number_max);
-		const visitRange: Record<string, number> = {};
-		if (!Number.isNaN(visitMin) && req.body.visit_number_min !== undefined) visitRange.gte = visitMin;
-		if (!Number.isNaN(visitMax) && req.body.visit_number_max !== undefined) visitRange.lte = visitMax;
-
-		const visitConstraint =
-			Object.keys(visitRange).length > 0 ? [{ range: { visit_number: visitRange } }] : [];
-
-		if (visitConstraint.length > 0) {
-			mustClauses.push(...visitConstraint);
-		}
-
-		const query = {
-			index: faceCountIndex,
-			size,
-			from,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: mustClauses
-				}
-			},
-			sort: [{ [sortBy]: { order: sortDirection } }]
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: [],
-					total: 0,
-					page,
-					size
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const hits = (esResponse.hits?.hits ?? []) as any[];
-		const data = hits.map((hit) => ({
-			_id: hit._id,
-			...(hit._source ?? {})
-		}));
-
-		const cameraIds = Array.from(
-			new Set(data.map((item) => String(item.camera_id)).filter((id) => id && id !== 'undefined'))
-		);
-		const cameraMap = await loadCameraMap(cameraIds);
-
-		const enriched = data.map((item) => ({
-			...item,
-			camera_name: cameraMap.get(String(item.camera_id))?.name ?? 'Unknown'
-		}));
-
-		const total =
-			esResponse.hits?.total && typeof esResponse.hits.total === 'object' && 'value' in esResponse.hits.total
-				? esResponse.hits.total.value
-				: enriched.length;
-
-		return res.status(200).json({
-			success: true,
-			data: enriched,
-			total,
-			page,
-			size,
-			total_pages: Math.ceil(total / size)
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /face-count/list-unknown-faces
- * Get paginated list of unknown face records from face_count index
- * Can filter by global_virtual_id to see details of a specific person
- *
- * Request body:
- * - global_virtual_id: Optional - Filter by specific unknown person's virtual ID
- * - date_start, date_end: Optional - Date range filter
- * - time_start, time_end: Optional - Time range filter
- * - cameras: Optional - Array of camera IDs to filter
- * - page: Optional - Page number (default: 1)
- * - limit: Optional - Results per page (default: 50, max: 1000)
- * - sort_by: Optional - Sort field: 'timestamp', 'visit_number', 'match_score' (default: 'timestamp')
- * - sort_dir: Optional - Sort direction: 'asc' or 'desc' (default: 'desc')
- * - timez: Optional - Timezone (default: Asia/Tehran)
- *
- * Returns:
- * - data: Array of face detection records
- * - total: Total number of records
- * - page: Current page number
- * - size: Results per page
- */
-router.post('/face-count/list-unknown-faces', async (req: Request, res, next) => {
-	try {
-		const { global_virtual_id, date_start, date_end, time_start, time_end, cameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-
-		const page = Math.max(1, Number(req.body.page) || 1);
-		const size = Math.min(1000, Number(req.body.limit) || 50);
-		const from = (page - 1) * size;
-
-		const allowedSortFields = new Set(['timestamp', 'visit_number', 'match_score']);
-		const sortByRaw = typeof req.body.sort_by === 'string' ? req.body.sort_by : 'timestamp';
-		const sortBy = allowedSortFields.has(sortByRaw) ? sortByRaw : 'timestamp';
-		const sortDirection = req.body.sort_dir === 'asc' ? 'asc' : 'desc';
-
-		const time_constraints = buildTimeConstraints(
-			date_start,
-			date_end,
-			time_start,
-			time_end,
-			timezone,
-			req.body.time_filter
-		);
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		// Build must clauses
-		const mustClauses = [...time_constraints];
-		if (camera_filter && camera_filter.length > 0) {
-			mustClauses.push(...camera_filter);
-		}
-
-		// Add global_virtual_id filter if provided
-		if (global_virtual_id) {
-			mustClauses.push({ term: { global_virtual_id: String(global_virtual_id) } });
-		}
-
-		const visitMin = Number(req.body.visit_number_min);
-		const visitMax = Number(req.body.visit_number_max);
-		const visitRange: Record<string, number> = {};
-		if (!Number.isNaN(visitMin) && req.body.visit_number_min !== undefined) visitRange.gte = visitMin;
-		if (!Number.isNaN(visitMax) && req.body.visit_number_max !== undefined) visitRange.lte = visitMax;
-
-		const visitConstraint =
-			Object.keys(visitRange).length > 0 ? [{ range: { visit_number: visitRange } }] : [];
-
-		if (visitConstraint.length > 0) {
-			mustClauses.push(...visitConstraint);
-		}
-
-		// Use aggregations to group by global_virtual_id and get latest record for each group
-		const query = {
-			index: faceCountIndex,
-			size: 0,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: mustClauses
-				}
-			},
-			aggs: {
-				by_global_virtual_id: {
-					terms: {
-						field: 'global_virtual_id',
-						size: 10000, // Get all unique global_virtual_ids
-						order: { _key: 'asc' }
-					},
-					aggs: {
-						latest_record: {
-							top_hits: {
-								size: 1,
-								sort: [{ visit_number: { order: 'desc' } }, { timestamp: { order: 'desc' } }]
-							}
-						}
-					}
-				}
-			}
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: [],
-					total: 0,
-					page,
-					size
-				});
-			}
-			throw searchErr;
-		}
-
-		// Extract data from aggregations
-		const aggs = esResponse.aggregations as any;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const buckets = (aggs?.by_global_virtual_id?.buckets ?? []) as any[];
-
-		// Extract the latest record from each bucket
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const allData: any[] = [];
-		for (const bucket of buckets) {
-			const latestHits = bucket.latest_record?.hits?.hits ?? [];
-			if (latestHits.length > 0) {
-				const hit = latestHits[0];
-				allData.push({
-					_id: hit._id,
-					...(hit._source ?? {})
-				});
-			}
-		}
-
-		// Apply sorting to the grouped results
-		allData.sort((a, b) => {
-			const aVal = a[sortBy];
-			const bVal = b[sortBy];
-			if (aVal === undefined || aVal === null) return 1;
-			if (bVal === undefined || bVal === null) return -1;
-			if (sortDirection === 'asc') {
-				return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-			} else {
-				return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
-			}
-		});
-
-		// Apply pagination
-		const total = allData.length;
-		const paginatedData = allData.slice(from, from + size);
-
-		const cameraIds = Array.from(
-			new Set(paginatedData.map((item) => String(item.camera_id)).filter((id) => id && id !== 'undefined'))
-		);
-		const cameraMap = await loadCameraMap(cameraIds);
-
-		const enriched = paginatedData.map((item) => ({
-			...item,
-			camera_name: cameraMap.get(String(item.camera_id))?.name ?? 'Unknown'
-		}));
-
-		return res.status(200).json({
-			success: true,
-			data: enriched,
-			total,
-			page,
-			size,
-			total_pages: Math.ceil(total / size)
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
- * POST /face-count/realtime-per-camera
- * Get real-time unknown face count per camera (last 1 hour)
- *
- * Returns:
- * - cameras: Array of camera breakdowns with:
- *   - camera_id, camera_name
- *   - unique_faces: Number of unique unknown faces in last hour
- *   - total_visits: Total visits/detections in last hour
- *   - last_detection: Timestamp of most recent detection
- */
-router.post('/face-count/realtime-per-camera', async (req: Request, res, next) => {
-	try {
-		const { cameras, timez } = req.body;
-		const timezone = timez && timez.trim() !== '' ? timez : 'Asia/Tehran';
-		const faceCountIndex: string = process.env['FACE_COUNT_INDEX'] ?? 'face_count';
-
-		// Last 1 hour
-		const now = Date.now();
-		const oneHourAgo = now - 60 * 60 * 1000;
-
-		const camera_filter = buildCameraFilter(req, cameras);
-
-		// Build must clauses - ensure camera_filter is not empty or causing issues
-		const mustClauses = [{ range: { timestamp: { gte: oneHourAgo, lte: now } } }];
-		if (camera_filter && camera_filter.length > 0) {
-			mustClauses.push(...camera_filter);
-		}
-
-		const query = {
-			index: faceCountIndex,
-			size: 0,
-			track_total_hits: true,
-			query: {
-				bool: {
-					must: mustClauses
-				}
-			},
-			aggs: {
-				by_camera: {
-					terms: {
-						field: 'camera_id.keyword',
-						size: 1000
-					},
-					aggs: {
-						unique_faces: {
-							cardinality: {
-								field: 'global_virtual_id'
-							}
-						},
-						last_detection: {
-							max: {
-								field: 'timestamp'
-							}
-						}
-					}
-				}
-			}
-		};
-
-		let esResponse;
-		try {
-			esResponse = await process.esclient.search(query);
-		} catch (searchErr: unknown) {
-			if (isIndexNotFoundError(searchErr)) {
-				return res.status(200).json({
-					success: true,
-					data: {
-						cameras: [],
-						time_range: {
-							start: new Date(oneHourAgo).toLocaleString('en-US', { timeZone: timezone }),
-							end: new Date(now).toLocaleString('en-US', { timeZone: timezone })
-						}
-					}
-				});
-			}
-			throw searchErr;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const aggs = esResponse.aggregations as any;
-
-		if (!aggs?.by_camera?.buckets || aggs.by_camera.buckets.length === 0) {
-			return res.status(200).json({
-				success: true,
-				data: {
-					cameras: [],
-					time_range: {
-						start: new Date(oneHourAgo).toLocaleString('en-US', { timeZone: timezone }),
-						end: new Date(now).toLocaleString('en-US', { timeZone: timezone })
-					}
-				}
-			});
-		}
-
-		// Get camera names
-		const cameraIds = (aggs.by_camera.buckets ?? []).map((b: any) => b.key);
-		const cameraMap = await loadCameraMap(cameraIds);
-
-		// Format camera breakdown
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const cameraBreakdown = (aggs.by_camera.buckets ?? []).map((bucket: any) => {
-			const cameraId = String(bucket.key);
-			const camera = cameraMap.get(cameraId);
-			const lastDetection = bucket.last_detection?.value
-				? new Date(bucket.last_detection.value).toLocaleString('en-US', { timeZone: timezone })
-				: null;
-
-			return {
-				camera_id: cameraId,
-				camera_name: camera?.name ?? 'Unknown',
-				unique_faces: bucket.unique_faces?.value ?? 0,
-				total_visits: bucket.doc_count ?? 0,
-				last_detection: lastDetection
-			};
-		});
-
-		return res.status(200).json({
-			success: true,
-			data: {
-				cameras: cameraBreakdown,
-				time_range: {
-					start: new Date(oneHourAgo).toLocaleString('en-US', { timeZone: timezone }),
-					end: new Date(now).toLocaleString('en-US', { timeZone: timezone })
-				}
-			}
-		});
-	} catch (err) {
-		return next(
-			new ApiError(500, 'Internal server error: ' + (err instanceof Error ? err.message : 'Unknown error'))
-		);
-	}
-});
-
-/**
  * ===================================
  * HUMAN COUNT ANALYTICS ENDPOINTS
  * ===================================
@@ -5767,19 +4429,24 @@ function buildTimeConstraints(
 	time_start: string | undefined,
 	time_end: string | undefined,
 	timezone: string,
-	time_filter: boolean = true
+	time_filter: boolean | string | number | undefined = true
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any[] {
 	const time_constraints = [];
+	const normalizedDateStart = normalizeDateInput(date_start);
+	const normalizedDateEnd = normalizeDateInput(date_end);
+	const normalizedTimeStart = normalizeClockInput(time_start, '00:00');
+	const normalizedTimeEnd = normalizeClockInput(time_end, '23:59');
+	const useSingleRange = parseBooleanInput(time_filter, true);
 
-	if (date_start && date_end) {
-		if (time_filter) {
+	if (normalizedDateStart && normalizedDateEnd) {
+		if (useSingleRange) {
 			// Single time range
 			const time_range = Time.getSingleTimeRange(
-				date_start,
-				date_end,
-				time_start ?? '00:00',
-				time_end ?? '23:59',
+				normalizedDateStart,
+				normalizedDateEnd,
+				normalizedTimeStart,
+				normalizedTimeEnd,
 				timezone
 			);
 			time_constraints.push({
@@ -5788,10 +4455,10 @@ function buildTimeConstraints(
 		} else {
 			// Multiple daily time ranges
 			const times_epoch = Time.getEpochList(
-				date_start,
-				date_end,
-				(time_start ?? '00:00') as Clock,
-				(time_end ?? '23:59') as Clock,
+				normalizedDateStart,
+				normalizedDateEnd,
+				normalizedTimeStart as Clock,
+				normalizedTimeEnd as Clock,
 				timezone
 			);
 
@@ -5815,20 +4482,21 @@ function buildTimeConstraints(
  * Build camera access filter based on user role and permissions
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildCameraFilter(req: Request, cameras?: string[]): any[] {
+function buildCameraFilter(req: Request, cameras?: unknown): any[] {
+	const requestedCameras = resolveRequestedCameras(req, cameras);
 	const cameraAccess = Array.isArray(req.user.camera_access) ? req.user.camera_access : [];
 	const userCameras = cameraAccess.length ? cameraAccess.map((el) => el.toString()) : ["who's daddy"]; // Impossible value to return no results if no access
 
 	// Filter requested cameras to only those user has access to
-	const allowedSearchedCameras = cameras
-		? cameras.filter((cam: string) => userCameras.includes(cam)).concat(["who's daddy"])
+	const allowedSearchedCameras = requestedCameras
+		? requestedCameras.filter((cam: string) => userCameras.includes(cam)).concat(["who's daddy"])
 		: ["who's daddy"];
 
 	// Final camera list depends on user role and whether cameras were specified
 	const finalCameras =
 		req.user.role === 'admin'
-			? (cameras ?? []) // Admin can use requested cameras directly
-			: cameras?.length
+			? (requestedCameras ?? []) // Admin can use requested cameras directly
+			: requestedCameras?.length
 				? allowedSearchedCameras // Non-admin gets filtered list
 				: userCameras; // Default to user's access list
 
@@ -5846,6 +4514,100 @@ function buildCameraFilter(req: Request, cameras?: string[]): any[] {
 			}
 		}
 	];
+}
+
+function normalizeDateInput(value: unknown): string | undefined {
+	if (typeof value !== 'string') return undefined;
+	const trimmed = value.trim();
+	if (!trimmed) return undefined;
+	if (trimmed.includes('/')) return trimmed;
+	if (trimmed.includes('-')) return trimmed.replace(/-/g, '/');
+	return trimmed;
+}
+
+function normalizeClockInput(value: unknown, fallback: Clock): string {
+	if (typeof value !== 'string') return fallback;
+	const trimmed = value.trim();
+	if (!trimmed) return fallback;
+	const parts = trimmed.split(':');
+	if (parts.length < 2) return fallback;
+	const hh = parts[0]?.padStart(2, '0');
+	const mm = parts[1]?.slice(0, 2).padStart(2, '0');
+	if (!hh || !mm) return fallback;
+	return `${hh}:${mm}`;
+}
+
+function parseBooleanInput(value: unknown, fallback: boolean): boolean {
+	if (typeof value === 'boolean') return value;
+	if (typeof value === 'number') return value !== 0;
+	if (typeof value === 'string') {
+		const normalized = value.trim().toLowerCase();
+		if (['true', '1', 'yes'].includes(normalized)) return true;
+		if (['false', '0', 'no'].includes(normalized)) return false;
+	}
+	return fallback;
+}
+
+function resolveUnknownFaceIntervalHours(value: unknown): number {
+	const parsed = Number(value);
+	if (Number.isFinite(parsed) && UNKNOWN_FACE_HOURLY_INTERVALS.includes(parsed as 1 | 4 | 12 | 24)) {
+		return parsed;
+	}
+	return 1;
+}
+
+function parseCameraArray(value: unknown): string[] | undefined {
+	if (Array.isArray(value)) {
+		const parsed = value.map((cameraId) => String(cameraId).trim()).filter((cameraId) => cameraId.length > 0);
+		return parsed.length ? parsed : undefined;
+	}
+
+	if (typeof value === 'string') {
+		const trimmed = value.trim();
+		if (!trimmed) return undefined;
+
+		try {
+			const parsedJson = JSON.parse(trimmed);
+			if (Array.isArray(parsedJson)) {
+				const parsed = parsedJson
+					.map((cameraId) => String(cameraId).trim())
+					.filter((cameraId) => cameraId.length > 0);
+				return parsed.length ? parsed : undefined;
+			}
+		} catch {
+			// Not JSON, continue with comma-separated parsing
+		}
+
+		const parsed = trimmed
+			.split(',')
+			.map((cameraId) => cameraId.trim())
+			.filter((cameraId) => cameraId.length > 0);
+		return parsed.length ? parsed : undefined;
+	}
+
+	return undefined;
+}
+
+function resolveRequestedCameras(req: Request, cameras?: unknown): string[] | undefined {
+	const body = (req.body ?? {}) as Record<string, unknown>;
+	const candidates: unknown[] = [
+		cameras,
+		body.cameras,
+		body.camera_ids,
+		body.cameraIds,
+		body.routes,
+		body.route_ids,
+		body.routeIds
+	];
+
+	for (const candidate of candidates) {
+		const parsed = parseCameraArray(candidate);
+		if (parsed && parsed.length > 0) {
+			return parsed;
+		}
+	}
+
+	return undefined;
 }
 
 /**

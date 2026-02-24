@@ -79,6 +79,31 @@ interface FaceVectorData {
 	personnel_id?: string;
 }
 
+function parseTimestampToMs(timestamp: string | undefined): number {
+	if (!timestamp || typeof timestamp !== 'string') return 0;
+	const parsed = new Date(timestamp).getTime();
+	return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function deduplicateFacesByLogId(faces: FaceVectorData[]): FaceVectorData[] {
+	const uniqueFaces = new Map<string, FaceVectorData>();
+
+	for (const face of faces) {
+		const current = uniqueFaces.get(face._id);
+		if (!current) {
+			uniqueFaces.set(face._id, face);
+			continue;
+		}
+
+		// Keep the newest document per log_id when duplicates appear.
+		if (parseTimestampToMs(face.timestamp) >= parseTimestampToMs(current.timestamp)) {
+			uniqueFaces.set(face._id, face);
+		}
+	}
+
+	return Array.from(uniqueFaces.values());
+}
+
 export class IncrementalClusterCacheService {
 	private logger: Logger;
 	private readonly similarityThreshold: number;
@@ -272,6 +297,10 @@ export class IncrementalClusterCacheService {
 		newFaces: FaceVectorData[]
 	): Promise<{ clusters: ClusterState[]; metadata: IncrementalMetadata }> {
 		const startTime = Date.now();
+		const uniqueNewFaces = deduplicateFacesByLogId(newFaces);
+		const duplicateCount = newFaces.length - uniqueNewFaces.length;
+		const uniqueLogIdsCount = new Set(uniqueNewFaces.map((face) => face._id)).size;
+		const hasUniqueLogIds = uniqueLogIdsCount === uniqueNewFaces.length;
 
 		// Get existing state
 		const { clusters: existingClusters, metadata: existingMetadata } = await this.getClusterState(
@@ -282,13 +311,16 @@ export class IncrementalClusterCacheService {
 		this.logger.info('Starting incremental update (Worker Thread)', {
 			endpoint,
 			existingClusters: existingClusters.length,
-			newFaces: newFaces.length
+			newFaces: uniqueNewFaces.length,
+			duplicateFacesSkipped: duplicateCount,
+			uniqueLogIds: uniqueLogIdsCount,
+			uniqueLogIdsCheck: hasUniqueLogIds ? 'PASS' : 'FAIL'
 		});
 
 		// Run clustering in worker thread (non-blocking)
 		const { clusters, newClustersCreated, facesAssignedToExisting } = await this.runClusteringInWorker(
 			existingClusters,
-			newFaces
+			uniqueNewFaces
 		);
 
 		// Update metadata
@@ -296,9 +328,9 @@ export class IncrementalClusterCacheService {
 		const defaultTimestamp = new Date().toISOString();
 		let latestTimestamp = defaultTimestamp;
 
-		if (newFaces.length > 0) {
+		if (uniqueNewFaces.length > 0) {
 			// Find the max timestamp from new faces, validating each one
-			const validTimestamps = newFaces
+			const validTimestamps = uniqueNewFaces
 				.map((face) => face.timestamp)
 				.filter((ts) => ts && typeof ts === 'string' && !isNaN(new Date(ts).getTime()));
 
@@ -317,7 +349,7 @@ export class IncrementalClusterCacheService {
 			lastProcessedTimestamp: latestTimestamp,
 			lastRefreshTime: new Date().toISOString(),
 			totalClusters: clusters.length,
-			totalFacesProcessed: (existingMetadata?.totalFacesProcessed || 0) + newFaces.length,
+			totalFacesProcessed: (existingMetadata?.totalFacesProcessed || 0) + uniqueNewFaces.length,
 			version: (existingMetadata?.version || 0) + 1
 		};
 
@@ -326,7 +358,10 @@ export class IncrementalClusterCacheService {
 		this.logger.info('Incremental update completed', {
 			endpoint,
 			duration,
-			newFacesProcessed: newFaces.length,
+			newFacesProcessed: uniqueNewFaces.length,
+			duplicateFacesSkipped: duplicateCount,
+			uniqueLogIds: uniqueLogIdsCount,
+			uniqueLogIdsCheck: hasUniqueLogIds ? 'PASS' : 'FAIL',
 			newClustersCreated,
 			facesAssignedToExisting,
 			totalClusters: clusters.length,

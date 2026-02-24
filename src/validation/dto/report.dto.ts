@@ -119,6 +119,9 @@ export class AnalyticsBody {
 	@IsBoolean()
 	time_filter?: boolean;
 	@IsOptional()
+	@IsNumber()
+	interval?: number;
+	@IsOptional()
 	@IsString()
 	sort_by?: string;
 }
