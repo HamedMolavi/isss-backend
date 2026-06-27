@@ -167,21 +167,43 @@ export function stringPlateToJson(plate_number: string) {
 	};
 }
 
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function stringPersianToStringEnglish(plate_number: string, options?: { forceValidation?: boolean }): string {
 	if (typeof plate_number !== 'string') return '';
-	else {
-		const plateArray = plate_number.split('');
-		for (const [indx, letter] of plateArray.entries()) {
-			if (Object.prototype.hasOwnProperty.call(englishPlateDict, letter)) {
-				plateArray[indx] = englishPlateDict[letter];
-			} else if (Object.prototype.hasOwnProperty.call(DIGITS, letter)) {
-				plateArray[indx] = DIGITS[letter];
-			} else if (!Object.prototype.hasOwnProperty.call(persianPlateDict, letter) && options?.forceValidation) {
-				return ''
-			}
-		}
-		return plateArray.join('');
+
+	let normalized = plate_number
+		.replace(/\u200c/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+
+	const compositeTokens = Object.keys(englishPlateDict)
+		.filter((token) => token.length > 1)
+		.sort((a, b) => b.length - a.length);
+
+	for (const token of compositeTokens) {
+		normalized = normalized.replace(new RegExp(escapeRegExp(token), 'g'), englishPlateDict[token]);
 	}
+
+	normalized = normalized
+		.replace(/[|/\\\-_,.()[\]{}:;"'`~]/g, '')
+		.replace(/\s+/g, '');
+
+	const plateArray = normalized.split('');
+	for (const [indx, letter] of plateArray.entries()) {
+		if (Object.prototype.hasOwnProperty.call(englishPlateDict, letter)) {
+			plateArray[indx] = englishPlateDict[letter];
+		} else if (Object.prototype.hasOwnProperty.call(DIGITS, letter)) {
+			plateArray[indx] = DIGITS[letter];
+		} else if (/[a-zA-Z]/.test(letter) && Object.prototype.hasOwnProperty.call(persianPlateDict, letter.toUpperCase())) {
+			plateArray[indx] = letter.toUpperCase();
+		} else if (!Object.prototype.hasOwnProperty.call(persianPlateDict, letter) && options?.forceValidation) {
+			return '';
+		}
+	}
+	return plateArray.join('');
 }
 export function stringEnglishToStringPersian(plate_number: string): string {
 	if (typeof plate_number !== 'string') return '';

@@ -1,11 +1,10 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { persianPlateDict, englishPlateDict } from '../../tools/plate.tools';
+import { Router } from 'express';
+import { stringPersianToStringEnglish } from '../../tools/plate.tools';
 import Car from '../../db/mongo/models/car';
 import { dtoValidationMiddleware } from '../../validation/dto';
 import { CreateCarBody } from '../../validation/dto/car.dto';
 import { existCheck } from '../../validation/db';
 import { createMiddleware } from '../../db/mongo/create.database';
-import { ICar } from '../../types/interfaces/car.interface';
 import { readByIdMiddleware, readMiddleware } from '../../db/mongo/read.database';
 import { updateByIdMiddleware } from '../../db/mongo/update.database';
 import { deleteByIdMiddleware } from '../../db/mongo/delete.database';
@@ -16,6 +15,8 @@ import { accessCheck } from '../../authentication/accessCheck.auth';
 
 //create router for add to routes file
 const router: Router = Router();
+
+const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Apply access check middleware to all car routes
 router.use(accessCheck('car'));
@@ -29,19 +30,19 @@ router.post(
 		info: 'please fill all fields'
 	}),
 	// TODO: validate plateObj.second is defined in englishPlateDict
-	existCheck(
-		Car,
-		(body: { [key: string]: any }) => {
-			return { number_plate: stringifyPlate(body) };
-		},
-		'Car already exists!'
-	),
+		existCheck(
+			Car,
+			(body: { number_plate?: { [key: string]: string } }) => {
+				return { number_plate: stringifyPlate(body) };
+			},
+			'Car already exists!'
+		),
 	injectDataMiddleware(allowedPassConvert, { injData: 'allowed_pass' }),
-	createMiddleware(
-		[
-			'owner',
-			{ number_plate: (body: { [key: string]: any }) => stringifyPlate(body) },
-			'brand',
+		createMiddleware(
+			[
+				'owner',
+				{ number_plate: (body: { number_plate?: { [key: string]: string } }) => stringifyPlate(body) },
+				'brand',
 			'color',
 			'camera_whitelist',
 			'schedule_whitelist',
@@ -62,33 +63,49 @@ router.get(
 	'',
 	readMiddleware(
 		Car,
-		(search) => [
-			{
-				$lookup: {
-					from: 'Personnel',
-					localField: 'owner',
-					foreignField: '_id',
-					as: 'owner_info'
+		(search) => {
+			const rawSearch = search.trim();
+			const escapedSearch = escapeRegex(rawSearch);
+			const normalizedSearch = stringPersianToStringEnglish(rawSearch);
+			const plateSearchTerms = new Set<string>();
+			if (rawSearch) plateSearchTerms.add(rawSearch);
+			if (normalizedSearch) plateSearchTerms.add(normalizedSearch);
+
+			return [
+				{
+					$lookup: {
+						from: 'Personnel',
+						localField: 'owner',
+						foreignField: '_id',
+						as: 'owner_info'
+					}
+				},
+				{
+					$unwind: {
+						path: '$owner_info',
+						preserveNullAndEmptyArrays: true
+					}
+				},
+				{
+					$match: {
+						$or: [
+							...Array.from(plateSearchTerms).map((term) => ({
+								number_plate: { $regex: escapeRegex(term), $options: 'i' }
+							})),
+							{ 'owner_info.first_name': { $regex: escapedSearch, $options: 'i' } },
+							{ 'owner_info.last_name': { $regex: escapedSearch, $options: 'i' } },
+							{ 'owner_info.national_code': { $regex: escapedSearch, $options: 'i' } },
+							{ 'owner_info.personnel_code': { $regex: escapedSearch, $options: 'i' } }
+						]
+					}
+				},
+				{
+					$project: {
+						owner_info: 0 // remove lookup field to return only Car fields
+					}
 				}
-			},
-			{ $unwind: '$owner_info' },
-			{
-				$match: {
-					$or: [
-						{ number_plate: { $regex: search, $options: 'i' } },
-						{ 'owner_info.first_name': { $regex: search, $options: 'i' } },
-						{ 'owner_info.last_name': { $regex: search, $options: 'i' } },
-						{ 'owner_info.national_code': { $regex: search, $options: 'i' } },
-						{ 'owner_info.personnel_code': { $regex: search, $options: 'i' } }
-					]
-				}
-			},
-			{
-				$project: {
-					owner_info: 0 // remove lookup field to return only Car fields
-				}
-			}
-		],
+			];
+		},
 		{ populate: true, send: carSendFunction, aggregate: true }
 	)
 );

@@ -12,8 +12,15 @@ import PersonImage from '../db/mongo/models/personImage';
 import mongoose from 'mongoose';
 import { hashString } from '../tools/hash';
 import { resizeImage } from '../tools/utils.tools';
+import Car from '../db/mongo/models/car';
+import CarBrand from '../db/mongo/models/carBrand';
+import CarColor from '../db/mongo/models/carColor';
+import { stringPersianToStringEnglish, stringPlateToJson } from '../tools/plate.tools';
+import { DataImportExportLogger } from '../logger/data-input-output.logger';
 
 const SECRET = process.env['SESSION_SECRET'];
+
+const escapeRegexValue = (input: string): string => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * Process face recognition for a base64 image using Kafka
@@ -270,6 +277,234 @@ export const uploadBase64ImageToS3 = async (
 			folder: folder
 		});
 		throw new Error('Failed to upload base64 image to S3');
+	}
+};
+
+export const batch_plate_add = async (req: Request, res: Response) => {
+	try {
+		let plates;
+		try {
+			plates = typeof req.body.plates === 'string' ? JSON.parse(req.body.plates) : req.body.plates;
+		} catch {
+			return ApiRes(res, {
+				status: 400,
+				msg: 'Invalid plates data format. Expected JSON array.'
+			});
+		}
+
+		const validate = new Validator(
+			{
+				plates
+			},
+			{
+				plates: ['required', 'array']
+			}
+		);
+
+		if (validate.fails()) {
+			return ApiRes(res, {
+				status: 412,
+				msg: JSON.stringify(validate.errors.all())
+			});
+		}
+
+		const fallbackColor = await CarColor.findOne({ name: { $regex: '^unknown$', $options: 'i' } }).lean().exec();
+		const fallbackBrand = await CarBrand.findOne({ name: { $regex: '^unknown$', $options: 'i' } }).lean().exec();
+
+		const results: Array<{
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			car: any;
+		}> = [];
+		const errors: Array<{
+			index: number;
+			plate_number: string;
+			personnel_code?: string;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			errors?: any;
+			error?: string;
+		}> = [];
+
+		const inRequestSeenPlate = new Set<string>();
+
+		for (let i = 0; i < plates.length; i++) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const plate = plates[i] as any;
+			const rawPlateNumber = String(plate?.plate_number ?? '').trim();
+			const personnelCode = String(plate?.personnel_code ?? '').trim();
+
+			const rowValidate = new Validator(
+				{
+					plate_number: rawPlateNumber,
+					personnel_code: personnelCode,
+					brand: plate?.brand,
+					color: plate?.color
+				},
+				{
+					plate_number: ['required', 'string'],
+					personnel_code: ['required', 'string'],
+					brand: ['string'],
+					color: ['string']
+				}
+			);
+
+			if (rowValidate.fails()) {
+				errors.push({
+					index: i,
+					plate_number: rawPlateNumber,
+					personnel_code: personnelCode || undefined,
+					errors: rowValidate.errors.all()
+				});
+				continue;
+			}
+
+			try {
+				const normalizedPlate = stringPersianToStringEnglish(rawPlateNumber, { forceValidation: true });
+				if (!normalizedPlate || normalizedPlate.length !== 8) {
+					errors.push({
+						index: i,
+						plate_number: rawPlateNumber,
+						personnel_code: personnelCode,
+						error: 'Invalid plate number format - expected a valid 8-character plate'
+					});
+					continue;
+				}
+
+				if (inRequestSeenPlate.has(normalizedPlate)) {
+					errors.push({
+						index: i,
+						plate_number: rawPlateNumber,
+						personnel_code: personnelCode,
+						error: 'Duplicate plate number in request payload - skipped'
+					});
+					continue;
+				}
+
+				const existingCar = await Car.findOne({ number_plate: normalizedPlate }).lean().exec();
+				if (existingCar) {
+					errors.push({
+						index: i,
+						plate_number: rawPlateNumber,
+						personnel_code: personnelCode,
+						error: 'Car with this plate number already exists - skipped'
+					});
+					continue;
+				}
+
+				const owner = await Personnel.findOne({ personnel_code: personnelCode }).lean().exec();
+				if (!owner?._id) {
+					errors.push({
+						index: i,
+						plate_number: rawPlateNumber,
+						personnel_code: personnelCode,
+						error: 'Personnel not found for provided personnel_code - skipped'
+					});
+					continue;
+				}
+
+				const colorInput = String(plate?.color ?? '').trim();
+				const brandInput = String(plate?.brand ?? '').trim();
+
+				const color =
+					(colorInput
+						? await CarColor.findOne({
+								$or: [
+									{ name: { $regex: escapeRegexValue(colorInput), $options: 'i' } },
+									{ fa_name: { $regex: escapeRegexValue(colorInput), $options: 'i' } }
+								]
+							})
+								.lean()
+								.exec()
+						: null) ?? fallbackColor;
+
+				const brand =
+					(brandInput
+						? await CarBrand.findOne({
+								$or: [
+									{ name: { $regex: escapeRegexValue(brandInput), $options: 'i' } },
+									{ fa_name: { $regex: escapeRegexValue(brandInput), $options: 'i' } }
+								]
+							})
+								.lean()
+								.exec()
+						: null) ?? fallbackBrand;
+
+				if (!color?._id || !brand?._id) {
+					errors.push({
+						index: i,
+						plate_number: rawPlateNumber,
+						personnel_code: personnelCode,
+						error: 'Car color/brand resolution failed and fallback unknown values are missing - skipped'
+					});
+					continue;
+				}
+
+				const newCar = await Car.create({
+					owner: owner._id,
+					number_plate: normalizedPlate,
+					brand: brand._id,
+					color: color._id
+				});
+
+				inRequestSeenPlate.add(normalizedPlate);
+				results.push({
+					car: {
+						_id: newCar._id,
+						owner: newCar.owner,
+						personnel_code: personnelCode,
+						number_plate: stringPlateToJson(newCar.number_plate),
+						brand: newCar.brand,
+						color: newCar.color
+					}
+				});
+			} catch (error) {
+				Logger.error('Error creating car in batch plate import - continuing to next', {
+					index: i,
+					plate_number: rawPlateNumber,
+					personnel_code: personnelCode,
+					error: error instanceof Error ? error.message : String(error)
+				});
+				errors.push({
+					index: i,
+					plate_number: rawPlateNumber,
+					personnel_code: personnelCode,
+					error: error instanceof Error ? error.message : 'Unknown error occurred'
+				});
+				continue;
+			}
+		}
+
+		const summary = {
+			total: plates.length,
+			successful: results.length,
+			failed: errors.length,
+			summary_message: `Processed ${plates.length} plates: ${results.length} successful, ${errors.length} failed/skipped`
+		};
+
+		DataImportExportLogger.plateBatchImported(req, results.length, true);
+		Logger.debug('Batch plate import completed', summary);
+
+		return ApiRes(res, {
+			status: 201,
+			data: {
+				...summary,
+				results,
+				errors: errors.length > 0 ? errors : undefined
+			}
+		});
+	} catch (error) {
+		Logger.error('Error in batch_plate_add', {
+			error: error instanceof Error ? error.message : String(error)
+		});
+		DataImportExportLogger.plateBatchImported(
+			req,
+			0,
+			false,
+			error instanceof Error ? error.message : 'Unknown error'
+		);
+		return ApiRes(res, {
+			status: 500,
+			msg: 'Internal server error during batch plate import'
+		});
 	}
 };
 

@@ -21,7 +21,7 @@ async function connect(dbUri: string): Promise<mongoose.Connection> {
 	//listen for connection events
 	mongoose.connection.on('connected', () => {
 		console.log('Mongoose default connection open to ' + dbUri);
-		mongoose.set('debug', true);
+		mongoose.set('debug', false);
 	});
 	//listen for connection errors
 	mongoose.connection.on('error', (err) => {

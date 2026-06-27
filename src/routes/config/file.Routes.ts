@@ -20,13 +20,7 @@ import { DataImportExportLogger } from '../../logger/data-input-output.logger';
 import { accessCheck } from '../../authentication/accessCheck.auth';
 import { checkIPRestriction } from '../../middleware/ip-restriction.middleware';
 import { fileUploadSecurityValidation } from '../../middleware/batch-security-validation.middleware';
-import { UploadedFile } from 'express-fileupload';
-import Excel from 'exceljs';
-import CarColor from '../../db/mongo/models/carColor';
-import CarBrand from '../../db/mongo/models/carBrand';
-import Car from '../../db/mongo/models/car';
-import { stringPersianToStringEnglish } from '../../tools/plate.tools';
-import { uploadBase64ImageToS3, batch_personnel_add } from '../../controllers/file.controller';
+import { uploadBase64ImageToS3, batch_personnel_add, batch_plate_add } from '../../controllers/file.controller';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import S3Client from '../../config/s3.config';
 import { BaseConfig } from '../../config/base.config';
@@ -49,173 +43,23 @@ const router: Router = Router();
 
 /**
  * POST /batch/plate
- * Import vehicle plates from Excel file
- * Processes Excel file containing plate numbers and associates them with personnel
+ * Batch plate import - JSON data only
+ * Creates car records from JSON array
  *
- * @body file - Excel file with columns: plate_number, personnel_code, first_name, last_name, color, brand
- * @returns Array of created car records
+ * @body plates - JSON array of plate objects with fields:
+ *   - plate_number (required)
+ *   - personnel_code (required)
+ *   - color (optional, fallback: unknown)
+ *   - brand (optional, fallback: unknown)
+ * @returns Summary of successful and failed imports
  */
 router.post(
 	'/batch/plate',
-	// Security validation for file uploads
+	// Security validation
 	fileUploadSecurityValidation,
 	checkIPRestriction,
 	accessCheck('dataImportExport'),
-	async (req, res) => {
-		// Validate file upload
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const files = req.files as any;
-		if (!files?.['file']) {
-			return res.status(400).json({ error: 'No file uploaded' });
-		}
-
-		try {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result: any[] = [];
-
-			// Load Excel workbook from uploaded file
-			const workbook = await new Excel.Workbook().xlsx.load(
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				(files['file'] as UploadedFile).data as any
-			);
-
-			// Get worksheet - try 'cars' sheet first, then first sheet
-			const worksheet = workbook.getWorksheet('cars') || workbook.getWorksheet(1);
-			if (!worksheet) {
-				return res.status(400).json({ error: 'No Sheet present' });
-			}
-
-			// Build column mapping from header row
-			const columnMap: { [key: string]: number } = {};
-			worksheet.getRow(1).eachCell({ includeEmpty: true }, function (cell, colNumber) {
-				columnMap[cell.value?.toString().trim() ?? ''] = colNumber;
-			});
-
-			// Process each row (skip header row)
-			for (const row of worksheet?.getRows(2, worksheet.lastRow?.number ?? 0) ?? []) {
-				let plateNumber: string | undefined;
-				let personnelCode: string | undefined;
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				let personnel: any;
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				let color: any;
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				let brand: any;
-				let firstName: string | undefined;
-				let lastName: string | undefined;
-
-				// Validate plate number exists
-				if (
-					columnMap['plate_number'] &&
-					(plateNumber = row.getCell(columnMap['plate_number']).value?.toString())
-				) {
-					// Add optional fifth column if exists
-					plateNumber = columnMap['fifth']
-						? plateNumber + (row.getCell(columnMap['fifth']).value ?? '').toString()
-						: plateNumber;
-
-					// Normalize Persian characters to English
-					const normalizedPlate = stringPersianToStringEnglish(plateNumber);
-
-					// Skip if invalid length or duplicate
-					if (normalizedPlate.length !== 8 || (await Car.exists({ number_plate: normalizedPlate }))) {
-						continue;
-					}
-
-					// Try to find existing personnel by name
-					if (
-						!(personnel = await Personnel.findOne({
-							first_name: row.getCell(columnMap['first_name']).value?.toString(),
-							last_name: row.getCell(columnMap['last_name']).value?.toString()
-						})
-							.lean()
-							.exec()) &&
-						// If no personnel_code column or empty cell or personnel not found
-						(!columnMap['personnel_code'] ||
-							!(personnelCode = row.getCell(columnMap['personnel_code']).value?.toString()) ||
-							!(personnel = await Personnel.findOne({ personnel_code: personnelCode }).lean().exec()))
-					) {
-						// Create new personnel if first_name and last_name are provided
-						if (
-							columnMap['first_name'] &&
-							columnMap['last_name'] &&
-							(firstName = row.getCell(columnMap['first_name']).value?.toString()) &&
-							(lastName = row.getCell(columnMap['last_name']).value?.toString())
-						) {
-							// Generate random personnel code if not provided
-							personnel = await Personnel.create({
-								personnel_code:
-									personnelCode ??
-									Array(10)
-										.fill(0)
-										.map(() => Math.floor(Math.random() * 10))
-										.join(''),
-								first_name: firstName,
-								last_name: lastName
-							});
-						} else {
-							// Skip if no owner information
-							continue;
-						}
-					}
-
-					// Get car color or default to 'unknown'
-					if (
-						!columnMap['color'] ||
-						!(color = await CarColor.findOne({
-							$or: [
-								{ name: { $regex: row.getCell(columnMap['color']).value?.toString(), $options: 'i' } },
-								{ fa_name: { $regex: row.getCell(columnMap['color']).value?.toString(), $options: 'i' } }
-							]
-						})
-							.lean()
-							.exec())
-					) {
-						color = await CarColor.findOne({ name: 'unknown' }).lean().exec();
-					}
-
-					// Get car brand or default to 'unknown'
-					if (
-						!columnMap['brand'] ||
-						!(brand = await CarBrand.findOne({
-							$or: [
-								{ name: { $regex: row.getCell(columnMap['brand']).value?.toString(), $options: 'i' } },
-								{ fa_name: { $regex: row.getCell(columnMap['brand']).value?.toString(), $options: 'i' } }
-							]
-						})
-							.lean()
-							.exec())
-					) {
-						brand = await CarBrand.findOne({ name: 'unknown' }).lean().exec();
-					}
-
-					// Create car record
-					result.push(
-						await Car.create({
-							owner: personnel?._id,
-							number_plate: normalizedPlate,
-							brand: brand?._id,
-							color: color?._id
-						})
-					);
-				}
-			}
-
-			// Log successful plate batch import
-			DataImportExportLogger.plateBatchImported(req, result.length, true);
-
-			res.status(201).json({
-				success: true,
-				data: result
-			});
-		} catch (err) {
-			// Log failed plate batch import
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			DataImportExportLogger.plateBatchImported(req, 0, false, (err as any).message);
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			res.status(500).json({ error: 'Failed to read Excel file', details: (err as any).message });
-		}
-	}
+	batch_plate_add
 );
 
 /**
