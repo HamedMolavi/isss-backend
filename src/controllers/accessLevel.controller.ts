@@ -5,6 +5,8 @@ import { HttpStatus } from '../types/http_status';
 import { Logger } from '../logger';
 import { objectToAuthHex } from '../tools/utils.tools';
 import { accessList } from '../types/interfaces/accessLevel.interface';
+import { normalizeAccessLevelName } from '../tools/accessLevel.tools';
+import { getClientIP } from '../tools/util.tools';
 
 /**
  * Create a new access level
@@ -26,7 +28,7 @@ export const create = async (req: Request, res: Response) => {
 	}
 
 	// Transform access permissions to hex format
-	const transformedPayload: Record<string, unknown> = { name: payload.name };
+	const transformedPayload: Record<string, unknown> = { name: normalizeAccessLevelName(payload.name) };
 	for (const key of accessList) {
 		if (payload[key]) {
 			transformedPayload[key] = objectToAuthHex(payload[key]);
@@ -42,11 +44,14 @@ export const create = async (req: Request, res: Response) => {
 	}
 
 	const doc = new AccessLevel(transformedPayload);
+	let duplicateName = false;
 	const result = await doc.save().catch((err) => {
+		if (err?.code === 11000) duplicateName = true;
 		const userAgent = req.get('User-Agent') || req.headers['user-agent'] || 'unknown';
 		Logger.error('Failed to create access level', {
 			type: 'access_level',
 			action: 'create_failed',
+			success: false,
 			userid: req.user?._id?.toString(),
 			username: req.user?.username,
 			userAgent,
@@ -57,8 +62,8 @@ export const create = async (req: Request, res: Response) => {
 
 	if (!result) {
 		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR,
-			msg: 'Failed to create access level'
+			status: duplicateName ? HttpStatus.CONFLICT : HttpStatus.INTERNAL_SERVER_ERROR,
+			msg: duplicateName ? 'AccessLevel already exists!' : 'Failed to create access level'
 		});
 	}
 
@@ -67,6 +72,7 @@ export const create = async (req: Request, res: Response) => {
 	Logger.info('Access level created successfully', {
 		type: 'access_level',
 		action: 'create_success',
+		success: true,
 		userid: req.user?._id?.toString(),
 		username: req.user?.username,
 		userAgent,
@@ -155,8 +161,10 @@ export const updateById = async (req: Request, res: Response) => {
 			Logger.error('Failed to update access level', {
 				type: 'access_level',
 				action: 'update_failed',
+				success: false,
 				userid: req.user?._id?.toString(),
 				username: req.user?.username,
+				ip: getClientIP(req) || 'unknown',
 				userAgent,
 				details: {
 					error: err.message,
@@ -180,8 +188,10 @@ export const updateById = async (req: Request, res: Response) => {
 	Logger.info('Access level updated successfully', {
 		type: 'access_level',
 		action: 'update_success',
+		success: true,
 		userid: req.user?._id?.toString(),
 		username: req.user?.username,
+		ip: getClientIP(req) || 'unknown',
 		userAgent,
 		details: {
 			accessLevelId: updatedAccessLevel._id.toString(),
@@ -224,6 +234,7 @@ export const deleteById = async (req: Request, res: Response) => {
 			Logger.error('Failed to delete access level', {
 				type: 'access_level',
 				action: 'delete_failed',
+				success: false,
 				userid: req.user?._id?.toString(),
 				username: req.user?.username,
 				userAgent,
@@ -248,6 +259,7 @@ export const deleteById = async (req: Request, res: Response) => {
 	Logger.info('Access level deleted successfully', {
 		type: 'access_level',
 		action: 'delete_success',
+		success: true,
 		userid: req.user?._id?.toString(),
 		username: req.user?.username,
 		userAgent,

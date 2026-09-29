@@ -5,10 +5,11 @@ import { v4 } from 'uuid';
 import S3Client from '../../config/s3.config';
 import { BaseConfig } from '../../config/base.config';
 import { Logger } from '../../logger';
+import { MAX_UPLOAD_FILE_SIZE_BYTES, MAX_UPLOAD_FILE_SIZE_MB } from '../../config/upload.config';
 
 const configure_limits_and_filter = () => ({
 	limits: {
-		fileSize: 30 * 1024 * 1024 // 30 MB max file size
+		fileSize: MAX_UPLOAD_FILE_SIZE_BYTES
 	},
 	fileFilter: (req: any, file: any, callback: any) => {
 		// Only validate file type, not size (size is handled by limits.fileSize)
@@ -20,7 +21,9 @@ const configure_limits_and_filter = () => ({
 			callback(null, true);
 		} else {
 			callback(
-				new Error(`Invalid file type: ${file.mimetype}. Only images, videos, and audio files are allowed.`)
+				new Error(
+					`Invalid file type: ${file.mimetype}. Only images, videos, and audio files up to ${MAX_UPLOAD_FILE_SIZE_MB}MB are allowed.`
+				)
 			);
 		}
 	}
@@ -58,6 +61,6 @@ export const file_upload = (folder?: 'crop' | 'frame' | 'inner_crop' | 'personne
 		Logger.error('Error in file_upload', {
 			error: e instanceof Error ? e.message : String(e)
 		});
-		return multer({});
+		return multer({ limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES } });
 	}
 };

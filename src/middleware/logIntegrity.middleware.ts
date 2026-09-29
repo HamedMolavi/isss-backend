@@ -62,7 +62,7 @@ export const verifyLogIntegrityMiddleware = (req: Request, res: Response, next: 
 				result
 			});
 
-			// If there are integrity violations, they will be sent to Kafka automatically
+			// Integrity violations are persisted by the local audit logger.
 			if (result.invalidLogs > 0 || result.missingHashes > 0) {
 				Logger.warn('Log integrity violations detected in background check', {
 					action: 'BACKGROUND_LOG_INTEGRITY_VIOLATIONS_DETECTED',

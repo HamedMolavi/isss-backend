@@ -15,11 +15,11 @@ export const getUserIntegrityStatus = async (req: Request, res: Response) => {
 
 		return ApiRes(res, {
 			status: HttpStatus.OK,
-			msg: 'وضعیت سرویس یکپارچگی کاربران',
+			msg: 'وضعیت سرویس تشخیص دستکاری حساب‌های کاربری',
 			data: {
 				active: status.serviceActive,
 				lastCheck: status.lastVerificationTime,
-				alertTopic: status.kafkaTopic
+				monitoringActive: status.monitoringActive
 			}
 		});
 	} catch (error) {
@@ -36,7 +36,7 @@ export const getUserIntegrityStatus = async (req: Request, res: Response) => {
 };
 
 /**
- * Verify integrity of usernames - batch check
+ * Verify integrity of complete protected user records - batch check
  */
 export const verifyUsernamesIntegrity = async (req: Request, res: Response) => {
 	try {
@@ -52,18 +52,23 @@ export const verifyUsernamesIntegrity = async (req: Request, res: Response) => {
 
 		return ApiRes(res, {
 			status: HttpStatus.OK,
-			msg: 'بررسی یکپارچگی نام‌های کاربری',
+			msg: 'بررسی یکپارچگی حساب‌های کاربری',
 			data: {
 				summary: {
 					total: result.totalChecked,
 					valid: result.validUsers,
 					invalid: result.invalidUsers,
 					missing: result.missingHashes,
+					deleted: result.deletedUsers,
 					successRate: `${successRate}%`,
 					duration: `${result.verificationTime}ms`
 				},
-				status: result.invalidUsers === 0 ? 'OK' : 'WARNING',
-				invalidUserIds: result.invalidUserIds.slice(0, 10)
+				status:
+					result.invalidUsers === 0 && result.missingHashes === 0 && result.deletedUsers === 0
+						? 'OK'
+						: 'WARNING',
+				invalidUserIds: result.invalidUserIds.slice(0, 10),
+				invalidUsernames: result.invalidUsernames.slice(0, 10)
 			}
 		});
 	} catch (error) {
@@ -94,11 +99,11 @@ export const checkUsernameModification = async (req: Request, res: Response) => 
 			return ApiRes(res, { status: HttpStatus.NOT_FOUND, msg: 'کاربر یافت نشد' });
 		}
 
-		const isIntact = await User.verifyUsernameIntegrity(userId);
+		const isIntact = await User.verifyIntegrity(userId);
 
 		return ApiRes(res, {
 			status: HttpStatus.OK,
-			msg: isIntact ? 'نام کاربری سالم است' : 'نام کاربری دستکاری شده است',
+			msg: isIntact ? 'رکورد حساب کاربری سالم است' : 'رکورد حساب کاربری دستکاری شده است',
 			data: {
 				userId,
 				status: isIntact ? 'INTACT' : 'TAMPERED',

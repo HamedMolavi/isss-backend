@@ -1,8 +1,10 @@
 import { Request } from 'express';
 import { Logger } from '.';
 import { LogType } from '../db/mongo/models/logType';
+import { Log } from '../db/mongo/models/secLog';
 import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
 import { getClientIP } from '../tools/util.tools';
+import { sanitizeUserAgent } from '../tools/user_agent.utility';
 
 /**
  * Backup service event types
@@ -20,6 +22,7 @@ export enum BackupEventType {
 	BACKUP_DELETE_FAILED = 'backup_delete_failed',
 	BACKUP_CLEANUP = 'backup_cleanup',
 	BACKUP_CLEANUP_FAILED = 'backup_cleanup_failed',
+	LOG_CLEANUP_STARTED = 'log_cleanup_started',
 	TTL_BACKUP_STARTED = 'ttl_backup_started',
 	TTL_BACKUP_COMPLETED = 'ttl_backup_completed',
 	TTL_BACKUP_FAILED = 'ttl_backup_failed',
@@ -52,7 +55,7 @@ export class BackupLogger {
 			userid: req?.user?._id?.toString() || 'system',
 			username: req?.user?.username || 'system',
 			ip: (req ? getClientIP(req) : '') || 'system',
-			userAgent: req?.get('User-Agent') || 'system',
+			userAgent: req ? sanitizeUserAgent(req.get('User-Agent')) : 'system',
 			method: req?.method || 'SYSTEM',
 			url: req?.originalUrl || 'system_operation',
 			timestamp: new Date(),
@@ -284,6 +287,54 @@ export class BackupLogger {
 			}
 		} catch (error) {
 			console.error('Error logging backup cleanup:', error);
+		}
+	}
+
+	/**
+	 * Persist the cleanup audit record before deleting any logs.
+	 * The returned ID must be excluded from the cleanup query so this record survives the operation.
+	 */
+	static async logRecordsCleanupStarted(
+		logsScheduledForDeletion: number,
+		retentionDays: number,
+		req?: Request,
+		context?: {
+			backupCreated?: boolean;
+			backupPath?: string | null;
+			cleanupType?: string;
+			cutoffDate?: Date;
+			forced?: boolean;
+		}
+	): Promise<string> {
+		try {
+			const timestamp = new Date();
+			const metadata = {
+				...this.createBaseLogData(BackupEventType.LOG_CLEANUP_STARTED, true, req, 'log_cleanup'),
+				timestamp,
+				details: {
+					logsScheduledForDeletion,
+					retentionDays,
+					backupCreated: context?.backupCreated,
+					backupPath: context?.backupPath,
+					cleanupType: context?.cleanupType || 'ttl_log_cleanup',
+					cutoffDate: context?.cutoffDate,
+					forced: context?.forced,
+					operation: 'log_cleanup'
+				}
+			};
+
+			const auditLog = await Log.create({
+				level: 'info',
+				timestamp,
+				message: 'Log cleanup started',
+				action: BackupEventType.LOG_CLEANUP_STARTED,
+				metadata
+			});
+
+			return auditLog._id.toString();
+		} catch (error) {
+			console.error('Error logging log cleanup start:', error);
+			throw error;
 		}
 	}
 

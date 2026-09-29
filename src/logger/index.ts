@@ -251,7 +251,7 @@ export class Logger {
 			success: requestSuccess,
 			details,
 			userAgent: user_agent.user_agent,
-			headers: req.headers,
+			headers: { ...req.headers, 'user-agent': user_agent.user_agent },
 			timestamp: new Date(),
 			_disableFilter: true // All requests should be logged
 		};

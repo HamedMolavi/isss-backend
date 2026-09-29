@@ -13,6 +13,39 @@ const SHA256_KEYLEN = 64;
 const SHA256_DIGEST = 'sha256';
 const SALT_LENGTH = 32;
 
+export function getUserIntegritySnapshot(user: Partial<IUserDocument> & Record<string, unknown>) {
+	const normalizeIds = (values: unknown): string[] =>
+		Array.isArray(values) ? values.map((value) => value?.toString()).sort() : [];
+
+	return {
+		_id: user._id?.toString(),
+		username: user.username,
+		password: user.password,
+		phone_number: user.phone_number,
+		access_level: user.access_level?.toString(),
+		role: user.role,
+		created_date: user.created_date ? new Date(user.created_date).toISOString() : null,
+		camera_access: normalizeIds(user.camera_access),
+		is_active: user.is_active,
+		otp_secret: user.otp_secret ?? null,
+		otp_auth_url: user.otp_auth_url ?? null,
+		otp_enabled: user.otp_enabled ?? false,
+		ip_restricted: user.ip_restricted ?? false,
+		allowed_ips: Array.isArray(user.allowed_ips) ? [...user.allowed_ips].sort() : [],
+		must_change_password: user.must_change_password ?? false
+	};
+}
+
+async function storeUserIntegrityHash(userId: string): Promise<void> {
+	const user = await User.findById(userId).select('+otp_secret +otp_auth_url').lean();
+	if (!user) return;
+	const hash = JSON_hash(
+		getUserIntegritySnapshot(user as Partial<IUserDocument> & Record<string, unknown>)
+	)?.hash;
+	if (!hash) throw new Error('Failed to generate user record integrity hash');
+	await SQLite.execute('INSERT OR REPLACE INTO UserRecordHash (_id, hash) VALUES (?, ?)', [userId, hash]);
+}
+
 /**
  * Hash password using SHA-256 with PBKDF2 key derivation
  * Format: salt:hash (both hex encoded)
@@ -112,39 +145,6 @@ UserSchema.pre('save', function (done: (err?: CallbackError) => void) {
 	}
 });
 
-// Pre-save hook to generate and store username hash for integrity checking
-UserSchema.pre('save', async function (next) {
-	try {
-		// Only generate hash for username integrity on initial save or username changes
-		if (this.isNew || this.isModified('username')) {
-			// Ensure we have an _id (for new documents)
-			if (!this._id) {
-				this._id = new mongoose.Types.ObjectId();
-			}
-
-			// Create a normalized object with username data for integrity checking
-			const usernameData = {
-				_id: this._id.toString(),
-				username: this.username,
-				created_date: this.created_date
-			};
-
-			const hashedDoc = JSON_hash(usernameData);
-			if (!hashedDoc) {
-				return next(new Error('Failed to generate hash for username integrity'));
-			}
-
-			// Store hash in SQLite UserHash table
-			await SQLite.insert('UserHash', { _id: this._id.toString(), hash: hashedDoc.hash });
-		}
-
-		next();
-	} catch (error) {
-		console.error('Error in user pre-save hook for integrity:', error);
-		return next(error as CallbackError);
-	}
-});
-
 UserSchema.pre('updateOne', async function (done) {
 	try {
 		const doc = await this.model.findOne(this.getQuery());
@@ -167,30 +167,6 @@ UserSchema.pre('updateOne', async function (done) {
 			}
 		}
 
-		// Handle username updates - regenerate integrity hash
-		if (getEntries(updatingFields).some(([path]) => path.includes('username'))) {
-			const [usernamePath, newUsername] = getEntries(updatingFields).find(([path]) =>
-				path.includes('username')
-			) ?? ['', ''];
-
-			if (usernamePath && newUsername) {
-				// Create new hash with updated username
-				const usernameData = {
-					_id: doc._id.toString(),
-					username: newUsername,
-					created_date: doc.created_date
-				};
-
-				const hashedDoc = JSON_hash(usernameData);
-				if (!hashedDoc) {
-					return done(new Error('Failed to generate hash for username integrity'));
-				}
-
-				// Update hash in SQLite UserHash table
-				await SQLite.insert('UserHash', { _id: doc._id.toString(), hash: hashedDoc.hash });
-			}
-		}
-
 		done();
 	} catch (error) {
 		console.error('Error in user pre-updateOne hook:', error);
@@ -198,74 +174,43 @@ UserSchema.pre('updateOne', async function (done) {
 	}
 });
 
+UserSchema.post('save', async function (doc) {
+	await storeUserIntegrityHash(doc._id.toString());
+});
+
+for (const operation of ['updateOne', 'findOneAndUpdate'] as const) {
+	UserSchema.post(operation, async function () {
+		const updatedUser = await this.model.findOne(this.getQuery()).select('_id').lean();
+		if (updatedUser?._id) await storeUserIntegrityHash(updatedUser._id.toString());
+	});
+}
+
+UserSchema.post('findOneAndDelete', async function (doc) {
+	if (doc?._id) {
+		await SQLite.execute('DELETE FROM UserRecordHash WHERE _id = ?', [doc._id.toString()]);
+	}
+});
+
+UserSchema.statics.refreshIntegrityHash = async function (userId: string): Promise<void> {
+	await storeUserIntegrityHash(userId);
+};
+
+UserSchema.statics.verifyIntegrity = async function (userId: string): Promise<boolean> {
+	const user = await this.findById(userId).select('+otp_secret +otp_auth_url').lean();
+	if (!user) return false;
+	const rows = await SQLite.queryAll<{ hash: string }>('SELECT hash FROM UserRecordHash WHERE _id = ?', [
+		userId
+	]);
+	if (!rows.length) return false;
+	const calculatedHash = JSON_hash(
+		getUserIntegritySnapshot(user as Partial<IUserDocument> & Record<string, unknown>)
+	)?.hash;
+	return Boolean(calculatedHash && rows[0].hash === calculatedHash);
+};
+
 // Static method to verify username integrity
 UserSchema.statics.verifyUsernameIntegrity = async function (userId: string): Promise<boolean> {
-	try {
-		// Get the user from MongoDB
-		const user = await this.findById(userId).lean();
-		if (!user) {
-			return false;
-		}
-
-		// Get stored hash from SQLite
-		return new Promise((resolve) => {
-			SQLite.runQuery<{ hash: string }>(
-				`SELECT hash FROM UserHash WHERE _id = ?`,
-				[userId],
-				async function (err: Error | null, rows: Array<{ hash: string }>) {
-					if (err || !rows || !rows.length) {
-						// Create a normalized object with the same structure as during save
-						const usernameData = {
-							_id: userId,
-							username: user.username,
-							created_date: user.created_date
-						};
-
-						// Calculate new hash from normalized document
-						const hashedDoc = JSON_hash(usernameData);
-						const calculatedHash = hashedDoc?.hash;
-
-						if (calculatedHash) {
-							// Insert the hash into SQLite
-							SQLite.runQuery(
-								`INSERT INTO UserHash (_id, hash) VALUES (?, ?)`,
-								[userId, calculatedHash],
-								function (insertErr: Error | null) {
-									if (insertErr) {
-										console.error('Failed to insert hash into SQLite:', insertErr);
-										return resolve(false);
-									}
-									console.log('Successfully created hash for user in SQLite:', userId);
-									resolve(true);
-								}
-							);
-						} else {
-							console.error('Failed to calculate hash for user:', userId);
-							resolve(false);
-						}
-						return;
-					}
-
-					// Create a normalized object with the same structure as during save
-					const usernameData = {
-						_id: userId,
-						username: user.username,
-						created_date: user.created_date
-					};
-
-					// Calculate new hash from normalized document
-					const storedHash = rows[0].hash;
-					const hashedDoc = JSON_hash(usernameData);
-					const calculatedHash = hashedDoc?.hash;
-
-					resolve(storedHash === calculatedHash);
-				}
-			);
-		});
-	} catch (error) {
-		console.error('Error verifying username integrity:', error);
-		return false;
-	}
+	return (this as IUserModel).verifyIntegrity(userId);
 };
 
 // Static method to find user with OTP secret included

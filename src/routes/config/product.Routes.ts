@@ -14,6 +14,7 @@ import { productCols, sendExcelMiddleware } from '../../tools/excel.tools';
 import Time from '../../tools/time.tools';
 import { BaseConfig } from '../../config/base.config';
 import { accessCheck } from '../../authentication/accessCheck.auth';
+import { productCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 
 /**
  * Type definition for person data structure used in product operations
@@ -169,6 +170,7 @@ const filterSearch = (bodyStrOrSearchString: string): PipelineStage[] => {
  */
 router.post(
 	'',
+	productCreationRateLimit,
 	dtoValidationMiddleware(CreateProductBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,

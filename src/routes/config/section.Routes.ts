@@ -15,6 +15,7 @@ import Personnel from '../../db/mongo/models/personnel';
 import { docSendMiddleware, makeSearchFnWithOr, makesearchFromBody } from '../../tools/request.tools';
 import Car from '../../db/mongo/models/car';
 import { accessCheck } from '../../authentication/accessCheck.auth';
+import { sectionCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 
 //create router for add to routes file
 const router: Router = Router();
@@ -25,6 +26,7 @@ router.use(accessCheck('section'));
 //add route for register new section
 router.post(
 	'',
+	sectionCreationRateLimit,
 	dtoValidationMiddleware(CreateSectionBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,

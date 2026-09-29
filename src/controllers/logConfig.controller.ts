@@ -3,10 +3,11 @@ import { SecurityConfig } from '../db/mongo/models/securityConfig';
 import { Log } from '../db/mongo/models/secLog';
 import { LogBackupService } from '../services/logBackup.service';
 import { BackupSchedulerService } from '../services/backupScheduler.service';
-import { BackupLogger } from '../logger/backup.logger';
+import { BackupEventType, BackupLogger } from '../logger/backup.logger';
 import { SecurityLogger } from '../logger/security.logger';
 import { ApiRes } from '../utils/api.response';
 import { HttpStatus } from '../types/http_status';
+import { SQLite } from '../db/sqlite';
 
 /**
  * Get current log TTL configuration
@@ -112,7 +113,7 @@ export const updateLogTTLConfig = async (req: Request, res: Response, next: Next
 			{ $set: updateData },
 			{ new: true, upsert: true }
 		);
-		
+
 		// Restart scheduler if critical config values change
 		// These values affect when backup is needed, so we should check immediately
 		const criticalConfigChanged =
@@ -126,7 +127,7 @@ export const updateLogTTLConfig = async (req: Request, res: Response, next: Next
 
 		if (criticalConfigChanged) {
 			const scheduler = BackupSchedulerService.getInstance();
-			const shouldRun = autoBackup !== undefined ? !!autoBackup : config?.logBackup?.autoBackup ?? true;
+			const shouldRun = autoBackup !== undefined ? !!autoBackup : (config?.logBackup?.autoBackup ?? true);
 
 			if (!shouldRun) {
 				await scheduler.stop();
@@ -288,7 +289,8 @@ export const triggerLogCleanup = async (req: Request, res: Response, next: NextF
 
 		// Count logs to be deleted
 		const logsToDelete = await Log.countDocuments({
-			timestamp: { $lte: cutoffDate }
+			timestamp: { $lte: cutoffDate },
+			action: { $ne: BackupEventType.LOG_CLEANUP_STARTED }
 		});
 
 		if (logsToDelete === 0 && !force) {
@@ -318,10 +320,30 @@ export const triggerLogCleanup = async (req: Request, res: Response, next: NextF
 			await BackupLogger.backupCreated(backupPath, backupStats, req);
 		}
 
-		// Delete expired logs
-		const deleteResult = await Log.deleteMany({
-			timestamp: { $lte: cutoffDate }
+		// Collect IDs first so an authorized retention cleanup also removes their
+		// integrity manifests and is not reported as tampering.
+		const logRecordsToDelete = await Log.find(
+			{
+				timestamp: { $lte: cutoffDate },
+				action: { $ne: BackupEventType.LOG_CLEANUP_STARTED }
+			},
+			{ _id: 1 }
+		).lean();
+		const logIds = logRecordsToDelete.map((log) => log._id.toString());
+		const cleanupAuditLogId = await BackupLogger.logRecordsCleanupStarted(logIds.length, ttlDays, req, {
+			backupCreated: !!backupPath,
+			backupPath,
+			cleanupType: 'trigger_log_cleanup',
+			cutoffDate,
+			forced: force
 		});
+
+		// Delete only the records selected before the audit entry was created. The
+		// explicit exclusion protects the cleanup audit log from this operation.
+		const deleteResult = await Log.deleteMany({
+			_id: { $in: logIds, $ne: cleanupAuditLogId }
+		});
+		if (logIds.length > 0) await SQLite.deleteByIds('Hash', logIds);
 
 		await BackupLogger.backupCleanup(deleteResult.deletedCount, ttlDays, req);
 

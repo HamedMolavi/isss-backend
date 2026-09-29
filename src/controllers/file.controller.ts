@@ -17,6 +17,8 @@ import CarBrand from '../db/mongo/models/carBrand';
 import CarColor from '../db/mongo/models/carColor';
 import { stringPersianToStringEnglish, stringPlateToJson } from '../tools/plate.tools';
 import { DataImportExportLogger } from '../logger/data-input-output.logger';
+import { normalizeNumericText, normalizePersonnelText } from '../validation/personnel.validation';
+import { MAX_UPLOAD_FILE_SIZE_BYTES, MAX_UPLOAD_FILE_SIZE_MB } from '../config/upload.config';
 
 const SECRET = process.env['SESSION_SECRET'];
 
@@ -220,6 +222,9 @@ export const uploadBase64ImageToS3 = async (
 
 		// Convert base64 to buffer
 		const imageBuffer = Buffer.from(imageStr, 'base64');
+		if (imageBuffer.length > MAX_UPLOAD_FILE_SIZE_BYTES) {
+			throw new Error(`Image is too large. Maximum allowed: ${MAX_UPLOAD_FILE_SIZE_MB}MB.`);
+		}
 
 		Logger.debug('Image buffer created', {
 			buffer_length: imageBuffer.length,
@@ -554,19 +559,25 @@ export const batch_personnel_add = async (req: Request, res: Response) => {
 		// Process each personnel in the batch
 		for (let i = 0; i < personnels.length; i++) {
 			const person = personnels[i];
+			const firstName = normalizePersonnelText(person.first_name);
+			const lastName = normalizePersonnelText(person.last_name);
+			const nationalCode = normalizePersonnelText(person.national_code);
+			const email = normalizePersonnelText(person.email);
+			const phoneNumber = normalizePersonnelText(person.phone_number);
+			const personnelCode = normalizeNumericText(person.personnel_code);
 
 			// Validate individual personnel data
 			const personValidate = new Validator(
 				{
-					first_name: person.first_name,
-					last_name: person.last_name,
-					national_code: person.national_code,
-					email: person.email,
-					phone_number: person.phone_number,
+					first_name: firstName,
+					last_name: lastName,
+					national_code: nationalCode,
+					email,
+					phone_number: phoneNumber,
 					job_id: person.job_id,
 					section_id: person.section_id,
 					tracked: person.tracked,
-					personnel_code: person.personnel_code,
+					personnel_code: personnelCode,
 					camera_whitelist: person.camera_whitelist,
 					allowed_pass: person.allowed_pass,
 					alert: person.alert
@@ -590,8 +601,17 @@ export const batch_personnel_add = async (req: Request, res: Response) => {
 			if (personValidate.fails()) {
 				errors.push({
 					index: i,
-					personnel_code: person.personnel_code,
+					personnel_code: String(personnelCode ?? ''),
 					errors: personValidate.errors.all()
+				});
+				continue;
+			}
+
+			if (typeof personnelCode !== 'string' || !/^[0-9]+$/.test(personnelCode)) {
+				errors.push({
+					index: i,
+					personnel_code: String(personnelCode ?? ''),
+					error: 'personnel_code must contain only numbers'
 				});
 				continue;
 			}
@@ -599,17 +619,17 @@ export const batch_personnel_add = async (req: Request, res: Response) => {
 			try {
 				// Check if personnel with this code already exists
 				const existingPersonnel = await Personnel.findOne({
-					personnel_code: person.personnel_code
+					personnel_code: personnelCode
 				}).exec();
 
 				if (existingPersonnel) {
 					Logger.warn('Duplicate personnel code, skipping', {
-						personnel_code: person.personnel_code,
+						personnel_code: personnelCode,
 						index: i
 					});
 					errors.push({
 						index: i,
-						personnel_code: person.personnel_code,
+						personnel_code: personnelCode,
 						error: 'Personnel with this code already exists - skipped'
 					});
 					continue;
@@ -617,14 +637,14 @@ export const batch_personnel_add = async (req: Request, res: Response) => {
 
 				// Create new personnel record
 				const newPersonnel = new Personnel({
-					first_name: person.first_name,
-					last_name: person.last_name,
-					national_code: person.national_code || '',
-					email: person.email || '',
-					phone_number: person.phone_number || '',
+					first_name: firstName,
+					last_name: lastName,
+					national_code: nationalCode || '',
+					email: email || '',
+					phone_number: phoneNumber || '',
 					job_id: person.job_id || null,
 					tracked: person.tracked || false,
-					personnel_code: person.personnel_code,
+					personnel_code: personnelCode,
 					camera_whitelist: person.camera_whitelist || [],
 					section_whitelist: person.section_id ? [person.section_id] : person.section_whitelist || [],
 					schedule_whitelist: person.schedule_whitelist || [],

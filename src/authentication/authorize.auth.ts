@@ -8,8 +8,9 @@ import OTPService from '../services/otp.service';
 import User from '../db/mongo/models/user';
 import { getClientIP } from '../tools/util.tools';
 import { getSessionManager } from '../services/session.service';
+import { sanitizeUserAgent } from '../tools/user_agent.utility';
 
-export function passportGate(req: Request, res: Response, next: NextFunction) {
+export async function passportGate(req: Request, res: Response, next: NextFunction) {
 	// Generic error message to prevent user enumeration
 	const accessDeniedResponse = {
 		status: HttpStatus.UNAUTHORIZED,
@@ -30,6 +31,12 @@ export function passportGate(req: Request, res: Response, next: NextFunction) {
 	// Update last activity time
 	if (req.session.lastActivity) {
 		req.session.lastActivity = new Date();
+		try {
+			const sessionManager = await getSessionManager();
+			await sessionManager.backupActiveSession(req);
+		} catch (error) {
+			console.error('Failed to update session expiration backup:', error);
+		}
 	}
 
 	// Optional: Check if IP has changed - use consistent IP extraction
@@ -113,7 +120,7 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 			const currentTime = new Date();
 			const ip = getClientIP(req);
 			req.session.ip = ip;
-			req.session.userAgent = req.get('User-Agent');
+			req.session.userAgent = sanitizeUserAgent(req.get('User-Agent'));
 			req.session.loginTime = currentTime;
 			req.session.lastActivity = currentTime;
 			req.session.userId = user._id?.toString();
@@ -157,13 +164,20 @@ export function assignPassport(req: Request, res: Response, next: NextFunction) 
 
 			AuthLogger.loginSuccess(req, sessionInfo);
 
-			req.session.save((err: Error) => {
+			req.session.save(async (err: Error) => {
 				if (err) {
 					AuthLogger.loginError(req, err.message, user._id?.toString());
 					return ApiRes(res, {
 						status: HttpStatus.INTERNAL_SERVER_ERROR,
 						msg: 'Session save error'
 					});
+				}
+
+				try {
+					const sessionManager = await getSessionManager();
+					await sessionManager.backupActiveSession(req);
+				} catch (error) {
+					console.error('Failed to store session expiration backup:', error);
 				}
 
 				next();

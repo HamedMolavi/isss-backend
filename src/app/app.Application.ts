@@ -3,6 +3,46 @@ import { RegisterRoutes } from '../routes/route.registration';
 import { RegisterMiddleware } from '../middleware/middleware.registration';
 import { ApiError } from '../types/classes/error.class';
 
+type ExpressLayer = {
+	name?: string;
+	path?: string;
+	route?: {
+		methods: Record<string, boolean>;
+	};
+	handle?: {
+		stack?: ExpressLayer[];
+	};
+	match(path: string): boolean;
+};
+
+function findAllowedMethods(stack: ExpressLayer[], path: string): Set<string> {
+	const allowedMethods = new Set<string>();
+
+	for (const layer of stack) {
+		if (!layer.match(path)) continue;
+
+		if (layer.route) {
+			for (const [method, enabled] of Object.entries(layer.route.methods)) {
+				if (enabled) allowedMethods.add(method.toUpperCase());
+			}
+			continue;
+		}
+
+		if (layer.name === 'router' && layer.handle?.stack) {
+			const matchedPrefix = layer.path ?? '';
+			const nestedPath = path.slice(matchedPrefix.length) || '/';
+			for (const method of findAllowedMethods(layer.handle.stack, nestedPath)) {
+				allowedMethods.add(method);
+			}
+		}
+	}
+
+	// Express automatically handles HEAD requests for GET routes.
+	if (allowedMethods.has('GET')) allowedMethods.add('HEAD');
+
+	return allowedMethods;
+}
+
 /**
  * Express Application Setup
  *
@@ -36,10 +76,18 @@ export async function initializeApp(): Promise<Application> {
 	/////////////////////////////////////////////////////////////////////////////////
 	// ERROR HANDLING (must be registered AFTER routes)
 
-	// 404 Handler - Catch all unmatched routes
+	// Distinguish an unknown method on a known route (405) from an unknown route (404).
 	app.use(function notFound(req: Request, _res: Response, next: NextFunction) {
+		const routerStack = (app as Application & { _router?: { stack: ExpressLayer[] } })._router?.stack ?? [];
+		const allowedMethods = findAllowedMethods(routerStack, req.path);
+
+		if (allowedMethods.size > 0 && !allowedMethods.has(req.method.toUpperCase())) {
+			_res.set('Allow', [...allowedMethods].sort().join(', '));
+			return next(new ApiError(405, `Method ${req.method} not allowed for requested path ${req.path}`));
+		}
+
 		const err = new ApiError(404, `Requested path ${req.path} not found`);
-		next(err);
+		return next(err);
 	});
 
 	// Global Error Handler - Handle all application errors

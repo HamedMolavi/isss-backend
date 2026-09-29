@@ -38,6 +38,10 @@ export function createMiddleware(
 				data: !!options?.send ? options.send(doc) : doc.toJSON()
 			});
 		} catch (err: any) {
+			if (err?.code === 11000) {
+				return next(new ApiError(400, `${model.collection.collectionName} already exists!`));
+			}
+
 			return next(new ApiError(500, 'Internal server error , ' + err.message));
 		}
 	};

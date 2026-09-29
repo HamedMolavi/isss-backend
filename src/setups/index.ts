@@ -11,9 +11,14 @@ import { BackupSchedulerService } from '../services/backupScheduler.service';
 import { AnalyticsCacheSchedulerService } from '../services/analyticsCacheScheduler.service';
 import { initializeAnalyticsCacheJobs } from '../config/analyticsCacheJobs.config';
 import { getIncrementalClusterCache } from '../services/incrementalClusterCache.service';
+import { getSessionManager } from '../services/session.service';
+import { UserIntegrityService } from '../services/userIntegrity.service';
 
 export default async function setup() {
 	await setupInteractive();
+	// Register MongoDB connection monitoring before the first connection attempt.
+	// This guarantees that startup failures are written to fallback storage too.
+	await setupLogger();
 	const dbResults = await connectToDBs({
 		mongo: process.env['MONGODB_URL'].split(',').map((el) => el.trim()),
 		redis: process.env['REDIS_URL'],
@@ -29,7 +34,24 @@ export default async function setup() {
 	setUpPassport();
 	await initBalancer();
 	await SignalConsumer.setupDefault();
-	await setupLogger();
+	try {
+		const userIntegrityService = UserIntegrityService.getInstance();
+		await userIntegrityService.initializeProtection();
+		userIntegrityService.startMonitoring();
+		console.log('User record integrity monitoring initialized successfully');
+	} catch (error) {
+		console.error('Failed to initialize user record integrity monitoring:', error);
+	}
+
+	// Start Redis expiration monitoring at application startup. Initializing this
+	// only after a login misses expirations after worker restarts and during
+	// periods where no new user logs in.
+	try {
+		await getSessionManager();
+		console.log('Session expiration monitoring initialized successfully');
+	} catch (error) {
+		console.error('Failed to initialize session expiration monitoring:', error);
+	}
 
 	// Initialize backup scheduler
 	try {
@@ -42,6 +64,7 @@ export default async function setup() {
 	// // Initialize log integrity service and setup modification trigger
 	try {
 		const logIntegrityService = LogIntegrityService.getInstance();
+		await logIntegrityService.disableLegacyAutomaticDeletion();
 		logIntegrityService.setupLogModificationTrigger();
 		console.log('Log integrity service initialized successfully');
 	} catch (error) {

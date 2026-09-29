@@ -11,14 +11,20 @@ import { authHeaderExtraction } from './auth.middleware';
 import { errorLoggerMiddleware, routeLoggerMiddleware } from './routeLogger.middleware';
 import { registerSecurityMiddleware } from './security.middleware';
 import { BaseConfig } from '../config/base.config';
-// import { verifyUserIntegrityMiddleware } from './userIntegrity.middleware';
+import { verifyUserIntegrityMiddleware } from './userIntegrity.middleware';
+import { verifyLogIntegrityMiddleware } from './logIntegrity.middleware';
 import { inputSanitizationMiddleware } from './input-sanitization.middleware';
 import { httpSecurityMiddleware } from './http-methods.middleware';
+import { MAX_UPLOAD_BODY_SIZE } from '../config/upload.config';
+import { requireUserAgent } from './user-agent.middleware';
 
 export async function RegisterMiddleware(app: Application) {
 	// HTTP Security - Handle OPTIONS, validate methods, sanitize headers
 	// Must be registered FIRST before any other middleware
 	app.use(httpSecurityMiddleware);
+
+	// Reject a missing/empty User-Agent, then normalize it once for all downstream consumers.
+	app.use(requireUserAgent);
 
 	// Register security middleware (must be awaited as it's async)
 	await registerSecurityMiddleware(app);
@@ -51,29 +57,29 @@ export async function RegisterMiddleware(app: Application) {
 
 	///////////////////////////////////////////////////////////////////////////////// Parsing & Logger
 
-	// Body Parser JSON - Parse JSON payloads up to 50mb (skips multipart/form-data)
+	// Body Parser JSON - Parse JSON payloads up to the upload size limit (skips multipart/form-data)
 	app.use((req: Request, res: Response, next: NextFunction) => {
 		if (req.headers['content-type']?.includes('multipart/form-data')) {
 			// Skip body parsing for multipart requests - let multer handle them
 			return next();
 		}
-		bodyParser.json({ limit: '50mb' })(req, res, next);
+		bodyParser.json({ limit: MAX_UPLOAD_BODY_SIZE })(req, res, next);
 	});
 
-	// Body Parser URL-encoded - Parse URL-encoded payloads up to 50mb (skips multipart/form-data)
+	// Body Parser URL-encoded - Parse URL-encoded payloads up to the upload size limit (skips multipart/form-data)
 	app.use((req: Request, res: Response, next: NextFunction) => {
 		if (req.headers['content-type']?.includes('multipart/form-data')) {
 			// Skip body parsing for multipart requests - let multer handle them
 			return next();
 		}
 		bodyParser.urlencoded({
-			limit: '50mb',
+			limit: MAX_UPLOAD_BODY_SIZE,
 			extended: true
 		})(req, res, next);
 	});
 
-	// Body Parser Text - Parse text payloads up to 200mb
-	app.use(bodyParser.text({ limit: '200mb' }));
+	// Body Parser Text - Parse text payloads up to the upload size limit
+	app.use(bodyParser.text({ limit: MAX_UPLOAD_BODY_SIZE }));
 
 	// Input Sanitization - Validate and sanitize all inputs
 	// Protects against CRLF injection and enforces input length limits
@@ -96,11 +102,10 @@ export async function RegisterMiddleware(app: Application) {
 	app.use(routeLoggerMiddleware());
 
 	// Log Integrity Verification - Verify log integrity for GET requests
-	// DISABLED: Log integrity check is currently disabled
-	// app.use(verifyLogIntegrityMiddleware);
+	app.use(verifyLogIntegrityMiddleware);
 
 	// User Integrity Verification - Verify user integrity for user-related routes
-	// app.use(verifyUserIntegrityMiddleware);
+	app.use(verifyUserIntegrityMiddleware);
 
 	// Error Logger - Log application errors
 	app.use(errorLoggerMiddleware());

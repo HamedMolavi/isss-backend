@@ -2,6 +2,14 @@ import { ICar } from '../types/interfaces/car.interface';
 import { DIGITS, englishPlateDict, persianPlateDict, stringPlateToJson } from './plate.tools';
 import { allowedPassRevert } from './time.tools';
 
+export interface PlateInput {
+	first?: string | number;
+	second?: string;
+	third?: string | number;
+	fourth?: string;
+	fifth?: string | number;
+}
+
 export function carSendFunction(doc: ICar) {
 	return {
 		owner: doc.owner,
@@ -13,25 +21,56 @@ export function carSendFunction(doc: ICar) {
 		_id: doc._id
 	};
 }
-export function stringifyPlate(body: { number_plate?: { [key: string]: string } }) {
-	if (!body?.number_plate) return '';
-	return `${body.number_plate?.first
+
+function normalizePlateDigits(value: unknown, length: number): string | null {
+	if (value === undefined || value === null) return null;
+
+	const normalized = String(value)
+		.trim()
 		.split('')
-		.map((i) => DIGITS[i] ?? '_')
-		.slice(0, 2)
-		.join('')}${englishPlateDict[body.number_plate?.second] ?? '_'}${body.number_plate?.third
-		.split('')
-		.map((i) => DIGITS[i] ?? '_')
-		.slice(0, 3)
-		.join('')}${
-		!!body.number_plate?.fifth
-			? body.number_plate?.fifth
-					.split('')
-					.map((i) => DIGITS[i] ?? '_')
-					.slice(0, 2)
-					.join('')
-			: '__'
-	}`;
+		.map((digit) => DIGITS[digit] ?? '')
+		.join('');
+
+	if (!new RegExp(`^[0-9]{${length}}$`).test(normalized)) return null;
+	return normalized;
+}
+
+function normalizePlateLetter(value: unknown): string | null {
+	if (typeof value !== 'string') return null;
+
+	const normalized = value.replace(/\u200c/g, ' ').replace(/\s+/g, ' ').trim();
+	if (!normalized) return null;
+
+	if (Object.prototype.hasOwnProperty.call(englishPlateDict, normalized)) {
+		return englishPlateDict[normalized];
+	}
+
+	const upperCaseLetter = normalized.toUpperCase();
+	if (Object.prototype.hasOwnProperty.call(persianPlateDict, upperCaseLetter)) {
+		return upperCaseLetter;
+	}
+
+	return null;
+}
+
+export function normalizePlateInput(plate?: PlateInput): string | null {
+	if (!plate || typeof plate !== 'object') return null;
+
+	const first = normalizePlateDigits(plate.first, 2);
+	const second = normalizePlateLetter(plate.second);
+	const third = normalizePlateDigits(plate.third, 3);
+	const fifth = normalizePlateDigits(plate.fifth, 2);
+
+	if (!first || !second || !third || !fifth) return null;
+	return `${first}${second}${third}${fifth}`;
+}
+
+export function isValidPlateInput(plate?: PlateInput): boolean {
+	return normalizePlateInput(plate) !== null;
+}
+
+export function stringifyPlate(body: { number_plate?: PlateInput }) {
+	return normalizePlateInput(body?.number_plate) ?? '';
 }
 
 export function platesToStrings(

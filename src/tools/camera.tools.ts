@@ -5,6 +5,7 @@ import { getStreamUriStrategy } from '../types/classes/camera.class';
 import { cameraInfo } from './takeSnaphsot';
 import axios from 'axios';
 import { CameraInfoBody } from '../validation/dto/camera.dto';
+import { isValidRtspUrl } from '../validation/rtsp-url.validation';
 
 export function getStreamUri(camInfo: ICameraInfo): RequestHandler {
 	// TODO: update link stream fetching mechanism
@@ -18,12 +19,12 @@ export function getStreamUri(camInfo: ICameraInfo): RequestHandler {
 			second: camInfo.nvr,
 			error: next
 		}).do();
-		if (!!uri) {
+		if (!!uri && isValidRtspUrl(uri)) {
 			req.body.url = uri;
 			next();
 		} else {
-			req.flash('error', 'rtsp link not found');
-			return next(new ApiError(400, 'rtsp link not found'));
+			req.flash('error', 'valid rtsp link not found');
+			return next(new ApiError(400, 'valid rtsp link not found'));
 		}
 	};
 }
@@ -99,13 +100,18 @@ export async function testCameraMiddleware(req: Request, res: Response, next: Ne
 		let stream_uri: string = '';
 		if (!cam_test.url) {
 			//get live stream uri(rtsp link from camera)
-			let stream_uri = await oldGetStreamUri(cam_test);
-			if (stream_uri == undefined) {
+			stream_uri = (await oldGetStreamUri(cam_test)) || '';
+			if (!stream_uri) {
 				req.flash('error', 'rtsp link not found');
 				return next(new ApiError(400, 'rtsp link not found'));
 			}
 		} else {
 			stream_uri = cam_test.url;
+		}
+
+		if (!isValidRtspUrl(stream_uri)) {
+			req.flash('error', 'valid rtsp link not found');
+			return next(new ApiError(400, 'valid rtsp link not found'));
 		}
 
 		const result = await testCamera(cam_test, stream_uri);

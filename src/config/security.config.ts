@@ -59,7 +59,8 @@ const defaultConfig = {
 		NAME: 'Bearer',
 		COOKIE: {
 			HTTP_ONLY: true,
-			SECURE: process.env.NODE_ENV === 'production', // Secure cookies in production (HTTPS only)
+			// Authentication cookies must never be transmitted over plain HTTP.
+			SECURE: true,
 			SAME_SITE: (process.env.NODE_ENV === 'production' ? 'strict' : 'lax') as 'strict' | 'lax', // Strict in production
 			PATH: '/'
 		}

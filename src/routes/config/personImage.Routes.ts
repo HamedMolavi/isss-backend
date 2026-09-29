@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import multer from 'multer';
 import PersonImage from '../../db/mongo/models/personImage';
 import Personnel from '../../db/mongo/models/personnel';
 import { readMiddleware } from '../../db/mongo/read.database';
@@ -9,6 +8,8 @@ import { HttpStatus } from '../../types/http_status';
 import { SnapshotKafka } from '../../tools/kafkaFile.tools';
 import { processFaceRecognition, savePersonImageWithVector } from '../../controllers/file.controller';
 import { getFileUrl } from '../../tools/s3.tools';
+import { imageCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
+import { createImageUploadMiddleware } from '../../middleware/image-upload.middleware';
 
 /**
  * ===================================
@@ -174,90 +175,104 @@ router.delete('/:hash_id', async function (req: Request, res: Response) {
  * @returns Created PersonImage document with file URL
  */
 // Create multer upload middleware for memory storage (no S3 upload yet)
-const uploadMiddleware = multer({
-	storage: multer.memoryStorage(),
-	limits: {
-		fileSize: 30 * 1024 * 1024 // 30 MB max file size
-	},
-	fileFilter: (_req: Express.Request, file: Express.Multer.File, callback: multer.FileFilterCallback) => {
-		const isImage = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp'].includes(file.mimetype);
-		if (isImage) {
-			callback(null, true);
-		} else {
-			callback(new Error(`Invalid file type: ${file.mimetype}. Only images are allowed.`));
-		}
-	}
-}).single('image');
+const uploadMiddleware = createImageUploadMiddleware();
 
-router.post('/:person_id', uploadMiddleware, async function (req: Request, res: Response) {
-	try {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const uploadedFile = req.file as any;
-		const personId = req.params.person_id;
-
-		// Validate required fields
-		if (!personId) {
-			return ApiRes(res, {
-				status: HttpStatus.BAD_REQUEST,
-				msg: 'person_id is required'
-			});
-		}
-
-		if (!uploadedFile) {
-			return ApiRes(res, {
-				status: HttpStatus.BAD_REQUEST,
-				msg: 'image file is required'
-			});
-		}
-
-		// Verify person exists
-		const person = await Personnel.findById(personId).exec();
-		if (!person) {
-			return ApiRes(res, {
-				status: HttpStatus.NOT_FOUND,
-				msg: 'Personnel not found'
-			});
-		}
-
-		// Convert buffer to base64 for face recognition
-		const imageBase64 = uploadedFile.buffer.toString('base64');
-		const imageDataUrl = `data:${uploadedFile.mimetype};base64,${imageBase64}`;
-
+router.post(
+	'/:person_id',
+	imageCreationRateLimit,
+	uploadMiddleware,
+	async function (req: Request, res: Response) {
 		try {
-			// Process face recognition via Kafka
-			const faceResult = await processFaceRecognition(
-				imageDataUrl,
-				personId,
-				snapshotKafka.kafkaSession.bind(snapshotKafka)
-			);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const uploadedFile = req.file as any;
+			const personId = req.params.person_id;
 
-			if (faceResult.has_face && faceResult.embedding && faceResult.cropped_face) {
-				// Save PersonImage with cropped face from Kafka (not original image)
-				const personImage = await savePersonImageWithVector(
+			// Validate required fields
+			if (!personId) {
+				return ApiRes(res, {
+					status: HttpStatus.BAD_REQUEST,
+					msg: 'person_id is required'
+				});
+			}
+
+			if (!uploadedFile) {
+				return ApiRes(res, {
+					status: HttpStatus.BAD_REQUEST,
+					msg: 'image file is required'
+				});
+			}
+
+			// Verify person exists
+			const person = await Personnel.findById(personId).exec();
+			if (!person) {
+				return ApiRes(res, {
+					status: HttpStatus.NOT_FOUND,
+					msg: 'Personnel not found'
+				});
+			}
+
+			// Convert buffer to base64 for face recognition
+			const imageBase64 = uploadedFile.buffer.toString('base64');
+			const imageDataUrl = `data:${uploadedFile.mimetype};base64,${imageBase64}`;
+
+			try {
+				// Process face recognition via Kafka
+				const faceResult = await processFaceRecognition(
+					imageDataUrl,
 					personId,
-					faceResult.cropped_face, // Use cropped_face from asghar Kafka response
-					faceResult.embedding,
-					faceResult._id
+					snapshotKafka.kafkaSession.bind(snapshotKafka)
 				);
 
-				// Return success response with face data
-				return res.status(201).json({
-					success: true,
-					data: {
-						_id: personImage._id,
-						person_id: personImage.person_id,
-						hash_id: personImage.hash_id,
-						file_url: personImage.file_key ? getFileUrl(personImage.file_key) : null,
-						file_key: personImage.file_key,
-						has_face: true,
-						multi_face: faceResult.multi_face
-					}
-				});
-			} else {
-				// No face detected in image - still save PersonImage with S3 upload
-				const personImage = await savePersonImageWithVector(personId, imageDataUrl, [], faceResult._id);
+				if (faceResult.has_face && faceResult.embedding && faceResult.cropped_face) {
+					// Save PersonImage with cropped face from Kafka (not original image)
+					const personImage = await savePersonImageWithVector(
+						personId,
+						faceResult.cropped_face, // Use cropped_face from asghar Kafka response
+						faceResult.embedding,
+						faceResult._id
+					);
 
-				// Return success response without face data
+					// Return success response with face data
+					return res.status(201).json({
+						success: true,
+						data: {
+							_id: personImage._id,
+							person_id: personImage.person_id,
+							hash_id: personImage.hash_id,
+							file_url: personImage.file_key ? getFileUrl(personImage.file_key) : null,
+							file_key: personImage.file_key,
+							has_face: true,
+							multi_face: faceResult.multi_face
+						}
+					});
+				} else {
+					// No face detected in image - still save PersonImage with S3 upload
+					const personImage = await savePersonImageWithVector(personId, imageDataUrl, [], faceResult._id);
+
+					// Return success response without face data
+					return res.status(201).json({
+						success: true,
+						data: {
+							_id: personImage._id,
+							person_id: personImage.person_id,
+							hash_id: personImage.hash_id,
+							file_url: personImage.file_key ? getFileUrl(personImage.file_key) : null,
+							file_key: personImage.file_key,
+							has_face: false,
+							multi_face: faceResult.multi_face
+						}
+					});
+				}
+			} catch (faceError) {
+				// Still save the image even though face recognition failed
+				const personImage = await savePersonImageWithVector(
+					personId,
+					imageDataUrl,
+					[],
+					'' // No image ID from AI service
+				);
+
+				// Return success response (image saved but face recognition failed)
 				return res.status(201).json({
 					success: true,
 					data: {
@@ -267,39 +282,17 @@ router.post('/:person_id', uploadMiddleware, async function (req: Request, res: 
 						file_url: personImage.file_key ? getFileUrl(personImage.file_key) : null,
 						file_key: personImage.file_key,
 						has_face: false,
-						multi_face: faceResult.multi_face
+						face_recognition_error: faceError instanceof Error ? faceError.message : 'Unknown error'
 					}
 				});
 			}
-		} catch (faceError) {
-			// Still save the image even though face recognition failed
-			const personImage = await savePersonImageWithVector(
-				personId,
-				imageDataUrl,
-				[],
-				'' // No image ID from AI service
-			);
-
-			// Return success response (image saved but face recognition failed)
-			return res.status(201).json({
-				success: true,
-				data: {
-					_id: personImage._id,
-					person_id: personImage.person_id,
-					hash_id: personImage.hash_id,
-					file_url: personImage.file_key ? getFileUrl(personImage.file_key) : null,
-					file_key: personImage.file_key,
-					has_face: false,
-					face_recognition_error: faceError instanceof Error ? faceError.message : 'Unknown error'
-				}
+		} catch (err) {
+			return ApiRes(res, {
+				status: HttpStatus.INTERNAL_SERVER_ERROR,
+				msg: 'Internal server error , ' + (err instanceof Error ? err.message : 'Unknown error')
 			});
 		}
-	} catch (err) {
-		return ApiRes(res, {
-			status: HttpStatus.INTERNAL_SERVER_ERROR,
-			msg: 'Internal server error , ' + (err instanceof Error ? err.message : 'Unknown error')
-		});
 	}
-});
+);
 
 export default router;

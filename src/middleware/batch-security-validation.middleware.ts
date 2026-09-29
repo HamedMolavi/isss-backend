@@ -4,6 +4,7 @@ import { IUserDocument } from '../types/interfaces/user.interface';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import path from 'path';
 import rateLimit from 'express-rate-limit';
+import { MAX_UPLOAD_FILE_SIZE_BYTES, MAX_UPLOAD_FILE_SIZE_MB } from '../config/upload.config';
 
 /**
  * Allowed MIME types for different file operations
@@ -355,7 +356,7 @@ export const fileUploadSecurityValidation = (req: Request, res: Response, next: 
 	try {
 		// 1. File size and MIME type validation
 		if (req.files) {
-			const maxFileSize = 50 * 1024 * 1024; // 50MB limit
+			const maxFileSize = MAX_UPLOAD_FILE_SIZE_BYTES;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const files = Array.isArray(req.files) ? req.files : Object.values(req.files as any).flat();
 
@@ -372,7 +373,7 @@ export const fileUploadSecurityValidation = (req: Request, res: Response, next: 
 					});
 					return res.status(413).json({
 						success: false,
-						message: `File ${uploadedFile.name} is too large. Maximum allowed: ${maxFileSize / (1024 * 1024)}MB.`
+						message: `File ${uploadedFile.name} is too large. Maximum allowed: ${MAX_UPLOAD_FILE_SIZE_MB}MB.`
 					});
 				}
 

@@ -49,7 +49,9 @@ export const getMyAuthHistory = async (req: Request, res: Response) => {
 			$or: [
 				{ 'metadata.userid': user._id.toString() },
 				{ 'metadata.username': user.username },
-				{ 'metadata.details.attemptedCredentials.username': user.username }
+				{ 'metadata.details.attemptedCredentials.username': user.username },
+				{ 'metadata.details.affectedUserIds': user._id.toString() },
+				{ 'metadata.details.affectedUsernames': user.username }
 			]
 		};
 
@@ -81,7 +83,8 @@ export const getMyAuthHistory = async (req: Request, res: Response) => {
 			'ip_restriction_disabled',
 			'ip_added',
 			'ip_removed',
-			'ip_access_denied'
+			'ip_access_denied',
+			'user_integrity_violation'
 		];
 
 		// Add action filter

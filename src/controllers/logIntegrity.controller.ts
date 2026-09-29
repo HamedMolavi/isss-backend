@@ -19,8 +19,7 @@ export const getIntegrityStatus = async (req: Request, res: Response) => {
 			data: {
 				active: status.serviceActive,
 				triggerActive: status.triggerActive,
-				lastCheck: status.lastVerificationTime,
-				alertTopic: status.kafkaTopic
+				lastCheck: status.lastVerificationTime
 			}
 		});
 	} catch (error) {
@@ -139,9 +138,6 @@ export const getTamperingReport = async (req: Request, res: Response) => {
 		}
 
 		const isIntact = await Log.verifyIntegrity(logId);
-		const service = LogIntegrityService.getInstance();
-		const serviceStatus = service.getServiceStatus();
-
 		return ApiRes(res, {
 			status: HttpStatus.OK,
 			msg: isIntact ? 'گزارش یکپارچگی - سالم' : 'گزارش یکپارچگی - دستکاری شده',
@@ -162,13 +158,12 @@ export const getTamperingReport = async (req: Request, res: Response) => {
 					? {
 							severity: 'INFO',
 							action: 'هیچ اقدامی نیاز نیست',
-							alertSent: false
+							securityEventRecorded: false
 						}
 					: {
 							severity: 'CRITICAL',
-							action: 'هشدار ارسال شد',
-							alertSent: serviceStatus.serviceActive,
-							alertChannel: 'Kafka',
+							action: 'رویداد امنیتی در لاگ محلی ثبت شد',
+							securityEventRecorded: true,
 							recommendations: [
 								'بررسی منبع تغییرات',
 								'بررسی لاگ‌های دسترسی پایگاه داده',

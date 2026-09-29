@@ -54,7 +54,9 @@ LogSchema.index({ message: 1 }); // Add index for message field
 LogSchema.index({ 'metadata.ip': 1, timestamp: -1 });
 LogSchema.index({ 'metadata.username': 1, timestamp: -1 });
 
-LogSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });
+// Retention cleanup is performed by LogBackupService so the Mongo record and
+// its protected SQLite hash are removed together. A Mongo TTL index would
+// bypass that audited cleanup path and make authorized expiry look like tampering.
 
 // Pre-save hook to generate and store hash
 LogSchema.pre('save', async function (next) {

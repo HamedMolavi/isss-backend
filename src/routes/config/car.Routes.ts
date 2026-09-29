@@ -8,10 +8,13 @@ import { createMiddleware } from '../../db/mongo/create.database';
 import { readByIdMiddleware, readMiddleware } from '../../db/mongo/read.database';
 import { updateByIdMiddleware } from '../../db/mongo/update.database';
 import { deleteByIdMiddleware } from '../../db/mongo/delete.database';
-import { carSendFunction, stringifyPlate } from '../../tools/car.tools';
+import { carSendFunction, isValidPlateInput, stringifyPlate } from '../../tools/car.tools';
 import { injectDataMiddleware } from '../../tools/request.tools';
 import Time, { allowedPassConvert } from '../../tools/time.tools';
 import { accessCheck } from '../../authentication/accessCheck.auth';
+import { carCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
+import { ApiRes } from '../../utils/api.response';
+import { HttpStatus } from '../../types/http_status';
 
 //create router for add to routes file
 const router: Router = Router();
@@ -24,25 +27,25 @@ router.use(accessCheck('car'));
 //add route for register new car
 router.post(
 	'',
+	carCreationRateLimit,
 	dtoValidationMiddleware(CreateCarBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
 		info: 'please fill all fields'
 	}),
-	// TODO: validate plateObj.second is defined in englishPlateDict
-		existCheck(
-			Car,
-			(body: { number_plate?: { [key: string]: string } }) => {
-				return { number_plate: stringifyPlate(body) };
-			},
-			'Car already exists!'
-		),
+	existCheck(
+		Car,
+		(body: { number_plate?: { [key: string]: string } }) => {
+			return { number_plate: stringifyPlate(body) };
+		},
+		'Car already exists!'
+	),
 	injectDataMiddleware(allowedPassConvert, { injData: 'allowed_pass' }),
-		createMiddleware(
-			[
-				'owner',
-				{ number_plate: (body: { number_plate?: { [key: string]: string } }) => stringifyPlate(body) },
-				'brand',
+	createMiddleware(
+		[
+			'owner',
+			{ number_plate: (body: { number_plate?: { [key: string]: string } }) => stringifyPlate(body) },
+			'brand',
 			'color',
 			'camera_whitelist',
 			'schedule_whitelist',
@@ -116,6 +119,15 @@ router.get('/:id', readByIdMiddleware(Car, { send: carSendFunction, populate: tr
 //add route for edit car
 router.patch(
 	'/:id',
+	(req, res, next) => {
+		if (req.body.number_plate !== undefined && !isValidPlateInput(req.body.number_plate)) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: 'Invalid plate number'
+			});
+		}
+		return next();
+	},
 	updateByIdMiddleware(Car, {
 		update: {
 			number_plate: stringifyPlate,

@@ -75,14 +75,22 @@ export class LoginRateLimiter {
 			}
 
 			const { username, ip } = req.loginRateLimit;
-			const config = await getSecurityConfig();
-			const key = await this.getKey(username);
-			const historyKey = `${config.LOGIN_RATE_LIMIT.ATTEMPTS_HISTORY_PREFIX}${username}`;
 			// Check if login failed via req.loginFailed flag (set by assignPassport)
 			const isSuccess = !!req.user && !req.loginFailed;
 			const now = Date.now();
 
+			if (!isSuccess && req.loginFailed && !req.loginFailureLogged) {
+				AuthLogger.loginFailed(req, req.loginFailed.error || 'Invalid username or password', {
+					username,
+					password: req.loginFailed.attemptedCredentials?.password
+				});
+				req.loginFailureLogged = true;
+			}
+
 			try {
+				const config = await getSecurityConfig();
+				const key = await this.getKey(username);
+				const historyKey = `${config.LOGIN_RATE_LIMIT.ATTEMPTS_HISTORY_PREFIX}${username}`;
 				const client = await this.getRedisClient();
 
 				// Create attempt record
@@ -128,12 +136,6 @@ export class LoginRateLimiter {
 						AuthLogger.loginBlocked(req, `User blocked after ${attempts} failed attempts from ${ip}`, {
 							username
 						});
-					} else {
-						AuthLogger.loginFailed(
-							req,
-							`Failed login attempt ${attempts}/${config.LOGIN_RATE_LIMIT.MAX_ATTEMPTS} from ${ip}`,
-							{ username }
-						);
 					}
 
 					// Set expiration for cleanup

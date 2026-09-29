@@ -20,6 +20,7 @@ import PersonImage from '../../db/mongo/models/personImage';
 import { remove_file } from '../../file_upload/aws/remove';
 import { personnelCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 import { accessCheck } from '../../authentication/accessCheck.auth';
+import { normalizeNumericText, normalizePersonnelText } from '../../validation/personnel.validation';
 
 const router: Router = Router();
 
@@ -78,6 +79,22 @@ const personnelDefaultQueryFunction = (bodyQueryParams: { type?: string }) => {
 		}
 	}
 	return result;
+};
+
+const normalizePersonnelPayload = (req: Request, _res: Response, next: NextFunction) => {
+	const textFields = ['first_name', 'last_name', 'national_code', 'email', 'phone_number'] as const;
+
+	for (const field of textFields) {
+		if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+			req.body[field] = normalizePersonnelText(req.body[field]);
+		}
+	}
+
+	if (Object.prototype.hasOwnProperty.call(req.body, 'personnel_code')) {
+		req.body.personnel_code = normalizeNumericText(req.body.personnel_code);
+	}
+
+	return next();
 };
 
 // Success handlers for personnel operations
@@ -276,6 +293,7 @@ const handlePersonnelError = {
 router.post(
 	'',
 	personnelCreationRateLimit, // Rate limit to prevent race condition attacks
+	normalizePersonnelPayload,
 	dtoValidationMiddleware(CreatePersonnelBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development',
@@ -321,6 +339,7 @@ router.get('/:id', readByIdMiddleware(Personnel, { populate: true }));
 
 router.patch(
 	'/:id',
+	normalizePersonnelPayload,
 	dtoValidationMiddleware(UpdatePersonnelBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development',

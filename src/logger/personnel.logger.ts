@@ -1,6 +1,7 @@
 import { Request } from 'express';
 import { Logger } from '.';
 import { getClientIP } from '../tools/util.tools';
+import { sanitizeUserAgent } from '../tools/user_agent.utility';
 
 /**
  * Personnel management event types
@@ -31,7 +32,7 @@ export class PersonnelLogger {
 			userid: req.user?._id?.toString(),
 			username: req.user?.username,
 			ip: getClientIP(req) || 'unknown',
-			userAgent: req.get('User-Agent') || 'unknown',
+			userAgent: sanitizeUserAgent(req.get('User-Agent')),
 			method: req.method,
 			url: req.originalUrl,
 			timestamp: new Date()

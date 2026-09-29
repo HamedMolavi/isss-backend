@@ -14,17 +14,26 @@ import { ApiError } from '../../types/classes/error.class';
 import { hashString } from '../../tools/hash';
 import Product from '../../db/mongo/models/product';
 import Camera from '../../db/mongo/models/camera';
-import multer from 'multer';
 
 import { DataImportExportLogger } from '../../logger/data-input-output.logger';
 import { accessCheck } from '../../authentication/accessCheck.auth';
 import { checkIPRestriction } from '../../middleware/ip-restriction.middleware';
 import { fileUploadSecurityValidation } from '../../middleware/batch-security-validation.middleware';
-import { uploadBase64ImageToS3, batch_personnel_add, batch_plate_add } from '../../controllers/file.controller';
+import {
+	uploadBase64ImageToS3,
+	batch_personnel_add,
+	batch_plate_add
+} from '../../controllers/file.controller';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import S3Client from '../../config/s3.config';
 import { BaseConfig } from '../../config/base.config';
 import { FileCrate } from '../../file_upload/methods/file/file_create';
+import { createImageUploadMiddleware } from '../../middleware/image-upload.middleware';
+import {
+	batchCreationRateLimit,
+	imageCreationRateLimit,
+	personnelCreationRateLimit
+} from '../../middleware/resource-rate-limit.middleware';
 
 // Session secret for hashing operations
 const SECRET = process.env['SESSION_SECRET'];
@@ -55,6 +64,7 @@ const router: Router = Router();
  */
 router.post(
 	'/batch/plate',
+	batchCreationRateLimit,
 	// Security validation
 	fileUploadSecurityValidation,
 	checkIPRestriction,
@@ -89,6 +99,7 @@ router.post(
  */
 router.post(
 	'/batch/personnel',
+	batchCreationRateLimit,
 	// Security validation
 	fileUploadSecurityValidation,
 	checkIPRestriction,
@@ -109,23 +120,11 @@ router.post(
  * @returns Summary of successful and failed image uploads with face recognition results
  */
 // Create multer upload middleware for multiple images with memory storage
-const batchPersonnelImagesUploadMiddleware = multer({
-	storage: multer.memoryStorage(),
-	limits: {
-		fileSize: 30 * 1024 * 1024 // 30 MB max file size
-	},
-	fileFilter: (_req: Express.Request, file: Express.Multer.File, callback: multer.FileFilterCallback) => {
-		const isImage = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp'].includes(file.mimetype);
-		if (isImage) {
-			callback(null, true);
-		} else {
-			callback(new Error(`Invalid file type: ${file.mimetype}. Only images are allowed.`));
-		}
-	}
-}).array('images');
+const batchPersonnelImagesUploadMiddleware = createImageUploadMiddleware({ multiple: true });
 
 router.post(
 	'/batch/personnel/images',
+	imageCreationRateLimit,
 	// File upload middleware for multiple images using memory storage
 	batchPersonnelImagesUploadMiddleware,
 
@@ -287,6 +286,7 @@ router.post(
  */
 router.post(
 	'/hostile',
+	personnelCreationRateLimit,
 	dtoValidationMiddleware(AddHostilePerson, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
@@ -450,6 +450,7 @@ router.post(
  */
 router.post(
 	'/batch/hostile',
+	batchCreationRateLimit,
 	// Security validation
 	fileUploadSecurityValidation,
 	checkIPRestriction,
@@ -569,23 +570,11 @@ router.post(
  * @returns Summary of successful and failed image uploads with face recognition results
  */
 // Create multer upload middleware for multiple hostile images with memory storage
-const batchHostileImagesUploadMiddleware = multer({
-	storage: multer.memoryStorage(),
-	limits: {
-		fileSize: 30 * 1024 * 1024 // 30 MB max file size
-	},
-	fileFilter: (_req: Express.Request, file: Express.Multer.File, callback: multer.FileFilterCallback) => {
-		const isImage = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp'].includes(file.mimetype);
-		if (isImage) {
-			callback(null, true);
-		} else {
-			callback(new Error(`Invalid file type: ${file.mimetype}. Only images are allowed.`));
-		}
-	}
-}).array('images');
+const batchHostileImagesUploadMiddleware = createImageUploadMiddleware({ multiple: true });
 
 router.post(
 	'/batch/hostile/images',
+	imageCreationRateLimit,
 	// File upload middleware for multiple images using memory storage
 	batchHostileImagesUploadMiddleware,
 
@@ -740,20 +729,7 @@ router.post(
  * @security Requires authentication
  */
 // Create multer upload middleware for memory storage (no S3 upload)
-const searchUploadMiddleware = multer({
-	storage: multer.memoryStorage(),
-	limits: {
-		fileSize: 30 * 1024 * 1024 // 30 MB max file size
-	},
-	fileFilter: (_req: Express.Request, file: Express.Multer.File, callback: multer.FileFilterCallback) => {
-		const isImage = ['image/png', 'image/jpg', 'image/jpeg', 'image/webp'].includes(file.mimetype);
-		if (isImage) {
-			callback(null, true);
-		} else {
-			callback(new Error(`Invalid file type: ${file.mimetype}. Only images are allowed.`));
-		}
-	}
-}).single('image');
+const searchUploadMiddleware = createImageUploadMiddleware();
 
 router.post(
 	'/search',
@@ -923,6 +899,7 @@ router.post(
  */
 router.post(
 	'/notifpersonnel/guest',
+	personnelCreationRateLimit,
 	injectDataMiddleware(
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		async (): Promise<any> => ({
@@ -984,6 +961,7 @@ router.post(
  */
 router.post(
 	'/notifpersonnel/client',
+	personnelCreationRateLimit,
 	dtoValidationMiddleware(AddClient, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
@@ -1084,6 +1062,7 @@ router.post(
  */
 router.post(
 	'/notifpersonnel/:type?',
+	imageCreationRateLimit,
 	dtoValidationMiddleware(AddPersonImage, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,

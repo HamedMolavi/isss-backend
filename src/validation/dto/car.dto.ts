@@ -6,19 +6,24 @@ import {
 	IsBoolean,
 	IsArray,
 	IsOptional,
-	IsObject
+	IsObject,
+	Validate
 } from 'class-validator';
 import mongoose, { Schema } from 'mongoose';
+import { IsPlateNumber } from '../plate.validation';
 
 export class CreateCarBody {
 	@IsString()
 	public owner?: mongoose.Types.ObjectId;
+	@IsDefined()
+	@IsObject()
+	@Validate(IsPlateNumber)
 	public number_plate?: {
-		first: number;
+		first: string | number;
 		second: string;
-		third: number;
+		third: string | number;
 		fourth: string;
-		fifth: number;
+		fifth: string | number;
 	};
 	@IsString()
 	public brand?: mongoose.Types.ObjectId;

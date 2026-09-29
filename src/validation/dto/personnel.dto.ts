@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import mongoose from 'mongoose';
 import { EndgtrStartValidator, TimeAndDateValidator } from '.';
+import { IsNonBlankText, IsNumericText } from '../personnel.validation';
 
 @ValidatorConstraint({ name: 'customEmail', async: false })
 export class CustomEmailValidator implements ValidatorConstraintInterface {
@@ -46,11 +47,13 @@ export class CustomObjectIdValidator implements ValidatorConstraintInterface {
 
 export class CreatePersonnelBody {
 	@IsString()
-	@IsOptional()
+	@IsDefined({ message: 'first_name is needed' })
+	@Validate(IsNonBlankText)
 	public first_name?: string;
 
 	@IsString()
-	@IsOptional()
+	@IsDefined({ message: 'last_name is needed' })
+	@Validate(IsNonBlankText)
 	public last_name?: string;
 
 	@IsString()
@@ -75,6 +78,8 @@ export class CreatePersonnelBody {
 
 	@IsString()
 	@IsDefined({ message: 'personnel_code is needed' })
+	@Validate(IsNonBlankText)
+	@Validate(IsNumericText)
 	public personnel_code?: string;
 
 	@IsArray()
@@ -135,10 +140,12 @@ export class CreatePersonnelBody {
 export class UpdatePersonnelBody {
 	@IsString()
 	@IsOptional()
+	@Validate(IsNonBlankText)
 	public first_name?: string;
 
 	@IsString()
 	@IsOptional()
+	@Validate(IsNonBlankText)
 	public last_name?: string;
 
 	@IsString()
@@ -163,6 +170,8 @@ export class UpdatePersonnelBody {
 
 	@IsString()
 	@IsOptional()
+	@Validate(IsNonBlankText)
+	@Validate(IsNumericText)
 	public personnel_code?: string;
 
 	@IsArray()

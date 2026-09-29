@@ -11,6 +11,7 @@ import Personnel from '../../db/mongo/models/personnel';
 import mongoose from 'mongoose';
 import { DoNotAllowOnDefault } from '../../tools/request.tools';
 import { accessCheck } from '../../authentication/accessCheck.auth';
+import { jobTitleCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 
 //create router for add to server file
 const router: Router = Router();
@@ -21,6 +22,7 @@ router.use(accessCheck('job'));
 //add route for register new jobTitle
 router.post(
 	'',
+	jobTitleCreationRateLimit,
 	dtoValidationMiddleware(CreateJobTitleBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,

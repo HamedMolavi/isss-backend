@@ -43,6 +43,17 @@ interface RequestWithSession extends Omit<Request, 'session'> {
 	sessionStore: session.Store;
 }
 
+type SessionBackupData = {
+	userId: string;
+	username: string;
+	role: string;
+	ip?: string;
+	userAgent?: string;
+	loginTime?: string;
+	lastActivity?: string;
+	isRemembered?: string;
+};
+
 /**
  * Interface for the session data returned to clients
  * Contains formatted session and user information
@@ -167,14 +178,29 @@ export class SessionManager {
 				console.error('Redis subscription error:', err);
 			});
 
-			// Subscribe to session expiration events
-			await this.subscriber.subscribe('__keyevent@0__:expired', this.handleSessionExpired.bind(this));
-			await this.subscriber.subscribe('__keyevent@0__:expire', this.handleSessionExpiring.bind(this));
+			// Subscribe to the Redis database selected by REDIS_URL. Hard-coding DB 0
+			// silently misses expirations when deployments use /1, /2, etc.
+			const redisDatabase = this.getRedisDatabaseIndex(process.env['REDIS_URL']);
+			await this.subscriber.subscribe(
+				`__keyevent@${redisDatabase}__:expired`,
+				this.handleSessionExpired.bind(this)
+			);
 
 			// console.log('Session expiration monitoring initialized');
 		} catch (error) {
 			console.error('Failed to initialize session expiration monitoring:', error);
 			throw error;
+		}
+	}
+
+	private getRedisDatabaseIndex(redisUrl?: string): number {
+		if (!redisUrl) return 0;
+
+		try {
+			const database = Number.parseInt(new URL(redisUrl).pathname.replace('/', ''), 10);
+			return Number.isInteger(database) && database >= 0 ? database : 0;
+		} catch {
+			return 0;
 		}
 	}
 
@@ -191,54 +217,16 @@ export class SessionManager {
 					username: userInfo.username,
 					role: userInfo.role,
 					// Get additional session data from Redis
-					ip: await this.redisClient?.hGet(`session:${cleanSessionId}`, 'ip'),
-					userAgent: await this.redisClient?.hGet(`session:${cleanSessionId}`, 'userAgent'),
-					loginTime: await this.redisClient
-						?.hGet(`session:${cleanSessionId}`, 'loginTime')
-						?.then((t) => (t ? new Date(t) : undefined)),
-					lastActivity: await this.redisClient
-						?.hGet(`session:${cleanSessionId}`, 'lastActivity')
-						?.then((t) => (t ? new Date(t) : undefined)),
-					isRemembered: await this.redisClient
-						?.hGet(`session:${cleanSessionId}`, 'isRemembered')
-						?.then((v) => v === 'true')
+					ip: userInfo.ip,
+					userAgent: userInfo.userAgent,
+					loginTime: userInfo.loginTime ? new Date(userInfo.loginTime) : undefined,
+					lastActivity: userInfo.lastActivity ? new Date(userInfo.lastActivity) : undefined,
+					isRemembered: userInfo.isRemembered === 'true'
 				});
 				await this.cleanupUserInfoBackup(cleanSessionId);
 			}
 		} catch (error) {
 			console.error('Error handling expired session:', error);
-		}
-	}
-
-	/**
-	 * Handle session expiring event (store user info before expiration)
-	 */
-	private async handleSessionExpiring(sessionId: string) {
-		try {
-			const cleanSessionId = this.cleanSessionId(sessionId);
-			const session = await this.findSessionById(cleanSessionId);
-
-			if (session?.user?._id) {
-				// Store user info in Redis hash for additional session data
-				await this.redisClient?.hSet(`session:${cleanSessionId}`, {
-					ip: session.ip || '',
-					userAgent: session.userAgent || '',
-					loginTime: session.loginTime ? new Date(session.loginTime).toDateString() : '',
-					lastActivity: session.lastActivity ? new Date(session.lastActivity).toDateString() : '',
-					isRemembered: session.isRemembered?.toString() || 'false'
-				});
-
-				// Set expiration for the session hash
-				await this.redisClient?.expire(`session:${cleanSessionId}`, 360);
-
-				await this.backupUserInfo(cleanSessionId, {
-					userId: session.user._id,
-					username: session.user.username,
-					role: session.user.role
-				});
-			}
-		} catch (error) {
-			console.error('Error storing user info for expiring session:', error);
 		}
 	}
 
@@ -260,23 +248,59 @@ export class SessionManager {
 	/**
 	 * Backup user info before session expires
 	 */
-	private async backupUserInfo(
-		sessionId: string,
-		userInfo: { userId: string; username: string; role: string }
-	) {
+	private async backupUserInfo(sessionId: string, userInfo: SessionBackupData, ttlSeconds: number = 360) {
 		const userInfoKey = `user_info:${sessionId}`;
-		await this.redisClient?.set(userInfoKey, JSON.stringify(userInfo), { EX: 360 });
+		await this.redisClient?.set(userInfoKey, JSON.stringify(userInfo), { EX: ttlSeconds });
 	}
 
 	/**
 	 * Get user info from backup
 	 */
-	private async getUserInfoFromBackup(
-		sessionId: string
-	): Promise<{ userId: string; username: string; role: string } | null> {
+	private async getUserInfoFromBackup(sessionId: string): Promise<SessionBackupData | null> {
 		const userInfoKey = `user_info:${sessionId}`;
 		const userInfo = await this.redisClient?.get(userInfoKey);
 		return userInfo ? JSON.parse(userInfo) : null;
+	}
+
+	/**
+	 * Store enough session context to log the expiration after Redis removes the session key.
+	 */
+	async backupActiveSession(req: Request): Promise<void> {
+		try {
+			if (!this.redisClient) {
+				this.redisClient = await connect(process.env['REDIS_URL'] || '');
+			}
+
+			const userId = req.user?._id?.toString();
+			const username = req.user?.username;
+			const role = req.user?.role;
+
+			if (!req.sessionID || !userId || !username || !role) {
+				return;
+			}
+
+			const maxAge = req.session?.cookie?.maxAge;
+			const ttlSeconds = Math.max(Math.ceil((typeof maxAge === 'number' ? maxAge : 0) / 1000) + 360, 360);
+
+			await this.backupUserInfo(
+				req.sessionID,
+				{
+					userId,
+					username,
+					role,
+					ip: req.session.ip,
+					userAgent: req.session.userAgent,
+					loginTime: req.session.loginTime ? new Date(req.session.loginTime).toISOString() : undefined,
+					lastActivity: req.session.lastActivity
+						? new Date(req.session.lastActivity).toISOString()
+						: undefined,
+					isRemembered: req.session.isRemembered?.toString() || 'false'
+				},
+				ttlSeconds
+			);
+		} catch (error) {
+			console.error('Error backing up active session for expiration logging:', error);
+		}
 	}
 
 	/**

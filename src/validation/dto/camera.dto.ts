@@ -13,6 +13,7 @@ import {
 import mongoose, { Schema } from 'mongoose';
 import { CountLicenseRestricion } from '.';
 import Camera from '../../db/mongo/models/camera';
+import { IsRtspUrl } from '../rtsp-url.validation';
 
 export class CreateCameraBody {
 	@Validate(CountLicenseRestricion, [{ model: Camera, env: 'MAX_CAMERAS', default: 4 }])
@@ -30,6 +31,7 @@ export class CreateCameraBody {
 	@IsOptional()
 	@IsString()
 	@NotContains(' ')
+	@Validate(IsRtspUrl)
 	public url?: string;
 	@IsString()
 	@NotContains(' ')
@@ -59,6 +61,8 @@ export class UpdateCameraBody {
 	public ip?: string;
 	@IsOptional()
 	@IsString()
+	@NotContains(' ')
+	@Validate(IsRtspUrl)
 	public url?: string;
 	@IsOptional()
 	@IsString()
@@ -88,6 +92,8 @@ export class CameraInfoBody {
 	@IsString()
 	public password?: string;
 	@IsString()
+	@NotContains(' ')
+	@Validate(IsRtspUrl)
 	public url?: string;
 }
 

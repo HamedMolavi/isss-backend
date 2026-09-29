@@ -108,11 +108,17 @@ export class AuthLogger {
 		error?: string,
 		attemptedCredentials?: { username?: string; password?: string }
 	): void {
+		const sanitizedCredentials = this.maskSensitiveFields({
+			username: attemptedCredentials?.username,
+			password: attemptedCredentials?.password ? 'provided' : undefined
+		});
+
 		Logger.warn('User login failed', {
 			...this.createBaseLogData(req, AuthEventType.LOGIN_FAILED, false),
+			username: attemptedCredentials?.username || req.body?.username,
 			details: {
 				error,
-				attemptedCredentials
+				attemptedCredentials: sanitizedCredentials
 			}
 		});
 	}
@@ -188,6 +194,9 @@ export class AuthLogger {
 			action: AuthEventType.SESSION_EXPIRED,
 			success: true,
 			userid: userId,
+			username: sessionData?.username,
+			ip: sessionData?.ip,
+			userAgent: sessionData?.userAgent,
 			timestamp: new Date(),
 			details: {
 				sessionId,

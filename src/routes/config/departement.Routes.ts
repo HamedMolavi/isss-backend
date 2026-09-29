@@ -20,6 +20,7 @@ import {
 	makesearchFromBody
 } from '../../tools/request.tools';
 import { accessCheck } from '../../authentication/accessCheck.auth';
+import { departmentCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 
 //create router for add to server file
 const router: Router = Router();
@@ -30,6 +31,7 @@ router.use(accessCheck('department'));
 //add route for register new departement
 router.post(
 	'',
+	departmentCreationRateLimit,
 	dtoValidationMiddleware(CreateDepartmentBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,

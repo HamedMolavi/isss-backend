@@ -1,5 +1,6 @@
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDefined, IsObject, IsOptional, IsString, Validate } from 'class-validator';
 import { Plate } from './report.dto';
+import { IsPlateNumber } from '../plate.validation';
 
 export class CreatePlateLogBody {
 	@IsBoolean()
@@ -13,5 +14,8 @@ export class CreatePlateLogBody {
 	camera_id?: string;
 	@IsString()
 	owner?: string;
+	@IsDefined()
+	@IsObject()
+	@Validate(IsPlateNumber)
 	plate_number?: Plate;
 }

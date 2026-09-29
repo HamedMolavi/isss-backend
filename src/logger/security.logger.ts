@@ -1,6 +1,7 @@
 import { Request } from 'express';
 import { Logger } from '.';
 import { getClientIP } from '../tools/util.tools';
+import { sanitizeUserAgent } from '../tools/user_agent.utility';
 
 /**
  * Security event types
@@ -11,6 +12,7 @@ export enum SecurityEventType {
 	MONGODB_SANITIZATION = 'mongodb_sanitization',
 	MALICIOUS_INPUT_BLOCKED = 'malicious_input_blocked',
 	SUSPICIOUS_ACTIVITY = 'suspicious_activity',
+	MISSING_USER_AGENT = 'missing_user_agent',
 	SECURITY_CONFIG_ACCESSED = 'security_config_accessed',
 	SECURITY_CONFIG_UPDATED = 'security_config_updated',
 	PASSWORD_REQUIREMENTS_UPDATED = 'password_requirements_updated',
@@ -62,7 +64,7 @@ export class SecurityLogger {
 			userid: req.user?._id?.toString(),
 			username: req.user?.username,
 			ip: getClientIP(req) || 'unknown',
-			userAgent: req.get('User-Agent') ?? 'unknown',
+			userAgent: sanitizeUserAgent(req.get('User-Agent')),
 			method: req.method,
 			url: req.originalUrl || req.url,
 			timestamp: new Date()
@@ -135,6 +137,19 @@ export class SecurityLogger {
 			details: {
 				activity,
 				...additionalDetails
+			}
+		});
+	}
+
+	/**
+	 * Log a request rejected because its User-Agent header is missing or empty.
+	 */
+	static missingUserAgent(req: Request): void {
+		Logger.warn('Request rejected because User-Agent header is missing', {
+			...this.createBaseLogData(req, SecurityEventType.MISSING_USER_AGENT, false),
+			details: {
+				reason: 'missing_or_empty_user_agent',
+				blocked: true
 			}
 		});
 	}

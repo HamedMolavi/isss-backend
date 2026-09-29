@@ -49,6 +49,8 @@ export interface IUserModel extends Model<IUserDocument> {
 	generateAuthSession: (is_remember: boolean) => IAuthSession;
 	toAuthJSON: (is_remember: boolean) => IAuthUserJSON;
 	verifyUsernameIntegrity: (userId: string) => Promise<boolean>;
+	verifyIntegrity: (userId: string) => Promise<boolean>;
+	refreshIntegrityHash: (userId: string) => Promise<void>;
 	findByIdWithOTP: (userId: string) => Promise<IUserDocument | null>;
 }
 

@@ -1,6 +1,6 @@
 import { Log } from '../db/mongo/models/secLog';
-import { BackupLogger } from '../logger/backup.logger';
-import { Response } from 'express';
+import { BackupEventType, BackupLogger } from '../logger/backup.logger';
+import { Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { pipeline } from 'stream';
@@ -139,10 +139,15 @@ export class LogBackupService {
 			ttlThreshold.setDate(ttlThreshold.getDate() + (config.backupIntervalDays || 30));
 
 			const logsToExpire = await Log.countDocuments({
-				expires_at: { $lte: ttlThreshold }
+				expires_at: { $lte: ttlThreshold },
+				action: { $ne: BackupEventType.LOG_CLEANUP_STARTED }
 			});
 
-			const oldestLog = await Log.findOne({}, {}, { sort: { expires_at: 1 } });
+			const oldestLog = await Log.findOne(
+				{ action: { $ne: BackupEventType.LOG_CLEANUP_STARTED } },
+				{},
+				{ sort: { expires_at: 1 } }
+			);
 
 			let daysUntilExpiry = 0;
 			if (oldestLog?.expires_at) {
@@ -183,7 +188,8 @@ export class LogBackupService {
 			// 4. OR log count reached maxLogCount (100% usage) - immediate action
 			const intervalPassed = !lastBackupInfo.date || daysSinceLastBackup >= (config.backupIntervalDays || 30);
 			const logCountReached = totalLogs >= maxLogCount;
-			const needsBackup = storageCritical || storageWarning || logCountReached || (logsToExpire > 0 && intervalPassed);
+			const needsBackup =
+				storageCritical || storageWarning || logCountReached || (logsToExpire > 0 && intervalPassed);
 
 			await BackupLogger.ttlBackupCompleted(
 				'system_check',
@@ -276,19 +282,36 @@ export class LogBackupService {
 	/**
 	 * Clean up logs that have been backed up
 	 */
-	public async cleanupBackedUpLogs(config: BackupConfig): Promise<number> {
+	public async cleanupBackedUpLogs(config: BackupConfig, req?: Request): Promise<number> {
 		try {
 			const ttlThreshold = new Date();
 			ttlThreshold.setDate(ttlThreshold.getDate() + (config.backupIntervalDays || 30));
 
 			// First, get the IDs of logs that will be deleted for SQLite cleanup
-			const logsToDelete = await Log.find({ expires_at: { $lte: ttlThreshold } }, { _id: 1 }).lean();
+			const logsToDelete = await Log.find(
+				{
+					expires_at: { $lte: ttlThreshold },
+					action: { $ne: BackupEventType.LOG_CLEANUP_STARTED }
+				},
+				{ _id: 1 }
+			).lean();
 
 			const logIds = logsToDelete.map((log) => log._id.toString());
+			const cleanupAuditLogId = await BackupLogger.logRecordsCleanupStarted(
+				logIds.length,
+				config.ttlDays,
+				req,
+				{
+					cleanupType: 'ttl_backed_up_logs',
+					cutoffDate: ttlThreshold,
+					backupCreated: true
+				}
+			);
 
-			// Delete logs from MongoDB
+			// Delete only the records selected before the audit entry was created and
+			// explicitly preserve the audit entry itself.
 			const result = await Log.deleteMany({
-				expires_at: { $lte: ttlThreshold }
+				_id: { $in: logIds, $ne: cleanupAuditLogId }
 			});
 
 			// Clean up corresponding hash records from SQLite

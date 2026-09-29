@@ -5,7 +5,7 @@ import User from './user';
 
 const AccessLevelSchema: Schema<IAccessLevel> = new Schema(
 	{
-		name: { type: String, required: true },
+		name: { type: String, required: true, trim: true, unique: true },
 		camera: { type: Number, default: 0, min: 0, max: 15 },
 		car: { type: Number, default: 0, min: 0, max: 15 },
 		color: { type: Number, default: 0, min: 0, max: 15 },
@@ -28,6 +28,8 @@ const AccessLevelSchema: Schema<IAccessLevel> = new Schema(
 		collection: 'AccessLevel'
 	}
 );
+
+AccessLevelSchema.index({ name: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
 
 AccessLevelSchema.post(
 	['remove', 'deleteOne', 'deleteMany', 'findOneAndDelete', 'findOneAndRemove'],

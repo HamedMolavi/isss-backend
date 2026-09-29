@@ -14,11 +14,162 @@ import {
 } from '../utils/logFormatter';
 import { Logger } from '../logger';
 import { getClientIP } from '../tools/util.tools';
+import { FallbackLogRecord, readFallbackLogs } from '../services/fallbackLog.service';
+import { LogIntegrityService } from '../services/logIntegrity.service';
+import { UserIntegrityService } from '../services/userIntegrity.service';
+
+type FallbackFilters = {
+	username?: string;
+	usernameContains?: string;
+	excludeSystemUsers?: boolean;
+	actions?: Set<string> | null;
+	level?: string;
+	accessLevelNames?: string[];
+	ip?: string;
+	success?: boolean;
+	httpMethods?: string[];
+	startDate?: Date;
+	endDate?: Date;
+};
+
+function getNestedValue(record: Record<string, unknown>, path: string): unknown {
+	return path.split('.').reduce<unknown>((value, key) => {
+		if (!value || typeof value !== 'object') return undefined;
+		return (value as Record<string, unknown>)[key];
+	}, record);
+}
+
+function matchesFallbackFilters(log: FallbackLogRecord, filters: FallbackFilters): boolean {
+	const metadata = log.metadata || {};
+	const username = String(metadata.username || '');
+	const action = String(log.action || metadata.action || '');
+
+	if (filters.excludeSystemUsers && (!username || ['system', 'unknown'].includes(username))) return false;
+	if (filters.username && username !== filters.username) return false;
+	if (filters.usernameContains && !username.toLowerCase().includes(filters.usernameContains.toLowerCase())) {
+		return false;
+	}
+	if (filters.actions && !filters.actions.has(action)) return false;
+	if (filters.level && log.level !== filters.level) return false;
+	if (
+		filters.ip &&
+		!String(metadata.ip || '')
+			.toLowerCase()
+			.includes(filters.ip.toLowerCase())
+	)
+		return false;
+	if (filters.success !== undefined && metadata.success !== filters.success) return false;
+	if (
+		filters.httpMethods?.length &&
+		!filters.httpMethods.includes(String(metadata.method || '').toUpperCase())
+	) {
+		return false;
+	}
+
+	if (filters.accessLevelNames?.length) {
+		const details = (metadata.details || {}) as Record<string, unknown>;
+		const accessLevelValues = [
+			details.accessLevelName,
+			details.previousAccessLevel,
+			details.newAccessLevel,
+			details.accessLevel
+		].map((value) => String(value || '').toLowerCase());
+		if (
+			!filters.accessLevelNames.some((name) =>
+				accessLevelValues.some((value) => value.includes(name.toLowerCase()))
+			)
+		) {
+			return false;
+		}
+	}
+
+	const timestamp = new Date(log.timestamp || log.created_at || 0);
+	if (filters.startDate && timestamp < filters.startDate) return false;
+	if (filters.endDate && timestamp > filters.endDate) return false;
+
+	return true;
+}
+
+function sortCombinedLogs<T extends Record<string, unknown>>(
+	logs: T[],
+	sortBy: string,
+	sortOrder: 1 | -1
+): T[] {
+	return logs.sort((left, right) => {
+		const leftValue = getNestedValue(left, sortBy);
+		const rightValue = getNestedValue(right, sortBy);
+
+		if (['timestamp', 'created_at', 'updated_at'].includes(sortBy)) {
+			return (
+				(new Date(String(leftValue || 0)).getTime() - new Date(String(rightValue || 0)).getTime()) * sortOrder
+			);
+		}
+
+		return String(leftValue ?? '').localeCompare(String(rightValue ?? ''), 'fa') * sortOrder;
+	});
+}
+
+async function loadCombinedLogs(
+	query: Record<string, unknown>,
+	fallbackFilters: FallbackFilters,
+	sortBy: string,
+	sortOrder: 1 | -1,
+	skip: number,
+	limit: number
+): Promise<{ logs: Array<Record<string, unknown>>; total: number }> {
+	const fallbackLogs = (await readFallbackLogs()).filter((log) =>
+		matchesFallbackFilters(log, fallbackFilters)
+	);
+	const fallbackIds = fallbackLogs
+		.map((log) => log._id?.toString())
+		.filter((id): id is string => Boolean(id?.match(/^[a-f\d]{24}$/i)));
+
+	const mongoResult = await Promise.all([
+		Log.find(query)
+			.sort({ [sortBy]: sortOrder })
+			.limit(skip + limit)
+			.lean()
+			.exec(),
+		Log.countDocuments(query).exec(),
+		Log.find({ _id: { $in: fallbackIds } })
+			.select('_id')
+			.lean()
+			.exec()
+	])
+		.then(([logs, total, existingFallbackLogs]) => ({ logs, total, existingFallbackLogs }))
+		.catch((error) => {
+			console.error('MongoDB logs unavailable; serving fallback logs:', error);
+			return { logs: [], total: 0, existingFallbackLogs: [] };
+		});
+
+	const existingIds = new Set(
+		mongoResult.existingFallbackLogs.map((log) => log._id?.toString()).filter(Boolean)
+	);
+	const uniqueFallbackLogs = fallbackLogs.filter((log) => !log._id || !existingIds.has(log._id.toString()));
+	const combinedLogs = sortCombinedLogs(
+		[...mongoResult.logs, ...uniqueFallbackLogs] as Array<Record<string, unknown>>,
+		sortBy,
+		sortOrder
+	);
+
+	return {
+		logs: combinedLogs.slice(skip, skip + limit),
+		total: mongoResult.total + uniqueFallbackLogs.length
+	};
+}
+
+const VISIBLE_INTEGRITY_ALERTS = new Set([
+	'integrity_violation',
+	'modification_detected',
+	'hash_mismatch_detected',
+	'missing_hash_detected',
+	'unauthorized_modification'
+]);
 
 const DEFAULT_HIDDEN_ACTIONS = new Set<string>([
 	'permission_check_success',
 	'permission_check_failed',
-	...(ACTION_CATEGORIES.log_integrity || []),
+	...(ACTION_CATEGORIES.log_integrity || []).filter((action) => !VISIBLE_INTEGRITY_ALERTS.has(action)),
 	...(ACTION_CATEGORIES.backup_scheduler || [])
 ]);
 
@@ -112,6 +263,8 @@ export const getLogs = async (req: Request, res: Response) => {
 		const page = Math.max(1, parseInt(req.query.page as string) || 1);
 		const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
 		const skip = (page - 1) * limit;
+		const integrityPromise = LogIntegrityService.getInstance().getIntegrityOverview();
+		const userIntegrityPromise = UserIntegrityService.getInstance().getIntegrityOverview();
 
 		// Output format
 		const format = (req.query.format as string) || 'readable';
@@ -214,6 +367,8 @@ export const getLogs = async (req: Request, res: Response) => {
 					status: HttpStatus.OK,
 					data: {
 						logs: [],
+						integrity: await integrityPromise,
+						userIntegrity: await userIntegrityPromise,
 						pagination: {
 							page,
 							limit,
@@ -255,16 +410,27 @@ export const getLogs = async (req: Request, res: Response) => {
 			}
 		}
 
-		// Execute query
-		const [logs, total] = await Promise.all([
-			Log.find(query)
-				.sort({ [sortBy]: sortOrder })
-				.skip(skip)
-				.limit(limit)
-				.lean()
-				.exec(),
-			Log.countDocuments(query).exec()
-		]);
+		const { logs, total } = await loadCombinedLogs(
+			query,
+			{
+				excludeSystemUsers: true,
+				actions: actionSet,
+				level: req.query.level as string | undefined,
+				accessLevelNames,
+				usernameContains: req.query.username as string | undefined,
+				ip: req.query.ip as string | undefined,
+				success: req.query.success !== undefined ? req.query.success === 'true' : undefined,
+				httpMethods: req.query.httpMethod
+					? parseListParam(req.query.httpMethod).map((method) => method.toUpperCase())
+					: undefined,
+				startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+				endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined
+			},
+			sortBy,
+			sortOrder,
+			skip,
+			limit
+		);
 
 		// Format logs based on format parameter
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -295,6 +461,8 @@ export const getLogs = async (req: Request, res: Response) => {
 			status: HttpStatus.OK,
 			data: {
 				logs: outputLogs,
+				integrity: await integrityPromise,
+				userIntegrity: await userIntegrityPromise,
 				pagination: {
 					page,
 					limit,
@@ -811,15 +979,25 @@ export const getMyLogs = async (req: Request, res: Response) => {
 			}
 		}
 
-		const [logs, total] = await Promise.all([
-			Log.find(query)
-				.sort({ [sortBy]: sortOrder })
-				.skip(skip)
-				.limit(limit)
-				.lean()
-				.exec(),
-			Log.countDocuments(query).exec()
-		]);
+		const { logs, total } = await loadCombinedLogs(
+			query,
+			{
+				username: user.username,
+				actions: actionSet,
+				level: req.query.level as string | undefined,
+				accessLevelNames,
+				success: req.query.success !== undefined ? req.query.success === 'true' : undefined,
+				httpMethods: req.query.httpMethod
+					? parseListParam(req.query.httpMethod).map((method) => method.toUpperCase())
+					: undefined,
+				startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+				endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined
+			},
+			sortBy,
+			sortOrder,
+			skip,
+			limit
+		);
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const outputLogs = format === 'raw' ? logs : await formatLogs(logs as any);
@@ -900,8 +1078,14 @@ export const getLogById = async (req: Request, res: Response) => {
 	try {
 		const id = req.params.id;
 		const format = (req.query.format as string) || 'readable';
+		if (!/^[a-f\d]{24}$/i.test(id)) {
+			return ApiRes(res, {
+				status: HttpStatus.BAD_REQUEST,
+				msg: `شناسه لاگ نامعتبر: ${id}`
+			});
+		}
 
-		const doc = await Log.findOne({
+		const mongoDoc = await Log.findOne({
 			_id: id,
 			'metadata.username': {
 				$exists: true,
@@ -909,7 +1093,15 @@ export const getLogById = async (req: Request, res: Response) => {
 			}
 		})
 			.lean()
-			.exec();
+			.exec()
+			.catch(() => null);
+		const fallbackDoc = !mongoDoc
+			? (await readFallbackLogs()).find((log) => {
+					const username = String(log.metadata?.username || '');
+					return log._id?.toString() === id && username !== 'system' && username !== 'unknown';
+				})
+			: undefined;
+		const doc = mongoDoc || fallbackDoc;
 
 		if (!doc) {
 			return ApiRes(res, {

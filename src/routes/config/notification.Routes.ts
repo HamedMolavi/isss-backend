@@ -2,12 +2,13 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { ApiError } from '../../types/classes/error.class';
 import Notification from '../../db/mongo/models/notification';
 import { INotification } from '../../types/interfaces/notification.interface';
+import { notificationCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 
 //create router for add to routes file
 const router: Router = Router();
 
 //add route for register new notification
-router.post('', async function (req: Request, res: Response, next: NextFunction) {
+router.post('', notificationCreationRateLimit, async function (req: Request, res: Response, next: NextFunction) {
 	try {
 		//get json from body request
 		const newNotif: INotification = req.body;

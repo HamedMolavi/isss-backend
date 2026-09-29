@@ -17,8 +17,6 @@ export enum LogIntegrityEventType {
 	MODIFICATION_DETECTED = 'modification_detected',
 	MODIFICATION_TRIGGER_SETUP = 'modification_trigger_setup',
 	MODIFICATION_TRIGGER_FAILED = 'modification_trigger_failed',
-	KAFKA_ALERT_SENT = 'kafka_alert_sent',
-	KAFKA_ALERT_FAILED = 'kafka_alert_failed',
 	HASH_MISMATCH_DETECTED = 'hash_mismatch_detected',
 	MISSING_HASH_DETECTED = 'missing_hash_detected',
 	UNAUTHORIZED_MODIFICATION = 'unauthorized_modification',
@@ -58,7 +56,6 @@ export class LogIntegrityLogger {
 	// static async serviceStarted(
 	// 	serviceStatus: {
 	// 		serviceActive: boolean;
-	// 		kafkaTopic: string;
 	// 		triggerActive: boolean;
 	// 	},
 	// 	req?: Request
@@ -70,7 +67,6 @@ export class LogIntegrityLogger {
 	// 				...this.createBaseLogData(LogIntegrityEventType.SERVICE_STARTED, true, req),
 	// 				details: {
 	// 					serviceActive: serviceStatus.serviceActive,
-	// 					kafkaTopic: serviceStatus.kafkaTopic,
 	// 					triggerActive: serviceStatus.triggerActive,
 	// 					operation: 'service_startup'
 	// 				}
@@ -118,7 +114,7 @@ export class LogIntegrityLogger {
 				severity: 'CRITICAL',
 				operation: 'integrity_check',
 				metadata,
-				alertSent: true
+				recordedLocally: true
 			}
 		});
 	}
@@ -257,56 +253,6 @@ export class LogIntegrityLogger {
 	}
 
 	/**
-	 * Log successful Kafka alert
-	 */
-	static async kafkaAlertSent(
-		logId: string,
-		alertType: 'UNAUTHORIZED_MODIFICATION' | 'HASH_MISMATCH' | 'MISSING_HASH',
-		kafkaTopic: string,
-		req?: Request
-	): Promise<void> {
-		try {
-			const logType = await LogType.findOne({ isActive: true }).sort({ ts: -1 }).exec();
-			if (logType?.[LOG_TYPE_KEYS.successEvents] === true || !req) {
-				Logger.info('Integrity alert sent to Kafka', {
-					...this.createBaseLogData(LogIntegrityEventType.KAFKA_ALERT_SENT, true, req),
-					details: {
-						logId,
-						alertType,
-						kafkaTopic,
-						operation: 'kafka_alert',
-						severity: 'CRITICAL'
-					}
-				});
-			}
-		} catch (error) {
-			console.error('Error logging Kafka alert:', error);
-		}
-	}
-
-	/**
-	 * Log failed Kafka alert
-	 */
-	static kafkaAlertFailed(
-		logId: string,
-		alertType: 'UNAUTHORIZED_MODIFICATION' | 'HASH_MISMATCH' | 'MISSING_HASH',
-		error: string,
-		req?: Request
-	): void {
-		Logger.error('Failed to send integrity alert to Kafka', {
-			...this.createBaseLogData(LogIntegrityEventType.KAFKA_ALERT_FAILED, false, req),
-			details: {
-				logId,
-				alertType,
-				error,
-				operation: 'kafka_alert',
-				phase: 'failed',
-				failureReason: error
-			}
-		});
-	}
-
-	/**
 	 * Log hash mismatch detection
 	 */
 	static hashMismatchDetected(
@@ -393,7 +339,6 @@ export class LogIntegrityLogger {
 	static async serviceStatusCheck(
 		status: {
 			serviceActive: boolean;
-			kafkaTopic: string;
 			lastVerificationTime: Date | null;
 			triggerActive: boolean;
 		},
@@ -407,7 +352,6 @@ export class LogIntegrityLogger {
 					details: {
 						operation: 'status_check',
 						serviceActive: status.serviceActive,
-						kafkaTopic: status.kafkaTopic,
 						lastVerificationTime: status.lastVerificationTime?.toISOString(),
 						triggerActive: status.triggerActive,
 						healthStatus: status.serviceActive && status.triggerActive ? 'healthy' : 'degraded'

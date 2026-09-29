@@ -1,7 +1,9 @@
-import { IsString, IsOptional, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsObject, Validate } from 'class-validator';
+import { IsNonBlankText } from '../personnel.validation';
 
 export class CreateAccessLevelBody {
 	@IsString()
+	@Validate(IsNonBlankText)
 	public name?: string;
 	@IsOptional()
 	@IsObject()

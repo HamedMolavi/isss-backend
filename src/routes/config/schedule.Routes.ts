@@ -16,6 +16,7 @@ import { updateByIdMiddleware, updateByListMiddleware } from '../../db/mongo/upd
 import { deleteByIdMiddleware } from '../../db/mongo/delete.database';
 import { isObjectIdOrHexString } from 'mongoose';
 import { accessCheck } from '../../authentication/accessCheck.auth';
+import { scheduleCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 
 //create router for add to server file
 const router: Router = Router();
@@ -26,6 +27,7 @@ router.use(accessCheck('schedule'));
 //add route for register new schedule
 router.post(
 	'',
+	scheduleCreationRateLimit,
 	dtoValidationMiddleware(CreateScheduleBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,

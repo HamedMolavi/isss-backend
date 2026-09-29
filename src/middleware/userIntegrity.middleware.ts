@@ -4,7 +4,7 @@ import { Logger } from '../logger';
 
 /**
  * Middleware to verify user integrity when accessing user-related routes
- * This middleware runs username integrity verification in background for user operations
+ * This middleware runs full user-record integrity verification in background for user operations.
  */
 export const verifyUserIntegrityMiddleware = (req: Request, res: Response, next: NextFunction): void => {
 	// Check if this is a user-related operation
@@ -70,14 +70,15 @@ export const verifyUserIntegrityMiddleware = (req: Request, res: Response, next:
 				result
 			});
 
-			// If there are integrity violations, they will be sent to Kafka automatically
-			if (result.invalidUsers > 0 || result.missingHashes > 0) {
+			// Integrity violations are persisted by the local audit logger.
+			if (result.invalidUsers > 0 || result.missingHashes > 0 || result.deletedUsers > 0) {
 				Logger.warn('User integrity violations detected in background check', {
 					action: 'BACKGROUND_USER_INTEGRITY_VIOLATIONS_DETECTED',
 					userId: req.user?._id?.toString(),
 					path: req.path,
 					invalidUsers: result.invalidUsers,
 					missingHashes: result.missingHashes,
+					deletedUsers: result.deletedUsers,
 					invalidUserIds: result.invalidUserIds
 				});
 			} else {

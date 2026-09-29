@@ -3,6 +3,7 @@ import { Logger } from '.';
 import { LogType } from '../db/mongo/models/logType';
 import { LOG_TYPE_KEYS } from '../types/enums/logType.enum';
 import { getClientIP } from '../tools/util.tools';
+import { sanitizeUserAgent } from '../tools/user_agent.utility';
 
 /**
  * User management event types
@@ -81,7 +82,7 @@ export class UserLogger {
 			userid: req.user?._id?.toString(),
 			username: req.user?.username,
 			ip: getClientIP(req) || 'unknown',
-			userAgent: req.get('User-Agent') || 'unknown',
+			userAgent: sanitizeUserAgent(req.get('User-Agent')),
 			method: req.method,
 			url: req.originalUrl,
 			timestamp: new Date()

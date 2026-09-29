@@ -26,7 +26,11 @@ async function connect(dbUri: string): Promise<mongoose.Connection> {
 	//listen for connection errors
 	mongoose.connection.on('error', (err) => {
 		console.log('Mongoose default connection error: ' + err);
-		process.exit(1);
+		// Do not terminate the service: Mongoose will keep attempting to reconnect,
+		// while Mongo-backed logs are persisted to the fallback log file.
+	});
+	mongoose.connection.on('reconnected', () => {
+		console.log('Mongoose default connection restored: ' + dbUri);
 	});
 	return mongoose.connection;
 }

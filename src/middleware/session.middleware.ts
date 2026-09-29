@@ -12,7 +12,9 @@ export const sessionMiddleware = session({
 	resave: false,
 	rolling: true,
 	saveUninitialized: false,
-	proxy: false, // Do not trust reverse proxies; rely on direct connection info
+	// Honor X-Forwarded-Proto when TLS is terminated by the deployment proxy.
+	// The cookie remains Secure and therefore cannot be sent back over HTTP.
+	proxy: true,
 	cookie: {
 		maxAge: SecurityConfigDefault.SESSION.TIMEOUT,
 		httpOnly: SecurityConfigDefault.SESSION.COOKIE.HTTP_ONLY,

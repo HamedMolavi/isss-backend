@@ -52,6 +52,30 @@ export class SQLite {
 		);
 	}
 
+	static createUserRecordIntegrityTables(): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!SQLite.instance) return reject(new Error('SQLite database is not initialized'));
+			SQLite.instance.exec(
+				`CREATE TABLE IF NOT EXISTS UserRecordHash (
+					_id TEXT PRIMARY KEY NOT NULL,
+					hash TEXT NOT NULL
+				);
+				CREATE TABLE IF NOT EXISTS IntegrityMeta (
+					key TEXT PRIMARY KEY NOT NULL,
+					value TEXT NOT NULL
+				);`,
+				(error) => (error ? reject(error) : resolve())
+			);
+		});
+	}
+
+	static execute(sql: string, params: (string | number | boolean | null)[] = []): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!SQLite.instance) return reject(new Error('SQLite database is not initialized'));
+			SQLite.instance.run(sql, params, (error) => (error ? reject(error) : resolve()));
+		});
+	}
+
 	static insert(table: string, data: { [key: string]: string }): Promise<void> {
 		return new Promise((resolve) => {
 			if (!SQLite.instance) {
@@ -114,6 +138,16 @@ export class SQLite {
 		} else {
 			return SQLite.instance?.all(sql, params);
 		}
+	}
+
+	static queryAll<T>(sql: string, params: (string | number | boolean | null)[] = []): Promise<T[]> {
+		return new Promise((resolve, reject) => {
+			if (!SQLite.instance) return resolve([]);
+			SQLite.instance.all(sql, params, (error: Error | null, rows: T[]) => {
+				if (error) return reject(error);
+				resolve(rows || []);
+			});
+		});
 	}
 
 	/**

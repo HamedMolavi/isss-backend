@@ -215,7 +215,7 @@ export const performTTLCleanup = async (req: Request, res: Response) => {
 		const { backupPath, stats } = await backupService.createTTLBackup(config);
 
 		// Clean up old logs
-		const deletedCount = await backupService.cleanupBackedUpLogs(config);
+		const deletedCount = await backupService.cleanupBackedUpLogs(config, req);
 
 		await BackupLogger.ttlBackupCompleted(backupPath, stats, deletedCount, req);
 

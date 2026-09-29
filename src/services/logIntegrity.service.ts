@@ -1,17 +1,10 @@
 import { Log } from '../db/mongo/models/secLog';
 import { Logger } from '../logger';
 import { LogIntegrityLogger } from '../logger/logIntegrity.logger';
-import { Kafka, Producer, logLevel } from 'kafkajs';
 import { ChangeStreamDocument } from 'mongodb';
-
-export interface LogIntegrityAlert {
-	logId: string;
-	action: 'UNAUTHORIZED_MODIFICATION' | 'HASH_MISMATCH' | 'MISSING_HASH';
-	timestamp: Date;
-	originalHash?: string;
-	currentHash?: string;
-	metadata?: Record<string, unknown>;
-}
+import { SQLite } from '../db/sqlite';
+import { JSON_hash } from '../tools/utils.tools';
+import { readFallbackLogs } from './fallbackLog.service';
 
 export interface HashVerificationResult {
 	totalChecked: number;
@@ -22,41 +15,33 @@ export interface HashVerificationResult {
 	invalidLogIds: string[];
 }
 
+export interface LogIntegrityOverview {
+	detected: boolean;
+	status: 'OK' | 'WARNING' | 'UNAVAILABLE';
+	severity: 'NONE' | 'CRITICAL';
+	title: string;
+	message: string;
+	checkedAt: Date;
+	summary: {
+		protectedRecords: number;
+		storedRecords: number;
+		fallbackRecords: number;
+		modifiedRecords: number;
+		deletedRecords: number;
+		unprotectedRecords: number;
+	};
+	affectedLogIds: string[];
+}
+
 export class LogIntegrityService {
 	private static instance: LogIntegrityService;
-	private kafkaProducer: Producer | null = null;
-	private readonly INTEGRITY_TOPIC = process.env['LOG_INTEGRITY_TOPIC'] || 'log-integrity-alerts';
 	private lastVerificationTime: Date | null = null;
 	private triggerActive: boolean = false;
-	private serviceActive: boolean = false;
+	private overviewPromise: Promise<LogIntegrityOverview> | null = null;
+	private overviewCache: { value: LogIntegrityOverview; expiresAt: number } | null = null;
+	private lastOverviewAlertSignature: string | null = null;
 
-	private constructor() {
-		this.initKafka();
-	}
-
-	private async initKafka(): Promise<void> {
-		try {
-			const brokers = process.env['KAFKA_BOOTSTRAP']?.split(',');
-			if (!brokers?.length) {
-				console.warn('KAFKA_BOOTSTRAP not configured, alerts will be logged only');
-				return;
-			}
-
-			this.kafkaProducer = new Kafka({
-				logLevel: logLevel.ERROR,
-				brokers
-			}).producer({
-				retry: { restartOnFailure: async () => false },
-				allowAutoTopicCreation: true
-			});
-
-			await this.kafkaProducer.connect();
-			this.serviceActive = true;
-		} catch {
-			this.serviceActive = false;
-			console.warn('Kafka connection failed, alerts will be logged only');
-		}
-	}
+	private constructor() {}
 
 	public static getInstance(): LogIntegrityService {
 		if (!LogIntegrityService.instance) {
@@ -67,37 +52,154 @@ export class LogIntegrityService {
 
 	public getServiceStatus() {
 		return {
-			serviceActive: this.serviceActive,
-			kafkaTopic: this.INTEGRITY_TOPIC,
+			serviceActive: true,
 			lastVerificationTime: this.lastVerificationTime,
 			triggerActive: this.triggerActive
 		};
 	}
 
-	public async sendIntegrityAlert(alert: LogIntegrityAlert): Promise<void> {
-		if (!this.kafkaProducer || !this.serviceActive) return;
-
+	public async disableLegacyAutomaticDeletion(): Promise<void> {
 		try {
-			await this.kafkaProducer.send({
-				topic: this.INTEGRITY_TOPIC,
-				messages: [
-					{
-						key: alert.logId,
-						value: JSON.stringify({
-							...alert,
-							timestamp: alert.timestamp.toISOString(),
-							source: 'log-integrity-service',
-							severity: 'CRITICAL'
-						})
-					}
-				]
-			});
-		} catch (error) {
-			LogIntegrityLogger.kafkaAlertFailed(
-				alert.logId,
-				alert.action,
-				error instanceof Error ? error.message : 'Unknown error'
+			const indexes = await Log.collection.indexes();
+			const ttlIndexes = indexes.filter(
+				(index) =>
+					index.expireAfterSeconds !== undefined && Object.keys(index.key || {}).includes('expires_at')
 			);
+			for (const index of ttlIndexes) {
+				if (index.name) await Log.collection.dropIndex(index.name);
+			}
+			if (ttlIndexes.length > 0) {
+				Logger.systemOperation('Legacy automatic log deletion disabled', {
+					type: 'log_integrity',
+					action: 'automatic_log_deletion_disabled',
+					success: true,
+					details: { removedIndexes: ttlIndexes.map((index) => index.name) }
+				});
+			}
+		} catch (error) {
+			Logger.error('Failed to disable legacy automatic log deletion', {
+				type: 'log_integrity',
+				action: 'automatic_log_deletion_disable_failed',
+				success: false,
+				details: { error: error instanceof Error ? error.message : 'Unknown error' }
+			});
+		}
+	}
+
+	/**
+	 * Produces a UI-safe integrity summary. Unlike the previous verifier, this
+	 * also starts from the protected SQLite hashes, so records removed from
+	 * MongoDB are detectable instead of disappearing silently.
+	 */
+	public async getIntegrityOverview(): Promise<LogIntegrityOverview> {
+		if (this.overviewCache && this.overviewCache.expiresAt > Date.now()) {
+			return this.overviewCache.value;
+		}
+		if (this.overviewPromise) return this.overviewPromise;
+
+		this.overviewPromise = this.buildIntegrityOverview().finally(() => {
+			this.overviewPromise = null;
+		});
+		return this.overviewPromise;
+	}
+
+	private async buildIntegrityOverview(): Promise<LogIntegrityOverview> {
+		const checkedAt = new Date();
+		try {
+			const [hashRows, storedLogs, fallbackLogs] = await Promise.all([
+				SQLite.queryAll<{ _id: string; hash: string }>('SELECT _id, hash FROM Hash'),
+				Log.find({}, { level: 1, timestamp: 1, message: 1, action: 1, metadata: 1, expires_at: 1 })
+					.lean()
+					.exec(),
+				readFallbackLogs()
+			]);
+
+			const storedById = new Map(storedLogs.map((log) => [log._id.toString(), log]));
+			const fallbackIds = new Set(
+				fallbackLogs.map((log) => log._id?.toString()).filter((id): id is string => Boolean(id))
+			);
+			const deletedIds: string[] = [];
+			const modifiedIds: string[] = [];
+			const protectedIds = new Set(hashRows.map((row) => row._id));
+			const unprotectedIds = storedLogs
+				.map((log) => log._id.toString())
+				.filter((id) => !protectedIds.has(id));
+
+			for (const protectedRecord of hashRows) {
+				const storedLog = storedById.get(protectedRecord._id);
+				if (!storedLog) {
+					if (!fallbackIds.has(protectedRecord._id)) deletedIds.push(protectedRecord._id);
+					continue;
+				}
+
+				const calculated = JSON_hash({
+					_id: storedLog._id.toString(),
+					level: storedLog.level,
+					timestamp: storedLog.timestamp,
+					message: storedLog.message,
+					action: storedLog.action,
+					metadata: storedLog.metadata,
+					expires_at: storedLog.expires_at
+				})?.hash;
+				if (!calculated || calculated !== protectedRecord.hash) modifiedIds.push(protectedRecord._id);
+			}
+
+			const affectedIds = [...modifiedIds, ...deletedIds, ...unprotectedIds];
+			const detected = affectedIds.length > 0;
+			const value: LogIntegrityOverview = {
+				detected,
+				status: detected ? 'WARNING' : 'OK',
+				severity: detected ? 'CRITICAL' : 'NONE',
+				title: detected ? 'هشدار تغییر در سوابق ممیزی' : 'یکپارچگی سوابق ممیزی تأیید شد',
+				message: detected
+					? `تغییر غیرمجاز احتمالی شناسایی شد: ${modifiedIds.length} رکورد تغییر کرده، ${deletedIds.length} رکورد حذف شده و ${unprotectedIds.length} رکورد فاقد هش حفاظتی است.`
+					: 'هیچ تغییر یا حذف غیرمجازی در سوابق ممیزی شناسایی نشد.',
+				checkedAt,
+				summary: {
+					protectedRecords: hashRows.length,
+					storedRecords: storedLogs.length,
+					fallbackRecords: fallbackLogs.length,
+					modifiedRecords: modifiedIds.length,
+					deletedRecords: deletedIds.length,
+					unprotectedRecords: unprotectedIds.length
+				},
+				affectedLogIds: affectedIds.slice(0, 100)
+			};
+			if (detected) {
+				const signature = affectedIds.slice().sort().join(':');
+				if (signature !== this.lastOverviewAlertSignature) {
+					this.lastOverviewAlertSignature = signature;
+					LogIntegrityLogger.integrityViolationDetected('audit-log-storage', 'UNAUTHORIZED_MODIFICATION', {
+						modifiedRecords: modifiedIds.length,
+						deletedRecords: deletedIds.length,
+						unprotectedRecords: unprotectedIds.length,
+						affectedLogIds: affectedIds.slice(0, 100),
+						detectedBy: 'logs_page_integrity_overview'
+					});
+				}
+			} else {
+				this.lastOverviewAlertSignature = null;
+			}
+			this.overviewCache = { value, expiresAt: Date.now() + 30_000 };
+			return value;
+		} catch {
+			return {
+				detected: false,
+				status: 'UNAVAILABLE',
+				severity: 'NONE',
+				title: 'وضعیت یکپارچگی در دسترس نیست',
+				message: 'در حال حاضر امکان بررسی تغییرات سوابق ممیزی وجود ندارد.',
+				checkedAt,
+				summary: {
+					protectedRecords: 0,
+					storedRecords: 0,
+					fallbackRecords: 0,
+					modifiedRecords: 0,
+					deletedRecords: 0,
+					unprotectedRecords: 0
+				},
+				affectedLogIds: []
+			};
 		}
 	}
 
@@ -148,12 +250,6 @@ export class LogIntegrityService {
 				result.invalidLogs++;
 				result.invalidLogIds.push(logId);
 				LogIntegrityLogger.hashMismatchDetected(logId, log);
-				await this.sendIntegrityAlert({
-					logId,
-					action: 'HASH_MISMATCH',
-					timestamp: new Date(),
-					metadata: { logTimestamp: log.timestamp, logLevel: log.level, logMessage: log.message }
-				});
 			}
 		} catch (error) {
 			result.missingHashes++;
@@ -163,12 +259,6 @@ export class LogIntegrityService {
 				log,
 				error instanceof Error ? error.message : 'Unknown error'
 			);
-			await this.sendIntegrityAlert({
-				logId,
-				action: 'MISSING_HASH',
-				timestamp: new Date(),
-				metadata: { logTimestamp: log.timestamp, logLevel: log.level, logMessage: log.message }
-			});
 		}
 	}
 
@@ -176,14 +266,6 @@ export class LogIntegrityService {
 		try {
 			const isValid = await Log.verifyIntegrity(logId);
 			await LogIntegrityLogger.logModificationChecked(logId, isValid);
-
-			if (!isValid) {
-				await this.sendIntegrityAlert({
-					logId,
-					action: 'UNAUTHORIZED_MODIFICATION',
-					timestamp: new Date()
-				});
-			}
 
 			return isValid;
 		} catch (error) {
@@ -202,8 +284,9 @@ export class LogIntegrityService {
 				{ fullDocument: 'updateLookup', fullDocumentBeforeChange: 'whenAvailable' }
 			);
 
-			changeStream.on('change', async (change: ChangeStreamDocument) => {
+			changeStream.on('change', (change: ChangeStreamDocument) => {
 				if (!('documentKey' in change)) return;
+				this.overviewCache = null;
 
 				const logId = (change.documentKey as { _id: { toString(): string } })._id.toString();
 				const extendedChange = change as ChangeStreamDocument & {
@@ -216,16 +299,6 @@ export class LogIntegrityService {
 					documentAfter: extendedChange.fullDocument || null
 				});
 
-				await this.sendIntegrityAlert({
-					logId,
-					action: 'UNAUTHORIZED_MODIFICATION',
-					timestamp: new Date(),
-					metadata: {
-						operationType: change.operationType,
-						documentBefore: extendedChange.fullDocumentBeforeChange,
-						documentAfter: extendedChange.fullDocument
-					}
-				});
 			});
 
 			changeStream.on('error', (error: Error) => {
@@ -245,9 +318,6 @@ export class LogIntegrityService {
 
 	public async cleanup(): Promise<void> {
 		try {
-			if (this.kafkaProducer) {
-				await this.kafkaProducer.disconnect();
-			}
 			await LogIntegrityLogger.serviceStopped();
 		} catch (error) {
 			Logger.error('Failed to cleanup LogIntegrityService', {

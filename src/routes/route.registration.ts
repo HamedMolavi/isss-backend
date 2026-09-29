@@ -62,6 +62,7 @@ import SystemRouter from './system/index.Routes';
 import { passportGate } from '../authentication/authorize.auth';
 import { accessCheck, hasAccess } from '../authentication/accessCheck.auth';
 import SecurityConfigRouter from './config/securityConfig.Routes';
+import { IMAGE_UPLOAD_POLICY } from '../config/upload.config';
 
 export function RegisterRoutes(app: Application) {
 	const routePrefix = BaseConfig.API_PREFIX;
@@ -76,6 +77,15 @@ export function RegisterRoutes(app: Application) {
 
 	// Apply authentication middleware for all routes below
 	app.use(routePrefix, passportGate);
+
+	// UI-readable upload requirements shared by all image upload forms.
+	app.get(`${routePrefix}/upload-policy`, (_req, res) => {
+		return res.status(200).json({
+			status: 200,
+			msg: 'قوانین بارگذاری فایل',
+			data: IMAGE_UPLOAD_POLICY
+		});
+	});
 
 	// Auth routes
 	app.use(`${routePrefix}/auth/logout`, LogoutRouter);

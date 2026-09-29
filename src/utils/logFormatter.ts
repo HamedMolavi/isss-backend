@@ -4,9 +4,11 @@
  */
 
 import mongoose from 'mongoose';
+import { sanitizeUserAgent } from '../tools/user_agent.utility';
 
 // Cache for access level ID to name mapping
 const accessLevelCache = new Map<string, string>();
+const usernameCache = new Map<string, string>();
 
 /**
  * Check if a string is a valid MongoDB ObjectId
@@ -81,6 +83,45 @@ export async function resolveAccessLevelsInDetails(
 	return resolved;
 }
 
+async function resolveIntegrityUsernames(log: RawLog): Promise<string[]> {
+	if (log.action !== 'user_integrity_violation') return [];
+
+	const details = log.metadata?.details;
+	const storedUsernames = details?.affectedUsernames;
+	if (Array.isArray(storedUsernames)) {
+		return storedUsernames.filter(
+			(username): username is string => typeof username === 'string' && Boolean(username)
+		);
+	}
+
+	const affectedUserIds = details?.affectedUserIds;
+	if (!Array.isArray(affectedUserIds)) return [];
+	const validIds = affectedUserIds.filter(
+		(id): id is string => typeof id === 'string' && isValidObjectId(id)
+	);
+	if (!validIds.length) return [];
+
+	const missingIds = validIds.filter((id) => !usernameCache.has(id));
+	if (missingIds.length) {
+		try {
+			const { default: User } = await import('../db/mongo/models/user');
+			const users = await User.find({ _id: { $in: missingIds } })
+				.select('_id username')
+				.lean()
+				.exec();
+			for (const user of users) {
+				usernameCache.set(user._id.toString(), user.username);
+			}
+		} catch (error) {
+			console.error('Failed to resolve affected usernames:', error);
+		}
+	}
+
+	return validIds
+		.map((id) => usernameCache.get(id))
+		.filter((username): username is string => Boolean(username));
+}
+
 /**
  * Action type mappings for human-readable display
  */
@@ -114,6 +155,7 @@ export const ACTION_LABELS: Record<string, string> = {
 	mongodb_sanitization: 'پاکسازی ورودی مشکوک MongoDB',
 	malicious_input_blocked: 'ورودی مخرب مسدود شد',
 	suspicious_activity: 'فعالیت مشکوک',
+	missing_user_agent: 'رد درخواست بدون User-Agent',
 	security_config_accessed: 'مشاهده تنظیمات امنیتی',
 	security_config_updated: 'به‌روزرسانی تنظیمات امنیتی',
 	password_requirements_updated: 'به‌روزرسانی الزامات رمز عبور',
@@ -122,6 +164,8 @@ export const ACTION_LABELS: Record<string, string> = {
 	log_backup_config_updated: 'به‌روزرسانی پشتیبان‌گیری لاگ',
 	max_sessions_config_updated: 'به‌روزرسانی حداکثر نشست',
 	functional_behavior_changed: 'تغییر سیاست عملکردی',
+	user_integrity_violation: 'تشخیص دستکاری غیرمجاز حساب کاربری',
+	user_integrity_check_failed: 'شکست پایش یکپارچگی حساب کاربری',
 
 	// Log integrity events
 	service_started: 'شروع سرویس یکپارچگی لاگ',
@@ -133,8 +177,6 @@ export const ACTION_LABELS: Record<string, string> = {
 	modification_detected: 'تشخیص تغییر لاگ',
 	modification_trigger_setup: 'راه‌اندازی تریگر پایش تغییرات',
 	modification_trigger_failed: 'شکست در راه‌اندازی تریگر تغییرات',
-	kafka_alert_sent: 'ارسال هشدار به کافکا',
-	kafka_alert_failed: 'شکست در ارسال هشدار به کافکا',
 	hash_mismatch_detected: 'عدم تطابق هش',
 	missing_hash_detected: 'عدم وجود هش',
 	unauthorized_modification: 'تغییر غیرمجاز لاگ',
@@ -196,6 +238,7 @@ export const ACTION_LABELS: Record<string, string> = {
 	backup_delete_failed: 'حذف پشتیبان ناموفق',
 	backup_cleanup: 'پاکسازی پشتیبان',
 	backup_cleanup_failed: 'پاکسازی پشتیبان ناموفق',
+	log_cleanup_started: 'شروع پاکسازی لاگ‌ها',
 	ttl_backup_started: 'شروع پشتیبان TTL',
 	ttl_backup_completed: 'اتمام پشتیبان TTL',
 	ttl_backup_failed: 'شکست پشتیبان TTL',
@@ -209,6 +252,7 @@ export const ACTION_LABELS: Record<string, string> = {
 	storage_warning_threshold_exceeded: 'تجاوز از آستانه هشدار ذخیره‌سازی لاگ',
 	storage_critical_threshold_exceeded: 'تجاوز از آستانه بحرانی ذخیره‌سازی لاگ',
 	storage_threshold_cleared: 'پاک شدن آستانه ذخیره‌سازی',
+	mongodb_connection_failed: 'قطع اتصال به پایگاه داده MongoDB',
 
 	// Data events
 	data_created: 'ایجاد داده',
@@ -253,10 +297,10 @@ export const ACTION_LABELS: Record<string, string> = {
 	'read_config_user_auth-sum': 'مشاهده خلاصه احراز هویت',
 	'read_config_user_department-files': 'مشاهده فایل‌های دپارتمان',
 	'read_config_user_car-brands': 'مشاهده برندهای خودرو',
-	'read_config_user_cars': 'مشاهده خودروها',
-	'read_config_user_cameras': 'مشاهده دوربین‌ها',
+	read_config_user_cars: 'مشاهده خودروها',
+	read_config_user_cameras: 'مشاهده دوربین‌ها',
 	'read_config_user_model-to-cameras': 'مشاهده مدل به دوربین',
-	'partial_update_config_user_cars': 'به‌روزرسانی جزئی خودروها',
+	partial_update_config_user_cars: 'به‌روزرسانی جزئی خودروها',
 	read_config_cameras: 'مشاهده تنظیمات دوربین‌ها',
 	read_newreport_plate: 'مشاهده گزارش پلاک',
 	create_newreport_face: 'ایجاد گزارش چهره',
@@ -470,6 +514,7 @@ export const ACTION_CATEGORIES: Record<string, string[]> = {
 		'mongodb_sanitization',
 		'malicious_input_blocked',
 		'suspicious_activity',
+		'missing_user_agent',
 		'security_config_accessed',
 		'security_config_updated',
 		'password_requirements_updated',
@@ -489,8 +534,6 @@ export const ACTION_CATEGORIES: Record<string, string[]> = {
 		'modification_detected',
 		'modification_trigger_setup',
 		'modification_trigger_failed',
-		'kafka_alert_sent',
-		'kafka_alert_failed',
 		'hash_mismatch_detected',
 		'missing_hash_detected',
 		'unauthorized_modification',
@@ -531,6 +574,8 @@ export const ACTION_CATEGORIES: Record<string, string[]> = {
 		'access_level_assignment_failed',
 		'permission_check_success',
 		'permission_check_failed',
+		'user_integrity_violation',
+		'user_integrity_check_failed',
 		'password_updated',
 		'password_update_failed',
 		'password_reset_by_admin',
@@ -548,6 +593,7 @@ export const ACTION_CATEGORIES: Record<string, string[]> = {
 		'read_log_my_logs',
 		'log_status_check',
 		'log_ttl_cleanup',
+		'mongodb_connection_failed',
 		'read_config_user_department-files',
 		'read_config_user_car-brands',
 		'read_config_user_model-to-cameras'
@@ -832,6 +878,17 @@ function generateSummary(log: RawLog): string {
 	if (action === 'password_changed') {
 		return `${username} رمز عبور خود را تغییر داد`;
 	}
+	if (action === 'user_integrity_violation') {
+		const affectedUsernames = log.metadata?.details?.affectedUsernames;
+		const names = Array.isArray(affectedUsernames)
+			? affectedUsernames.filter((value) => typeof value === 'string' && value).join('، ')
+			: username !== 'security-monitor'
+				? username
+				: '';
+		return names
+			? `دستکاری غیرمجاز حساب کاربری ${names} شناسایی شد`
+			: 'دستکاری غیرمجاز حساب کاربری شناسایی شد';
+	}
 
 	// IP restriction summaries
 	if (action === 'ip_added') {
@@ -899,6 +956,27 @@ function extractHttpRequestInfo(log: RawLog): HttpRequestInfo | null {
 export async function formatLog(log: RawLog): Promise<FormattedLog> {
 	const timestamp = new Date(log.timestamp || log.created_at || new Date());
 	const action = log.action || 'unknown';
+	const integrityUsernames = await resolveIntegrityUsernames(log);
+	const rawDetails = log.metadata?.details || null;
+	const displayDetails =
+		action === 'user_integrity_violation' && rawDetails
+			? {
+					...Object.fromEntries(Object.entries(rawDetails).filter(([key]) => key !== 'affectedUserIds')),
+					...(integrityUsernames.length ? { affectedUsernames: integrityUsernames } : {})
+				}
+			: rawDetails;
+	const displayUsername =
+		action === 'user_integrity_violation' && integrityUsernames.length
+			? integrityUsernames[0]
+			: log.metadata?.username || 'unknown';
+	const displayLog: RawLog = {
+		...log,
+		metadata: {
+			...log.metadata,
+			username: displayUsername,
+			details: displayDetails || undefined
+		}
+	};
 	const level = log.level || 'info';
 	const category = getActionCategory(action);
 	const levelInfo = LEVEL_SEVERITY[level] || { color: 'gray', priority: 99 };
@@ -959,7 +1037,7 @@ export async function formatLog(log: RawLog): Promise<FormattedLog> {
 			categoryLabel: CATEGORY_LABELS[category] || 'سایر'
 		},
 		user: {
-			username: log.metadata?.username || 'unknown',
+			username: displayUsername,
 			id: log.metadata?.userid || log.metadata?.userId || ''
 		},
 		location: {
@@ -968,9 +1046,9 @@ export async function formatLog(log: RawLog): Promise<FormattedLog> {
 		},
 		request: requestInfo,
 		message: log.message || '',
-		summary: generateSummary(log),
+		summary: generateSummary(displayLog),
 		success: log.metadata?.success ?? null,
-		details: cleanDetails(await resolveAccessLevelsInDetails(log.metadata?.details || null))
+		details: cleanDetails(await resolveAccessLevelsInDetails(displayDetails))
 	};
 }
 
@@ -1025,7 +1103,9 @@ const DEVICE_TYPE_LABELS: Record<string, string> = {
 };
 
 export function parseUserAgent(userAgent: string): ParsedUserAgent {
-	if (!userAgent) {
+	const safeUserAgent = sanitizeUserAgent(userAgent);
+
+	if (!safeUserAgent || safeUserAgent === 'unknown') {
 		return {
 			raw: '',
 			browser: { name: 'Unknown', nameLabel: 'ناشناخته', version: '' },
@@ -1034,6 +1114,8 @@ export function parseUserAgent(userAgent: string): ParsedUserAgent {
 			summary: 'مرورگر ناشناخته'
 		};
 	}
+
+	userAgent = safeUserAgent;
 
 	// Extract browser info
 	let browserName = 'Unknown';
@@ -1226,6 +1308,11 @@ const DETAILS_FIELD_LABELS: Record<string, string> = {
 	field: 'فیلد',
 	originalValue: 'مقدار اصلی',
 	newValue: 'مقدار جدید',
+	modifiedRecords: 'رکوردهای تغییریافته',
+	deletedRecords: 'رکوردهای حذف‌شده',
+	unprotectedRecords: 'رکوردهای فاقد هش حفاظتی',
+	affectedUserIds: 'شناسه حساب‌های کاربری آسیب‌دیده',
+	affectedUsernames: 'نام کاربری حساب‌های آسیب‌دیده',
 
 	// Backup fields
 	backupPath: 'مسیر پشتیبان',
@@ -1298,6 +1385,7 @@ const DETAILS_FIELD_LABELS: Record<string, string> = {
 	backupSizeMB: 'اندازه پشتیبان (مگابایت)',
 	backupDate: 'تاریخ پشتیبان',
 	cleanedLogsCount: 'تعداد لاگ‌های پاک شده',
+	logsScheduledForDeletion: 'تعداد لاگ‌های در صف پاکسازی',
 	totalLogs: 'کل لاگ‌ها',
 	deletedCount: 'تعداد حذف شده',
 	ftpUpload: 'آپلود FTP',
@@ -1324,6 +1412,8 @@ const DETAILS_FIELD_LABELS: Record<string, string> = {
 	healthStatus: 'وضعیت سلامت',
 	automaticDetection: 'تشخیص خودکار',
 	alertSent: 'هشدار ارسال شده',
+	recordedLocally: 'ثبت‌شده در لاگ محلی',
+	securityEventRecorded: 'رویداد امنیتی ثبت‌شده',
 	verificationTimeMs: 'زمان بررسی (میلی‌ثانیه)',
 	successRate: 'نرخ موفقیت',
 	invalidLogCount: 'تعداد لاگ نامعتبر',
@@ -1394,7 +1484,6 @@ const DETAILS_VALUE_LABELS: Record<string, Record<string, string>> = {
 		hash_verification: 'تأیید هش',
 		modification_detection: 'تشخیص تغییر',
 		trigger_setup: 'راه‌اندازی تریگر',
-		kafka_alert: 'هشدار کافکا',
 		status_check: 'بررسی وضعیت',
 		modification_check: 'بررسی تغییر',
 		tampering_simulation: 'شبیه‌سازی دستکاری',

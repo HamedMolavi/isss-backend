@@ -7,7 +7,7 @@ import { HttpStatus } from '../types/http_status';
  *
  * Provides protection against:
  * 1. Unauthorized HTTP methods - Returns 405 Method Not Allowed
- * 2. OPTIONS method abuse - Restricts OPTIONS responses
+ * 2. OPTIONS method abuse - Blocks OPTIONS entirely unless explicitly re-enabled in code
  * 3. Header exposure - Removes sensitive headers from responses
  */
 
@@ -18,34 +18,21 @@ const ALLOWED_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 const HEADERS_TO_REMOVE = ['X-Powered-By', 'Server', 'X-AspNet-Version', 'X-AspNetMvc-Version'];
 
 /**
- * Middleware to handle OPTIONS requests restrictively
- * Only allows OPTIONS for CORS preflight with specific origins
+ * Middleware to block OPTIONS requests.
+ *
+ * Security rationale:
+ * The API does not use OPTIONS as an application method. Earlier versions only
+ * allowed it for browser CORS preflight, but this exposes method-discovery
+ * behavior. If a future browser-only integration needs preflight, enable it
+ * deliberately with an origin allow-list instead of wildcard reflection.
  */
 export function optionsHandler(req: Request, res: Response, next: NextFunction) {
 	if (req.method === 'OPTIONS' || req.method === 'HEAD') {
-		// Get the origin from the request
-		const origin = req.headers.origin;
-
-		// If no origin header, this is not a valid CORS preflight
-		if (!origin) {
-			return ApiRes(res, {
-				status: HttpStatus.METHOD_NOT_ALLOWED,
-				msg: 'OPTIONS method not allowed'
-			});
-		}
-
-		// Set minimal CORS headers for preflight
-		res.setHeader('Access-Control-Allow-Origin', origin);
-		res.setHeader('Access-Control-Allow-Methods', ALLOWED_METHODS.join(', '));
-		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-		res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-		res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-		// Don't expose sensitive headers
-		res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
-
-		// End the preflight request
-		return res.status(204).end();
+		res.setHeader('Allow', ALLOWED_METHODS.join(', '));
+		return ApiRes(res, {
+			status: HttpStatus.METHOD_NOT_ALLOWED,
+			msg: `${req.method} method not allowed`
+		});
 	}
 
 	next();
@@ -125,26 +112,17 @@ export function httpSecurityMiddleware(req: Request, res: Response, next: NextFu
 	res.setHeader('Pragma', 'no-cache');
 	res.setHeader('Expires', '0');
 
-	// 3. Handle OPTIONS requests (CORS preflight)
+	// 3. Block OPTIONS requests.
+	// The system does not require OPTIONS for its API workflows. Keeping it closed
+	// prevents method discovery and satisfies environments that require unused
+	// HTTP verbs to be disabled. If CORS preflight is needed later, re-enable it
+	// with a strict origin allow-list and documented business need.
 	if (req.method === 'OPTIONS') {
-		const origin = req.headers.origin;
-
-		// Only allow OPTIONS for valid CORS preflight requests
-		if (!origin) {
-			return ApiRes(res, {
-				status: HttpStatus.METHOD_NOT_ALLOWED,
-				msg: 'OPTIONS method not allowed'
-			});
-		}
-
-		res.setHeader('Access-Control-Allow-Origin', origin);
-		res.setHeader('Access-Control-Allow-Methods', ALLOWED_METHODS.join(', '));
-		res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-		res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-		res.setHeader('Access-Control-Allow-Credentials', 'true');
-		res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
-
-		return res.status(204).end();
+		res.setHeader('Allow', ALLOWED_METHODS.join(', '));
+		return ApiRes(res, {
+			status: HttpStatus.METHOD_NOT_ALLOWED,
+			msg: 'OPTIONS method not allowed'
+		});
 	}
 
 	// 4. Validate HTTP method

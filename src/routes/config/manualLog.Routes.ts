@@ -6,9 +6,9 @@ import { Plate } from '../../db/elastic/model/plate';
 import { createMiddleware } from '../../db/mongo/create.database';
 import { stringifyPlate } from '../../tools/car.tools';
 import Car from '../../db/mongo/models/car';
-import { englishPlateDict } from '../../tools/plate.tools';
 import { existCheck } from '../../validation/db';
 import { injectDataMiddleware } from '../../tools/request.tools';
+import { manualLogCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 
 //create router for add to server file
 const router: Router = Router();
@@ -16,6 +16,7 @@ const router: Router = Router();
 router
 	.post(
 		'/plate',
+		manualLogCreationRateLimit,
 		dtoValidationMiddleware(CreatePlateLogBody, {
 			skipMissingProperties: false,
 			detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
@@ -42,8 +43,7 @@ router
 				'brand',
 				'color',
 				{
-					number_plate: (body: any) =>
-						`${body.plate_number?.first}${englishPlateDict[body.plate_number?.second]}${body.plate_number?.third}${body.plate_number?.fifth}`
+					number_plate: (body: any) => stringifyPlate({ number_plate: body.plate_number })
 				}
 			],
 			Car,

@@ -49,6 +49,7 @@ declare global {
 					password?: string;
 				};
 			};
+			loginFailureLogged?: boolean;
 		}
 		interface Response {
 			responseBody?: unknown;

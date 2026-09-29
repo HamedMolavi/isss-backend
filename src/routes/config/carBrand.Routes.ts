@@ -13,6 +13,7 @@ import { carSendFunction } from '../../tools/car.tools';
 import { updateByIdMiddleware } from '../../db/mongo/update.database';
 import { DoNotAllowOnDefault, injectDataMiddleware } from '../../tools/request.tools';
 import { accessCheck } from '../../authentication/accessCheck.auth';
+import { carBrandCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 
 //create router for add to server file
 const router: Router = Router();
@@ -23,6 +24,7 @@ router.use(accessCheck('brand'));
 //add route for register new car_brand
 router.post(
 	'',
+	carBrandCreationRateLimit,
 	dtoValidationMiddleware(CreateCarBrandBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,

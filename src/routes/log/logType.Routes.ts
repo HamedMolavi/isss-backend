@@ -10,6 +10,7 @@ import { DoNotAllowOnDefault } from '../../tools/request.tools';
 import { CreateLogTypeBody } from '../../validation/dto/logType.dto';
 import { LogType } from '../../db/mongo/models/logType';
 import { LOG_TYPE_KEYS } from '../../types/enums/logType.enum';
+import { logTypeCreationRateLimit } from '../../middleware/resource-rate-limit.middleware';
 
 const LogTypeRouter: Router = Router();
 
@@ -19,6 +20,7 @@ const route_prefix = '';
 LogTypeRouter.post(
 	`${route_prefix}`,
 	accessCheck('systemLog'),
+	logTypeCreationRateLimit,
 	dtoValidationMiddleware(CreateLogTypeBody, {
 		skipMissingProperties: false,
 		detailedMassage: process.env['NODE_ENV'] === 'development' ? true : false,
